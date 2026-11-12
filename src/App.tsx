@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import "./love-radar.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
@@ -84,6 +84,15 @@ export default function LoveRadar(){
   document.documentElement.style.overflow="hidden";
   return()=>{document.documentElement.style.overflow=before};
  },[chatFocused]);
+ useEffect(()=>{
+  if(tab!=="chat"||!room)return;
+  const oldBody=document.body.style.overflow;
+  const oldRoot=document.documentElement.style.overflow;
+  window.scrollTo(0,0);
+  document.body.style.overflow="hidden";
+  document.documentElement.style.overflow="hidden";
+  return()=>{document.body.style.overflow=oldBody;document.documentElement.style.overflow=oldRoot};
+ },[tab,!!room]);
  const [menu,setMenu]=useState(false);
  const [notificationsOn,setNotificationsOn]=useState(false);
  const [notificationsBusy,setNotificationsBusy]=useState(false);
@@ -370,7 +379,7 @@ export default function LoveRadar(){
  const radar=room?.challenges.find(c=>c.kind==="radar");
  const partner=room?.partner||"Ton amour";
  const images=room?.messages.filter(m=>m.kind==="image")||[];
- return <div className={"lr-app "+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
+ return <div className={"lr-app "+(tab==="chat"&&room?"lr-chat-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-brand"><span className="lr-brand-mark">♥</span><div><b>love<span>radar</span></b><small>BY DIAO-TECH.COM</small></div></div>
    <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>{room.user.name}</b><span>Espace privé · {room.code}</span><button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
@@ -441,12 +450,52 @@ export default function LoveRadar(){
        </section>
        <aside className="lr-game-info"><div className="lr-game-info-icon">✦</div><h3>Comment on joue ?</h3><p>Chacun choisit « Action » ou « Vérité » à son tour. Le défi apparaît sur vos deux téléphones.</p><p>La personne qui joue valide son défi ou choisit de passer. Ensuite, c’est reparti !</p><div className="lr-game-info-pill">💞 Synchronisé à deux</div></aside></div></>}
       </>:null}
-    {tab==="chat"?<div className="lr-chat"><div className="lr-chat-head"><div className="lr-chat-partner"><Initials name={partner} size="small"/><div><h2>{partner}</h2><span>{room.partner?"Votre espace privé ❤️":"En attente de connexion…"}</span></div></div><span className="lr-no-calls">✦ Messages uniquement</span></div>
-     <div className="lr-chat-messages" ref={chatScroller}>{room.messages.length===0?<div className="lr-chat-empty"><span>💌</span><h3>Votre première conversation</h3><p>Envoyez un message pour commencer votre histoire ici.</p></div>:room.messages.map((m,idx)=>{const mine=m.sender_id===room.user.id;const stamp=new Date(m.created_at).toLocaleString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});return <div key={m.id} className={"lr-bubble-row "+(mine?"mine":"other")}><div className="lr-bubble">{m.kind==="text"?<p>{m.content}</p>:m.kind==="image"?media[m.id]?<img className="lr-chat-image" src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} />:<div className="lr-media-loading">Chargement de la photo…</div>:media[m.id]?<div className="lr-voice"><span>🎙️ Vocal</span><audio controls preload="metadata" src={media[m.id]}/></div>:<div className="lr-media-loading">Chargement du vocal…</div>}<small>{stamp} {mine?"♡":""}</small></div></div>})}<div ref={tail}/></div>
-     <div className="lr-chat-compose">{recording?<div className="lr-recording"><span className="lr-record-dot"/> Enregistrement… touche « Arrêter » pour envoyer.</div>:null}
-      <form className={"lr-chat-form "+(chatFocused||draft.trim()?"is-writing ":"")+(recording?"is-recording":"")} onSubmit={sendMessage}><input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={onImageChange}/><button className="lr-attach" type="button" title="Envoyer une photo" aria-label="Envoyer une photo" onClick={()=>fileInput.current?.click()} disabled={!room.partner||busy}>＋</button><input aria-label="Écrire un message" type="text" enterKeyHint="send" autoComplete="off" value={draft} onFocus={()=>{setChatFocused(true);if(chatScroller.current)chatScroller.current.scrollTop=chatScroller.current.scrollHeight}} onBlur={()=>setChatFocused(false)} onChange={e=>setDraft(e.target.value)} placeholder={room.partner?"Écris un joli message…":"En attente de ton partenaire…"} disabled={!room.partner} maxLength={1600}/><button className={"lr-mic "+(recording?"recording":"")} type="button" title={recording?"Arrêter le vocal":"Enregistrer un vocal"} onClick={toggleRecording} disabled={!room.partner||busy}>{recording?"■":"♫"}</button><button className="lr-send" type="submit" aria-label="Envoyer le message" disabled={!room.partner||!draft.trim()||busy}>➤</button></form>
-      <p className="lr-chat-caption">🔒 Texte, images et vocaux privés. Pas de chiffrement de bout en bout. Photos 6 Mo max, vocaux 45 s max.</p></div>
-    </div>:null}
+    {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
+     <div className="lr-chat-head">
+      <div className="lr-chat-partner"><Initials name={partner} size="small"/>
+       <div><h2>{partner}</h2><span>{room.partner?"Votre conversation":"En attente de votre partenaire…"}</span></div>
+      </div>
+     </div>
+     <div className="lr-chat-messages" ref={chatScroller} role="log" aria-label="Messages" aria-live="off">
+      {room.messages.length===0?<div className="lr-chat-empty"><span>♡</span><h3>Votre conversation</h3><p>Écris ton premier message pour commencer.</p></div>:
+      room.messages.map((m,idx)=>{
+       const mine=m.sender_id===room.user.id;
+       const previous=room.messages[idx-1], next=room.messages[idx+1];
+       const day=new Date(m.created_at).toDateString();
+       const newDay=!previous||new Date(previous.created_at).toDateString()!==day;
+       const groupedBefore=previous&&!newDay&&previous.sender_id===m.sender_id&&m.created_at-previous.created_at<5*60*1000;
+       const groupedAfter=next&&next.sender_id===m.sender_id&&new Date(next.created_at).toDateString()===day&&next.created_at-m.created_at<5*60*1000;
+       const time=new Date(m.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+       const date=new Date(m.created_at).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"long"});
+       return <Fragment key={m.id}>
+        {newDay?<div className="lr-chat-day">{date}</div>:null}
+        <div className={"lr-bubble-row "+(mine?"mine ":"other ")+(groupedBefore?"lr-grouped ":"")+(groupedAfter?"lr-group-next":"")}>
+         <div className="lr-bubble-stack">
+          <div className="lr-bubble">{m.kind==="text"?<p>{m.content}</p>:m.kind==="image"?
+          media[m.id]?<img className="lr-chat-image" src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} />:
+          <div className="lr-media-loading">Chargement de la photo…</div>:
+          media[m.id]?<div className="lr-voice"><span>Message vocal</span><audio controls preload="metadata" src={media[m.id]}/></div>:
+          <div className="lr-media-loading">Chargement du vocal…</div>}</div>
+          {!groupedAfter?<time className="lr-message-time" dateTime={new Date(m.created_at).toISOString()}>{time}</time>:null}
+         </div>
+        </div>
+       </Fragment>
+      })}
+      <div ref={tail}/>
+     </div>
+     <div className="lr-chat-compose">
+      {recording?<div className="lr-recording"><span className="lr-record-dot"/> Enregistrement en cours…</div>:null}
+      <form className={"lr-chat-form "+(chatFocused||draft.trim()?"is-writing ":"")+(recording?"is-recording":"")} onSubmit={sendMessage}>
+       <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={onImageChange}/>
+       <button className="lr-attach" type="button" title="Envoyer une photo" aria-label="Ajouter une photo" onClick={()=>fileInput.current?.click()} disabled={!room.partner||busy}><span aria-hidden="true">+</span></button>
+       <input aria-label="Écrire un message" type="text" enterKeyHint="send" autoComplete="off" value={draft} onFocus={()=>setChatFocused(true)} onBlur={()=>setChatFocused(false)} onChange={e=>setDraft(e.target.value)} placeholder={room.partner?"Message…":"En attente de ton partenaire…"} disabled={!room.partner} maxLength={1600}/>
+       <button className={"lr-mic "+(recording?"recording":"")} type="button" title={recording?"Arrêter le vocal":"Enregistrer un vocal"} aria-label={recording?"Arrêter le message vocal":"Enregistrer un message vocal"} onClick={toggleRecording} disabled={!room.partner||busy}>
+        {recording?<span aria-hidden="true">■</span>:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8 21h8"/></svg>}
+       </button>
+       <button className="lr-send" type="submit" aria-label="Envoyer" onPointerDown={e=>e.preventDefault()} disabled={!room.partner||!draft.trim()||busy}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg></button>
+      </form>
+     </div>
+    </section>:null}
     {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Retrouvez les photos partagées dans votre conversation.</p></div><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>setTab("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<img src={media[m.id]} alt="Souvenir du couple"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
    </main>
    <nav className="lr-mobile-nav" aria-label="Navigation du couple">{NAV.map(n=><button key={n.id} className={tab===n.id?"active":""} onClick={()=>{setTab(n.id);firstPoll.current=true}}><span>{n.icon}</span><small>{n.label}</small></button>)}</nav>
