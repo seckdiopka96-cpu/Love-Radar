@@ -93,6 +93,19 @@ export default function LoveRadar(){
   document.documentElement.style.overflow="hidden";
   return()=>{document.body.style.overflow=oldBody;document.documentElement.style.overflow=oldRoot};
  },[tab,!!room]);
+ useEffect(()=>{
+  if(!room)return;
+  const stopGesture=(e:Event)=>e.preventDefault();
+  const stopMultitouch=(e:TouchEvent)=>{if(e.touches.length>1)e.preventDefault()};
+  document.addEventListener("gesturestart",stopGesture,{passive:false});
+  document.addEventListener("gesturechange",stopGesture,{passive:false});
+  document.addEventListener("touchmove",stopMultitouch,{passive:false});
+  return()=>{
+   document.removeEventListener("gesturestart",stopGesture);
+   document.removeEventListener("gesturechange",stopGesture);
+   document.removeEventListener("touchmove",stopMultitouch);
+  };
+ },[!!room]);
  const [menu,setMenu]=useState(false);
  const [notificationsOn,setNotificationsOn]=useState(false);
  const [notificationsBusy,setNotificationsBusy]=useState(false);
@@ -379,7 +392,7 @@ export default function LoveRadar(){
  const radar=room?.challenges.find(c=>c.kind==="radar");
  const partner=room?.partner||"Ton amour";
  const images=room?.messages.filter(m=>m.kind==="image")||[];
- return <div className={"lr-app "+(tab==="chat"&&room?"lr-chat-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
+ return <div className={"lr-app "+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-brand"><span className="lr-brand-mark">♥</span><div><b>love<span>radar</span></b><small>BY DIAO-TECH.COM</small></div></div>
    <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>{room.user.name}</b><span>Espace privé · {room.code}</span><button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>

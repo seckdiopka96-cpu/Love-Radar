@@ -539,3 +539,141 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
  .lr-app.lr-chat-mode.lr-keyboard-open .lr-chat-compose{flex:0 0 auto;padding:9px 12px 8px}
  .lr-app.lr-chat-mode.lr-keyboard-open .lr-chat-caption{display:none!important}
 }
+
+/* Love Radar 2.2 — fixed mobile application shell on every signed-in tab.
+   Header + bottom bar do not move; only the page content may scroll. */
+@media (max-width:700px) {
+  html:has(.lr-app-locked),
+  body:has(.lr-app-locked),
+  #root:has(.lr-app-locked) {
+    position:relative;
+    width:100%;
+    height:100dvh!important;
+    min-height:0!important;
+    max-height:100dvh!important;
+    overflow:hidden!important;
+    overscroll-behavior:none;
+  }
+  body:has(.lr-app-locked){position:fixed!important;inset:0!important}
+  .lr-app.lr-app-locked {
+    position:fixed!important;
+    inset:0!important;
+    width:100%!important;
+    max-width:100vw!important;
+    height:100dvh!important;
+    min-height:0!important;
+    max-height:100dvh!important;
+    margin:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+    overscroll-behavior:none;
+    touch-action:pan-y;
+  }
+  .lr-app.lr-app-locked > .lr-header {
+    position:relative!important;
+    flex:0 0 auto!important;
+    width:100%;
+    max-width:100%;
+    z-index:5;
+  }
+  .lr-app.lr-app-locked > .lr-notification-area {
+    flex:0 0 auto!important;
+    width:100%;
+    max-width:100%;
+    padding-top:7px;
+    padding-bottom:4px;
+  }
+  .lr-app.lr-app-locked > .lr-toast,
+  .lr-app.lr-app-locked > .lr-error {flex:0 0 auto}
+  .lr-app.lr-app-locked .lr-shell {
+    position:relative!important;
+    display:flex!important;
+    flex:1 1 0!important;
+    flex-direction:column!important;
+    min-width:0!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-height:0!important;
+    height:auto!important;
+    max-height:100%!important;
+    margin:0!important;
+    padding:0 0 calc(64px + env(safe-area-inset-bottom))!important;
+    overflow:hidden!important;
+  }
+  .lr-app.lr-app-locked .lr-main {
+    display:block;
+    flex:1 1 0!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-height:100%!important;
+    margin:0!important;
+    padding:14px 13px 23px!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:contain;
+    touch-action:pan-y;
+  }
+  .lr-app.lr-app-locked .lr-mobile-nav {
+    display:flex!important;
+    position:absolute!important;
+    left:0!important;
+    right:0!important;
+    bottom:0!important;
+    top:auto!important;
+    width:100%!important;
+    min-height:0!important;
+    height:calc(64px + env(safe-area-inset-bottom))!important;
+    padding-bottom:env(safe-area-inset-bottom);
+    z-index:60!important;
+    overflow:hidden;
+    touch-action:manipulation;
+  }
+  /* The chat history is its own scroller. Keep iMessage-style sizing
+     and visualViewport keyboard resizing from the previous release. */
+  .lr-app.lr-app-locked.lr-chat-mode .lr-main {
+    display:flex!important;
+    flex-direction:column!important;
+    padding:0!important;
+    overflow:hidden!important;
+  }
+  .lr-app.lr-app-locked.lr-chat-mode .lr-chat {
+    flex:1 1 0!important;
+    min-height:0!important;
+    max-height:100%!important;
+    overflow:hidden;
+  }
+  .lr-app.lr-app-locked.lr-chat-mode .lr-chat-messages {
+    flex:1 1 0!important;
+    min-height:0!important;
+    overflow-y:auto!important;
+    overscroll-behavior-y:contain;
+    touch-action:pan-y;
+  }
+  .lr-app.lr-app-locked.lr-keyboard-open .lr-header,
+  .lr-app.lr-app-locked.lr-keyboard-open .lr-mobile-nav {
+    display:none!important;
+  }
+  .lr-app.lr-app-locked.lr-keyboard-open .lr-shell {
+    padding-bottom:0!important;
+  }
+  .lr-app.lr-app-locked.lr-keyboard-open .lr-chat {
+    position:fixed!important;
+    left:0!important;right:0!important;
+    top:var(--lr-visible-top,0px)!important;
+    bottom:auto!important;
+    width:100vw!important;
+    height:var(--lr-visible-height,100dvh)!important;
+    max-height:var(--lr-visible-height,100dvh)!important;
+    z-index:200!important;
+  }
+  /* Cards, games and their headings may never enlarge the viewport. */
+  .lr-app.lr-app-locked .lr-main *,
+  .lr-app.lr-app-locked .lr-chat * {min-width:0}
+  .lr-app.lr-app-locked .lr-main h1,
+  .lr-app.lr-app-locked .lr-main h2,
+  .lr-app.lr-app-locked .lr-main h3 {overflow-wrap:break-word}
+}
