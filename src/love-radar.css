@@ -677,3 +677,27 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
   .lr-app.lr-app-locked .lr-main h2,
   .lr-app.lr-app-locked .lr-main h3 {overflow-wrap:break-word}
 }
+
+
+/* Lightweight, private chat state. Only the last outgoing bubble has a receipt. */
+.lr-read-receipt{
+ font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Arial,sans-serif;
+ font-size:10px;line-height:1.5;color:#9e8a9b;
+ padding:3px 5px 0;display:block;text-align:right;letter-spacing:.1px
+}
+.lr-read-receipt.is-read{color:#f2a1bf}
+.lr-typing{
+ display:flex;align-items:center;gap:9px;align-self:flex-start;
+ padding:10px 0 2px 8px;color:#cdb4c7;
+ font-size:12px;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Arial,sans-serif;
+}
+.lr-typing-dots{
+ display:flex;align-items:center;gap:4px;padding:10px 13px;
+ border-radius:17px;background:#332a36
+}
+.lr-typing-dots i{height:6px;width:6px;border-radius:50%;background:#d5bacd;animation:lr-typing-pulse 1.2s infinite ease-in-out}
+.lr-typing-dots i:nth-child(2){animation-delay:.16s}
+.lr-typing-dots i:nth-child(3){animation-delay:.32s}
+@keyframes lr-typing-pulse{0%,60%,100%{opacity:.35;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+@media(prefers-reduced-motion:reduce){.lr-typing-dots i{animation:none;opacity:1}}
+.lr-dash-side{align-content:start}

@@ -74,9 +74,10 @@ Ce fonctionnement ne constitue pas une application publiée sur le **Google Play
 
 Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128gcm, VAPID pour iOS/Android). La livraison dépend des réglages et de la connectivité du téléphone. Sans variables VAPID et la nouvelle table D1, **l’interface et la messagerie restent fonctionnelles mais les notifications distantes ne peuvent pas être activées**.
 
-## Love Radar 2 — messagerie mobile et Action ou Vérité
+## Love Radar — questions et présence en messagerie
 
-- **Clavier iOS/Android :** composer à 16px pour éviter le zoom iOS, hauteur basée sur `visualViewport`; dès que le champ de saisie a le focus, la conversation occupe l’écran visible et la navigation inférieure disparaît. Le bouton photo et le micro s’effacent pendant la saisie, sauf si un vocal est en cours.
-- **Design :** nouvelle palette prune nuit, rose profond et touches or, adaptée aux deux plateformes.
-- **Action ou Vérité :** deux catégories, défis bienveillants pour couples, possibilité de passer. Les choix et les fins de partie sont synchronisés entre téléphones grâce aux événements `game_start` et `game_done` enregistrés dans la table D1 `messages` existante. Aucune nouvelle table ni modification des messages privés n’est nécessaire. Les événements sont exclus de l’historique des conversations et n’apparaissent que dans l’onglet Radar.
-- Les notifications des actions de jeu utilisent les clés VAPID déjà définies.
+- **142 questions** : 60 questions du jour et 82 questions du Radar de bluff ; questions synchronisées et progressions conservées dans D1.
+- Le jeu « Action ou Vérité » a été retiré de l’interface et des opérations serveur. Les anciennes conversations restent intactes.
+- **Messagerie** : statut « En train d’écrire… » rafraîchi pendant la saisie et expirant automatiquement ; indicateur « Vu » sous le dernier message envoyé après ouverture de la conversation par l’autre membre. Les états sont privés à chaque espace.
+- La table `chat_presence` est créée automatiquement par l’API si nécessaire, ou à partir de `schema.sql` pour une nouvelle installation. Aucune intervention manuelle requise dans Cloudflare.
+- Le clavier iOS/Android conserve les ajustements `visualViewport`, sans zoom du formulaire ; la palette prune nuit est conservée.

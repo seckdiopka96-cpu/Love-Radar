@@ -3,10 +3,9 @@ import "./love-radar.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "radar" | "chat" | "memories";
-type CoupleGame={id:string;type:"action"|"truth";prompt:string;playerId:string;status:"playing"|"finished";passed:boolean;updatedAt:number};
 type Challenge = {kind:"daily"|"radar";key:string;prompt:string;options:string[];myChoice:number|null;partnerChoice:number|null;complete:boolean};
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number};
-type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;challenges:Challenge[];messages:Message[];game:CoupleGame|null;round:number};
+type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;challenges:Challenge[];messages:Message[];partnerReadAt?:number;partnerTypingUntil?:number;round:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
 
 
@@ -49,7 +48,6 @@ export default function LoveRadar(){
  const [tab,setTab]=useState<Tab>("home");
  const [draft,setDraft]=useState("");
  const [chatFocused,setChatFocused]=useState(false);
- const [radarMode,setRadarMode]=useState<"bluff"|"action">("bluff");
  const chatScroller=useRef<HTMLDivElement|null>(null);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
@@ -63,6 +61,10 @@ export default function LoveRadar(){
  const tail=useRef<HTMLDivElement|null>(null);
  const fileInput=useRef<HTMLInputElement|null>(null);
  const firstPoll=useRef(true);
+ const lastReadSent=useRef(0);
+ useEffect(()=>{lastReadSent.current=0},[token]);
+ const lastTypingSent=useRef(0);
+ const typingActive=useRef(false);
  useEffect(()=>{
   const viewport=window.visualViewport;
   const sync=()=>{
@@ -259,11 +261,24 @@ export default function LoveRadar(){
  },[]);
  useEffect(()=>{
   if(!token)return;
-  const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh()},4500);
+  const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh()},tab==="chat"?1900:4500);
   const onFocus=()=>{void refresh()};
   window.addEventListener("focus",onFocus);
   return()=>{clearInterval(interval);window.removeEventListener("focus",onFocus)};
- },[token,refresh]);
+ },[token,refresh,tab]);
+ useEffect(()=>{
+  if(tab!=="chat"||!token||!room||document.visibilityState!=="visible")return;
+  const newest=[...room.messages].reverse().find(m=>m.sender_id!==room.user.id);
+  if(!newest||newest.created_at<=lastReadSent.current)return;
+  lastReadSent.current=newest.created_at;
+  void request("read").catch(()=>{lastReadSent.current=0});
+ },[tab,room?.messages,room?.user.id,token,request]);
+ useEffect(()=>{
+  if(tab!=="chat"&&typingActive.current){
+   typingActive.current=false;
+   void request("typing",{active:false}).catch(()=>{});
+  }
+ },[tab,request]);
  useEffect(()=>{
   if(!room||!token)return;
   const candidates=room.messages.filter(m=>m.object_key&&!mediaCache.current[m.id]);
@@ -311,21 +326,18 @@ export default function LoveRadar(){
   catch(e){setError(e instanceof Error?e.message:"Impossible d’avancer.")}
   finally{setBusy(false)}
  }
- async function startCoupleGame(type:"action"|"truth"){
-  if(busy)return;setBusy(true);setError("");
-  try{await request("game_start",{type});await refresh()}
-  catch(e){setError(e instanceof Error?e.message:"Impossible de démarrer le jeu.")}
-  finally{setBusy(false)}
- }
- async function finishCoupleGame(passed=false){
-  if(busy)return;setBusy(true);setError("");
-  try{await request("game_done",{passed});await refresh()}
-  catch(e){setError(e instanceof Error?e.message:"Impossible de terminer le défi.")}
-  finally{setBusy(false)}
+ function setTyping(active:boolean){
+  if(!token||!room?.partner)return;
+  const now=Date.now();
+  if(active&&typingActive.current&&now-lastTypingSent.current<2400)return;
+  if(!active&&!typingActive.current)return;
+  lastTypingSent.current=now;
+  typingActive.current=active;
+  void request("typing",{active}).catch(()=>{});
  }
  async function sendMessage(e:FormEvent){
   e.preventDefault();if(!draft.trim()||busy||!room?.partner)return;
-  const original=draft;setDraft("");setBusy(true);setError("");
+  const original=draft;setDraft("");setTyping(false);setBusy(true);setError("");
   try{await request("message",{text:original});await refresh();requestAnimationFrame(()=>{if(chatScroller.current)chatScroller.current.scrollTop=chatScroller.current.scrollHeight})}
   catch(e){setDraft(original);setError(e instanceof Error?e.message:"Échec de l’envoi.")}
   finally{setBusy(false)}
@@ -392,6 +404,7 @@ export default function LoveRadar(){
  const radar=room?.challenges.find(c=>c.kind==="radar");
  const partner=room?.partner||"Ton amour";
  const images=room?.messages.filter(m=>m.kind==="image")||[];
+ const lastOwnMessage=[...(room?.messages||[])].reverse().find(m=>m.sender_id===room?.user.id);
  return <div className={"lr-app "+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-brand"><span className="lr-brand-mark">♥</span><div><b>love<span>radar</span></b><small>BY DIAO-TECH.COM</small></div></div>
@@ -429,44 +442,21 @@ export default function LoveRadar(){
       <div className="lr-dash-grid"><div className="lr-dash-main">{daily?<ChallengeCard q={daily} partner={room.partner} onAnswer={submitAnswer} busy={busy}/>:null}</div><div className="lr-dash-side">
       <button className="lr-feature-card lr-feature-radar" onClick={()=>setTab("radar")}><span>◎ MODE JEU</span><h3>Fidèle<br/>ou Bluff ?</h3><p>Des questions qui ne laissent personne indifférent… 👀</p><b>Activer le radar ↗</b><i>♥</i></button>
       <button className="lr-feature-card lr-feature-chat" onClick={()=>setTab("chat")}><span>✉ VOTRE CONVERSATION</span><h3>Un petit mot<br/>d’amour ?</h3><p>Texte, photos et messages vocaux, juste entre vous.</p><b>Ouvrir les messages ↗</b></button>
-        <button className="lr-feature-card lr-feature-game" onClick={()=>{setRadarMode("action");setTab("radar")}}><span>🎲 NOUVEAU JEU À DEUX</span><h3>Action<br/>ou Vérité ?</h3><p>Des défis tendres et des vérités pour se redécouvrir.</p><b>Jouer ensemble ↗</b><i>✦</i></button>
+
       </div></div>
       <div className="lr-footnote">✧ Créé avec amour par <a href="https://diao-tech.com" target="_blank" rel="noopener noreferrer">Diao-Tech.com</a></div>
      </>:null}
      {tab==="radar"?<>
-      <div className="lr-radar-tabs" role="tablist" aria-label="Choisis un jeu">
-       <button role="tab" aria-selected={radarMode==="bluff"} className={radarMode==="bluff"?"active":""} onClick={()=>setRadarMode("bluff")}>◎ Radar de bluff</button>
-       <button role="tab" aria-selected={radarMode==="action"} className={radarMode==="action"?"active":""} onClick={()=>setRadarMode("action")}>🎲 Action ou Vérité</button>
+      <div className="lr-section-head"><span className="lr-eyebrow">◎ LE DÉTECTEUR DE BLUFF</span><h1>Osez répondre. <em>👀</em></h1><p>82 questions pour rire, échanger et mieux vous connaître.</p></div>
+      <div className="lr-radar-layout">
+       {radar?<ChallengeCard q={radar} partner={room.partner} onAnswer={submitAnswer} busy={busy} onNext={nextRadar}/>:null}
+       <div className="lr-radar-info"><span className="lr-radar-glass">◎</span><h3>Comment on joue ?</h3><p>Chacun répond secrètement. Lorsque vous avez répondu tous les deux, vos réponses sont révélées.</p><p>Avancez ensemble vers une nouvelle question après chaque tour.</p><div className="lr-radar-step">QUESTION {room.round+1}</div></div>
       </div>
-      {radarMode==="bluff"?<><div className="lr-section-head"><span className="lr-eyebrow">◎ LE DÉTECTEUR DE BLUFF</span><h1>Osez répondre. <em>👀</em></h1><p>Une question, deux réponses, et parfois un grand fou rire.</p></div><div className="lr-radar-layout">{radar?<ChallengeCard q={radar} partner={room.partner} onAnswer={submitAnswer} busy={busy} onNext={nextRadar}/>:null}<div className="lr-radar-info"><span className="lr-radar-glass">◎</span><h3>Comment on joue ?</h3><p>Chacun répond secrètement. Quand vous avez terminé tous les deux, les réponses sont révélées.</p><p>Un désaccord ? Ça lance une conversation, pas une accusation.</p><div className="lr-radar-step">QUESTION {room.round+1}</div></div></div></>:
-      <><div className="lr-section-head lr-game-intro"><span className="lr-eyebrow">🎲 LE JEU DES COMPLICES</span><h1>Action <em>ou</em> Vérité ?</h1><p>Une petite dose de courage, de rires et de tendresse. À distance ou côte à côte.</p></div>
-       <div className="lr-game-layout"><section className="lr-game-card">
-        {!room.partner?<div className="lr-game-empty"><span>💌</span><h2>Un jeu à vivre à deux</h2><p>Invite ton partenaire depuis l’accueil pour commencer.</p><button onClick={()=>setTab("home")}>Voir mon invitation →</button></div>:
-        !room.game||room.game.status==="finished"?<>
-         <div className="lr-game-badge">✦ {room.game?"À VOUS LE PROCHAIN TOUR":"VOTRE AVENTURE COMMENCE"}</div>
-         <div className="lr-game-emblem">♥ <span>✦</span></div>
-         <h2>{room.game?(room.game.passed?"On se donne une autre chance ?":"Bravo, défi terminé !"):"Tu choisis quoi ?"}</h2>
-         <p>À ton tour ! Choisis une catégorie, découvre ton défi, puis partage ce moment avec {partner}.</p>
-         <div className="lr-game-actions">
-          <button type="button" className="lr-game-choice lr-game-action" disabled={busy} onClick={()=>startCoupleGame("action")}><span>🎯</span><strong>Action</strong><small>Un défi à relever</small></button>
-          <button type="button" className="lr-game-choice lr-game-truth" disabled={busy} onClick={()=>startCoupleGame("truth")}><span>💌</span><strong>Vérité</strong><small>Une question sincère</small></button>
-         </div>
-        </>:<>
-         <div className="lr-game-badge">{room.game.type==="action"?"🎯 DÉFI ACTION":"💌 QUESTION VÉRITÉ"}</div>
-         <div className="lr-game-emblem">{room.game.type==="action"?"✦":"♥"}</div>
-         <div className="lr-game-player">{room.game.playerId===room.user.id?"C’est ton tour !":"C’est au tour de "+partner+" ❤️"}</div>
-         <h2>{room.game.prompt}</h2>
-         {room.game.playerId===room.user.id?<div className="lr-game-finish"><button disabled={busy} onClick={()=>finishCoupleGame(false)}>✓ J’ai relevé le défi</button><button className="lr-game-skip" disabled={busy} onClick={()=>finishCoupleGame(true)}>Je passe cette fois</button></div>:
-          <div className="lr-game-wait"><span>⏳</span> Patience… {partner} découvre son défi. Vous verrez la suite ensemble.</div>}
-        </>}
-        <div className="lr-game-consent">♡ On joue pour rire et se rapprocher. Chacun peut passer sans se justifier.</div>
-       </section>
-       <aside className="lr-game-info"><div className="lr-game-info-icon">✦</div><h3>Comment on joue ?</h3><p>Chacun choisit « Action » ou « Vérité » à son tour. Le défi apparaît sur vos deux téléphones.</p><p>La personne qui joue valide son défi ou choisit de passer. Ensuite, c’est reparti !</p><div className="lr-game-info-pill">💞 Synchronisé à deux</div></aside></div></>}
-      </>:null}
+     </>:null}
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">
       <div className="lr-chat-partner"><Initials name={partner} size="small"/>
-       <div><h2>{partner}</h2><span>{room.partner?"Votre conversation":"En attente de votre partenaire…"}</span></div>
+       <div><h2>{partner}</h2><span>{room.partnerTypingUntil&&room.partnerTypingUntil>Date.now()?"En train d’écrire…":room.partner?"Votre conversation":"En attente de votre partenaire…"}</span></div>
       </div>
      </div>
      <div className="lr-chat-messages" ref={chatScroller} role="log" aria-label="Messages" aria-live="off">
@@ -490,10 +480,12 @@ export default function LoveRadar(){
           media[m.id]?<div className="lr-voice"><span>Message vocal</span><audio controls preload="metadata" src={media[m.id]}/></div>:
           <div className="lr-media-loading">Chargement du vocal…</div>}</div>
           {!groupedAfter?<time className="lr-message-time" dateTime={new Date(m.created_at).toISOString()}>{time}</time>:null}
+          {mine&&m.id===lastOwnMessage?.id?<span className={"lr-read-receipt "+((room.partnerReadAt||0)>=m.created_at?"is-read":"")} aria-label="Statut du dernier message">{(room.partnerReadAt||0)>=m.created_at?"✓✓ Vu":"✓ Envoyé"}</span>:null}
          </div>
         </div>
        </Fragment>
       })}
+      {room.partnerTypingUntil&&room.partnerTypingUntil>Date.now()?<div className="lr-typing" role="status"><span>{partner} écrit</span><div className="lr-typing-dots" aria-label="En train d’écrire"><i/><i/><i/></div></div>:null}
       <div ref={tail}/>
      </div>
      <div className="lr-chat-compose">
@@ -501,7 +493,7 @@ export default function LoveRadar(){
       <form className={"lr-chat-form "+(chatFocused||draft.trim()?"is-writing ":"")+(recording?"is-recording":"")} onSubmit={sendMessage}>
        <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={onImageChange}/>
        <button className="lr-attach" type="button" title="Envoyer une photo" aria-label="Ajouter une photo" onClick={()=>fileInput.current?.click()} disabled={!room.partner||busy}><span aria-hidden="true">+</span></button>
-       <input aria-label="Écrire un message" type="text" enterKeyHint="send" autoComplete="off" value={draft} onFocus={()=>setChatFocused(true)} onBlur={()=>setChatFocused(false)} onChange={e=>setDraft(e.target.value)} placeholder={room.partner?"Message…":"En attente de ton partenaire…"} disabled={!room.partner} maxLength={1600}/>
+       <input aria-label="Écrire un message" type="text" enterKeyHint="send" autoComplete="off" value={draft} onFocus={()=>setChatFocused(true)} onBlur={()=>{setChatFocused(false);setTyping(false)}} onChange={e=>{setDraft(e.target.value);setTyping(e.target.value.trim().length>0)}} placeholder={room.partner?"Message…":"En attente de ton partenaire…"} disabled={!room.partner} maxLength={1600}/>
        <button className={"lr-mic "+(recording?"recording":"")} type="button" title={recording?"Arrêter le vocal":"Enregistrer un vocal"} aria-label={recording?"Arrêter le message vocal":"Enregistrer un message vocal"} onClick={toggleRecording} disabled={!room.partner||busy}>
         {recording?<span aria-hidden="true">■</span>:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8 21h8"/></svg>}
        </button>

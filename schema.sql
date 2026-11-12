@@ -22,3 +22,12 @@ CREATE TABLE IF NOT EXISTS answers (
  PRIMARY KEY(room_id,member_id,challenge)
 );
 CREATE INDEX IF NOT EXISTS idx_answers_room ON answers(room_id);
+
+
+-- Auto-created by the API when first requested. Keep for fresh deployments.
+CREATE TABLE IF NOT EXISTS chat_presence (
+ room_id TEXT NOT NULL, member_id TEXT NOT NULL,
+ last_read_at INTEGER NOT NULL DEFAULT 0,
+ typing_until INTEGER NOT NULL DEFAULT 0,
+ PRIMARY KEY(room_id,member_id)
+);

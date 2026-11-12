@@ -1,6 +1,17 @@
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { notifyPartner, type PushEnv } from "../lib/push";
 
+// Automatic, idempotent D1 initialization; existing couple messages remain intact.
+let presenceReady: Promise<void> | null = null;
+async function ensureChatPresence(db:D1Database){
+ if(!presenceReady){
+  presenceReady=db.exec("CREATE TABLE IF NOT EXISTS chat_presence (room_id TEXT NOT NULL, member_id TEXT NOT NULL, last_read_at INTEGER NOT NULL DEFAULT 0, typing_until INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(room_id,member_id))")
+   .then(()=>{}).catch(err=>{presenceReady=null;throw err});
+ }
+ await presenceReady;
+}
+
+
 type Env = PushEnv & {STORAGE?: R2Bucket};
 type Context = { request: Request; env: Env; waitUntil:(task:Promise<unknown>)=>void };
 
@@ -23,7 +34,55 @@ const questions = {
  "Si tu pouvais organiser notre prochain rendez-vous, où irions-nous ?",
  "Quel message aimerais-tu recevoir le matin ?",
  "Qu’est-ce qui te rend jaloux(se), même un peu ? 👀",
- ],
+ "Si tu devais décrire notre relation en trois mots, lesquels choisirais-tu ?",
+ "Qu’est-ce qui te rassure le plus quand nous sommes loin l’un de l’autre ?",
+ "Quelle habitude aimerais-tu créer avec moi ?",
+ "Quel endroit aimerais-tu découvrir à deux ?",
+ "Quel compliment te touche vraiment ?",
+ "Quel genre de soirée préfères-tu en amoureux ?",
+ "Si nous gagnions un voyage surprise, quelle destination choisirais-tu ?",
+ "Qu’est-ce qui te ferait te sentir mieux compris(e) ?",
+ "Quel petit rituel quotidien te rendrait heureux(se) ?",
+ "Comment préfères-tu résoudre un malentendu ?",
+ "Qu’aimerais-tu apprendre à faire ensemble cette année ?",
+ "Quelle est ta plus belle définition de la confiance ?",
+ "Que faut-il préserver même quand on est fâchés ?",
+ "Quel détail romantique remarques-tu immédiatement ?",
+ "Comment imagines-tu nos prochaines vacances ?",
+ "Quelle chanson te rappelle un moment heureux ?",
+ "Quel souvenir aimerais-tu créer cette semaine ?",
+ "Quelle valeur familiale est la plus importante pour toi ?",
+ "Que souhaites-tu accomplir personnellement cette année ?",
+ "Comment aimerais-tu célébrer une petite victoire à deux ?",
+ "Quelle activité simple transforme une journée ordinaire ?",
+ "Qu’est-ce qui te donne envie de parler longtemps avec moi ?",
+ "Quel conseil aurais-tu donné à ton toi d’il y a cinq ans ?",
+ "Qu’est-ce qui te fait rire même dans une journée difficile ?",
+ "Quelle tradition aimerais-tu transmettre plus tard ?",
+ "Quel livre ou film voudrais-tu découvrir avec moi ?",
+ "Quel geste montre le mieux que quelqu’un t’écoute ?",
+ "Qu’est-ce qui te rend fier ou fière de notre complicité ?",
+ "Dans une relation, quel équilibre entre liberté et proximité te convient ?",
+ "À quel moment préfères-tu recevoir un message affectueux ?",
+ "Quel rêve d’enfance aimerais-tu encore réaliser ?",
+ "Comment peut-on mieux se soutenir pendant une période stressante ?",
+ "Quelles qualités admires-tu le plus chez les autres ?",
+ "Que voudrais-tu que l’on fasse lors de notre prochain week-end ?",
+ "Quel sujet aimerais-tu qu’on aborde plus souvent ?",
+ "Que ferais-tu avec une journée entière sans téléphone ?",
+ "Quel est ton plus beau souvenir de fête ?",
+ "Quelle forme de surprise te mettrait le plus à l’aise ?",
+ "À quoi ressemble une relation saine pour toi ?",
+ "Quel défi personnel aimerais-tu relever avec mon soutien ?",
+ "Quel souvenir de famille t’a le plus marqué(e) ?",
+ "Qu’aimerais-tu que l’on se dise avant de dormir ?",
+ "Quelle différence entre nous te fait sourire ?",
+ "Comment préfères-tu montrer ta gratitude ?",
+ "Quel petit changement rendrait notre quotidien plus agréable ?",
+ "Quelle règle simple nous aiderait à mieux communiquer ?",
+ "Qu’est-ce qui te redonne confiance après une mauvaise journée ?",
+ "Que voudrais-tu apprendre de ma culture ou de mon histoire ?"
+],
  radar:[
  "Un inconnu te complimente en privé. Tu réagis comment ? 😂",
  "Ton ex souhaite être ami(e) avec toi. Tu en penses quoi ?",
@@ -34,65 +93,85 @@ const questions = {
  "Quel sujet serait le plus difficile à avouer ?",
  "Quel est ton signe d’amour préféré ?",
  "Quelle règle de couple serait la plus importante pour toi ?",
- "Tu peux lire dans les pensées de l’autre pendant 1 min : tu acceptes ? 😂"
- ]
+ "Tu peux lire dans les pensées de l’autre pendant 1 min : tu acceptes ? 😂",
+ "Ton ex t'envoie une demande d'abonnement sur les réseaux. Quelle est ta réaction ?",
+ "Quelqu'un te drague dans les commentaires. Que fais-tu ?",
+ "Un ami te cache qu'il est amoureux de toi. Comment réagis-tu ?",
+ "Tu reçois un cadeau anonyme. Tu en parles à ton partenaire ?",
+ "Un inconnu te demande ton numéro dans la rue. Tu fais quoi ?",
+ "Ton téléphone reçoit un message ambigu devant ton partenaire. Ta réaction ?",
+ "Ton partenaire partage une photo de vous sans prévenir. Tu en penses quoi ?",
+ "Une ancienne histoire revient te parler après des années. Tu réponds ?",
+ "Un collègue te propose un verre après le travail. Ta réaction ?",
+ "Ton partenaire a besoin de solitude ce soir. Comment le prends-tu ?",
+ "Une rumeur circule sur votre couple. Tu fais quoi en premier ?",
+ "Ton partenaire oublie de répondre pendant plusieurs heures. Tu réagis comment ?",
+ "Une personne que tu connais critique ton partenaire. Tu réponds quoi ?",
+ "Ton amour veut rencontrer tes meilleurs amis. Tu es à l'aise ?",
+ "Vous n'êtes pas d'accord sur les vacances. Comment décidez-vous ?",
+ "Ton partenaire n'aime pas une de tes amitiés. Que proposes-tu ?",
+ "Tu tombes sur une ancienne photo de couple. Que fais-tu ?",
+ "Un(e) ami(e) te confie avoir un faible pour ton partenaire. Ta réaction ?",
+ "Ton partenaire te prépare une surprise mais tu détestes les surprises. Que fais-tu ?",
+ "Un désaccord éclate en public. Comment agis-tu ?",
+ "Quelqu'un te fait une déclaration alors que tu es en couple. Tu réponds ?",
+ "Ton partenaire t'avoue une peur qu'il cachait. Comment l'accueilles-tu ?",
+ "Tu remarques une différence de valeurs importante. Comment l'abordes-tu ?",
+ "Tu découvres que ton amour a besoin de plus d'espace. Comment réagis-tu ?",
+ "Tu reçois un message à minuit d'une connaissance. Tu en parles ?",
+ "Ton partenaire garde des souvenirs d'une ancienne relation. Ton avis ?",
+ "Tu voudrais passer une soirée avec tes amis sans ton partenaire. Comment le dis-tu ?",
+ "Tu constates un malentendu sur les réseaux. Que fais-tu ?",
+ "Ton amour te pose une question difficile devant vos amis. Comment réagis-tu ?",
+ "Votre couple traverse une période très occupée. Quelle priorité choisis-tu ?",
+ "Tu trouves que ton partenaire s'éloigne un peu. Quelle est ta première réaction ?",
+ "Un ami te demande de cacher quelque chose à ton amour. Tu réponds quoi ?",
+ "Ton partenaire te dit qu'il a besoin de plus d'attention. Que fais-tu ?",
+ "Tu apprends une information importante sur ton partenaire par quelqu'un d'autre. Que fais-tu ?",
+ "Un message de ton ex arrive pendant un rendez-vous. Ta réaction ?",
+ "Ton partenaire trouve ta blague blessante. Comment réagis-tu ?",
+ "Quelqu'un insiste pour te séduire malgré ton refus. Que fais-tu ?",
+ "Votre vision de l'argent est différente. Comment en parlez-vous ?",
+ "Ton amour n'aime pas publier sa vie privée. Qu'en penses-tu ?",
+ "Ton partenaire veut rencontrer ta famille plus tôt que prévu. Tu réagis comment ?",
+ "Un(e) proche te demande d'annuler un rendez-vous amoureux au dernier moment. Que fais-tu ?",
+ "Ton amour lit un message de travers et se fâche. Comment désamorces-tu ?",
+ "Tu dois choisir entre un événement entre amis et une soirée prévue à deux. Que fais-tu ?",
+ "Ton partenaire pense que tu passes trop de temps sur ton téléphone. Réaction ?",
+ "Une connaissance fait un commentaire déplacé sur votre couple. Tu réponds quoi ?",
+ "Vous découvrez une différence d'habitudes surprenante. Comment réagis-tu ?",
+ "Ton amour te demande de lui raconter une erreur passée. Que fais-tu ?",
+ "Ton partenaire te dit qu'il doute de lui-même. Comment le rassures-tu ?",
+ "Tu arrives en retard à un rendez-vous important. Comment réagis-tu ?",
+ "Ton partenaire veut parler d'un sujet sensible avant de dormir. Tu fais quoi ?",
+ "Tu découvres un intérêt nouveau chez ton amour. Comment l'encourages-tu ?",
+ "Tu n'es pas d'accord avec l'avis de ton partenaire devant des proches. Que fais-tu ?",
+ "Ton amour est contrarié mais ne veut pas parler immédiatement. Comment réagis-tu ?",
+ "Quelqu'un vous compare à un autre couple. Ta réaction ?",
+ "Ton partenaire oublie un petit engagement. Tu lui dis comment ?",
+ "Vous hésitez à prendre une grande décision ensemble. Quel est ton réflexe ?",
+ "Une personne insiste pour vous inviter séparément. Qu'en penses-tu ?",
+ "Ton amour souhaite ralentir le rythme de votre relation. Que fais-tu ?",
+ "Tu reçois une mauvaise nouvelle juste avant votre rendez-vous. Comment lui dis-tu ?",
+ "Ton partenaire te demande une critique honnête sur un projet. Que fais-tu ?",
+ "Un message envoyé sur le ton de l'humour est mal compris. Comment répares-tu ?",
+ "Ton amour veut changer une habitude commune. Quelle est ta réaction ?",
+ "Vous êtes séparés par un décalage horaire. Comment gardez-vous le lien ?",
+ "Ton partenaire te raconte une ancienne déception. Comment l'écoutes-tu ?",
+ "Une personne lance une fausse accusation sur ton amour. Que fais-tu ?",
+ "Ton amour te dit qu'il a besoin de confiance plutôt que de vérifications. Réaction ?",
+ "Vous avez deux projets de voyage incompatibles. Comment négocies-tu ?",
+ "Ton partenaire n'aime pas ton idée de rendez-vous. Comment réagis-tu ?",
+ "Tu sens qu'un sujet crée de la tension. Tu l'abordes quand ?",
+ "Ton amour ne répond pas immédiatement à « Je t'aime ». Que penses-tu ?",
+ "Un proche te demande des détails intimes sur votre relation. Tu réponds quoi ?",
+ "Ton partenaire veut discuter de vos projets dans cinq ans. Réaction ?"
+]
 };
 const options = {
  daily:["Je réponds franchement ❤️","Je prends le temps d’y réfléchir 🤔","Je préfère en parler ensemble 💬"],
  radar:["Je suis transparent(e) ❤️","Je fixe une limite claire 🛑","Je suis un peu gêné(e) 👀","On en discute ensemble 🤝"]
 };
-const actionPrompts=[
- "Envoie un message vocal de 10 secondes pour dire ce que tu apprécies le plus chez ton amour. 💌",
- "Fais trois compliments sincères à ton partenaire, sans répéter le même mot. 💕",
- "Choisis une chanson qui vous représente et explique pourquoi. 🎶",
- "Raconte votre rencontre comme si c’était la scène d’un film romantique. 🎬",
- "Invente un surnom tendre et original pour ton amour. 🥹",
- "Fais deviner ton souvenir préféré de votre couple avec trois indices. 🧩",
- "Écris un mini-poème de quatre lignes pour ton partenaire. ✨",
- "Imite votre première conversation en une phrase. 😂",
- "Propose une idée de rendez-vous à distance pour cette semaine. 🌙",
- "Fais une déclaration d’amour avec seulement cinq mots. ❤️",
- "Dessine un cœur sur une feuille et envoie une photo si tu veux. 🎨",
- "Envoie trois émojis qui décrivent votre histoire et explique ton choix. 💞",
- "Dis une chose que tu aimerais apprendre à faire ensemble. 🌍",
- "Chante une toute petite mélodie inventée pour ton amour. 🎤",
- "Fais rire ton partenaire avec une blague ou une imitation. 🤭",
- "Décris votre journée idéale ensemble, du matin au soir. ☀️"
-];
-const truthPrompts=[
- "Quel a été ton premier vrai sentiment pour moi ? ❤️",
- "Quel détail chez moi te fait sourire sans que je le sache ? 😊",
- "À quel moment t’es-tu senti(e) le plus proche de moi ? 💞",
- "Quelle petite attention aimerais-tu recevoir plus souvent ? 💌",
- "Quel souvenir de nous garderais-tu toute ta vie ? ✨",
- "Quelle qualité de notre relation te rend le plus fier ou fière ? 🌹",
- "Quelle aventure aimerais-tu vivre avec moi ? 🧳",
- "Quelle chanson te fait immédiatement penser à nous ? 🎶",
- "Quand tu penses à moi, quel est le premier mot qui te vient ? 💭",
- "Quelle habitude amusante as-tu remarquée chez moi ? 😂",
- "Quel rêve aimerais-tu partager avec moi ? 🌟",
- "Qu’est-ce qui t’aide à te sentir vraiment écouté(e) ? 🤍",
- "Quel compliment aimerais-tu me faire aujourd’hui ? 🥰",
- "Quelle chose nouvelle aimerais-tu qu’on essaie ensemble ? 🎲",
- "Quel moment banal est devenu spécial grâce à nous ? 💫",
- "Comment aimerais-tu qu’on célèbre notre prochaine étape ? 🎉"
-];
-type GameRow={id:string;sender_id:string;kind:string;content:string|null;created_at:number};
-async function latestCoupleGame(db:D1Database,roomId:string){
- const r=await db.prepare("SELECT id,sender_id,kind,content,created_at FROM messages WHERE room_id=? AND kind IN ('game_start','game_done') ORDER BY rowid DESC LIMIT 2").bind(roomId).all<GameRow>();
- const rows=r.results||[];
- const newest=rows[0];
- if(!newest)return null;
- const start=newest.kind==="game_start"?newest:rows.find(e=>e.kind==="game_start");
- if(!start)return null;
- let data:{type?:string;prompt?:string}={};
- try{data=JSON.parse(start.content||"{}")}catch{}
- if((data.type!=="action"&&data.type!=="truth")||typeof data.prompt!=="string")return null;
- return {id:start.id,type:data.type,prompt:data.prompt,playerId:start.sender_id,
-  status:newest.kind==="game_done"?"finished":"playing",
-  passed:newest.kind==="game_done"&&newest.content==="pass",
-  updatedAt:newest.created_at};
-}
 const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function inviteCode(){let s="";const random=new Uint8Array(10);crypto.getRandomValues(random);for(const x of random)s+=alphabet[x%alphabet.length];return s}
 function token(){const b=new Uint8Array(32);crypto.getRandomValues(b);return Array.from(b).map(x=>x.toString(16).padStart(2,"0")).join("")}
@@ -117,7 +196,9 @@ function challengeFor(u:Member,kind:"daily"|"radar"){
 async function snapshot(db:D1Database,u:Member){
  const partners=await db.prepare("SELECT id,name,seat FROM members WHERE room_id=? ORDER BY seat").bind(u.room_id).all<{id:string,name:string,seat:number}>();
  const messages=await db.prepare("SELECT id,sender_id,kind,content,object_key,mime,created_at FROM messages WHERE room_id=? AND kind IN ('text','image','audio') ORDER BY created_at DESC,id DESC LIMIT 90").bind(u.room_id).all();
- const game=await latestCoupleGame(db,u.room_id);
+ const otherStatus=await db.prepare("SELECT last_read_at,typing_until FROM chat_presence WHERE room_id=? AND member_id<>? ORDER BY typing_until DESC LIMIT 1").bind(u.room_id,u.id).first<{last_read_at:number,typing_until:number}>();
+
+
  const all:any[]=[];
  for(const kind of ["daily","radar"] as const){
   const q=challengeFor(u,kind);
@@ -129,12 +210,12 @@ async function snapshot(db:D1Database,u:Member){
  }
  return {user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id},code:u.invite,roomId:u.room_id,
   partner:partners.results.find(a=>a.id!==u.id)?.name||null,members:partners.results.length,
-  challenges:all,messages:messages.results.reverse(),game,round:u.round};
+  challenges:all,messages:messages.results.reverse(),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,round:u.round};
 }
 
   const handlers: Record<"GET"|"POST",(args:{request:Request})=>Promise<Response>> = {
   GET:async({request})=>{
-   try{const session=await auth(request);if(!session)return fail("Session expirée ou invalide.",401);return ok(await snapshot(session.db,session.user))}
+   try{const session=await auth(request);if(!session)return fail("Session expirée ou invalide.",401);await ensureChatPresence(session.db);return ok(await snapshot(session.db,session.user))}
    catch(err){console.error("Love Radar snapshot",err);return fail("Erreur temporaire du service.",500)}
   },
   POST:async({request})=>{
@@ -173,10 +254,26 @@ async function snapshot(db:D1Database,u:Member){
     }
     const session=await auth(request);if(!session)return fail("Session expirée. Rejoins ton espace.",401);
     const {user:u}=session;
+    if(op==="typing"){
+     await ensureChatPresence(db);
+     const until=body.active===true?Date.now()+6500:0;
+     await db.prepare("INSERT INTO chat_presence(room_id,member_id,typing_until) VALUES(?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET typing_until=excluded.typing_until").bind(u.room_id,u.id,until).run();
+     return ok({typing:true});
+    }
+    if(op==="read"){
+     await ensureChatPresence(db);
+     const last=await db.prepare("SELECT MAX(created_at) AS stamp FROM messages WHERE room_id=? AND sender_id<>? AND kind IN ('text','image','audio')").bind(u.room_id,u.id).first<{stamp:number|null}>();
+     if(last?.stamp){
+      await db.prepare("INSERT INTO chat_presence(room_id,member_id,last_read_at) VALUES(?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET last_read_at=MAX(last_read_at,excluded.last_read_at)").bind(u.room_id,u.id,last.stamp).run();
+     }
+     return ok({read:true});
+    }
     if(op==="message"){
      const message=String(body.text||"").trim();
      if(!message||message.length>1600)return fail("Écris un message de 1 à 1 600 caractères.");
      await db.prepare("INSERT INTO messages(id,room_id,sender_id,kind,content,created_at) VALUES(?,?,?,'text',?,?)").bind(crypto.randomUUID(),u.room_id,u.id,message,Date.now()).run();
+     await ensureChatPresence(db);
+     await db.prepare("UPDATE chat_presence SET typing_until=0 WHERE room_id=? AND member_id=?").bind(u.room_id,u.id).run();
      waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",u.name+" t’a envoyé un message.","chat"));
      return ok({sent:true});
     }
@@ -199,35 +296,14 @@ async function snapshot(db:D1Database,u:Member){
      waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 👀","Une nouvelle question Radar vous attend.","radar"));
      return ok({next:true});
     }
-    if(op==="game_start"){
-     const type=body.type==="truth"?"truth":body.type==="action"?"action":null;
-     if(!type)return fail("Choisis Action ou Vérité.");
-     const partners=await db.prepare("SELECT COUNT(*) AS n FROM members WHERE room_id=?").bind(u.room_id).first<{n:number}>();
-     if(partners?.n!==2)return fail("Invitez votre partenaire pour jouer à deux.",409);
-     const current=await latestCoupleGame(db,u.room_id);
-     if(current?.status==="playing")return fail("Un défi est déjà en cours. Termine-le avant d’en proposer un autre.",409);
-     const bank=type==="truth"?truthPrompts:actionPrompts;
-     const random=new Uint32Array(1);crypto.getRandomValues(random);
-     const prompt=bank[random[0]%bank.length];
-     await db.prepare("INSERT INTO messages(id,room_id,sender_id,kind,content,created_at) VALUES(?,?,?,'game_start',?,?)").bind(crypto.randomUUID(),u.room_id,u.id,JSON.stringify({type,prompt}),Date.now()).run();
-     waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 🎲",u.name+" a choisi "+(type==="truth"?"Vérité":"Action")+" ! À vous de jouer.","radar"));
-     return ok({started:true});
-    }
-    if(op==="game_done"){
-     const current=await latestCoupleGame(db,u.room_id);
-     if(!current||current.status!=="playing")return fail("Aucun défi en cours.",409);
-     if(current.playerId!==u.id)return fail("Seule la personne qui joue peut terminer son défi.",403);
-     const passed=body.passed===true;
-     await db.prepare("INSERT INTO messages(id,room_id,sender_id,kind,content,created_at) VALUES(?,?,?,'game_done',?,?)").bind(crypto.randomUUID(),u.room_id,u.id,passed?"pass":"done",Date.now()).run();
-     waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💞",u.name+(passed?" a passé son défi.":" a terminé son défi !")+" À toi de jouer.","radar"));
-     return ok({finished:true});
-    }
     if(op==="delete"){
      if(u.owner_id!==u.id)return fail("Seul le créateur de l’espace peut le supprimer.",403);
      const objects=await db.prepare("SELECT object_key FROM messages WHERE room_id=? AND object_key IS NOT NULL").bind(u.room_id).all<{object_key:string}>();
      const bucket=bindings().STORAGE;
      if(bucket)for(const row of objects.results)try{await bucket.delete(row.object_key)}catch(e){console.error("delete media",e);return fail("Suppression des médias impossible. Réessaie.",503)}
      try{await db.prepare("DELETE FROM push_subscriptions WHERE room_id=?").bind(u.room_id).run()}catch(e){console.error("push cleanup",e)}
+     await ensureChatPresence(db);
+     await db.prepare("DELETE FROM chat_presence WHERE room_id=?").bind(u.room_id).run();
      await db.batch([
       db.prepare("DELETE FROM answers WHERE room_id=?").bind(u.room_id),
       db.prepare("DELETE FROM messages WHERE room_id=?").bind(u.room_id),
