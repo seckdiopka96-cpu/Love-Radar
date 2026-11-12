@@ -71,3 +71,34 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:
 .lr-install-modal .lr-install-note{font-size:11px;color:#997387}
 .lr-install-modal button{width:100%;background:#b43e6d;color:white;border:0;border-radius:12px;padding:13px;font-weight:800;margin-top:8px}
 @media(max-width:700px){.lr-header-end .lr-badge-free{display:none}.lr-install-btn{font-size:11px;padding:9px 11px}.lr-install-modal{padding:22px}}
+
+/* Full-screen mobile PWA and safe areas on iOS and Android */
+html,body,#root{width:100%;min-height:100%;overflow-x:hidden}
+.lr-app{min-height:100vh;min-height:100dvh}
+.lr-chat{min-height:calc(100dvh - 159px);max-height:calc(100dvh - 159px)}
+.lr-notification-area{display:flex;flex-direction:column;align-items:flex-end;gap:5px;padding:5px 24px 0;max-width:1400px;margin:0 auto;position:relative;z-index:4}
+.lr-notification-toggle{background:#fff;border:1px solid #f4d3df;border-radius:999px;padding:9px 15px;color:#a83c67;font-size:12px;font-weight:800;box-shadow:0 4px 12px #94446410}
+.lr-notification-toggle.is-on{background:#e8f8f0;border-color:#a0d6b5;color:#227c55}
+.lr-notification-help{background:#fff3f7;color:#89405f;border:1px solid #f0cdd9;border-radius:10px;max-width:460px;padding:9px 13px;font-size:12px;line-height:1.5}
+@media(display-mode:standalone){
+ .lr-header{padding-top:env(safe-area-inset-top);height:calc(84px + env(safe-area-inset-top))}
+ .lr-shell{padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+ .lr-chat{max-height:calc(100dvh - 172px - env(safe-area-inset-top));min-height:calc(100dvh - 172px - env(safe-area-inset-top))}
+}
+@media(max-width:700px){
+ .lr-notification-area{padding:8px 14px 0}
+ .lr-notification-toggle{font-size:11px;padding:8px 12px}
+ .lr-header{height:66px}
+ .lr-chat{min-height:calc(100dvh - 172px);max-height:calc(100dvh - 172px)}
+ @media(display-mode:standalone){
+  .lr-header{height:calc(66px + env(safe-area-inset-top))}
+  .lr-chat{height:calc(100dvh - 172px - env(safe-area-inset-top));max-height:calc(100dvh - 172px - env(safe-area-inset-top))}
+ }
+}
+@media(max-width:360px){
+ .lr-brand b{font-size:18px}
+ .lr-brand-mark{width:31px;height:31px}
+ .lr-header{padding-left:10px;padding-right:10px}
+ .lr-header-end{gap:7px}
+ .lr-install-btn{font-size:10px;padding:7px}
+}

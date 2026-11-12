@@ -60,13 +60,17 @@ export default function LoveRadar(){
  const fileInput=useRef<HTMLInputElement|null>(null);
  const firstPoll=useRef(true);
  const [menu,setMenu]=useState(false);
+ const [notificationsOn,setNotificationsOn]=useState(false);
+ const [notificationsBusy,setNotificationsBusy]=useState(false);
+ const [notificationsHint,setNotificationsHint]=useState("");
  const [canInstall,setCanInstall]=useState(false);
  const [showInstallHelp,setShowInstallHelp]=useState(false);
  const pendingInstall=useRef<AndroidInstallEvent|null>(null);
  useEffect(()=>{
   const standalone=window.matchMedia("(display-mode: standalone)").matches;
-  const isAndroid=/Android/i.test(navigator.userAgent);
-  if(isAndroid&&!standalone)setCanInstall(true);
+  const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const appleStandalone=(navigator as Navigator & {standalone?:boolean}).standalone===true;
+  if(isMobile&&!standalone&&!appleStandalone)setCanInstall(true);
   const onPrompt=(event:Event)=>{
    event.preventDefault();
    pendingInstall.current=event as AndroidInstallEvent;
@@ -85,6 +89,8 @@ export default function LoveRadar(){
   };
  },[]);
  async function installAndroid(){
+  const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if(isIOS){setShowInstallHelp(true);return;}
   const event=pendingInstall.current;
   if(event){
    try{
@@ -97,6 +103,87 @@ export default function LoveRadar(){
   }else setShowInstallHelp(true);
  }
 
+ function isStandalone(){
+  return window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as Navigator & {standalone?:boolean}).standalone===true;
+ }
+ function decodeApplicationKey(base64url:string):ArrayBuffer{
+  const base64=base64url.replace(/-/g,"+").replace(/_/g,"/");
+  const padded=base64+"=".repeat((4-base64.length%4)%4);
+  const binary=atob(padded),out=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)out[i]=binary.charCodeAt(i);
+  return out.buffer;
+ }
+ useEffect(()=>{
+  const onMessage=(event:MessageEvent)=>{
+   const next=event.data?.tab;
+   if(next==="chat"||next==="radar"||next==="home"){setTab(next);firstPoll.current=true}
+  };
+  navigator.serviceWorker?.addEventListener("message",onMessage);
+  const tabFromUrl=new URLSearchParams(location.search).get("tab");
+  if(tabFromUrl==="chat"||tabFromUrl==="radar"||tabFromUrl==="home")setTab(tabFromUrl);
+  return()=>navigator.serviceWorker?.removeEventListener("message",onMessage);
+ },[]);
+ useEffect(()=>{
+  if(!token||!room)return;
+  if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window))return;
+  void navigator.serviceWorker.ready.then(async reg=>{
+    const sub=await reg.pushManager.getSubscription();
+    setNotificationsOn(Boolean(sub)&&Notification.permission==="granted");
+  }).catch(()=>{});
+ },[token,room?.user.id]);
+ async function enableNotifications(){
+  if(notificationsBusy||!token)return;
+  if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)){
+   setNotificationsHint("Les notifications push ne sont pas disponibles sur ce navigateur. Utilise Chrome sur Android ou installe Love Radar sur l’écran d’accueil de l’iPhone.");
+   return;
+  }
+  if(/iPhone|iPad|iPod/i.test(navigator.userAgent)&&!isStandalone()){
+   setNotificationsHint("Sur iPhone : Safari → Partager → Sur l’écran d’accueil. Ouvre ensuite Love Radar depuis son icône, puis active les notifications.");
+   return;
+  }
+  setNotificationsHint("");
+  setNotificationsBusy(true);
+  try{
+   // iOS requires asking permission from a direct user tap.
+   const permission=Notification.permission==="granted"?"granted":await Notification.requestPermission();
+   if(permission!=="granted"){setNotificationsHint("Notifications refusées. Tu peux les autoriser dans les réglages du téléphone.");return;}
+   const configRes=await fetch("/api/push",{cache:"no-store"});
+   const cfg=await configRes.json() as {ok?:boolean,enabled?:boolean,publicKey?:string};
+   if(!cfg.ok||!cfg.enabled||!cfg.publicKey){setNotificationsHint("Les notifications ne sont pas encore activées sur notre serveur. Configuration Cloudflare nécessaire.");return;}
+   const registration=await navigator.serviceWorker.ready;
+   let sub=await registration.pushManager.getSubscription();
+   if(!sub){sub=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeApplicationKey(cfg.publicKey)});}
+   const response=await fetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({action:"subscribe",subscription:sub.toJSON()})});
+   const saved=await response.json() as {ok:boolean,error?:string};
+   if(!saved.ok)throw Error(saved.error||"Activation impossible.");
+   setNotificationsOn(true);
+   setNotificationsHint("Activées ❤️ Tu recevras une alerte lorsque ton partenaire t’écrit ou répond à un jeu.");
+  }catch(e){setNotificationsHint(e instanceof Error?e.message:"Activation impossible. Réessaie.")}
+  finally{setNotificationsBusy(false)}
+ }
+ async function disableNotifications(){
+  if(!token||notificationsBusy)return;
+  setNotificationsBusy(true);
+  try{
+   const registration=await navigator.serviceWorker.ready,sub=await registration.pushManager.getSubscription();
+   if(sub){
+    await fetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({action:"unsubscribe",endpoint:sub.endpoint})});
+    await sub.unsubscribe();
+   }
+   setNotificationsOn(false);setNotificationsHint("Notifications désactivées sur cet appareil.");
+  }catch{setNotificationsHint("Impossible de désactiver les notifications pour le moment.")}
+  finally{setNotificationsBusy(false)}
+ }
+ async function stopPushOnExit(key:string){
+  try{
+   const registration=await navigator.serviceWorker.ready,sub=await registration.pushManager.getSubscription();
+   if(sub){
+    await fetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},body:JSON.stringify({action:"unsubscribe",endpoint:sub.endpoint})});
+    await sub.unsubscribe();
+   }
+  }catch{}
+ }
  const request=useCallback(async(action:string,body:Record<string,unknown>={},authToken?:string):Promise<Result>=>{
   const t=authToken??token;
   const res=await fetch("/api/love",{method:"POST",headers:{"Content-Type":"application/json",...(t?{Authorization:"Bearer "+t}:{})},body:JSON.stringify({action,...body})});
@@ -231,11 +318,11 @@ export default function LoveRadar(){
  async function deleteRoom(){
   if(!window.confirm("Supprimer définitivement votre espace, toutes les conversations, photos, vocaux et réponses ? Cette action est irréversible."))return;
   setBusy(true);
-  try{await request("delete");localStorage.removeItem("love-radar-token");setToken("");setRoom(null);setTab("home");setNotice("Espace supprimé.")}
+  try{await request("delete");if(token)void stopPushOnExit(token);localStorage.removeItem("love-radar-token");setToken("");setRoom(null);setTab("home");setNotice("Espace supprimé.")}
   catch(e){setError(e instanceof Error?e.message:"Suppression impossible.")}
   finally{setBusy(false);setMenu(false)}
  }
- function logout(){localStorage.removeItem("love-radar-token");setToken("");setRoom(null);setMenu(false);setNotice("Tu t’es déconnecté(e).")}
+ function logout(){if(token)void stopPushOnExit(token);localStorage.removeItem("love-radar-token");setToken("");setRoom(null);setMenu(false);setNotice("Tu t’es déconnecté(e).")}
  const daily=room?.challenges.find(c=>c.kind==="daily");
  const radar=room?.challenges.find(c=>c.kind==="radar");
  const partner=room?.partner||"Ton amour";
@@ -243,9 +330,10 @@ export default function LoveRadar(){
  return <div className="lr-app">
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-brand"><span className="lr-brand-mark">♥</span><div><b>love<span>radar</span></b><small>BY DIAO-TECH.COM</small></div></div>
-   <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>{room.user.name}</b><span>Espace privé · {room.code}</span><button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
+   <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>{room.user.name}</b><span>Espace privé · {room.code}</span><button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
   </header>
-  {showInstallHelp?<div className="lr-install-backdrop" onClick={()=>setShowInstallHelp(false)}><div className="lr-install-modal" role="dialog" aria-modal="true" aria-labelledby="lr-install-title" onClick={e=>e.stopPropagation()}><div className="lr-install-symbol">♥</div><h2 id="lr-install-title">Love Radar sur ton Android</h2><p>Installe l’application directement depuis <strong>Google Chrome</strong>, sans Play Store.</p><ol><li>Ouvre ce site dans Chrome sur ton téléphone Android.</li><li>Appuie sur le menu <strong>⋮</strong> en haut à droite.</li><li>Choisis <strong>Installer l’application</strong> (ou « Ajouter à l’écran d’accueil »), puis confirme.</li></ol><p className="lr-install-note">L’icône Love Radar apparaîtra parmi tes applications. Une connexion Internet est nécessaire pour jouer et échanger des messages.</p><button onClick={()=>setShowInstallHelp(false)}>J’ai compris ❤️</button></div></div>:null}
+  {showInstallHelp?<div className="lr-install-backdrop" onClick={()=>setShowInstallHelp(false)}><div className="lr-install-modal" role="dialog" aria-modal="true" aria-labelledby="lr-install-title" onClick={e=>e.stopPropagation()}><div className="lr-install-symbol">♥</div><h2 id="lr-install-title">Love Radar sur ton téléphone</h2><p>Installe l’application pour l’ouvrir en plein écran et recevoir des notifications.</p>{/iPhone|iPad|iPod/i.test(navigator.userAgent)?<ol><li>Ouvre ce site dans <strong>Safari</strong>.</li><li>Appuie sur <strong>Partager</strong> (le carré avec une flèche).</li><li>Choisis <strong>Sur l’écran d’accueil</strong>, puis <strong>Ajouter</strong>.</li><li>Ouvre Love Radar depuis sa nouvelle icône.</li></ol>:<ol><li>Ouvre le site dans <strong>Chrome Android</strong>.</li><li>Appuie sur <strong>⋮</strong> dans Chrome.</li><li>Choisis <strong>Installer l’application</strong> ou « Ajouter à l’écran d’accueil ».</li></ol>}<p className="lr-install-note">L’icône Love Radar apparaîtra parmi tes applications. Une connexion Internet est nécessaire pour jouer et échanger des messages.</p><button onClick={()=>setShowInstallHelp(false)}>J’ai compris ❤️</button></div></div>:null}
+  {token&&room?<div className="lr-notification-area"><button type="button" className={"lr-notification-toggle "+(notificationsOn?"is-on":"")} onClick={notificationsOn?disableNotifications:enableNotifications} disabled={notificationsBusy}>{notificationsBusy?"Activation…":notificationsOn?"🔔 Notifications activées":"🔔 Activer les notifications"}</button>{notificationsHint?<div role="status" className="lr-notification-help">{notificationsHint}</div>:null}</div>:null}
   {notice?<div className="lr-toast" onClick={()=>setNotice("")}>{notice} <span>×</span></div>:null}
   {error?<div className="lr-error" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
   {initializing?<main className="lr-loading">Un petit moment de magie… 💕</main>:!room?

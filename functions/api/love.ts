@@ -1,9 +1,10 @@
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
+import { notifyPartner, type PushEnv } from "../lib/push";
 
-type Env = {DB?: D1Database; STORAGE?: R2Bucket};
-type Context = { request: Request; env: Env };
+type Env = PushEnv & {STORAGE?: R2Bucket};
+type Context = { request: Request; env: Env; waitUntil:(task:Promise<unknown>)=>void };
 
-function createHandlers(env: Env) {
+function createHandlers(env: Env, waitUntil:(task:Promise<unknown>)=>void) {
   const bindings = () => env;
 
 
@@ -114,6 +115,7 @@ async function snapshot(db:D1Database,u:Member){
       const inserted=await db.prepare("INSERT INTO members(id,room_id,name,seat,token_hash,joined_at) SELECT ?,?, ?,1,?,? WHERE (SELECT COUNT(*) FROM members WHERE room_id=?)=1").bind(id,room.id,name,digest,now,room.id).run();
       if(!inserted.meta.changes)return fail("Cet espace est déjà complet.",409);
      }catch{return fail("Cet espace est déjà complet.",409)}
+     waitUntil(notifyPartner(env,room.id,id,"Love Radar ❤️","Ton partenaire vient de rejoindre votre espace !","home"));
      return ok({token:secret,code});
     }
     const session=await auth(request);if(!session)return fail("Session expirée. Rejoins ton espace.",401);
@@ -122,6 +124,7 @@ async function snapshot(db:D1Database,u:Member){
      const message=String(body.text||"").trim();
      if(!message||message.length>1600)return fail("Écris un message de 1 à 1 600 caractères.");
      await db.prepare("INSERT INTO messages(id,room_id,sender_id,kind,content,created_at) VALUES(?,?,?,'text',?,?)").bind(crypto.randomUUID(),u.room_id,u.id,message,Date.now()).run();
+     waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",u.name+" t’a envoyé un message.","chat"));
      return ok({sent:true});
     }
     if(op==="answer"){
@@ -129,7 +132,8 @@ async function snapshot(db:D1Database,u:Member){
      if(!kind)return fail("Jeu inconnu.");
      const q=challengeFor(u,kind),choice=Number(body.choice);
      if(!Number.isInteger(choice)||choice<0||choice>=q.options.length)return fail("Réponse invalide.");
-     await db.prepare("INSERT INTO answers(room_id,member_id,challenge,choice,created_at) VALUES(?,?,?,?,?) ON CONFLICT(room_id,member_id,challenge) DO NOTHING").bind(u.room_id,u.id,q.key,choice,Date.now()).run();
+     const inserted=await db.prepare("INSERT INTO answers(room_id,member_id,challenge,choice,created_at) VALUES(?,?,?,?,?) ON CONFLICT(room_id,member_id,challenge) DO NOTHING").bind(u.room_id,u.id,q.key,choice,Date.now()).run();
+     if(inserted.meta.changes)waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💞",u.name+" a répondu à "+(kind==="daily"?"la question du jour.":"une question du Radar."),kind==="radar"?"radar":"home"));
      return ok({saved:true});
     }
     if(op==="next"){
@@ -139,6 +143,7 @@ async function snapshot(db:D1Database,u:Member){
      if(partners?.n!==2||answered?.n!==2)return fail("Attendez que les deux partenaires répondent.",409);
      const updated=await db.prepare("UPDATE rooms SET round=round+1 WHERE id=? AND round=?").bind(u.room_id,u.round).run();
      if(!updated.meta.changes)return fail("Nouvelle question déjà disponible. Actualise.",409);
+     waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 👀","Une nouvelle question Radar vous attend.","radar"));
      return ok({next:true});
     }
     if(op==="delete"){
@@ -146,6 +151,7 @@ async function snapshot(db:D1Database,u:Member){
      const objects=await db.prepare("SELECT object_key FROM messages WHERE room_id=? AND object_key IS NOT NULL").bind(u.room_id).all<{object_key:string}>();
      const bucket=bindings().STORAGE;
      if(bucket)for(const row of objects.results)try{await bucket.delete(row.object_key)}catch(e){console.error("delete media",e);return fail("Suppression des médias impossible. Réessaie.",503)}
+     try{await db.prepare("DELETE FROM push_subscriptions WHERE room_id=?").bind(u.room_id).run()}catch(e){console.error("push cleanup",e)}
      await db.batch([
       db.prepare("DELETE FROM answers WHERE room_id=?").bind(u.room_id),
       db.prepare("DELETE FROM messages WHERE room_id=?").bind(u.room_id),
@@ -162,5 +168,5 @@ async function snapshot(db:D1Database,u:Member){
   return handlers;
 }
 
-export const onRequestGet = (ctx: Context) => createHandlers(ctx.env).GET({request:ctx.request});
-export const onRequestPost = (ctx: Context) => createHandlers(ctx.env).POST({request:ctx.request});
+export const onRequestGet = (ctx: Context) => createHandlers(ctx.env,ctx.waitUntil.bind(ctx)).GET({request:ctx.request});
+export const onRequestPost = (ctx: Context) => createHandlers(ctx.env,ctx.waitUntil.bind(ctx)).POST({request:ctx.request});

@@ -1,9 +1,10 @@
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
+import { notifyPartner, type PushEnv } from "../lib/push";
 
-type Env = {DB?: D1Database; STORAGE?: R2Bucket};
-type Context = { request: Request; env: Env };
+type Env = PushEnv & {STORAGE?: R2Bucket};
+type Context = { request: Request; env: Env; waitUntil:(task:Promise<unknown>)=>void };
 
-function createHandlers(env: Env) {
+function createHandlers(env: Env, waitUntil:(task:Promise<unknown>)=>void) {
   const bindings = () => env;
 
 type User={id:string,room_id:string};
@@ -59,6 +60,7 @@ function sniff(bytes:Uint8Array,mime:string){
     await bucket.put(id,bytes,{httpMetadata:{contentType:mime}});
     try{await db.prepare("INSERT INTO messages(id,room_id,sender_id,kind,object_key,mime,created_at) VALUES(?,?,?,?,?,?,?)").bind(id,u.room_id,u.id,kind,id,mime,now).run()}
     catch(e){await bucket.delete(id);throw e}
+    waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",kind==="image"?"Ton partenaire t’a envoyé une photo.":"Ton partenaire t’a envoyé un message vocal.","chat"));
     return Response.json({ok:true,id},{headers:{"Cache-Control":"no-store"}});
    }catch(e){console.error("media upload",e);return no("Envoi impossible. Réessaie.",500)}
   }
@@ -67,5 +69,5 @@ function sniff(bytes:Uint8Array,mime:string){
   return handlers;
 }
 
-export const onRequestGet = (ctx: Context) => createHandlers(ctx.env).GET({request:ctx.request});
-export const onRequestPost = (ctx: Context) => createHandlers(ctx.env).POST({request:ctx.request});
+export const onRequestGet = (ctx: Context) => createHandlers(ctx.env,ctx.waitUntil.bind(ctx)).GET({request:ctx.request});
+export const onRequestPost = (ctx: Context) => createHandlers(ctx.env,ctx.waitUntil.bind(ctx)).POST({request:ctx.request});
