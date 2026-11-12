@@ -38,3 +38,7 @@ Application web **indépendante de Higgsfield** pour couples, en français. Son 
 **Limites de cette version :** pas de notifications push en arrière-plan, pas de système d'inscription/récupération des comptes, pas de modération automatique, pas de chiffrement de bout en bout. Le mode Radar est un jeu, jamais une preuve de fidélité ou d'infidélité.
 
 © 2026 Diao-Tech.com. Tous droits réservés.
+
+## Activation après configuration Cloudflare
+
+Après avoir créé les tables D1 et relié les bindings de production `DB` (D1) et `STORAGE` (R2) dans les paramètres du projet Cloudflare Pages, un **nouveau déploiement** est nécessaire pour que les Pages Functions voient ces ressources. Les médias R2 doivent rester privés.
