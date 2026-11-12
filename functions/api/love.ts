@@ -41,6 +41,58 @@ const options = {
  daily:["Je réponds franchement ❤️","Je prends le temps d’y réfléchir 🤔","Je préfère en parler ensemble 💬"],
  radar:["Je suis transparent(e) ❤️","Je fixe une limite claire 🛑","Je suis un peu gêné(e) 👀","On en discute ensemble 🤝"]
 };
+const actionPrompts=[
+ "Envoie un message vocal de 10 secondes pour dire ce que tu apprécies le plus chez ton amour. 💌",
+ "Fais trois compliments sincères à ton partenaire, sans répéter le même mot. 💕",
+ "Choisis une chanson qui vous représente et explique pourquoi. 🎶",
+ "Raconte votre rencontre comme si c’était la scène d’un film romantique. 🎬",
+ "Invente un surnom tendre et original pour ton amour. 🥹",
+ "Fais deviner ton souvenir préféré de votre couple avec trois indices. 🧩",
+ "Écris un mini-poème de quatre lignes pour ton partenaire. ✨",
+ "Imite votre première conversation en une phrase. 😂",
+ "Propose une idée de rendez-vous à distance pour cette semaine. 🌙",
+ "Fais une déclaration d’amour avec seulement cinq mots. ❤️",
+ "Dessine un cœur sur une feuille et envoie une photo si tu veux. 🎨",
+ "Envoie trois émojis qui décrivent votre histoire et explique ton choix. 💞",
+ "Dis une chose que tu aimerais apprendre à faire ensemble. 🌍",
+ "Chante une toute petite mélodie inventée pour ton amour. 🎤",
+ "Fais rire ton partenaire avec une blague ou une imitation. 🤭",
+ "Décris votre journée idéale ensemble, du matin au soir. ☀️"
+];
+const truthPrompts=[
+ "Quel a été ton premier vrai sentiment pour moi ? ❤️",
+ "Quel détail chez moi te fait sourire sans que je le sache ? 😊",
+ "À quel moment t’es-tu senti(e) le plus proche de moi ? 💞",
+ "Quelle petite attention aimerais-tu recevoir plus souvent ? 💌",
+ "Quel souvenir de nous garderais-tu toute ta vie ? ✨",
+ "Quelle qualité de notre relation te rend le plus fier ou fière ? 🌹",
+ "Quelle aventure aimerais-tu vivre avec moi ? 🧳",
+ "Quelle chanson te fait immédiatement penser à nous ? 🎶",
+ "Quand tu penses à moi, quel est le premier mot qui te vient ? 💭",
+ "Quelle habitude amusante as-tu remarquée chez moi ? 😂",
+ "Quel rêve aimerais-tu partager avec moi ? 🌟",
+ "Qu’est-ce qui t’aide à te sentir vraiment écouté(e) ? 🤍",
+ "Quel compliment aimerais-tu me faire aujourd’hui ? 🥰",
+ "Quelle chose nouvelle aimerais-tu qu’on essaie ensemble ? 🎲",
+ "Quel moment banal est devenu spécial grâce à nous ? 💫",
+ "Comment aimerais-tu qu’on célèbre notre prochaine étape ? 🎉"
+];
+type GameRow={id:string;sender_id:string;kind:string;content:string|null;created_at:number};
+async function latestCoupleGame(db:D1Database,roomId:string){
+ const r=await db.prepare("SELECT id,sender_id,kind,content,created_at FROM messages WHERE room_id=? AND kind IN ('game_start','game_done') ORDER BY rowid DESC LIMIT 2").bind(roomId).all<GameRow>();
+ const rows=r.results||[];
+ const newest=rows[0];
+ if(!newest)return null;
+ const start=newest.kind==="game_start"?newest:rows.find(e=>e.kind==="game_start");
+ if(!start)return null;
+ let data:{type?:string;prompt?:string}={};
+ try{data=JSON.parse(start.content||"{}")}catch{}
+ if((data.type!=="action"&&data.type!=="truth")||typeof data.prompt!=="string")return null;
+ return {id:start.id,type:data.type,prompt:data.prompt,playerId:start.sender_id,
+  status:newest.kind==="game_done"?"finished":"playing",
+  passed:newest.kind==="game_done"&&newest.content==="pass",
+  updatedAt:newest.created_at};
+}
 const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function inviteCode(){let s="";const random=new Uint8Array(10);crypto.getRandomValues(random);for(const x of random)s+=alphabet[x%alphabet.length];return s}
 function token(){const b=new Uint8Array(32);crypto.getRandomValues(b);return Array.from(b).map(x=>x.toString(16).padStart(2,"0")).join("")}
@@ -64,7 +116,8 @@ function challengeFor(u:Member,kind:"daily"|"radar"){
 }
 async function snapshot(db:D1Database,u:Member){
  const partners=await db.prepare("SELECT id,name,seat FROM members WHERE room_id=? ORDER BY seat").bind(u.room_id).all<{id:string,name:string,seat:number}>();
- const messages=await db.prepare("SELECT id,sender_id,kind,content,object_key,mime,created_at FROM messages WHERE room_id=? ORDER BY created_at DESC,id DESC LIMIT 90").bind(u.room_id).all();
+ const messages=await db.prepare("SELECT id,sender_id,kind,content,object_key,mime,created_at FROM messages WHERE room_id=? AND kind IN ('text','image','audio') ORDER BY created_at DESC,id DESC LIMIT 90").bind(u.room_id).all();
+ const game=await latestCoupleGame(db,u.room_id);
  const all:any[]=[];
  for(const kind of ["daily","radar"] as const){
   const q=challengeFor(u,kind);
@@ -76,7 +129,7 @@ async function snapshot(db:D1Database,u:Member){
  }
  return {user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id},code:u.invite,roomId:u.room_id,
   partner:partners.results.find(a=>a.id!==u.id)?.name||null,members:partners.results.length,
-  challenges:all,messages:messages.results.reverse(),round:u.round};
+  challenges:all,messages:messages.results.reverse(),game,round:u.round};
 }
 
   const handlers: Record<"GET"|"POST",(args:{request:Request})=>Promise<Response>> = {
@@ -145,6 +198,29 @@ async function snapshot(db:D1Database,u:Member){
      if(!updated.meta.changes)return fail("Nouvelle question déjà disponible. Actualise.",409);
      waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 👀","Une nouvelle question Radar vous attend.","radar"));
      return ok({next:true});
+    }
+    if(op==="game_start"){
+     const type=body.type==="truth"?"truth":body.type==="action"?"action":null;
+     if(!type)return fail("Choisis Action ou Vérité.");
+     const partners=await db.prepare("SELECT COUNT(*) AS n FROM members WHERE room_id=?").bind(u.room_id).first<{n:number}>();
+     if(partners?.n!==2)return fail("Invitez votre partenaire pour jouer à deux.",409);
+     const current=await latestCoupleGame(db,u.room_id);
+     if(current?.status==="playing")return fail("Un défi est déjà en cours. Termine-le avant d’en proposer un autre.",409);
+     const bank=type==="truth"?truthPrompts:actionPrompts;
+     const random=new Uint32Array(1);crypto.getRandomValues(random);
+     const prompt=bank[random[0]%bank.length];
+     await db.prepare("INSERT INTO messages(id,room_id,sender_id,kind,content,created_at) VALUES(?,?,?,'game_start',?,?)").bind(crypto.randomUUID(),u.room_id,u.id,JSON.stringify({type,prompt}),Date.now()).run();
+     waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 🎲",u.name+" a choisi "+(type==="truth"?"Vérité":"Action")+" ! À vous de jouer.","radar"));
+     return ok({started:true});
+    }
+    if(op==="game_done"){
+     const current=await latestCoupleGame(db,u.room_id);
+     if(!current||current.status!=="playing")return fail("Aucun défi en cours.",409);
+     if(current.playerId!==u.id)return fail("Seule la personne qui joue peut terminer son défi.",403);
+     const passed=body.passed===true;
+     await db.prepare("INSERT INTO messages(id,room_id,sender_id,kind,content,created_at) VALUES(?,?,?,'game_done',?,?)").bind(crypto.randomUUID(),u.room_id,u.id,passed?"pass":"done",Date.now()).run();
+     waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💞",u.name+(passed?" a passé son défi.":" a terminé son défi !")+" À toi de jouer.","radar"));
+     return ok({finished:true});
     }
     if(op==="delete"){
      if(u.owner_id!==u.id)return fail("Seul le créateur de l’espace peut le supprimer.",403);
