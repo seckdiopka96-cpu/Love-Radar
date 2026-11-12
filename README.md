@@ -42,3 +42,16 @@ Application web **indépendante de Higgsfield** pour couples, en français. Son 
 ## Activation après configuration Cloudflare
 
 Après avoir créé les tables D1 et relié les bindings de production `DB` (D1) et `STORAGE` (R2) dans les paramètres du projet Cloudflare Pages, un **nouveau déploiement** est nécessaire pour que les Pages Functions voient ces ressources. Les médias R2 doivent rester privés.
+
+## Installer Love Radar sur Android (PWA)
+
+Love Radar est une **Progressive Web App (PWA)** installable depuis Google Chrome Android, **sans télécharger d’APK ni passer par Google Play**.
+
+1. Ouvrir le site officiel Cloudflare Pages de Love Radar dans **Chrome sur Android**.
+2. Appuyer sur le bouton **« ↓ Installer »**. Si Chrome propose une installation, accepter.
+3. Sinon, ouvrir **⋮ → Installer l'application** (ou « Ajouter à l'écran d'accueil »).
+4. Une icône Love Radar apparaît sur l'écran d'accueil et l'application s'ouvre en mode autonome.
+
+Fichiers : `public/manifest.webmanifest`, `public/sw.js`, `public/icons/`. Le service worker met en cache l'interface et les fichiers statiques pour permettre au minimum d'ouvrir la structure hors connexion. **Les jeux, messages, photos et vocaux requièrent Internet** et les API `/api/` ne sont jamais mises en cache.
+
+Ce fonctionnement ne constitue pas une application publiée sur le **Google Play Store** ni un APK téléchargeable ; une distribution Play Store demanderait une étape de packaging et de publication séparée.

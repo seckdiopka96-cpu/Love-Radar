@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import "./love-radar.css";
 
+type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "radar" | "chat" | "memories";
 type Challenge = {kind:"daily"|"radar";key:string;prompt:string;options:string[];myChoice:number|null;partnerChoice:number|null;complete:boolean};
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number};
@@ -59,6 +60,42 @@ export default function LoveRadar(){
  const fileInput=useRef<HTMLInputElement|null>(null);
  const firstPoll=useRef(true);
  const [menu,setMenu]=useState(false);
+ const [canInstall,setCanInstall]=useState(false);
+ const [showInstallHelp,setShowInstallHelp]=useState(false);
+ const pendingInstall=useRef<AndroidInstallEvent|null>(null);
+ useEffect(()=>{
+  const standalone=window.matchMedia("(display-mode: standalone)").matches;
+  const isAndroid=/Android/i.test(navigator.userAgent);
+  if(isAndroid&&!standalone)setCanInstall(true);
+  const onPrompt=(event:Event)=>{
+   event.preventDefault();
+   pendingInstall.current=event as AndroidInstallEvent;
+   setCanInstall(true);
+  };
+  const onInstalled=()=>{
+   pendingInstall.current=null;
+   setShowInstallHelp(false);
+   setCanInstall(false);
+  };
+  window.addEventListener("beforeinstallprompt",onPrompt);
+  window.addEventListener("appinstalled",onInstalled);
+  return()=>{
+   window.removeEventListener("beforeinstallprompt",onPrompt);
+   window.removeEventListener("appinstalled",onInstalled);
+  };
+ },[]);
+ async function installAndroid(){
+  const event=pendingInstall.current;
+  if(event){
+   try{
+    await event.prompt();
+    const result=await event.userChoice;
+    pendingInstall.current=null;
+    if(result.outcome==="accepted"){setCanInstall(false);setNotice("Installation de Love Radar lancée ❤️")}
+    else setShowInstallHelp(true);
+   }catch{setShowInstallHelp(true)}
+  }else setShowInstallHelp(true);
+ }
 
  const request=useCallback(async(action:string,body:Record<string,unknown>={},authToken?:string):Promise<Result>=>{
   const t=authToken??token;
@@ -206,8 +243,9 @@ export default function LoveRadar(){
  return <div className="lr-app">
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-brand"><span className="lr-brand-mark">♥</span><div><b>love<span>radar</span></b><small>BY DIAO-TECH.COM</small></div></div>
-   <div className="lr-header-end">{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>{room.user.name}</b><span>Espace privé · {room.code}</span><button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
+   <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>{room.user.name}</b><span>Espace privé · {room.code}</span><button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
   </header>
+  {showInstallHelp?<div className="lr-install-backdrop" onClick={()=>setShowInstallHelp(false)}><div className="lr-install-modal" role="dialog" aria-modal="true" aria-labelledby="lr-install-title" onClick={e=>e.stopPropagation()}><div className="lr-install-symbol">♥</div><h2 id="lr-install-title">Love Radar sur ton Android</h2><p>Installe l’application directement depuis <strong>Google Chrome</strong>, sans Play Store.</p><ol><li>Ouvre ce site dans Chrome sur ton téléphone Android.</li><li>Appuie sur le menu <strong>⋮</strong> en haut à droite.</li><li>Choisis <strong>Installer l’application</strong> (ou « Ajouter à l’écran d’accueil »), puis confirme.</li></ol><p className="lr-install-note">L’icône Love Radar apparaîtra parmi tes applications. Une connexion Internet est nécessaire pour jouer et échanger des messages.</p><button onClick={()=>setShowInstallHelp(false)}>J’ai compris ❤️</button></div></div>:null}
   {notice?<div className="lr-toast" onClick={()=>setNotice("")}>{notice} <span>×</span></div>:null}
   {error?<div className="lr-error" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
   {initializing?<main className="lr-loading">Un petit moment de magie… 💕</main>:!room?
