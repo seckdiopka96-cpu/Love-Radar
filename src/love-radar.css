@@ -102,3 +102,21 @@ html,body,#root{width:100%;min-height:100%;overflow-x:hidden}
  .lr-header-end{gap:7px}
  .lr-install-btn{font-size:10px;padding:7px}
 }
+
+/* Preserve the message composer above the bottom navigation on narrow devices. */
+@media (max-width: 700px) {
+ .lr-chat {
+  height: calc(100dvh - 224px);
+  min-height: 0;
+  max-height: calc(100dvh - 224px);
+ }
+ .lr-chat-messages { min-height: 0; overscroll-behavior: contain; }
+ .lr-chat-compose { flex-shrink: 0; }
+}
+@media (max-width: 700px) and (display-mode: standalone) {
+ .lr-chat {
+  height: calc(100dvh - 224px - env(safe-area-inset-top));
+  max-height: calc(100dvh - 224px - env(safe-area-inset-top));
+  min-height: 0;
+ }
+}
