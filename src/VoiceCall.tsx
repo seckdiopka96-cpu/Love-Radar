@@ -30,6 +30,8 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
  const [phase,setPhase]=useState("");
  const [error,setError]=useState("");
  const [needsPlay,setNeedsPlay]=useState(false);
+ const [speakerHelp,setSpeakerHelp]=useState("");
+ const [speakerSelected,setSpeakerSelected]=useState(false);
  const [duration,setDuration]=useState(0);
  const current=useRef<Call|null>(null);
  const pc=useRef<RTCPeerConnection|null>(null);
@@ -62,7 +64,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
   if(remote.current){remote.current.pause();remote.current.srcObject=null}
   offered.current=false;answered.current=false;connectedSince.current=0;
   signalAfter.current=0;
-  setMuted(false);setNeedsPlay(false);setDuration(0);
+  setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);
  },[]);
  const reset=useCallback(()=>{
   clearAudio();
@@ -230,26 +232,74 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
  }
  async function enableAudio(){
   if(!remote.current)return;
-  try{await remote.current.play();setNeedsPlay(false)}catch{setError("Vérifie le volume du téléphone et réessaie.")}
+  try{remote.current.muted=false;await remote.current.play();setNeedsPlay(false)}catch{setError("Vérifie le volume du téléphone et réessaie.")}
+ }
+ // Audio routing is only changeable where the browser exposes the audio-output devices.
+ // On iPhone, device routing may remain under iOS control; do not pretend otherwise.
+ async function selectSpeaker(){
+  const audio=remote.current;
+  if(!audio)return;
+  try{
+   audio.muted=false;
+   audio.volume=1;
+   if(audio.srcObject)await enableAudio();
+   const method=(audio as HTMLAudioElement & {setSinkId?:(id:string)=>Promise<void>}).setSinkId;
+   const devices=await navigator.mediaDevices?.enumerateDevices?.();
+   const device=devices?.find(d=>d.kind==="audiooutput"&&/speaker|haut.parleur|built.in/i.test(d.label));
+   if(typeof method==="function"&&device?.deviceId){
+    await method.call(audio,device.deviceId);
+    setSpeakerSelected(true);
+    setSpeakerHelp("Sortie audio sélectionnée. Si le son ne change pas, utilise le contrôle audio du téléphone.");
+   }else{
+    setSpeakerSelected(false);
+    setSpeakerHelp("Sur cet appareil, le haut-parleur est contrôlé par iOS ou Android. Utilise les commandes audio de ton téléphone.");
+   }
+  }catch{
+   setSpeakerSelected(false);
+   setSpeakerHelp("Ce navigateur ne permet pas de choisir le haut-parleur. Utilise les commandes audio du téléphone.");
+  }
  }
  const isIncoming=active?.direction==="incoming"&&active.status==="ringing";
  const isOutgoing=active?.direction==="outgoing"&&active.status==="ringing";
  const total=String(Math.floor(duration/60)).padStart(2,"0")+":"+String(duration%60).padStart(2,"0");
+ const callStatus=isIncoming?"Appel vocal entrant…":isOutgoing?"Appel en cours…":phase||"Connexion en cours…";
  const display=active?createPortal(
   <div className="lr-call-backdrop" role="dialog" aria-modal="true" aria-label="Appel vocal Love Radar">
    <div className="lr-call-sheet">
-    <div className="lr-call-heart">♥</div>
-    <span className="lr-call-brand">LOVE RADAR · APPEL VOCAL</span>
+    <span className="lr-call-brand">APPEL VOCAL</span>
     <div className="lr-call-initial">{partner.trim().charAt(0).toUpperCase()}</div>
     <h2>{partner}</h2>
-    <p>{isIncoming?"Appel vocal entrant…":isOutgoing?"Appel en cours…":duration>0?total:phase||"Connexion en cours…"}</p>
+    <p className="lr-call-status" aria-live="polite">{callStatus}</p>
+    <div className="lr-call-duration" aria-label={"Durée de l'appel : "+total}>{total}</div>
     {error?<div className="lr-call-error" role="alert">{error}</div>:null}
-    {needsPlay?<button type="button" className="lr-call-sound" onClick={enableAudio}>🔊 Activer le son</button>:null}
+    {needsPlay?<button type="button" className="lr-call-sound" onClick={enableAudio}>Activer le son</button>:null}
+    {speakerHelp?<div className="lr-call-audio-hint" role="status">{speakerHelp}</div>:null}
     <div className="lr-call-actions">
-     {isIncoming?<><button className="lr-call-action lr-call-decline" onClick={hangup} aria-label="Refuser l’appel" disabled={busy}>✕<span>Refuser</span></button><button className="lr-call-action lr-call-answer" onClick={accept} aria-label="Décrocher" disabled={busy}>☎<span>Décrocher</span></button></>:
-      <>{active.status==="active"?<button className={"lr-call-action lr-call-mute "+(muted?"is-muted":"")} onClick={toggleMute} aria-label={muted?"Réactiver le microphone":"Couper le microphone"}> {muted?"🔇":"🎙"} <span>{muted?"Réactiver":"Micro"}</span></button>:null}<button className="lr-call-action lr-call-decline" onClick={hangup} aria-label="Raccrocher" disabled={busy}>✕<span>Raccrocher</span></button></>}
+     {isIncoming?
+      <>
+       <button type="button" className="lr-call-action lr-call-decline" onClick={hangup} aria-label="Refuser l’appel" disabled={busy}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 17.5c5.4-4.7 12.6-4.7 18 0"/><path d="M5 17.5V21M19 17.5V21"/></svg><span>Refuser</span>
+       </button>
+       <button type="button" className="lr-call-action lr-call-answer" onClick={accept} aria-label="Décrocher" disabled={busy}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 6.5c0 7.5 7 14.5 14.5 14.5l3-3.5-5-4-2 2c-2.5-1-4-2.5-5-5l2-2-4-5z"/></svg><span>Décrocher</span>
+       </button>
+      </>:
+      <>
+       <button type="button" className={"lr-call-action lr-call-mute "+(muted?"is-muted":"")} onClick={toggleMute} disabled={!local.current} aria-label={muted?"Réactiver le microphone":"Couper le microphone"} aria-pressed={muted}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/>{muted?<path d="M3 3 21 21" strokeWidth="2.5"/>:null}</svg>
+        <span>{muted?"Réactiver":"Muet"}</span>
+       </button>
+       <button type="button" className={"lr-call-action lr-call-speaker "+(speakerSelected?"is-selected":"")} onClick={selectSpeaker} aria-label="Haut-parleur" aria-pressed={speakerSelected}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9v6h4l5 4V5L7 9H3zM16 9a5 5 0 0 1 0 6M19 5a10 10 0 0 1 0 14"/></svg>
+        <span>Haut-parleur</span>
+       </button>
+       <button type="button" className="lr-call-action lr-call-decline" onClick={hangup} aria-label="Raccrocher" disabled={busy}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 17.5c5.4-4.7 12.6-4.7 18 0"/><path d="M5 17.5V21M19 17.5V21"/></svg>
+        <span>Raccrocher</span>
+       </button>
+      </>}
     </div>
-    <small>Appels par Internet · Reste dans Love Radar pendant la communication.</small>
+    <small>La communication fonctionne lorsque Love Radar est ouvert.</small>
    </div>
   </div>,document.body):null;
  return <>

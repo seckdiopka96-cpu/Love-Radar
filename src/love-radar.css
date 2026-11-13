@@ -710,3 +710,13 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
 .lr-chat-status.online{color:#7be0af}
 .lr-chat-status.typing{color:#cbaac9}
 .lr-chat-status.offline{color:#a58da6}
+
+
+/* Minimal brand: only Love Radar in the top header. */
+.lr-header .lr-brand{min-width:0;flex:0 1 auto}
+.lr-header .lr-brand>b{font-family:'Playfair Display',Georgia,serif;color:#ffe6f1;font-size:clamp(20px,4.8vw,27px);font-weight:700;letter-spacing:-.6px;white-space:nowrap}
+.lr-challenge-progress{font-size:11px;letter-spacing:.03em;color:#d6a2bc;margin:12px 0 0}
+@media(max-width:700px){
+ .lr-header .lr-brand>b{font-size:22px}
+ .lr-header-end .lr-install-btn{max-width:95px;overflow:hidden;text-overflow:ellipsis}
+}

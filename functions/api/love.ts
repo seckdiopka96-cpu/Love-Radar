@@ -178,6 +178,16 @@ const questions = {
  "Ton partenaire veut discuter de vos projets dans cinq ans. Réaction ?"
 ]
 };
+// Themes group 82 questions. Versioned answer keys keep older responses intact but prevent them from being applied to a different question after reordering.
+const RADAR_THEMES = [
+ {name:'Complicité & fun',indices:[0,5,7,9,13,16,23,28,55,60,63,77]},
+ {name:'Rencontres & limites',indices:[1,3,4,10,11,12,14,17,18,26,27,30,34,35,44,46,66]},
+ {name:'Confiance & jalousie',indices:[2,6,8,15,20,21,25,33,40,41,43,48,53,67,74,75,79,80]},
+ {name:'Communication & désaccords',indices:[19,22,29,31,37,38,42,45,51,54,56,57,58,59,61,62,64,68,69,70,73,78]},
+ {name:'Vie à deux',indices:[36,39,50,52,71,72]},
+ {name:'Projets & avenir',indices:[24,32,47,49,65,76,81]},
+] as const;
+const RADAR_ORDER = RADAR_THEMES.flatMap(group=>group.indices.map((questionIndex,index)=>({questionIndex,category:group.name,position:index+1,total:group.indices.length})));
 const options = {
  daily:["Je réponds franchement ❤️","Je prends le temps d’y réfléchir 🤔","Je préfère en parler ensemble 💬"],
  radar:["Je suis transparent(e) ❤️","Je fixe une limite claire 🛑","Je suis un peu gêné(e) 👀","On en discute ensemble 🤝"]
@@ -199,9 +209,12 @@ async function auth(request:Request):Promise<{db:D1Database,user:Member}|null>{
 }
 function challengeFor(u:Member,kind:"daily"|"radar"){
  const day=new Date().toISOString().slice(0,10);
- const index=kind==="daily"?Math.floor(Date.parse(day+"T00:00:00Z")/86400000)%questions.daily.length:u.round%questions.radar.length;
- const key=kind==="daily"?"daily:"+day:"radar:"+u.round;
- return {key,prompt:questions[kind][index],options:options[kind]};
+ const dayIndex=Math.floor(Date.parse(day+"T00:00:00Z")/86400000)%questions.daily.length;
+ const current=RADAR_ORDER[u.round%RADAR_ORDER.length];
+ const key=kind==="daily"?"daily:"+day:"radar:v2:"+u.round;
+ return kind==="daily"
+  ?{key,prompt:questions.daily[dayIndex],options:options.daily}
+  :{key,prompt:questions.radar[current.questionIndex],options:options.radar,category:current.category,categoryPosition:current.position,categoryTotal:current.total,categoryNumber:RADAR_THEMES.findIndex(g=>g.name===current.category)+1,categoryCount:RADAR_THEMES.length};
 }
 async function snapshot(db:D1Database,u:Member){
  const partners=await db.prepare("SELECT id,name,seat FROM members WHERE room_id=? ORDER BY seat").bind(u.room_id).all<{id:string,name:string,seat:number}>();

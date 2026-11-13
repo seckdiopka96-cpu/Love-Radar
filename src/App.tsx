@@ -4,7 +4,7 @@ import VoiceCall from "./VoiceCall";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "radar" | "chat" | "memories";
-type Challenge = {kind:"daily"|"radar";key:string;prompt:string;options:string[];myChoice:number|null;partnerChoice:number|null;complete:boolean};
+type Challenge = {kind:"daily"|"radar";key:string;prompt:string;options:string[];myChoice:number|null;partnerChoice:number|null;complete:boolean;category?:string;categoryPosition?:number;categoryTotal?:number;categoryNumber?:number;categoryCount?:number};
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number};
 type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;challenges:Challenge[];messages:Message[];partnerReadAt?:number;partnerTypingUntil?:number;partnerLastSeenAt?:number;round:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
@@ -24,7 +24,8 @@ function ChallengeCard({q,partner,onAnswer,busy,onNext}:{q:Challenge;partner:str
  const reveal=q.complete&&q.myChoice!==null&&q.partnerChoice!==null;
  const same=reveal&&q.myChoice===q.partnerChoice;
  return <div className="lr-challenge">
-  <div className="lr-challenge-top"><span className="lr-chip">{q.kind==="daily"?"✧ LA QUESTION DU JOUR":"◎ RADAR DE BLUFF"}</span><span className="lr-mini-star">✷</span></div>
+  <div className="lr-challenge-top"><span className="lr-chip">{q.kind==="daily"?"✧ LA QUESTION DU JOUR":"◎ "+(q.category||"RADAR DE BLUFF")}</span><span className="lr-mini-star">✷</span></div>
+  {q.kind==="radar"&&q.categoryPosition?<div className="lr-challenge-progress">Thème {q.categoryNumber}/{q.categoryCount} · Question {q.categoryPosition}/{q.categoryTotal}</div>:null}
   <h2>{q.prompt}</h2>
   <p className="lr-challenge-desc">{q.kind==="daily"?"Deux cœurs, une question. Découvrons vos réponses.":"Un petit jeu pour rire, discuter et mieux se connaître."}</p>
   <div className="lr-choices">
@@ -422,8 +423,8 @@ export default function LoveRadar(){
  const lastOwnMessage=[...(room?.messages||[])].reverse().find(m=>m.sender_id===room?.user.id);
  return <div className={"lr-app "+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
-  <header className="lr-header"><div className="lr-brand"><span className="lr-brand-mark">♥</span><div><b>love<span>radar</span></b><small>BY DIAO-TECH.COM</small></div></div>
-   <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>{room.user.name}</b><span>Espace privé · {room.code}</span><button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
+  <header className="lr-header"><div className="lr-brand"><b>Love Radar</b></div>
+   <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>Love Radar · Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span><button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
   </header>
   {showInstallHelp?<div className="lr-install-backdrop" onClick={()=>setShowInstallHelp(false)}><div className="lr-install-modal" role="dialog" aria-modal="true" aria-labelledby="lr-install-title" onClick={e=>e.stopPropagation()}><div className="lr-install-symbol">♥</div><h2 id="lr-install-title">Love Radar sur ton téléphone</h2><p>Installe l’application pour l’ouvrir en plein écran et recevoir des notifications.</p>{/iPhone|iPad|iPod/i.test(navigator.userAgent)?<ol><li>Ouvre ce site dans <strong>Safari</strong>.</li><li>Appuie sur <strong>Partager</strong> (le carré avec une flèche).</li><li>Choisis <strong>Sur l’écran d’accueil</strong>, puis <strong>Ajouter</strong>.</li><li>Ouvre Love Radar depuis sa nouvelle icône.</li></ol>:<ol><li>Ouvre le site dans <strong>Chrome Android</strong>.</li><li>Appuie sur <strong>⋮</strong> dans Chrome.</li><li>Choisis <strong>Installer l’application</strong> ou « Ajouter à l’écran d’accueil ».</li></ol>}<p className="lr-install-note">L’icône Love Radar apparaîtra parmi tes applications. Une connexion Internet est nécessaire pour jouer et échanger des messages.</p><button onClick={()=>setShowInstallHelp(false)}>J’ai compris ❤️</button></div></div>:null}
   {token&&room?<div className="lr-notification-area"><button type="button" className={"lr-notification-toggle "+(notificationsOn?"is-on":"")} onClick={notificationsOn?disableNotifications:enableNotifications} disabled={notificationsBusy}>{notificationsBusy?"Activation…":notificationsOn?"🔔 Notifications activées":"🔔 Activer les notifications"}</button>{notificationsHint?<div role="status" className="lr-notification-help">{notificationsHint}</div>:null}</div>:null}
@@ -462,10 +463,10 @@ export default function LoveRadar(){
       <div className="lr-footnote">✧ Créé avec amour par <a href="https://diao-tech.com" target="_blank" rel="noopener noreferrer">Diao-Tech.com</a></div>
      </>:null}
      {tab==="radar"?<>
-      <div className="lr-section-head"><span className="lr-eyebrow">◎ LE DÉTECTEUR DE BLUFF</span><h1>Osez répondre. <em>👀</em></h1><p>82 questions pour rire, échanger et mieux vous connaître.</p></div>
+      <div className="lr-section-head"><span className="lr-eyebrow">◎ RADAR À DEUX</span><h1>Apprenez à vous connaître.</h1><p>82 questions organisées en 6 thèmes, à découvrir ensemble.</p></div>
       <div className="lr-radar-layout">
        {radar?<ChallengeCard q={radar} partner={room.partner} onAnswer={submitAnswer} busy={busy} onNext={nextRadar}/>:null}
-       <div className="lr-radar-info"><span className="lr-radar-glass">◎</span><h3>Comment on joue ?</h3><p>Chacun répond secrètement. Lorsque vous avez répondu tous les deux, vos réponses sont révélées.</p><p>Avancez ensemble vers une nouvelle question après chaque tour.</p><div className="lr-radar-step">QUESTION {room.round+1}</div></div>
+       <div className="lr-radar-info"><span className="lr-radar-glass">◎</span><h3>{radar?.category||"Vos questions"}</h3><p>Chacun répond secrètement. Les réponses sont révélées après les deux choix.</p><p>Les thèmes avancent ensemble : complicité, limites, confiance, communication, quotidien et avenir.</p><div className="lr-radar-step">THÈME {radar?.categoryNumber||1}/{radar?.categoryCount||6} · QUESTION {radar?.categoryPosition||1}/{radar?.categoryTotal||82}</div></div>
       </div>
      </>:null}
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
