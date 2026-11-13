@@ -81,3 +81,13 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - **Messagerie** : statut « En train d’écrire… » rafraîchi pendant la saisie et expirant automatiquement ; indicateur « En ligne » lorsque l’app est au premier plan avec signal de présence toutes les 12 secondes (expiration 35 secondes), sinon « Hors ligne » ; indicateur « Vu » sous le dernier message envoyé après ouverture de la conversation par l’autre membre. Les états sont privés à chaque espace.
 - La table `chat_presence` est créée automatiquement par l’API si nécessaire, ou à partir de `schema.sql` pour une nouvelle installation. Aucune intervention manuelle requise dans Cloudflare.
 - Le clavier iOS/Android conserve les ajustements `visualViewport`, sans zoom du formulaire ; la palette prune nuit est conservée.
+
+
+## Appels vocaux WebRTC (1:1)
+
+- Dans la conversation, toucher le bouton téléphone 📞 pour appeler son/sa partenaire. Le/la destinataire peut décrocher ou refuser ; en communication, les deux personnes peuvent couper le micro ou raccrocher.
+- Les invitations et offres/réponses WebRTC sont synchronisées par la fonction Cloudflare Pages `functions/api/call.ts` et les tables D1 `voice_calls`, `voice_signals`, créées automatiquement. Le contenu vocal n’est ni enregistré ni sauvegardé.
+- Les appels utilisent la connexion WebRTC chiffrée de bout en bout (DTLS-SRTP) et des serveurs publics STUN. Les réseaux avec NAT strict peuvent nécessiter un relais TURN non configuré dans cette première version.
+- Si les notifications push sont déjà activées, une invitation à l'appel peut aussi apparaître lorsque l’app est fermée, mais **l’appel ne sonne pas comme un appel téléphonique natif sur iOS**. Il faut ouvrir l’application pour répondre.
+- Les deux personnes doivent conserver l’app ouverte pendant l’appel. Certaines versions d’iOS interrompent le micro des PWA si l’app passe en arrière-plan ou si l’écran se verrouille.
+- Si aucune adresse ICE n’est disponible, l’interface donne un message d’erreur explicite plutôt que prétendre que l’appel est connecté.

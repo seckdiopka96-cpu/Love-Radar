@@ -32,3 +32,17 @@ CREATE TABLE IF NOT EXISTS chat_presence (
  last_seen_at INTEGER NOT NULL DEFAULT 0,
  PRIMARY KEY(room_id,member_id)
 );
+
+-- Voice signaling only. Audio streams directly via encrypted WebRTC.
+CREATE TABLE IF NOT EXISTS voice_calls (
+ id TEXT PRIMARY KEY,room_id TEXT NOT NULL,caller_id TEXT NOT NULL,
+ callee_id TEXT NOT NULL,status TEXT NOT NULL,
+ created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,expires_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_voice_calls_room ON voice_calls(room_id,expires_at);
+CREATE TABLE IF NOT EXISTS voice_signals (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,call_id TEXT NOT NULL,room_id TEXT NOT NULL,
+ from_member TEXT NOT NULL,to_member TEXT NOT NULL,kind TEXT NOT NULL,
+ payload TEXT NOT NULL,created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_voice_signals_next ON voice_signals(call_id,to_member,id);

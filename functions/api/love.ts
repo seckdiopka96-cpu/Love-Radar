@@ -319,6 +319,11 @@ async function snapshot(db:D1Database,u:Member){
      try{await db.prepare("DELETE FROM push_subscriptions WHERE room_id=?").bind(u.room_id).run()}catch(e){console.error("push cleanup",e)}
      await ensureChatPresence(db);
      await db.prepare("DELETE FROM chat_presence WHERE room_id=?").bind(u.room_id).run();
+     // If voice calling was used, remove its signaling records with the room.
+     try{
+      await db.prepare("DELETE FROM voice_signals WHERE room_id=?").bind(u.room_id).run();
+      await db.prepare("DELETE FROM voice_calls WHERE room_id=?").bind(u.room_id).run();
+     }catch(err){console.error("Optional voice call cleanup",err)}
      await db.batch([
       db.prepare("DELETE FROM answers WHERE room_id=?").bind(u.room_id),
       db.prepare("DELETE FROM messages WHERE room_id=?").bind(u.room_id),

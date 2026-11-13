@@ -1,0 +1,23 @@
+.lr-call-trigger{border:1px solid rgba(215,153,185,.4);background:#513047;color:#f6c7d8;height:41px;width:43px;display:grid;place-items:center;border-radius:50%;cursor:pointer;flex-shrink:0}
+.lr-call-trigger:disabled{opacity:.4;cursor:not-allowed}
+.lr-chat-head #lr-voice-button-slot{margin-left:auto;display:flex;align-items:center}
+.lr-call-backdrop{position:fixed!important;inset:0;z-index:2147483646;background:rgba(15,7,22,.96);display:flex;align-items:center;justify-content:center;padding:calc(25px + env(safe-area-inset-top)) 20px calc(25px + env(safe-area-inset-bottom));box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Arial,sans-serif}
+.lr-call-sheet{width:min(100%,440px);min-height:440px;padding:35px 24px 18px;border:1px solid #69425b;border-radius:30px;background:linear-gradient(140deg,#35213a,#1b1424 80%);display:flex;align-items:center;flex-direction:column;box-shadow:0 24px 80px #0007;color:#fff;box-sizing:border-box}
+.lr-call-heart{font-size:29px;color:#f19abc}
+.lr-call-brand{font-size:10px;letter-spacing:3px;color:#d2a6bc;margin:8px 0 36px;font-weight:700}
+.lr-call-initial{width:88px;height:88px;border:2px solid #b57896;border-radius:50%;display:grid;place-items:center;background:#67405d;color:#ffe7f1;font:700 37px Georgia,serif}
+.lr-call-sheet h2{font:600 29px Georgia,serif;margin:18px 0 8px;color:#ffe7f0;text-align:center}
+.lr-call-sheet p{color:#d5b8cd;font-size:15px;margin:0;min-height:28px}
+.lr-call-actions{display:flex;justify-content:center;gap:55px;margin:50px 0 32px}
+.lr-call-action{width:75px;height:75px;border:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 29px Arial,sans-serif;cursor:pointer;position:relative;color:white}
+.lr-call-action span{position:absolute;top:83px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:600;white-space:nowrap;color:#e2c6d7}
+.lr-call-answer{background:#249d70}
+.lr-call-decline{background:#d74766}
+.lr-call-mute{background:#6b536d}
+.lr-call-mute.is-muted{background:#916287}
+.lr-call-sheet small{margin-top:auto;color:#a99aaf;font-size:10px;text-align:center;line-height:1.6;max-width:260px}
+.lr-call-error{background:#653449;color:#fff0f5;padding:10px 12px;border-radius:10px;font-size:12px;text-align:center;margin-top:10px}
+.lr-call-sound{margin-top:12px;background:#fff;color:#422539;border:0;border-radius:20px;padding:8px 15px;cursor:pointer}
+.lr-call-toast{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom));left:12px;right:12px;max-width:550px;margin:auto;z-index:2147483645;background:#5c314b;color:white;padding:15px 12px;border-radius:12px;font-size:13px;box-shadow:0 12px 30px #0006;display:flex;gap:10px;justify-content:space-between}
+.lr-call-toast button{background:transparent;border:0;color:white;font-size:22px;cursor:pointer}
+@media(max-width:400px){.lr-call-sheet{min-height:400px;padding:25px 15px}.lr-call-actions{gap:45px;margin:38px 0 32px}}

@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import "./love-radar.css";
+import VoiceCall from "./VoiceCall";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "radar" | "chat" | "memories";
@@ -472,6 +473,7 @@ export default function LoveRadar(){
       <div className="lr-chat-partner"><Initials name={partner} size="small"/>
        <div><h2>{partner}</h2><span className={"lr-chat-status "+(partnerTyping?"typing":partnerOnline?"online":"offline")} aria-live="polite">{partnerTyping?"En train d’écrire…":!room.partner?"En attente de votre partenaire…":partnerOnline?"En ligne":"Hors ligne"}</span></div>
       </div>
+      <div id="lr-voice-button-slot"/>
      </div>
      <div className="lr-chat-messages" ref={chatScroller} role="log" aria-label="Messages" aria-live="off">
       {room.messages.length===0?<div className="lr-chat-empty"><span>♡</span><h3>Votre conversation</h3><p>Écris ton premier message pour commencer.</p></div>:
@@ -517,6 +519,7 @@ export default function LoveRadar(){
     </section>:null}
     {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Retrouvez les photos partagées dans votre conversation.</p></div><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>setTab("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<img src={media[m.id]} alt="Souvenir du couple"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
    </main>
+   {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} hasPartner={Boolean(room.partner)} showButton={tab==="chat"}/>:null}
    <nav className="lr-mobile-nav" aria-label="Navigation du couple">{NAV.map(n=><button key={n.id} className={tab===n.id?"active":""} onClick={()=>{setTab(n.id);firstPoll.current=true}}><span>{n.icon}</span><small>{n.label}</small></button>)}</nav>
   </div>}
  </div>;
