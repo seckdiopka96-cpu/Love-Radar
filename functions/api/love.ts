@@ -1,12 +1,22 @@
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { notifyPartner, type PushEnv } from "../lib/push";
 
-// Automatic, idempotent D1 initialization; existing couple messages remain intact.
+// Automatic and idempotent migration for both existing and new D1 rooms.
 let presenceReady: Promise<void> | null = null;
 async function ensureChatPresence(db:D1Database){
  if(!presenceReady){
-  presenceReady=db.exec("CREATE TABLE IF NOT EXISTS chat_presence (room_id TEXT NOT NULL, member_id TEXT NOT NULL, last_read_at INTEGER NOT NULL DEFAULT 0, typing_until INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(room_id,member_id))")
-   .then(()=>{}).catch(err=>{presenceReady=null;throw err});
+  presenceReady=(async()=>{
+   await db.exec("CREATE TABLE IF NOT EXISTS chat_presence (room_id TEXT NOT NULL, member_id TEXT NOT NULL, last_read_at INTEGER NOT NULL DEFAULT 0, typing_until INTEGER NOT NULL DEFAULT 0, last_seen_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(room_id,member_id))");
+   const columns=await db.prepare("PRAGMA table_info(chat_presence)").all<{name:string}>();
+   if(!columns.results.some(col=>col.name==="last_seen_at")){
+    try{await db.exec("ALTER TABLE chat_presence ADD COLUMN last_seen_at INTEGER NOT NULL DEFAULT 0")}
+    catch(err){
+     // Another invocation may have migrated the table concurrently.
+     const updated=await db.prepare("PRAGMA table_info(chat_presence)").all<{name:string}>();
+     if(!updated.results.some(col=>col.name==="last_seen_at"))throw err;
+    }
+   }
+  })().catch(err=>{presenceReady=null;throw err});
  }
  await presenceReady;
 }
@@ -196,7 +206,7 @@ function challengeFor(u:Member,kind:"daily"|"radar"){
 async function snapshot(db:D1Database,u:Member){
  const partners=await db.prepare("SELECT id,name,seat FROM members WHERE room_id=? ORDER BY seat").bind(u.room_id).all<{id:string,name:string,seat:number}>();
  const messages=await db.prepare("SELECT id,sender_id,kind,content,object_key,mime,created_at FROM messages WHERE room_id=? AND kind IN ('text','image','audio') ORDER BY created_at DESC,id DESC LIMIT 90").bind(u.room_id).all();
- const otherStatus=await db.prepare("SELECT last_read_at,typing_until FROM chat_presence WHERE room_id=? AND member_id<>? ORDER BY typing_until DESC LIMIT 1").bind(u.room_id,u.id).first<{last_read_at:number,typing_until:number}>();
+ const otherStatus=await db.prepare("SELECT last_read_at,typing_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1").bind(u.room_id,u.id).first<{last_read_at:number,typing_until:number,last_seen_at:number}>();
 
 
  const all:any[]=[];
@@ -210,7 +220,7 @@ async function snapshot(db:D1Database,u:Member){
  }
  return {user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id},code:u.invite,roomId:u.room_id,
   partner:partners.results.find(a=>a.id!==u.id)?.name||null,members:partners.results.length,
-  challenges:all,messages:messages.results.reverse(),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,round:u.round};
+  challenges:all,messages:messages.results.reverse(),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0,round:u.round};
 }
 
   const handlers: Record<"GET"|"POST",(args:{request:Request})=>Promise<Response>> = {
@@ -254,6 +264,11 @@ async function snapshot(db:D1Database,u:Member){
     }
     const session=await auth(request);if(!session)return fail("Session expirée. Rejoins ton espace.",401);
     const {user:u}=session;
+    if(op==="presence"){
+     await ensureChatPresence(db);
+     await db.prepare("INSERT INTO chat_presence(room_id,member_id,last_seen_at) VALUES(?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET last_seen_at=excluded.last_seen_at").bind(u.room_id,u.id,Date.now()).run();
+     return ok({online:true});
+    }
     if(op==="typing"){
      await ensureChatPresence(db);
      const until=body.active===true?Date.now()+6500:0;

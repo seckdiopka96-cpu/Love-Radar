@@ -5,7 +5,7 @@ type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<
 type Tab = "home" | "radar" | "chat" | "memories";
 type Challenge = {kind:"daily"|"radar";key:string;prompt:string;options:string[];myChoice:number|null;partnerChoice:number|null;complete:boolean};
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number};
-type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;challenges:Challenge[];messages:Message[];partnerReadAt?:number;partnerTypingUntil?:number;round:number};
+type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;challenges:Challenge[];messages:Message[];partnerReadAt?:number;partnerTypingUntil?:number;partnerLastSeenAt?:number;round:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
 
 
@@ -259,6 +259,18 @@ export default function LoveRadar(){
   if(q.get("join")){setJoinMode(true);setCode(q.get("join")?.toUpperCase()||"")}
   if(saved){setToken(saved);void refresh(saved).finally(()=>setInitializing(false));}else setInitializing(false);
  },[]);
+ // Presence means actively viewing the application; it automatically expires
+ // after 35 seconds of inactivity or when the app is backgrounded.
+ useEffect(()=>{
+  if(!token)return;
+  const ping=()=>{if(document.visibilityState==="visible")void request("presence").catch(()=>{})};
+  ping();
+  const ticker=window.setInterval(ping,12000);
+  const onVisible=()=>{if(document.visibilityState==="visible")ping()};
+  document.addEventListener("visibilitychange",onVisible);
+  window.addEventListener("focus",ping);
+  return()=>{window.clearInterval(ticker);document.removeEventListener("visibilitychange",onVisible);window.removeEventListener("focus",ping)};
+ },[token,request]);
  useEffect(()=>{
   if(!token)return;
   const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh()},tab==="chat"?1900:4500);
@@ -403,6 +415,8 @@ export default function LoveRadar(){
  const daily=room?.challenges.find(c=>c.kind==="daily");
  const radar=room?.challenges.find(c=>c.kind==="radar");
  const partner=room?.partner||"Ton amour";
+ const partnerTyping=Boolean(room?.partnerTypingUntil&&room.partnerTypingUntil>Date.now());
+ const partnerOnline=Boolean(room?.partnerLastSeenAt&&Date.now()-room.partnerLastSeenAt<35000);
  const images=room?.messages.filter(m=>m.kind==="image")||[];
  const lastOwnMessage=[...(room?.messages||[])].reverse().find(m=>m.sender_id===room?.user.id);
  return <div className={"lr-app "+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
@@ -456,7 +470,7 @@ export default function LoveRadar(){
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">
       <div className="lr-chat-partner"><Initials name={partner} size="small"/>
-       <div><h2>{partner}</h2><span>{room.partnerTypingUntil&&room.partnerTypingUntil>Date.now()?"En train d’écrire…":room.partner?"Votre conversation":"En attente de votre partenaire…"}</span></div>
+       <div><h2>{partner}</h2><span className={"lr-chat-status "+(partnerTyping?"typing":partnerOnline?"online":"offline")} aria-live="polite">{partnerTyping?"En train d’écrire…":!room.partner?"En attente de votre partenaire…":partnerOnline?"En ligne":"Hors ligne"}</span></div>
       </div>
      </div>
      <div className="lr-chat-messages" ref={chatScroller} role="log" aria-label="Messages" aria-live="off">
@@ -485,7 +499,7 @@ export default function LoveRadar(){
         </div>
        </Fragment>
       })}
-      {room.partnerTypingUntil&&room.partnerTypingUntil>Date.now()?<div className="lr-typing" role="status"><span>{partner} écrit</span><div className="lr-typing-dots" aria-label="En train d’écrire"><i/><i/><i/></div></div>:null}
+      {partnerTyping?<div className="lr-typing" role="status"><span>{partner} écrit</span><div className="lr-typing-dots" aria-label="En train d’écrire"><i/><i/><i/></div></div>:null}
       <div ref={tail}/>
      </div>
      <div className="lr-chat-compose">

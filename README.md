@@ -78,6 +78,6 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 
 - **142 questions** : 60 questions du jour et 82 questions du Radar de bluff ; questions synchronisées et progressions conservées dans D1.
 - Le jeu « Action ou Vérité » a été retiré de l’interface et des opérations serveur. Les anciennes conversations restent intactes.
-- **Messagerie** : statut « En train d’écrire… » rafraîchi pendant la saisie et expirant automatiquement ; indicateur « Vu » sous le dernier message envoyé après ouverture de la conversation par l’autre membre. Les états sont privés à chaque espace.
+- **Messagerie** : statut « En train d’écrire… » rafraîchi pendant la saisie et expirant automatiquement ; indicateur « En ligne » lorsque l’app est au premier plan avec signal de présence toutes les 12 secondes (expiration 35 secondes), sinon « Hors ligne » ; indicateur « Vu » sous le dernier message envoyé après ouverture de la conversation par l’autre membre. Les états sont privés à chaque espace.
 - La table `chat_presence` est créée automatiquement par l’API si nécessaire, ou à partir de `schema.sql` pour une nouvelle installation. Aucune intervention manuelle requise dans Cloudflare.
 - Le clavier iOS/Android conserve les ajustements `visualViewport`, sans zoom du formulaire ; la palette prune nuit est conservée.

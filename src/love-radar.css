@@ -701,3 +701,12 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
 @keyframes lr-typing-pulse{0%,60%,100%{opacity:.35;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
 @media(prefers-reduced-motion:reduce){.lr-typing-dots i{animation:none;opacity:1}}
 .lr-dash-side{align-content:start}
+
+
+/* A subtle presence indicator like familiar mobile messengers. */
+.lr-chat-status{display:inline-flex;align-items:center;gap:7px;line-height:1.35}
+.lr-chat-status::before{content:"";flex:none;display:block;width:7px;height:7px;border-radius:50%;background:#8b758c}
+.lr-chat-status.online::before,.lr-chat-status.typing::before{background:#56d49b;box-shadow:0 0 0 2px rgba(86,212,155,.13)}
+.lr-chat-status.online{color:#7be0af}
+.lr-chat-status.typing{color:#cbaac9}
+.lr-chat-status.offline{color:#a58da6}
