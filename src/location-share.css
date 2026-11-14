@@ -1,0 +1,68 @@
+/* Position privée et volontaire pour deux partenaires. */
+.loc-page,.loc-page *{box-sizing:border-box}
+.loc-page{font-family:-apple-system,BlinkMacSystemFont,"DM Sans",Arial,sans-serif;max-width:720px;margin:0 auto;color:#ffeef7;display:flex;flex-direction:column;gap:17px;padding:2px 4px 30px}
+.loc-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.loc-head>button{border:1px solid #9e779b;background:#60445f;border-radius:12px;padding:10px 13px;color:#fff5fb;font-size:12px;font-weight:850}
+.loc-head>div{display:flex;flex-direction:column;align-items:center;min-width:0;gap:3px}
+.loc-head strong{font:600 clamp(21px,5vw,29px)/1.2 Georgia,serif;white-space:nowrap}
+.loc-head strong span{color:#ffabc6}
+.loc-head small{font-size:8px;font-weight:850;letter-spacing:1.3px;color:#e4bfd6}
+.loc-pin{font-size:24px;border:1px solid #8e6b93;background:#493253;border-radius:12px;padding:8px}
+.loc-intro{display:flex;align-items:center;flex-direction:column;text-align:center;gap:9px;padding:22px 12px 12px}
+.loc-illustration{display:grid;place-items:center;width:64px;height:64px;font-size:31px;background:linear-gradient(140deg,#9b5b88,#543863);border:1px solid #e5bad3;border-radius:20px;box-shadow:0 8px 25px #120b1c66}
+.loc-intro h1{font:600 clamp(26px,5.5vw,37px)/1.18 Georgia,serif;margin:6px 0;color:#fff5fa}
+.loc-intro h1 em{color:#f6b5d2;font-weight:400}
+.loc-intro p{color:#e2c6db;font-size:12px;line-height:1.6;max-width:470px;margin:0}
+.loc-card{display:flex;flex-direction:column;gap:13px;padding:clamp(17px,4vw,27px);border:1px solid #a17d9e;border-radius:22px;background:radial-gradient(ellipse at top right,#985a7c60,transparent 60%),linear-gradient(155deg,#503556,#2e243b);box-shadow:0 12px 36px #130a1f80;color:#fff4fa;text-align:center;align-items:center}
+.loc-card-symbol{font-size:39px;line-height:1.2}
+.loc-card h2{font:600 25px/1.2 Georgia,serif;margin:0;color:#fff7f8}
+.loc-card p{font-size:13px;line-height:1.6;color:#efd5e5;margin:0;max-width:520px}
+.loc-card p strong{color:#fff}
+.loc-card small{font-size:10px;line-height:1.5;color:#dec3d6;max-width:480px}
+.loc-card button{width:100%;max-width:440px;min-height:48px;border-radius:12px;padding:12px 17px;font-size:12px;font-weight:900}
+.loc-primary{border:0;background:linear-gradient(135deg,#f493b5,#bc5589);color:#fff;box-shadow:0 5px 18px #4e254a80}
+.loc-primary:disabled{opacity:.55}
+.loc-secondary{border:1px solid #a985a5;background:#5f426b;color:#ffeafa}
+.loc-refuse{background:#392a46}
+.loc-consent-summary{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:470px}
+.loc-consent-summary span{border:1px solid #866687;border-radius:99px;padding:7px 10px;font-size:10px;color:#ffe0eb;background:#4a3558}
+.loc-time-pill,.loc-timer{padding:9px 13px;border:1px solid #ceb18c;border-radius:10px;background:#6b4c5f;color:#ffe2a9!important;font-size:12px;font-weight:850}
+.loc-stop{border:1px solid #ff9d9d;background:linear-gradient(145deg,#983c61,#6e3654);color:#fff4f5}
+.loc-active{border-color:#9dcaad;background:radial-gradient(ellipse at top right,#49856635,transparent 70%),linear-gradient(145deg,#4d3f59,#2f3044)}
+.loc-map-card{align-items:stretch;text-align:left}
+.loc-map-card>p{max-width:none}
+.loc-map-head{display:flex;gap:11px;align-items:center;justify-content:space-between}
+.loc-map-head>div:first-child{display:flex;flex-direction:column;gap:9px}
+.loc-map-head h2{font-size:24px}
+.loc-live-indicator{font-size:9px;font-weight:900;color:#c4eec8;letter-spacing:.8px}
+.loc-accuracy{border:1px solid #a089ac;background:#443958;border-radius:10px;padding:10px 12px;font-size:11px;color:#ecd8e8}
+.loc-map{width:100%;aspect-ratio:1/1;min-height:260px;border:5px solid #e4c4d8;border-radius:18px;overflow:hidden;background:#e8e1df}
+.loc-map iframe{height:100%;width:100%;border:0;background:#e7dfde}
+.loc-map-placeholder{display:grid;place-items:center;min-height:180px;border:1px dashed #a689aa;border-radius:16px;background:#4a3857;font-size:45px}
+.loc-map-link{display:block;text-align:center;border:1px solid #dbb9d1;background:#584568;padding:12px;border-radius:10px;color:#ffeef9;text-decoration:none;font-size:12px;font-weight:850}
+.loc-privacy{padding:16px 18px;border:1px solid #775d77;border-radius:16px;background:#3c2b46}
+.loc-privacy strong{font-size:12px;color:#ffe9f4}
+.loc-privacy p{font-size:11px;line-height:1.7;color:#d8bfd2;margin:8px 0 0}
+.loc-message{border:1px solid #d5b37c;background:#64515e;border-radius:11px;padding:11px;color:#ffeabd;font-size:12px;line-height:1.5}
+.loc-error{border-color:#ed9aa9;background:#7c3950;color:#ffe4ef}
+.loc-success{border-color:#a2cfb8;background:#416751;color:#e2ffec}
+@media(max-width:700px){
+ .loc-page{padding:calc(12px + env(safe-area-inset-top)) 8px calc(90px + env(safe-area-inset-bottom));gap:12px}
+ .loc-intro{padding:10px 4px}
+ .loc-illustration{height:49px;width:49px;font-size:25px;border-radius:15px}
+ .loc-intro h1{font-size:26px;margin:2px 0}
+ .loc-intro p{font-size:11px}
+ .loc-card{padding:17px;gap:11px}
+ .loc-card h2{font-size:22px}
+ .loc-card p{font-size:12px}
+ .loc-map-head h2{font-size:20px}
+ .loc-map{min-height:220px}
+}
+@media(max-height:670px) and (max-width:700px){.loc-intro{padding:3px}.loc-illustration{display:none}.loc-intro h1{font-size:23px}.loc-head strong{font-size:21px}.loc-card{padding:13px}}
+
+/* Keep GPS-sharing exit deliberate: the back button stops the session. */
+@media(max-width:700px){
+ .lr-app.lr-location-mode .lr-mobile-nav{display:none!important}
+ .lr-app.lr-location-mode .lr-shell{padding-bottom:calc(15px + env(safe-area-inset-bottom))!important}
+}
+.loc-map-refresh{color:#e3cde0;font-size:10px;line-height:1.4;text-align:center}

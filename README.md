@@ -196,3 +196,15 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Bouton « Inviter » sur le tableau pour envoyer une notification privée qui ouvre directement le tableau partagé. Maximum une nouvelle invitation par minute. Un lien de notification ne donne aucun accès sans connexion au salon.
 - Les nouvelles tables `affection_signals`, `couple_canvas_events` et `couple_canvas_invites` sont créées automatiquement. Seuls les membres authentifiés du salon peuvent les consulter ou les modifier ; les traits sont bornés en taille et l'historique visuel est limité aux 180 dernières opérations.
 - Il n'y a pas de service Firebase : le stockage et les fonctions restent sur Cloudflare D1/Pages. Les données des jeux, des messages, des souvenirs et des appels restent intactes.
+
+## 📍 Position privée avec demande et consentement explicite
+
+- Dans l'accueil ou le menu Ensemble, chaque partenaire peut demander à voir la position de l'autre. Cette personne reçoit une notification privée « Demande de position », qui ouvre **uniquement** la demande correspondante et permet « Accepter et partager 15 min » ou « Refuser ».
+- Le demandeur n'accède à **aucune coordonnée** avant acceptation et permission GPS du téléphone. Si la permission est refusée ou si le GPS échoue, la demande reste sans localisation.
+- Après acceptation, le téléphone de la personne qui partage envoie volontairement des coordonnées précises pendant **15 minutes au maximum** et **uniquement lorsque la page est ouverte au premier plan**. Le propriétaire peut arrêter immédiatement par un bouton rouge ; le demandeur peut annuler avant acceptation.
+- L'API vérifie l'identité et le rôle de chaque membre avec son token personnel, ne renvoie la position **qu'au demandeur** en partage actif, supprime les coordonnées à l'arrêt ou à l'expiration, et masque les anciennes positions après 85 secondes sans GPS récent.
+- Un seul enregistrement D1 `couple_location_requests` par salon, écrasé lors d'une nouvelle demande, sans collecte de l'historique des trajets. Les demandes expirent au bout de 3 minutes si elles restent sans réponse ; délai anti-harcèlement de 60 secondes avant de renvoyer une demande.
+- Une carte OpenStreetMap est chargée **uniquement après le clic du demandeur** sur « Afficher sur la carte » ; cela transmet les coordonnées au service cartographique tiers (signalé dans l'interface). L'API donne une précision GPS indicative, pas une preuve absolue de présence ou d'identité. Aucun suivi sans autorisation ou lorsque l'app est fermée.
+- Aucune variable Cloudflare supplémentaire : les tables se créent avec la liaison D1 existante et les alertes utilisent l'abonnement Web Push déjà configuré. Le cache PWA passe en v25.
+
+- L'écran de localisation masque les boutons de navigation du bas pendant le partage ; « Accueil » arrête explicitement le partage avant de quitter. Une tentative de révocation est aussi envoyée si la page est démontée. Si le téléphone est fermé brutalement et que l'arrêt ne peut pas être transmis, l'ancienne position devient automatiquement invisible après ~85 secondes.

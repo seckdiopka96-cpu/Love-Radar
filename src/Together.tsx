@@ -5,7 +5,7 @@ type Mode="heart"|"draw";
 type Signal={id:string;sender_id:string;seat:number;kind:string;reply_to:string|null;created_at:number};
 type DrawEvent={seq:number;id:string;seat:number;kind:string;content:{points?:number[][];color?:string;width?:number;x?:number;y?:number;text?:string};createdAt:number};
 type ApiData={ok:boolean;error?:string;signals?:Signal[];focus?:Signal|null;events?:DrawEvent[];revision?:number;id?:string;invited?:boolean};
-type Props={token:string;myName:string;partnerName:string|null;mySeat:number;onExit:()=>void;focusKind?:"love-signal"|"draw-invite"|null;focusId?:string|null};
+type Props={token:string;myName:string;partnerName:string|null;mySeat:number;onExit:()=>void;onOpenLocation:()=>void;focusKind?:"love-signal"|"draw-invite"|null;focusId?:string|null};
 type Tool="pen"|"heart"|"text";
 const COLORS=["#ef7ca7","#7b4ac2","#3e8fa7","#e7a549","#4b3b55","#ffffff"];
 const RESPONSE_OPTIONS=[{kind:"heart",symbol:"❤️",text:"Moi aussi"},{kind:"kiss",symbol:"😘",text:"Je t’embrasse"},{kind:"love",symbol:"💖",text:"Je t’aime"}];
@@ -19,7 +19,7 @@ function messageOf(signal:Signal){
 function pathOf(points:number[][]){
  return points.map((p,i)=>(i===0?"M":"L")+p[0]+" "+p[1]).join(" ");
 }
-export default function Together({token,myName,partnerName,mySeat,onExit,focusKind,focusId}:Props){
+export default function Together({token,myName,partnerName,mySeat,onExit,onOpenLocation,focusKind,focusId}:Props){
  const [mode,setMode]=useState<Mode>(()=>focusKind==="draw-invite"||new URLSearchParams(window.location.search).get("mode")==="draw"?"draw":"heart");
  const [signals,setSignals]=useState<Signal[]>([]);
  const [focused,setFocused]=useState<Signal|null>(null);
@@ -141,6 +141,7 @@ export default function Together({token,myName,partnerName,mySeat,onExit,focusKi
    <div className="tg-brand"><strong>Nous deux <span>♡</span></strong><small>LOVE RADAR · TOUJOURS ENSEMBLE</small></div>
    <span className="tg-top-heart">♥</span>
   </header>
+  <button type="button" className="tg-location-link" onClick={onOpenLocation}>📍 Demander la position de mon amour (avec son accord) →</button>
   <div className="tg-modes" role="tablist" aria-label="Choisir notre activité">
    <button role="tab" type="button" aria-selected={mode==="heart"} className={mode==="heart"?"selected":""} onClick={()=>{setMode("heart");setOnlyFocused(false)}}>💗 Tu me manques</button>
    <button role="tab" type="button" aria-selected={mode==="draw"} className={mode==="draw"?"selected":""} onClick={()=>{setMode("draw");setOnlyFocused(false)}}>🎨 Dessiner ensemble</button>
