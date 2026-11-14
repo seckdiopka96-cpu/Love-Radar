@@ -40,3 +40,18 @@ CREATE TABLE IF NOT EXISTS voice_signals (
  payload TEXT NOT NULL,created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_voice_signals_next ON voice_signals(call_id,to_member,id);
+
+-- Two-player Ludo, created automatically on first access for existing couples.
+CREATE TABLE IF NOT EXISTS ludo_games (
+ room_id TEXT PRIMARY KEY,
+ game_id TEXT NOT NULL,
+ version INTEGER NOT NULL,
+ turn INTEGER NOT NULL,
+ dice INTEGER,
+ positions TEXT NOT NULL,
+ status TEXT NOT NULL,
+ winner INTEGER,
+ streak INTEGER NOT NULL DEFAULT 0,
+ last_action TEXT NOT NULL,
+ updated_at INTEGER NOT NULL
+);

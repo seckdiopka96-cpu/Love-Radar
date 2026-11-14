@@ -1,9 +1,10 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import "./love-radar.css";
 import VoiceCall from "./VoiceCall";
+import Ludo from "./Ludo";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
-type Tab = "home" | "chat" | "memories";
+type Tab = "home" | "ludo" | "chat" | "memories";
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number};
 type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];partnerReadAt?:number;partnerTypingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
@@ -11,6 +12,7 @@ type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room
 
 const NAV: {id:Tab;label:string;icon:string}[] = [
  {id:"home",label:"Accueil",icon:"♡"},
+ {id:"ludo",label:"Ludo",icon:"🎲"},
  {id:"chat",label:"Messages",icon:"✉"},
  {id:"memories",label:"Souvenirs",icon:"✦"},
 ];
@@ -146,11 +148,11 @@ export default function LoveRadar(){
  useEffect(()=>{
   const onMessage=(event:MessageEvent)=>{
    const next=event.data?.tab;
-   if(next==="chat"||next==="home"){setTab(next);firstPoll.current=true}
+   if(next==="chat"||next==="ludo"||next==="home"){setTab(next);firstPoll.current=true}
   };
   navigator.serviceWorker?.addEventListener("message",onMessage);
   const tabFromUrl=new URLSearchParams(location.search).get("tab");
-  if(tabFromUrl==="chat"||tabFromUrl==="home")setTab(tabFromUrl);
+  if(tabFromUrl==="chat"||tabFromUrl==="ludo"||tabFromUrl==="home")setTab(tabFromUrl);
   return()=>navigator.serviceWorker?.removeEventListener("message",onMessage);
  },[]);
  useEffect(()=>{
@@ -420,11 +422,13 @@ export default function LoveRadar(){
     {tab==="home"?<><div className="lr-hello"><span className="lr-eyebrow">VOTRE BULLE D'AMOUR</span><h1>Bonjour, {room.user.name} <span>♥</span></h1><p>Un petit moment à deux, même à des kilomètres.</p></div>
       {!room.partner?<div className="lr-invite"><div className="lr-invite-left"><span className="lr-invite-emoji">💌</span><div><h3>Il manque juste ton amour !</h3><p>Partage ce code pour ouvrir votre espace à deux.</p></div></div><div className="lr-code">{room.code}</div><button onClick={shareCode} className="lr-invite-button">Partager l’invitation ↗</button></div>:<div className="lr-connected"><span>💞</span><div><b>Vous êtes connectés !</b><p>Vos échanges restent dans votre espace privé.</p></div><button onClick={()=>setTab("chat")}>Écrire à {partner} →</button></div>}
       <div className="lr-dash-grid lr-dash-grid-simple">
+       <button className="lr-feature-card lr-feature-ludo" onClick={()=>setTab("ludo")}><span>🎲 LUDO EN LIGNE · À DEUX</span><h3>Une partie<br/>ensemble ?</h3><p>Quatre pions chacun, des dés et des moments à partager, même à distance.</p><b>Jouer au Ludo ↗</b></button>
        <button className="lr-feature-card lr-feature-chat" onClick={()=>setTab("chat")}><span>✉ VOTRE CONVERSATION</span><h3>Un petit mot<br/>d’amour ?</h3><p>Messages, photos et vocaux, juste entre vous deux.</p><b>Ouvrir les messages ↗</b></button>
        <button className="lr-feature-card lr-feature-memories" onClick={()=>setTab("memories")}><span>✦ VOTRE ALBUM</span><h3>Nos beaux<br/>souvenirs</h3><p>Retrouvez les photos partagées dans votre conversation.</p><b>Voir nos souvenirs ↗</b></button>
       </div>
       <div className="lr-footnote">✧ Créé avec amour par <a href="https://diao-tech.com" target="_blank" rel="noopener noreferrer">Diao-Tech.com</a></div>
      </>:null}
+    {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner}/>:null}
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">
       <div className="lr-chat-partner"><Initials name={partner} size="small"/>
