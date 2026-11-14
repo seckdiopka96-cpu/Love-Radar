@@ -5,7 +5,7 @@ import "./voice-call.css";
 type Call = {id:string;status:"ringing"|"active";direction:"incoming"|"outgoing";createdAt:number;updatedAt:number;expiresAt:number};
 type Signal = {id:number;kind:"offer"|"answer";payload:string};
 type Result = {ok:boolean;error?:string;call?:Call|null;signals?:Signal[]};
-type Props = {token:string;partner:string;hasPartner:boolean;showButton:boolean};
+type Props = {token:string;partner:string;hasPartner:boolean;showButton:boolean;onOpenChat:()=>void};
 
 const STUN_SERVERS:RTCIceServer[]=[
  {urls:"stun:stun.cloudflare.com:3478"},
@@ -22,9 +22,10 @@ function iceReady(pc:RTCPeerConnection):Promise<void>{
   check();
  });
 }
-export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
+export default function VoiceCall({token,partner,hasPartner,showButton,onOpenChat}:Props){
  const [anchor,setAnchor]=useState<HTMLElement|null>(null);
  const [active,setActive]=useState<Call|null>(null);
+ const [minimized,setMinimized]=useState(false);
  const [busy,setBusy]=useState(false);
  const [muted,setMuted]=useState(false);
  const [phase,setPhase]=useState("");
@@ -82,7 +83,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
   if(remote.current){remote.current.pause();remote.current.srcObject=null}
   offered.current=false;answered.current=false;connectedSince.current=0;
   signalAfter.current=0;
-  setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);
+  setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setMinimized(false);
  },[]);
  const reset=useCallback(()=>{
   clearAudio();
@@ -92,6 +93,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
  const setCurrent=useCallback((call:Call)=>{
   if(current.current?.id!==call.id){
    if(current.current)clearAudio();
+   setMinimized(false);
    setError("");setPhase(call.direction==="incoming"?"Appel vocal entrant…":"Appel en cours…");
   }
   current.current=call;
@@ -298,13 +300,22 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
    setSpeakerHelp("Ce navigateur ne permet pas de choisir le haut-parleur. Utilise les commandes audio du téléphone.");
   }
  }
+ function minimizeAndWrite(){
+  if(!current.current||current.current.status!=="active")return;
+  // Navigation changes the page only; the VoiceCall component and WebRTC peer stay mounted.
+  setMinimized(true);
+  onOpenChat();
+ }
  const isIncoming=active?.direction==="incoming"&&active.status==="ringing";
  const isOutgoing=active?.direction==="outgoing"&&active.status==="ringing";
  const total=String(Math.floor(duration/60)).padStart(2,"0")+":"+String(duration%60).padStart(2,"0");
  const callStatus=isIncoming?"Appel vocal entrant…":isOutgoing?"Appel en cours…":phase||"Connexion en cours…";
- const display=active?createPortal(
+ const display=active&&(!minimized||active.status==="ringing")?createPortal(
   <div className="lr-call-backdrop" role="dialog" aria-modal="true" aria-label="Appel vocal Love Radar">
    <div className="lr-call-sheet">
+    {active.status==="active"?<button type="button" className="lr-call-minimize" onClick={minimizeAndWrite} aria-label="Réduire l’appel et écrire des messages">
+     <span aria-hidden="true">⌄</span> Réduire · Écrire
+    </button>:null}
     <span className="lr-call-brand">APPEL VOCAL</span>
     <div className="lr-call-initial">{partner.trim().charAt(0).toUpperCase()}</div>
     <h2>{partner}</h2>
@@ -342,10 +353,24 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
     <small>{relayEnabled?"Connexion sécurisée avec relais audio disponible.":"Appels sécurisés. Garde Love Radar ouvert durant la conversation."}</small>
    </div>
   </div>,document.body):null;
+ const mini=active?.status==="active"&&minimized?createPortal(
+  <div className="lr-call-mini" role="region" aria-label={"Appel vocal en cours avec "+partner}>
+   <button type="button" className="lr-call-mini-expand" onClick={()=>setMinimized(false)} aria-label="Agrandir l’appel" title="Revenir à l’appel">
+    <span className="lr-call-mini-pulse" aria-hidden="true">●</span>
+    <span className="lr-call-mini-info"><strong>{phase==="Connecté"?"En appel":phase||"Appel en cours"} · {partner}</strong><small>{total} · Appuyer pour agrandir</small></span>
+    <span className="lr-call-mini-up" aria-hidden="true">⌃</span>
+   </button>
+   <div className="lr-call-mini-actions">
+    {needsPlay?<button type="button" onClick={enableAudio} className="lr-call-mini-sound" aria-label="Activer le son">🔊</button>:null}
+    <button type="button" className={"lr-call-mini-mute "+(muted?"active":"")} onClick={toggleMute} disabled={!local.current} aria-label={muted?"Réactiver le micro":"Couper le micro"} aria-pressed={muted}>{muted?"🔇":"🎙️"}</button>
+    <button type="button" className="lr-call-mini-end" onClick={hangup} disabled={busy} aria-label="Raccrocher">✕</button>
+   </div>
+  </div>,document.body):null;
  return <>
   {anchor&&createPortal(<button type="button" className="lr-call-trigger" onClick={start} disabled={!hasPartner||busy||Boolean(active)} aria-label="Appeler en vocal" title="Appeler en vocal"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.8v3a2 2 0 0 1-2.2 2A19.5 19.5 0 0 1 2.2 4.2 2 2 0 0 1 4.2 2h3a2 2 0 0 1 2 1.7l.6 3.1a2 2 0 0 1-.6 1.9L7.7 10a16 16 0 0 0 6.3 6.3l1.4-1.5a2 2 0 0 1 1.9-.6l3.1.6a2 2 0 0 1 1.6 1.9Z"/></svg></button>,anchor)}
   {error&&!active?<div className="lr-call-toast" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
   <audio ref={remote} autoPlay playsInline aria-label="Voix de ton partenaire"/>
   {display}
+  {mini}
  </>;
 }
