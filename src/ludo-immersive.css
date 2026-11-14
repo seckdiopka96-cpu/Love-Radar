@@ -234,3 +234,56 @@
  .ludo-countdown{min-width:37px;padding:3px 4px}
 }
 @media(prefers-reduced-motion:reduce){.ludo-countdown.urgent{animation:none}}
+
+
+/* Before every Ludo match, each partner must personally read, choose and sign.
+   Scrolling is isolated inside this overlay; the actual board stays fixed. */
+.ludo-agreement-backdrop{position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom));background:#120b1be9;backdrop-filter:blur(10px);overflow:hidden}
+.ludo-agreement-dialog{box-sizing:border-box;width:min(100%,440px);max-height:100%;display:flex;flex-direction:column;gap:9px;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:16px;border:1px solid #bb8cae;border-radius:22px;background:radial-gradient(ellipse at top,#73527668,transparent 46%),linear-gradient(145deg,#4c3155,#271b34 74%);color:#fff0f6;box-shadow:0 18px 70px #070513b8;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif}
+.ludo-agreement-dialog *{box-sizing:border-box}
+.ludo-agreement-heading{display:flex;align-items:center;gap:12px;flex:none}
+.ludo-agreement-icon{height:43px;width:43px;display:grid;place-items:center;flex:none;border:1px solid #ad7da6;border-radius:12px;background:#5e3e68;font-size:23px}
+.ludo-agreement-heading h2{font-size:23px;font-family:Georgia,serif;margin:0;color:#fff4f7}
+.ludo-agreement-heading p{margin:3px 0 0;font-size:11px;color:#dcbfd2}
+.ludo-agreement-status{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ludo-agreement-player{display:grid;grid-template-columns:24px minmax(0,1fr);align-items:center;column-gap:5px;row-gap:1px;padding:8px;border:1px solid #836482;background:#422e51;border-radius:11px}
+.ludo-agreement-player>span{grid-row:span 2;display:grid;place-items:center;width:23px;height:23px;border-radius:50%;background:#764d77;color:#ffeaf6;font-weight:900}
+.ludo-agreement-player.is-signed{border-color:#87cda6}
+.ludo-agreement-player.is-signed>span{background:#3f9970}
+.ludo-agreement-player strong{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ludo-agreement-player small{font-size:9px;color:#ceb0c8}
+.ludo-agreement-rules{max-height:204px;min-height:105px;flex:0 1 204px;overflow-y:auto;overscroll-behavior:contain;padding:12px 13px;background:#241b32e8;border:1px solid #795876;border-radius:12px;color:#e6d4e3;font-size:11px;line-height:1.48;scrollbar-width:thin}
+.ludo-agreement-rules h3{font-size:12px;color:#ffcae0;margin:4px 0 7px}
+.ludo-agreement-rules h3:not(:first-child){margin-top:13px}
+.ludo-agreement-rules p{margin:0 0 7px}
+.ludo-agreement-read{display:flex;align-items:center;gap:8px;min-height:30px;font-size:11px;line-height:1.4;font-weight:750;color:#fff1f5}
+.ludo-agreement-read input,.ludo-agreement-choice input{width:16px;height:16px;accent-color:#e68eb4;flex:none;margin:0}
+.ludo-agreement-choice{border:1px solid #876486;border-radius:12px;background:#352741;padding:8px 10px 9px;margin:0;display:grid;gap:7px;min-width:0}
+.ludo-agreement-choice legend{padding:0 5px;font-size:11px;font-weight:850;color:#ffd4e8}
+.ludo-agreement-choice label{display:flex;align-items:center;gap:8px;min-height:25px;font-size:11px;color:#f3dce9}
+.ludo-agreement-sign{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#eacbdd}
+.ludo-agreement-sign input{width:100%;height:40px;padding:0 12px;border:1px solid #bc85ae;border-radius:10px;background:#fef6fb;color:#3a2142;font-size:14px;font-weight:650;outline-offset:2px;touch-action:manipulation}
+.ludo-agreement-sign input::placeholder{font-size:12px;color:#97798e}
+.ludo-agreement-submit{flex:none;border:0;background:linear-gradient(125deg,#ed8ba9,#ba5a8a);box-shadow:0 5px 12px #16082166;padding:12px;border-radius:11px;font-size:12px;font-weight:900;color:#fff;touch-action:manipulation}
+.ludo-agreement-submit:disabled{background:#6d5873;color:#cbb7d0;box-shadow:none;opacity:.7}
+.ludo-agreement-exit{border:0;background:transparent;color:#e5b5d0;padding:7px;font-size:11px;text-align:center}
+.ludo-agreement-footnote{font-size:9px;line-height:1.3;text-align:center;margin:0;color:#bca3bc}
+.ludo-agreement-error{padding:8px;border:1px solid #e67e99;border-radius:9px;color:#ffd7e3;background:#70324c;font-size:11px}
+.ludo-agreement-wait{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;min-height:180px;justify-content:center;padding:15px;border:1px dashed #a67f9e;border-radius:15px;background:#30233b}
+.ludo-agreement-wait h3{font-size:22px;font-family:Georgia,serif;margin:0}
+.ludo-agreement-wait p{font-size:12px;color:#dfc1d5;line-height:1.5;margin:0}
+.ludo-agreement-bigcheck{display:grid;place-items:center;width:55px;height:55px;border-radius:50%;background:#4b9a75;color:#fff;font-size:29px;font-weight:900}
+@media(max-height:720px){
+ .ludo-agreement-dialog{gap:7px;padding:11px}
+ .ludo-agreement-heading h2{font-size:20px}
+ .ludo-agreement-icon{width:36px;height:36px;font-size:19px}
+ .ludo-agreement-rules{max-height:128px;flex-basis:128px}
+ .ludo-agreement-choice{gap:4px;padding:6px 9px}
+ .ludo-agreement-sign input{height:35px}
+ .ludo-agreement-submit{padding:10px}
+}
+@media(max-width:365px){
+ .ludo-agreement-dialog{gap:7px;padding:10px}
+ .ludo-agreement-heading h2{font-size:19px}
+ .ludo-agreement-player{padding:5px}
+}

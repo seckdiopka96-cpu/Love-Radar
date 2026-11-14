@@ -10,6 +10,8 @@ type Board=number[][];
 type Game={room_id:string;game_id:string;version:number;turn:number;dice:number|null;positions:Board;status:"playing"|"won";winner:number|null;streak:number;last_action:string;updated_at:number};
 type GiftRow={game_id:string;consent_0:number;consent_1:number;choice:string|null;chosen_by:number|null;given:number};
 type Gift={consents:[boolean,boolean];choice:"credit"|"internet"|"wave2000"|null;chosenBy:number|null;given:boolean};
+type AgreementRow={room_id:string;game_id:string;signed_0_name:string|null;signed_1_name:string|null;signed_0_at:number|null;signed_1_at:number|null;gift_0:number|null;gift_1:number|null;started_at:number|null;updated_at:number};
+type Agreement={signed:[boolean,boolean];names:[string|null,string|null];giftChoices:[boolean|null,boolean|null];signedAt:[number|null,number|null];startedAt:number|null};
 const TURN_MS=30000;
 const GIFTS=new Set(["credit","internet","wave2000"]);
 const initial=():Board=>[[-1,-1,-1,-1],[-1,-1,-1,-1]];
@@ -21,7 +23,8 @@ async function ensureTable(db:D1Database){
  if(!ready){
   ready=db.exec("CREATE TABLE IF NOT EXISTS ludo_games (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, version INTEGER NOT NULL, turn INTEGER NOT NULL, dice INTEGER, positions TEXT NOT NULL, status TEXT NOT NULL, winner INTEGER, streak INTEGER NOT NULL DEFAULT 0, last_action TEXT NOT NULL, updated_at INTEGER NOT NULL);"+
    "CREATE TABLE IF NOT EXISTS ludo_reactions (room_id TEXT PRIMARY KEY, seat INTEGER NOT NULL, emoji TEXT NOT NULL, updated_at INTEGER NOT NULL);"+
-   "CREATE TABLE IF NOT EXISTS ludo_gifts (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, consent_0 INTEGER NOT NULL DEFAULT 0, consent_1 INTEGER NOT NULL DEFAULT 0, choice TEXT, chosen_by INTEGER, given INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL)").then(()=>{}).catch(e=>{ready=null;throw e});
+   "CREATE TABLE IF NOT EXISTS ludo_gifts (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, consent_0 INTEGER NOT NULL DEFAULT 0, consent_1 INTEGER NOT NULL DEFAULT 0, choice TEXT, chosen_by INTEGER, given INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL);"+
+   "CREATE TABLE IF NOT EXISTS ludo_agreements (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, signed_0_name TEXT, signed_1_name TEXT, signed_0_at INTEGER, signed_1_at INTEGER, gift_0 INTEGER, gift_1 INTEGER, started_at INTEGER, updated_at INTEGER NOT NULL)" ).then(()=>{}).catch(e=>{ready=null;throw e});
  }
  await ready;
 }
@@ -60,7 +63,7 @@ async function save(db:D1Database,g:Game){
  .bind(g.game_id,g.turn,g.dice,JSON.stringify(g.positions),g.status,g.winner,g.streak,g.last_action,Date.now(),g.room_id,g.version).run();
  return result.meta.changes===1;
 }
-const publicGame=(g:Game)=>({id:g.game_id,version:g.version,turn:g.turn,dice:g.dice,positions:g.positions,status:g.status,winner:g.winner,lastAction:g.last_action,updatedAt:g.updated_at,deadlineAt:g.status==="playing"?g.updated_at+TURN_MS:null});
+const publicGame=(g:Game,a:Agreement|null)=>({id:g.game_id,version:g.version,turn:g.turn,dice:g.dice,positions:g.positions,status:g.status,winner:g.winner,lastAction:g.last_action,updatedAt:g.updated_at,deadlineAt:g.status==="playing"&&a?.startedAt?Math.max(g.updated_at,a.startedAt)+TURN_MS:null});
 async function reaction(db:D1Database,room:string){
  const result=await db.prepare("SELECT seat,emoji,updated_at AS at FROM ludo_reactions WHERE room_id=? AND updated_at>?").bind(room,Date.now()-7000).first<{seat:number;emoji:string;at:number}>();
  return result||null;
@@ -75,6 +78,27 @@ async function syncGift(db:D1Database,g:Game){
   "WHERE ludo_gifts.game_id<>excluded.game_id"
  ).bind(g.room_id,g.game_id,Date.now()).run();
 }
+/* Each member signs with their own authenticated room identity before each match.
+   This records agreement in the app; it is not a legally verified e-signature. */
+async function syncAgreement(db:D1Database,g:Game){
+ await db.prepare(
+  "INSERT INTO ludo_agreements(room_id,game_id,updated_at) VALUES(?,?,?) "+
+  "ON CONFLICT(room_id) DO UPDATE SET game_id=excluded.game_id,signed_0_name=NULL,signed_1_name=NULL,"+
+  "signed_0_at=NULL,signed_1_at=NULL,gift_0=NULL,gift_1=NULL,started_at=NULL,updated_at=excluded.updated_at "+
+  "WHERE ludo_agreements.game_id<>excluded.game_id"
+ ).bind(g.room_id,g.game_id,Date.now()).run();
+}
+async function agreement(db:D1Database,g:Game):Promise<Agreement>{
+ const r=await db.prepare("SELECT * FROM ludo_agreements WHERE room_id=? AND game_id=?")
+ .bind(g.room_id,g.game_id).first<AgreementRow>();
+ return {signed:[Boolean(r?.signed_0_at),Boolean(r?.signed_1_at)],
+  names:[r?.signed_0_name??null,r?.signed_1_name??null],
+  signedAt:[r?.signed_0_at??null,r?.signed_1_at??null],
+  giftChoices:[r?.gift_0==null?null:Boolean(r.gift_0),r?.gift_1==null?null:Boolean(r.gift_1)],
+  startedAt:r?.started_at??null};
+}
+const normName=(name:string)=>name.normalize("NFC").trim().replace(/\s+/g," ").toLocaleLowerCase("fr");
+
 async function gift(db:D1Database,g:Game):Promise<Gift>{
  const row=await db.prepare("SELECT game_id,consent_0,consent_1,choice,chosen_by,given FROM ludo_gifts WHERE room_id=? AND game_id=?")
  .bind(g.room_id,g.game_id).first<GiftRow>();
@@ -140,8 +164,8 @@ function botTurn(g:Game,name:string){
  if(g.status==="playing"&&g.turn===seat){g.turn=1-seat;g.dice=null;g.streak=0}
  g.last_action="🤖 Après 30 s, l'ordinateur a joué pour "+name+". "+last;
 }
-async function autoIfLate(db:D1Database,g:Game):Promise<Game>{
- if(g.status!=="playing"||Date.now()<g.updated_at+TURN_MS)return g;
+async function autoIfLate(db:D1Database,g:Game,a:Agreement):Promise<Game>{
+ if(g.status!=="playing"||!a.startedAt||Date.now()<Math.max(g.updated_at,a.startedAt)+TURN_MS)return g;
  const acting=g.turn;
  const row=await db.prepare("SELECT name FROM members WHERE room_id=? AND seat=?").bind(g.room_id,acting).first<{name:string}>();
  botTurn(g,(row?.name||"le joueur").slice(0,30));
@@ -162,8 +186,14 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    await createIfMissing(db,player.room_id);
    g=await getGame(db,player.room_id);
   }
-  if(g){g=await autoIfLate(db,g);await syncGift(db,g)}
-  if(method==="GET")return reply({ok:true,members,seat:player.seat,game:g?publicGame(g):null,reaction:members===2?await reaction(db,player.room_id):null,gift:g?await gift(db,g):null,serverNow:Date.now()});
+  let signed:Agreement|null=null;
+  if(g){
+   await syncGift(db,g);
+   await syncAgreement(db,g);
+   signed=await agreement(db,g);
+   g=await autoIfLate(db,g,signed);
+  }
+  if(method==="GET")return reply({ok:true,members,seat:player.seat,game:g?publicGame(g,signed):null,reaction:members===2?await reaction(db,player.room_id):null,gift:g?await gift(db,g):null,agreement:signed,serverNow:Date.now()});
   const text=await ctx.request.text();
   if(text.length>1024)return fail("Requête trop grande.",413);
   let data:Record<string,unknown>;
@@ -177,14 +207,31 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
     .bind(player.room_id,player.seat,data.emoji,Date.now()).run();
    return reply({ok:true,reaction:await reaction(db,player.room_id)});
   }
-  if(action==="gift_consent"){
-   if(g.status!=="playing")return fail("L'accord cadeau doit être donné avant la victoire.",409);
-   if(typeof data.accept!=="boolean")return fail("Choix invalide.",400);
-   const column=player.seat===0?"consent_0":"consent_1";
-   await db.prepare("UPDATE ludo_gifts SET "+column+"=?,updated_at=? WHERE room_id=? AND game_id=?")
-   .bind(data.accept?1:0,Date.now(),player.room_id,g.game_id).run();
-   return reply({ok:true,gift:await gift(db,g)});
+  if(action==="sign_rules"){
+   if(g.status!=="playing")return fail("Cette manche est déjà terminée.",409);
+   if(signed?.startedAt)return fail("La partie a déjà commencé. Un nouvel accord sera proposé à la prochaine manche.",409);
+   if(data.acceptRules!==true)return fail("Lis et accepte les règles avant de signer.",400);
+   if(typeof data.signature!=="string"||data.signature.length>80||!data.signature.trim())return fail("Écris ton nom pour signer.",400);
+   if(normName(data.signature)!==normName(player.name))return fail("La signature doit correspondre au nom de ton profil Love Radar.",400);
+   if(typeof data.giftConsent!=="boolean")return fail("Indique si tu acceptes ou refuses le défi cadeau.",400);
+   const seat=player.seat;
+   const now=Date.now();
+   const nameCol=seat===0?"signed_0_name":"signed_1_name";
+   const dateCol=seat===0?"signed_0_at":"signed_1_at";
+   const giftCol=seat===0?"gift_0":"gift_1";
+   const result=await db.prepare("UPDATE ludo_agreements SET "+nameCol+"=?,"+dateCol+"=?,"+giftCol+"=?,updated_at=? WHERE room_id=? AND game_id=? AND started_at IS NULL")
+   .bind(player.name.trim(),now,data.giftConsent?1:0,now,player.room_id,g.game_id).run();
+   if(result.meta.changes!==1)return fail("Cette partie a déjà commencé.",409);
+   await db.prepare("UPDATE ludo_agreements SET started_at=? WHERE room_id=? AND game_id=? AND signed_0_at IS NOT NULL AND signed_1_at IS NOT NULL AND started_at IS NULL")
+    .bind(now,player.room_id,g.game_id).run();
+   const fresh=await agreement(db,g);
+   if(fresh.startedAt){
+    await db.prepare("UPDATE ludo_gifts SET consent_0=?,consent_1=?,updated_at=? WHERE room_id=? AND game_id=?")
+     .bind(fresh.giftChoices[0]?1:0,fresh.giftChoices[1]?1:0,now,player.room_id,g.game_id).run();
+   }
+   return reply({ok:true,agreement:fresh,gift:await gift(db,g),game:publicGame(g,fresh),serverNow:Date.now()});
   }
+  if(action==="gift_consent")return fail("Les cadeaux sont décidés et signés avant le début de chaque manche.",409);
   if(action==="gift_choose"){
    const current=await gift(db,g);
    if(g.status!=="won"||g.winner!==player.seat)return fail("Seul le gagnant peut choisir le cadeau.",403);
@@ -202,6 +249,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    .bind(data.given?1:0,Date.now(),player.room_id,g.game_id).run();
    return reply({ok:true,gift:await gift(db,g)});
   }
+  if(action!=="restart"&&!signed?.startedAt)return fail("Les deux partenaires doivent lire et signer avant de jouer.",409);
   if(!Number.isInteger(data.version)||data.version!==g.version)return fail("La partie a changé. Actualise le plateau.",409);
   const name=player.name.slice(0,30);
   if(action==="forfeit"){
@@ -272,11 +320,14 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   }
   if(!await save(db,g))return fail("Ton partenaire a joué entre-temps. Plateau actualisé.",409);
   const updated=await getGame(db,player.room_id);
+  let nextAgreement:Agreement|null=null;
   if(updated){
    await syncGift(db,updated);
+   await syncAgreement(db,updated);
+   nextAgreement=await agreement(db,updated);
    if(action==="restart")await db.prepare("DELETE FROM ludo_reactions WHERE room_id=?").bind(player.room_id).run();
   }
-  return reply({ok:true,members,seat:player.seat,game:updated?publicGame(updated):null,gift:updated?await gift(db,updated):null,serverNow:Date.now()});
+  return reply({ok:true,members,seat:player.seat,game:updated?publicGame(updated,nextAgreement):null,gift:updated?await gift(db,updated):null,agreement:nextAgreement,serverNow:Date.now()});
  }catch(e){console.error("Love Radar Ludo",e);return fail("Le jeu est temporairement indisponible.",500)}
 }
 export const onRequestGet=(ctx:Ctx)=>handle(ctx,"GET");
