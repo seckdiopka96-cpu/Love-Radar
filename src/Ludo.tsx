@@ -245,6 +245,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
       <div className="ludo-board-center" aria-hidden="true"><span>♥</span></div>
      </div>
     </div>}
+   {error?<div className="ludo-alert-pop" role="alert">{error}</div>:null}
    {shownReaction?<div className={"ludo-floating-emoji"+(shownReaction.seat===mySeat?" mine":" theirs")} key={shownReaction.at} role="status">{shownReaction.emoji}</div>:null}
    {game?.status==="won"?<div className="ludo-victory" role="dialog" aria-label="Partie terminée">
     <div className="ludo-celebrate" aria-hidden="true">🏆</div>
@@ -257,7 +258,9 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
 
   <footer className="ludo-game-footer">
    <div className="ludo-bottom-actions">
-    <div className={"ludo-die-holder"+(rolling?" is-rolling":"")}><DiceFace value={dice||0} size="large" variant={red?"pink":"gold"}/></div>
+    <button type="button" className={"ludo-die-holder"+(rolling?" is-rolling":"")} disabled={!myTurn||busy||rolling||!game||game.status==="won"||game.dice!==null} onClick={()=>void act("roll")} aria-label="Lancer le dé">
+     <DiceFace value={dice||0} size="large" variant={red?"pink":"gold"}/>
+    </button>
     <button type="button" className="ludo-main-action" disabled={!myTurn||busy||rolling||!game||game.status==="won"||game.dice!==null}
      onClick={()=>void act("roll")}>{game?.dice!==null&&game?"DÉPLACE UN PION":myTurn?rolling?"LANCEMENT…":"LANCER LE DÉ":"ATTENDRE…"}</button>
     <button type="button" className={"ludo-emoji-button"+(emotes?" is-open":"")} onClick={()=>setEmotes(!emotes)} aria-label="Envoyer une réaction" aria-expanded={emotes}>♡</button>
