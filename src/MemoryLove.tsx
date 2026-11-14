@@ -15,7 +15,7 @@ export default function MemoryLove({token,mySeat,myName,partnerName,onExit,chall
  const [game,setGame]=useState<Game|null>(null),[agreement,setAgreement]=useState<Agreement|null>(null);
  const [gift,setGift]=useState<Gift|null>(null),[challenge,setChallenge]=useState<Challenge|null>(null);
  const [members,setMembers]=useState(0),[busy,setBusy]=useState(false),[signBusy,setSignBusy]=useState(false);
- const [rulesAccepted,setRulesAccepted]=useState(false),[signature,setSignature]=useState(""),[giftConsent,setGiftConsent]=useState<""|"yes"|"no">("");
+ const [rulesAccepted,setRulesAccepted]=useState(false),[giftConsent,setGiftConsent]=useState<""|"yes"|"no">("");
  const [menu,setMenu]=useState(false),[giftOpen,setGiftOpen]=useState(false),[error,setError]=useState(""),[challengeHint,setChallengeHint]=useState("");
  const [now,setNow]=useState(Date.now()),[offset,setOffset]=useState(0),[loading,setLoading]=useState(true);
  const live=useRef(true),currentId=useRef<string|null>(null),polling=useRef(false);
@@ -53,7 +53,7 @@ export default function MemoryLove({token,mySeat,myName,partnerName,onExit,chall
  useEffect(()=>{
   if(game?.id===currentId.current)return;
   currentId.current=game?.id||null;
-  setSignature("");setRulesAccepted(false);setGiftConsent("");setChallengeHint("");setGiftOpen(false);
+  setRulesAccepted(false);setGiftConsent("");setChallengeHint("");setGiftOpen(false);
  },[game?.id]);
  const act=async(action:"flip"|"forfeit"|"restart",index?:number)=>{
   if(!game||busy)return false;
@@ -78,9 +78,9 @@ export default function MemoryLove({token,mySeat,myName,partnerName,onExit,chall
   }catch(e){if(live.current)setError(e instanceof Error?e.message:"Erreur de connexion.")}
  };
  const sign=async()=>{
-  if(signBusy||!rulesAccepted||!signature.trim()||giftConsent==="")return;
+  if(signBusy||!rulesAccepted||giftConsent==="")return;
   setSignBusy(true);
-  await post("sign",{readRules:true,signature:signature.trim(),giftConsent:giftConsent==="yes"});
+  await post("sign",{readRules:true,signed:true,giftConsent:giftConsent==="yes"});
   if(live.current)setSignBusy(false);
  };
  const launch=async()=>{
@@ -153,15 +153,12 @@ export default function MemoryLove({token,mySeat,myName,partnerName,onExit,chall
     <p>Si vous acceptez tous les deux avant la partie, le perdant offrira le cadeau choisi par le gagnant : crédit téléphonique, forfait Internet ou 2 000 F CFA via Wave.</p>
     <p>C’est un accord amical entre vous, non une obligation légale. Love Radar ne réalise aucun paiement et ne demande aucune donnée bancaire.</p>
    </div>
-   <label className="memory-sign-read"><input type="checkbox" checked={rulesAccepted} onChange={e=>setRulesAccepted(e.target.checked)}/> J’ai lu et compris les règles.</label>
+   <label className="memory-sign-read"><input type="checkbox" checked={rulesAccepted} onChange={e=>setRulesAccepted(e.target.checked)}/><span>✍️ Je coche pour confirmer avoir lu les règles et signer avec mon profil <strong>{myName}</strong>.</span></label>
    <fieldset className="memory-gift-consent"><legend>Acceptes-tu le défi cadeau si tu perds ?</legend>
     <label><input type="radio" name="memory-gift" checked={giftConsent==="yes"} onChange={()=>setGiftConsent("yes")}/> Oui, j’accepte 🎁</label>
     <label><input type="radio" name="memory-gift" checked={giftConsent==="no"} onChange={()=>setGiftConsent("no")}/> Non, jouer sans cadeau</label>
    </fieldset>
-   <label className="memory-signature-label">Ta signature (nom de profil : <b>{myName}</b>)
-    <input type="text" maxLength={80} autoComplete="off" placeholder={"Écris « "+myName+" »"} value={signature} onChange={e=>setSignature(e.target.value)}/>
-   </label>
-   <button className="memory-primary" type="button" disabled={signBusy||!rulesAccepted||!signature.trim()||!giftConsent} onClick={()=>void sign()}>{signBusy?"Enregistrement…":"✍️ Signer les règles"}</button>
+   <button className="memory-primary" type="button" disabled={signBusy||!rulesAccepted||!giftConsent} onClick={()=>void sign()}>{signBusy?"Enregistrement…":"Valider ma signature ✓"}</button>
    </>:<div className="memory-signed-wait"><span>✅</span><h3>Tu as signé !</h3><p>{agreement?.signed[1-mySeat]?"Les deux signatures sont enregistrées.":"En attente de la signature de "+userName(1-mySeat)+"…"}</p><p>Défi cadeau : {agreement?.giftChoices[mySeat]?"Accepté 🎁":"Non accepté"}</p></div>}
    <button className="memory-invite-btn" type="button" onClick={()=>void launch()} disabled={busy}>{busy?"Envoi…":"💌 Lancer un défi à mon partenaire"}</button>
    {challengeHint?<p className="memory-challenge-hint" role="status">{challengeHint}</p>:null}

@@ -16,7 +16,6 @@ const SYMBOLS=["❤️","💌","🌹","💍","🦋","🌙","💖","🎁"];
 const GIFTS=new Set(["credit","internet","wave2000"]);
 const no=(error:string,status=400)=>Response.json({ok:false,error},{status,headers:{"Cache-Control":"no-store"}});
 const yes=(data:Record<string,unknown>)=>Response.json({ok:true,...data},{headers:{"Cache-Control":"no-store"}});
-const tidy=(name:string)=>name.normalize("NFC").trim().replace(/\s+/g," ").toLocaleLowerCase("fr");
 let ready:Promise<void>|null=null;
 async function ensure(db:D1Database){
  if(!ready)ready=db.exec(
@@ -196,9 +195,8 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
   }
   if(action==="sign"){
    if(g.status!=="playing"||a.startedAt)return no("Cette partie a déjà commencé.",409);
-   if(data.readRules!==true||typeof data.signature!=="string"||data.signature.length>80||
-     tidy(data.signature)!==tidy(u.name)||typeof data.giftConsent!=="boolean")
-    return no("Lis les règles, choisis avec ou sans cadeau et signe avec ton nom de profil.",400);
+   if(data.readRules!==true||data.signed!==true||typeof data.giftConsent!=="boolean")
+    return no("Lis les règles, coche la case de signature et choisis avec ou sans cadeau.",400);
    const prefix=u.seat===0?"0":"1",now=Date.now();
    const updated=await db.prepare("UPDATE memory_agreements SET signed_"+prefix+"_name=?,signed_"+prefix+"_at=?,gift_"+prefix+"=? WHERE room_id=? AND game_id=? AND started_at IS NULL")
     .bind(u.name,now,data.giftConsent?1:0,u.room_id,g.game_id).run();
