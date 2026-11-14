@@ -1,5 +1,5 @@
 -- Run once in the existing love-radar-db D1 console.
--- This does not delete or modify existing couples, messages or answers.
+-- This does not delete or modify existing couples or messages.
 CREATE TABLE IF NOT EXISTS push_subscriptions (
  id TEXT PRIMARY KEY,
  room_id TEXT NOT NULL,

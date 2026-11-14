@@ -3,16 +3,14 @@ import "./love-radar.css";
 import VoiceCall from "./VoiceCall";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
-type Tab = "home" | "radar" | "chat" | "memories";
-type Challenge = {kind:"daily"|"radar";key:string;prompt:string;options:string[];myChoice:number|null;partnerChoice:number|null;complete:boolean;category?:string;categoryPosition?:number;categoryTotal?:number;categoryNumber?:number;categoryCount?:number};
+type Tab = "home" | "chat" | "memories";
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number};
-type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;challenges:Challenge[];messages:Message[];partnerReadAt?:number;partnerTypingUntil?:number;partnerLastSeenAt?:number;round:number};
+type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];partnerReadAt?:number;partnerTypingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
 
 
 const NAV: {id:Tab;label:string;icon:string}[] = [
  {id:"home",label:"Accueil",icon:"♡"},
- {id:"radar",label:"Radar",icon:"◎"},
  {id:"chat",label:"Messages",icon:"✉"},
  {id:"memories",label:"Souvenirs",icon:"✦"},
 ];
@@ -20,26 +18,6 @@ const HEARTS = ["♡","♥","✦","♡","♥"];
 function Initials({name,size="normal"}:{name:string;size?:"normal"|"small"}) {
  return <div className={"lr-avatar "+(size==="small"?"lr-avatar-sm":"")}>{name.trim().slice(0,1).toUpperCase()||"♡"}</div>;
 }
-function ChallengeCard({q,partner,onAnswer,busy,onNext}:{q:Challenge;partner:string|null;onAnswer:(q:Challenge,choice:number)=>void;busy:boolean;onNext?:()=>void}) {
- const reveal=q.complete&&q.myChoice!==null&&q.partnerChoice!==null;
- const same=reveal&&q.myChoice===q.partnerChoice;
- return <div className="lr-challenge">
-  <div className="lr-challenge-top"><span className="lr-chip">{q.kind==="daily"?"✧ LA QUESTION DU JOUR":"◎ "+(q.category||"RADAR DE BLUFF")}</span><span className="lr-mini-star">✷</span></div>
-  {q.kind==="radar"&&q.categoryPosition?<div className="lr-challenge-progress">Thème {q.categoryNumber}/{q.categoryCount} · Question {q.categoryPosition}/{q.categoryTotal}</div>:null}
-  <h2>{q.prompt}</h2>
-  <p className="lr-challenge-desc">{q.kind==="daily"?"Deux cœurs, une question. Découvrons vos réponses.":"Un petit jeu pour rire, discuter et mieux se connaître."}</p>
-  <div className="lr-choices">
-   {q.options.map((option,index)=><button key={index} type="button" className={"lr-choice "+(q.myChoice===index?"is-selected":"")} onClick={()=>onAnswer(q,index)} disabled={busy||q.myChoice!==null}>
-    <span className="lr-choice-dot">{String.fromCharCode(65+index)}</span><span>{option}</span><span>{q.myChoice===index?"♥":""}</span>
-   </button>)}
-  </div>
-  {q.myChoice!==null&&!reveal?<div className="lr-reveal-wait"><span>🔒</span><div><strong>Ta réponse est enregistrée !</strong><p>{partner?"La réponse de "+partner+" reste secrète jusqu’à ce que vous ayez répondu tous les deux.":"Invite ton partenaire pour découvrir sa réponse."}</p></div></div>:null}
-  {reveal?<div className="lr-reveal"><div className="lr-reveal-icon">{same?"💞":"🚨"}</div><h3>{same?"Connexion parfaite !":"ALERTE BLUFF ! 😂"}</h3><p>{same?"Vous avez choisi la même réponse !": "Vos réponses sont différentes. Ça mérite une petite discussion, pas une enquête ! 👀"}</p><div className="lr-compare"><div><small>TOI</small><strong>{q.options[q.myChoice!]}</strong></div><div><small>{partner||"L'AUTRE"}</small><strong>{q.options[q.partnerChoice!]}</strong></div></div></div>:null}
-  {reveal&&onNext?<button type="button" className="lr-next" onClick={onNext} disabled={busy}>Nouvelle question Radar <span>→</span></button>:null}
-  <p className="lr-fine-print">Pour s’amuser ensemble : un quiz ne permet jamais de déterminer si quelqu’un est fidèle ou non.</p>
- </div>;
-}
-
 export default function LoveRadar(){
  const [token,setToken]=useState("");
  const [room,setRoom]=useState<Room|null>(null);
@@ -168,11 +146,11 @@ export default function LoveRadar(){
  useEffect(()=>{
   const onMessage=(event:MessageEvent)=>{
    const next=event.data?.tab;
-   if(next==="chat"||next==="radar"||next==="home"){setTab(next);firstPoll.current=true}
+   if(next==="chat"||next==="home"){setTab(next);firstPoll.current=true}
   };
   navigator.serviceWorker?.addEventListener("message",onMessage);
   const tabFromUrl=new URLSearchParams(location.search).get("tab");
-  if(tabFromUrl==="chat"||tabFromUrl==="radar"||tabFromUrl==="home")setTab(tabFromUrl);
+  if(tabFromUrl==="chat"||tabFromUrl==="home")setTab(tabFromUrl);
   return()=>navigator.serviceWorker?.removeEventListener("message",onMessage);
  },[]);
  useEffect(()=>{
@@ -209,7 +187,7 @@ export default function LoveRadar(){
    const saved=await response.json() as {ok:boolean,error?:string};
    if(!saved.ok)throw Error(saved.error||"Activation impossible.");
    setNotificationsOn(true);
-   setNotificationsHint("Activées ❤️ Tu recevras une alerte lorsque ton partenaire t’écrit ou répond à un jeu.");
+   setNotificationsHint("Activées ❤️ Tu recevras une alerte lorsque ton partenaire t’écrit.");
   }catch(e){setNotificationsHint(e instanceof Error?e.message:"Activation impossible. Réessaie.")}
   finally{setNotificationsBusy(false)}
  }
@@ -328,18 +306,6 @@ export default function LoveRadar(){
   }catch(e){setError(e instanceof Error?e.message:"Connexion impossible.")}
   finally{setBusy(false)}
  }
- async function submitAnswer(q:Challenge,choice:number){
-  if(q.myChoice!==null)return;setBusy(true);setError("");
-  try{await request("answer",{kind:q.kind,choice});await refresh()}
-  catch(e){setError(e instanceof Error?e.message:"Erreur de réponse.")}
-  finally{setBusy(false)}
- }
- async function nextRadar(){
-  setBusy(true);setError("");
-  try{await request("next");await refresh()}
-  catch(e){setError(e instanceof Error?e.message:"Impossible d’avancer.")}
-  finally{setBusy(false)}
- }
  function setTyping(active:boolean){
   if(!token||!room?.partner)return;
   const now=Date.now();
@@ -407,15 +373,13 @@ export default function LoveRadar(){
   catch{setNotice("Utilise le code : "+room?.code)}
  }
  async function deleteRoom(){
-  if(!window.confirm("Supprimer définitivement votre espace, toutes les conversations, photos, vocaux et réponses ? Cette action est irréversible."))return;
+  if(!window.confirm("Supprimer définitivement votre espace, toutes les conversations, photos et vocaux ? Cette action est irréversible."))return;
   setBusy(true);
   try{await request("delete");if(token)void stopPushOnExit(token);localStorage.removeItem("love-radar-token");setToken("");setRoom(null);setTab("home");setNotice("Espace supprimé.")}
   catch(e){setError(e instanceof Error?e.message:"Suppression impossible.")}
   finally{setBusy(false);setMenu(false)}
  }
  function logout(){if(token)void stopPushOnExit(token);localStorage.removeItem("love-radar-token");setToken("");setRoom(null);setMenu(false);setNotice("Tu t’es déconnecté(e).")}
- const daily=room?.challenges.find(c=>c.kind==="daily");
- const radar=room?.challenges.find(c=>c.kind==="radar");
  const partner=room?.partner||"Ton amour";
  const partnerTyping=Boolean(room?.partnerTypingUntil&&room.partnerTypingUntil>Date.now());
  const partnerOnline=Boolean(room?.partnerLastSeenAt&&Date.now()-room.partnerLastSeenAt<35000);
@@ -434,9 +398,9 @@ export default function LoveRadar(){
    <main className="lr-auth"><div className="lr-auth-story">
     <span className="lr-eyebrow">LE JEU QUI RAPPROCHE</span>
     <h1>Et si l’amour<br/>avait son <em>radar ?</em></h1>
-    <p>Des questions qui font sourire, des réponses qui surprennent, et un espace rien qu’à vous deux.</p>
-    <div className="lr-story-chips"><span>💬 Parlez librement</span><span>👀 Déjouez les bluffs</span><span>💞 Restez complices</span></div>
-    <div className="lr-story-scene"><div className="lr-scene-heart">♥</div><div className="lr-float-note lr-note-one">« Tu me connais si bien ! » 💌</div><div className="lr-float-note lr-note-two">🚨 ALERTE BLUFF 😂</div><div className="lr-scene-orbit">✦</div></div>
+    <p>Un espace privé pour discuter, partager vos souvenirs et rester proches, même à distance.</p>
+    <div className="lr-story-chips"><span>💬 Parlez librement</span><span>📸 Partagez vos souvenirs</span><span>💞 Restez complices</span></div>
+    <div className="lr-story-scene"><div className="lr-scene-heart">♥</div><div className="lr-float-note lr-note-one">« Tu me connais si bien ! » 💌</div><div className="lr-float-note lr-note-two">💞 Toujours ensemble</div><div className="lr-scene-orbit">✦</div></div>
    </div>
    <div className="lr-auth-panel"><div className="lr-panel-head"><span>♡ VOTRE HISTOIRE COMMENCE ICI</span><h2>{joinMode?"Rejoins ton amour.":"Créez votre bulle."}</h2><p>{joinMode?"Entre le code privé envoyé par ton partenaire.":"Invitez votre moitié avec un code unique, puis jouez ensemble où que vous soyez."}</p></div>
     <div className="lr-auth-switch"><button className={!joinMode?"active":""} onClick={()=>setJoinMode(false)}>Créer mon espace</button><button className={joinMode?"active":""} onClick={()=>setJoinMode(true)}>J’ai un code</button></div>
@@ -444,30 +408,22 @@ export default function LoveRadar(){
      {joinMode?<><label htmlFor="lr-code">Code d’invitation</label><input id="lr-code" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} maxLength={14} placeholder="EX : AB23CD45EF" required autoCapitalize="characters"/></>:null}
      <button type="submit" disabled={busy}>{busy?"Connexion…":joinMode?"Rejoindre mon partenaire →":"Créer notre espace →"}</button>
     </form>
-    <div className="lr-safe-copy">🔒 Un espace privé accessible uniquement avec une invitation. Pas d’appel, pas de géolocalisation, pas d’espionnage.</div>
+    <div className="lr-safe-copy">🔒 Un espace privé accessible uniquement avec une invitation. Sans géolocalisation ni espionnage.</div>
    </div>
   </main>:
   <div className="lr-shell">
    <aside className="lr-sidebar"><div className="lr-sidebar-top"><span className="lr-side-label">VOTRE PETIT UNIVERS</span><div className="lr-couple"><Initials name={room.user.name}/><span className="lr-couple-mid">♥</span><Initials name={partner}/></div><h2>{room.user.name}<span> &amp; </span>{partner}</h2><p>{room.partner?"La belle aventure continue…":"En attente de ta moitié."}</p></div>
     <div className="lr-side-nav">{NAV.map(n=><button key={n.id} className={tab===n.id?"active":""} onClick={()=>{setTab(n.id);firstPoll.current=true}}><span>{n.icon}</span>{n.label}{n.id==="chat"&&room.messages.length>0?<small>{room.messages.length}</small>:null}</button>)}</div>
-    <div className="lr-sidebar-bottom"><div className="lr-side-heart">♡</div>Chaque jour, une nouvelle occasion de se découvrir.</div>
+    <div className="lr-sidebar-bottom"><div className="lr-side-heart">♡</div>Vos messages et vos souvenirs, toujours à portée de main.</div>
    </aside>
    <main className="lr-main">
     {tab==="home"?<><div className="lr-hello"><span className="lr-eyebrow">VOTRE BULLE D'AMOUR</span><h1>Bonjour, {room.user.name} <span>♥</span></h1><p>Un petit moment à deux, même à des kilomètres.</p></div>
       {!room.partner?<div className="lr-invite"><div className="lr-invite-left"><span className="lr-invite-emoji">💌</span><div><h3>Il manque juste ton amour !</h3><p>Partage ce code pour ouvrir votre espace à deux.</p></div></div><div className="lr-code">{room.code}</div><button onClick={shareCode} className="lr-invite-button">Partager l’invitation ↗</button></div>:<div className="lr-connected"><span>💞</span><div><b>Vous êtes connectés !</b><p>Vos échanges restent dans votre espace privé.</p></div><button onClick={()=>setTab("chat")}>Écrire à {partner} →</button></div>}
-      <div className="lr-dash-grid"><div className="lr-dash-main">{daily?<ChallengeCard q={daily} partner={room.partner} onAnswer={submitAnswer} busy={busy}/>:null}</div><div className="lr-dash-side">
-      <button className="lr-feature-card lr-feature-radar" onClick={()=>setTab("radar")}><span>◎ MODE JEU</span><h3>Fidèle<br/>ou Bluff ?</h3><p>Des questions qui ne laissent personne indifférent… 👀</p><b>Activer le radar ↗</b><i>♥</i></button>
-      <button className="lr-feature-card lr-feature-chat" onClick={()=>setTab("chat")}><span>✉ VOTRE CONVERSATION</span><h3>Un petit mot<br/>d’amour ?</h3><p>Texte, photos et messages vocaux, juste entre vous.</p><b>Ouvrir les messages ↗</b></button>
-
-      </div></div>
-      <div className="lr-footnote">✧ Créé avec amour par <a href="https://diao-tech.com" target="_blank" rel="noopener noreferrer">Diao-Tech.com</a></div>
-     </>:null}
-     {tab==="radar"?<>
-      <div className="lr-section-head"><span className="lr-eyebrow">◎ RADAR À DEUX</span><h1>Apprenez à vous connaître.</h1><p>82 questions organisées en 6 thèmes, à découvrir ensemble.</p></div>
-      <div className="lr-radar-layout">
-       {radar?<ChallengeCard q={radar} partner={room.partner} onAnswer={submitAnswer} busy={busy} onNext={nextRadar}/>:null}
-       <div className="lr-radar-info"><span className="lr-radar-glass">◎</span><h3>{radar?.category||"Vos questions"}</h3><p>Chacun répond secrètement. Les réponses sont révélées après les deux choix.</p><p>Les thèmes avancent ensemble : complicité, limites, confiance, communication, quotidien et avenir.</p><div className="lr-radar-step">THÈME {radar?.categoryNumber||1}/{radar?.categoryCount||6} · QUESTION {radar?.categoryPosition||1}/{radar?.categoryTotal||82}</div></div>
+      <div className="lr-dash-grid lr-dash-grid-simple">
+       <button className="lr-feature-card lr-feature-chat" onClick={()=>setTab("chat")}><span>✉ VOTRE CONVERSATION</span><h3>Un petit mot<br/>d’amour ?</h3><p>Messages, photos et vocaux, juste entre vous deux.</p><b>Ouvrir les messages ↗</b></button>
+       <button className="lr-feature-card lr-feature-memories" onClick={()=>setTab("memories")}><span>✦ VOTRE ALBUM</span><h3>Nos beaux<br/>souvenirs</h3><p>Retrouvez les photos partagées dans votre conversation.</p><b>Voir nos souvenirs ↗</b></button>
       </div>
+      <div className="lr-footnote">✧ Créé avec amour par <a href="https://diao-tech.com" target="_blank" rel="noopener noreferrer">Diao-Tech.com</a></div>
      </>:null}
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">

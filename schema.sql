@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS rooms (
  id TEXT PRIMARY KEY, invite TEXT NOT NULL UNIQUE,
- owner_id TEXT NOT NULL, round INTEGER NOT NULL DEFAULT 0,
+ owner_id TEXT NOT NULL,
  created_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS members (
@@ -16,12 +16,6 @@ CREATE TABLE IF NOT EXISTS messages (
  created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_messages_room ON messages(room_id,created_at DESC);
-CREATE TABLE IF NOT EXISTS answers (
- room_id TEXT NOT NULL, member_id TEXT NOT NULL,
- challenge TEXT NOT NULL, choice INTEGER NOT NULL, created_at INTEGER NOT NULL,
- PRIMARY KEY(room_id,member_id,challenge)
-);
-CREATE INDEX IF NOT EXISTS idx_answers_room ON answers(room_id);
 
 
 -- Auto-created by the API when first requested. Keep for fresh deployments.

@@ -4,12 +4,10 @@ Application web **indépendante de Higgsfield** pour couples, en français. Son 
 
 ## Fonctionnalités
 
-- Jeu Radar de bluff (humour, **pas** de détection réelle des mensonges)
-- Question quotidienne, réponses cachées jusqu'à ce que les deux aient répondu
 - Couple à distance : invitation par code unique à 10 caractères
 - Messagerie privée : texte, photos et vocaux de 45 secondes maximum
 - Album des photos partagées, suppression de l'espace par son créateur
-- Sans appel, sans suivi GPS, sans intégration Higgsfield
+- Appels vocaux WebRTC expérimentaux, sans suivi GPS ni intégration Higgsfield
 
 ## Mise en ligne sur votre Cloudflare
 
@@ -52,14 +50,14 @@ Love Radar est une **Progressive Web App (PWA)** installable depuis Google Chrom
 3. Sinon, ouvrir **⋮ → Installer l'application** (ou « Ajouter à l'écran d'accueil »).
 4. Une icône Love Radar apparaît sur l'écran d'accueil et l'application s'ouvre en mode autonome.
 
-Fichiers : `public/manifest.webmanifest`, `public/sw.js`, `public/icons/`. Le service worker met en cache l'interface et les fichiers statiques pour permettre au minimum d'ouvrir la structure hors connexion. **Les jeux, messages, photos et vocaux requièrent Internet** et les API `/api/` ne sont jamais mises en cache.
+Fichiers : `public/manifest.webmanifest`, `public/sw.js`, `public/icons/`. Le service worker met en cache l'interface et les fichiers statiques pour permettre au minimum d'ouvrir la structure hors connexion. **Les messages, photos et vocaux requièrent Internet** et les API `/api/` ne sont jamais mises en cache.
 
 Ce fonctionnement ne constitue pas une application publiée sur le **Google Play Store** ni un APK téléchargeable ; une distribution Play Store demanderait une étape de packaging et de publication séparée.
 
 ## Notifications iPhone et Android — configuration nécessaire
 
 - Notifications disponibles sur **iOS 16.4+** uniquement lorsque Love Radar est **ajouté à l'écran d'accueil et ouvert depuis son icône** ; Android (Chrome) accepte aussi les notifications. Le consentement est toujours demandé par bouton.
-- Les notifications concernent les **messages texte, photos, vocaux, réponses aux jeux, nouvelle question Radar et arrivée du partenaire**. Aucun message privé ni réponse précise n'est inclus dans les notifications pour préserver la discrétion.
+- Les notifications concernent les **messages, l’arrivée du partenaire et les invitations aux appels**. Le contenu des messages privés n'est pas inclus dans les notifications.
 - Les abonnements sont liés à chaque membre et appareil dans Cloudflare D1. La désactivation de l'appareil, la déconnexion et la suppression d'un espace retirent l'abonnement.
 
 **Procédure :**
@@ -74,14 +72,12 @@ Ce fonctionnement ne constitue pas une application publiée sur le **Google Play
 
 Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128gcm, VAPID pour iOS/Android). La livraison dépend des réglages et de la connectivité du téléphone. Sans variables VAPID et la nouvelle table D1, **l’interface et la messagerie restent fonctionnelles mais les notifications distantes ne peuvent pas être activées**.
 
-## Love Radar — questions et présence en messagerie
+## Présence en messagerie
 
-- **142 questions** : 60 questions du jour et 82 questions du Radar de bluff ; questions synchronisées et progressions conservées dans D1.
-- Le jeu « Action ou Vérité » a été retiré de l’interface et des opérations serveur. Les anciennes conversations restent intactes.
-- **Messagerie** : statut « En train d’écrire… » rafraîchi pendant la saisie et expirant automatiquement ; indicateur « En ligne » lorsque l’app est au premier plan avec signal de présence toutes les 12 secondes (expiration 35 secondes), sinon « Hors ligne » ; indicateur « Vu » sous le dernier message envoyé après ouverture de la conversation par l’autre membre. Les états sont privés à chaque espace.
-- La table `chat_presence` est créée automatiquement par l’API si nécessaire, ou à partir de `schema.sql` pour une nouvelle installation. Aucune intervention manuelle requise dans Cloudflare.
+- **Messagerie** : statut « En train d’écrire… », indicateur « En ligne » et « Vu » pour les conversations privées de chaque couple.
+- La table `chat_presence` est créée automatiquement par l’API. Aucune intervention manuelle requise dans Cloudflare.
 - Le clavier iOS/Android conserve les ajustements `visualViewport`, sans zoom du formulaire ; la palette prune nuit est conservée.
-
+- Les anciennes questions et leurs réponses ne sont plus utilisées par l’application. Les données existantes ne sont pas effacées automatiquement.
 
 ## Appels vocaux WebRTC (1:1)
 

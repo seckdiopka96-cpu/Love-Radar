@@ -29,7 +29,7 @@ export async function notifyPartner(
   fromId:string,
   title:string,
   body:string,
-  tab:"chat"|"radar"|"home"="chat"
+  tab:"chat"|"home"="chat"
 ): Promise<void> {
   if(!env.DB || !env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY)return;
   try {
@@ -42,7 +42,7 @@ export async function notifyPartner(
       publicKey:env.VAPID_PUBLIC_KEY,
       privateKey:env.VAPID_PRIVATE_KEY
     };
-    const data=JSON.stringify({title,body,tab,url:"/?tab="+tab,kind:tab==="chat"?"message":"answer"});
+    const data=JSON.stringify({title,body,tab,url:"/?tab="+tab,kind:tab==="chat"?"message":"notice"});
     await Promise.allSettled(result.results.filter(s=>validPushEndpoint(s.endpoint)).map(async sub=>{
       try{
         const payload=await buildPushPayload(
