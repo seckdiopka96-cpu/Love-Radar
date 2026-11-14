@@ -126,3 +126,12 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Effets sonores WebAudio originaux et courts pour les dés, le déplacement, une capture et la victoire, avec contrôle 🔊 / 🔇 dans la barre du haut. L'audio s'active lors du premier appui de l'utilisateur conformément aux restrictions iOS.
 - Animation de confettis lors de la victoire, dés carrés conservés. Les animations sont réduites si l'option système « réduire les animations » est activée.
 - Une nouvelle version du cache PWA est utilisée pour fournir le design à jour ; les parties et messages ne sont pas réinitialisés.
+
+## Ludo Duo : chrono de 30 secondes et défi cadeau facultatif
+
+- Chaque joueur dispose de 30 secondes pour agir (lancer le dé ou déplacer son pion). Le délai est calculé et contrôlé sur le serveur avec l'horodatage enregistré dans D1.
+- À l'expiration, un bot serveur lance le dé et choisit un déplacement légal, avec une préférence pour les captures, l'arrivée et les cases protégées ; il gère les 6 et les tours bonus.
+- **Limite technique :** les fonctions Cloudflare Pages ne s'exécutent pas en tâche de fond. Les tours expirés sont résolus lors de la prochaine requête API authentifiée (chaque app ouverte interroge toutes les 1,6 s). Si les deux téléphones sont fermés, le coup sera joué à la reprise, pas obligatoirement à la trentième seconde.
+- 🎁 Défi cadeau entre partenaires, entièrement facultatif : les deux joueurs acceptent explicitement **avant la victoire** ; après la victoire, le gagnant peut demander du crédit téléphonique, un forfait Internet ou 2 000 F CFA via Wave. Le perdant peut marquer le cadeau comme offert.
+- **Aucun transfert de fonds, achat de crédit ou achat de data n'est effectué par Love Radar.** Les cadeaux sont des promesses informelles entre les participants ; l'application ne collecte ni numéros Wave, ni coordonnées de paiement, ni données bancaires.
+- Les accords et le choix de cadeau appartiennent à une manche, sont stockés dans D1 et sont réinitialisés au démarrage d'une nouvelle manche. Aucun changement de règles de jeu ni de données privées existantes.
