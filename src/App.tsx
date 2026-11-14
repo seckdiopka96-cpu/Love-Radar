@@ -584,7 +584,7 @@ export default function LoveRadar(){
     </section>:null}
     {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Retrouvez les photos partagées dans votre conversation.</p></div><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>navigate("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<img src={media[m.id]} alt="Souvenir du couple"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
    </main>
-   {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} hasPartner={Boolean(room.partner)} showButton={tab==="chat"}/>:null}
+   {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} hasPartner={Boolean(room.partner)} showButton={tab==="chat"} onOpenChat={()=>navigate("chat")}/>:null}
    {room&&token&&tab==="chat"&&noticeTarget?.id&&["message","photo","audio"].includes(noticeTarget.kind||"")?<div className="lr-push-focus-backdrop" role="dialog" aria-modal="true" aria-label="Contenu de la notification">
     <div className="lr-push-focus-card">
      <div className="lr-push-focus-header"><strong>{noticeTarget.kind==="photo"?"📸 Photo reçue":noticeTarget.kind==="audio"?"🎙️ Message vocal reçu":"💌 Message reçu"}</strong><button type="button" onClick={closeNotice} aria-label="Fermer le contenu">×</button></div>

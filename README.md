@@ -218,3 +218,12 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Une protection contre les réponses réseau arrivées dans le désordre empêche un ancien rafraîchissement d'effacer momentanément les traits que vient de créer l'utilisateur.
 - Les demandes et partages GPS utilisent désormais un rafraîchissement toutes les ~1,5 seconde quand la page est ouverte, avec un état d'accès au service. Cela ne change **pas** le consentement obligatoire ni les limites de 15 minutes et 85 secondes de fraîcheur des coordonnées.
 - La présence est éphémère et sans localisation. Aucun nouveau service externe ni configuration n'est nécessaire. Build PWA v26.
+
+## 📞 Réduire l'appel et écrire en même temps
+
+- Pendant un appel accepté, le bouton « Réduire · Écrire » masque uniquement la grande fenêtre d'appel et revient à la conversation. Il ne ferme ni la connexion WebRTC ni le microphone.
+- Une petite barre d'appel reste visible en haut avec le prénom du partenaire, le chronomètre, un bouton pour revenir à l'appel, le contrôle du microphone et « Raccrocher ». Si Safari refuse la lecture audio, « Activer le son » reste accessible dans cette barre.
+- La barre reste visible également si l'utilisateur navigue vers une autre page de Love Radar ; les appels entrants continuent d'utiliser la fenêtre entière pour accepter/refuser.
+- La barre est placée en haut afin de ne pas cacher le champ de saisie et le clavier iPhone. L'audio reste lié au composant VoiceCall toujours monté tant que le couple est connecté.
+- Cela ne permet pas de maintenir un appel en arrière-plan lorsque l'application iOS elle-même est fermée, verrouillée ou suspendue. Garder Love Radar à l'écran.
+- Pas de changement au serveur d'appel ni aux permissions micro ; cache PWA v27 pour activer les nouveaux contrôles.

@@ -41,3 +41,66 @@
 .lr-call-audio-hint{font-size:12px;line-height:1.6;color:#f6d4e4;text-align:center;background:#493047;border-radius:12px;padding:11px 13px;margin:15px 0 0;max-width:305px}
 .lr-call-sheet small{font-size:11px}
 @media(max-width:390px){.lr-call-sheet{padding:30px 13px 24px}.lr-call-actions{gap:17px;margin:49px 0 36px}.lr-call-brand{margin-bottom:25px}.lr-call-initial{width:78px;height:78px}.lr-call-action{width:67px;height:67px}.lr-call-action span{font-size:10px}}
+
+
+/* Minimize the call without touching RTCPeerConnection or MediaStream:
+   audio remains mounted while the user types in the chat. */
+.lr-call-sheet{position:relative}
+.lr-call-minimize{
+ align-self:flex-end;display:flex;align-items:center;justify-content:center;gap:7px;
+ min-height:40px;padding:8px 13px;margin:-18px -2px 12px;
+ border:1px solid #b98ba8;border-radius:99px;
+ background:#63405b;color:#ffe7f0;font:800 12px/1.2 -apple-system,BlinkMacSystemFont,Arial,sans-serif;
+ cursor:pointer;white-space:nowrap;
+}
+.lr-call-minimize span{font-size:23px;line-height:0.8;font-weight:600}
+.lr-call-minimize:focus-visible,.lr-call-mini button:focus-visible{outline:3px solid #f6bad4;outline-offset:3px}
+.lr-call-mini{
+ position:fixed;z-index:2147483644;
+ top:calc(9px + env(safe-area-inset-top));
+ right:12px;
+ display:flex;align-items:center;gap:6px;
+ width:min(415px,calc(100vw - 24px));min-height:64px;padding:6px;
+ box-sizing:border-box;
+ border:1px solid #c390ac;border-radius:17px;
+ background:rgba(52,31,58,.97);backdrop-filter:blur(18px);
+ box-shadow:0 9px 32px #100a1de0;
+ color:#fff1fa;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+}
+.lr-call-mini-expand{
+ flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:9px;
+ border:0;background:transparent;color:#fff1fa;
+ padding:8px 4px 8px 7px;cursor:pointer;text-align:left;
+}
+.lr-call-mini-pulse{flex:none;color:#aef2b6;font-size:17px;animation:lr-mini-live 1.7s ease-in-out infinite}
+@keyframes lr-mini-live{50%{opacity:.45;transform:scale(.75)}}
+.lr-call-mini-info{min-width:0;display:flex;flex-direction:column;gap:4px;overflow:hidden}
+.lr-call-mini-info strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:900}
+.lr-call-mini-info small{font-size:10px;color:#e8bbd3;white-space:nowrap}
+.lr-call-mini-up{flex:none;color:#efbfd8;font-size:23px;line-height:1;font-weight:900}
+.lr-call-mini-actions{display:flex;align-items:center;gap:5px;flex:none}
+.lr-call-mini-actions button{
+ height:39px;width:39px;display:grid;place-items:center;
+ flex:none;border:1px solid #976d8a;border-radius:12px;
+ color:#fff;background:#674c67;font-size:17px;cursor:pointer;
+}
+.lr-call-mini-actions button:disabled{opacity:.45;cursor:not-allowed}
+.lr-call-mini-actions .lr-call-mini-mute.active{background:#9c5485;border-color:#edb9db}
+.lr-call-mini-actions .lr-call-mini-end{background:#c34262;border-color:#e88498;color:white;font-size:21px;font-weight:700}
+.lr-call-mini-actions .lr-call-mini-sound{background:#446c61;border-color:#8fcdb7}
+@media(max-width:700px){
+ .lr-call-minimize{margin:-9px -1px 5px;min-height:39px;font-size:11px}
+ .lr-call-mini{top:calc(6px + env(safe-area-inset-top));left:8px;right:8px;width:auto;min-height:60px;border-radius:15px}
+ .lr-call-mini-expand{gap:7px;padding-left:5px}
+ .lr-call-mini-info strong{font-size:11px}
+ .lr-call-mini-info small{font-size:9px}
+ .lr-call-mini-up{font-size:19px}
+ .lr-call-mini-actions button{height:36px;width:36px;font-size:15px}
+}
+@media(max-width:360px){
+ .lr-call-mini{left:6px;right:6px;gap:3px;padding:4px}
+ .lr-call-mini-actions{gap:3px}
+ .lr-call-mini-actions button{width:32px;height:34px;border-radius:9px}
+ .lr-call-mini-info strong{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){.lr-call-mini-pulse{animation:none}}
