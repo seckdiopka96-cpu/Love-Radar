@@ -49,17 +49,30 @@ async function snapshot(db:D1Database,u:Member){
  const partners=await db.prepare("SELECT id,name,seat FROM members WHERE room_id=? ORDER BY seat").bind(u.room_id).all<{id:string,name:string,seat:number}>();
  const messages=await db.prepare("SELECT id,sender_id,kind,content,object_key,mime,created_at FROM messages WHERE room_id=? AND kind IN ('text','image','audio') ORDER BY created_at DESC,id DESC LIMIT 90").bind(u.room_id).all();
  const otherStatus=await db.prepare("SELECT last_read_at,typing_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1").bind(u.room_id,u.id).first<{last_read_at:number,typing_until:number,last_seen_at:number}>();
+ const unread=await db.prepare("SELECT COUNT(*) AS n FROM messages WHERE room_id=? AND sender_id<>? AND kind IN ('text','image','audio') AND created_at>COALESCE((SELECT last_read_at FROM chat_presence WHERE room_id=? AND member_id=?),0)")
+  .bind(u.room_id,u.id,u.room_id,u.id).first<{n:number}>();
 
 
  return {user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id},code:u.invite,roomId:u.room_id,
   partner:partners.results.find(a=>a.id!==u.id)?.name||null,members:partners.results.length,
-  messages:messages.results.reverse(),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
+  messages:messages.results.reverse(),unreadCount:Number(unread?.n||0),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
 }
 
   const handlers: Record<"GET"|"POST",(args:{request:Request})=>Promise<Response>> = {
   GET:async({request})=>{
-   try{const session=await auth(request);if(!session)return fail("Session expirée ou invalide.",401);await ensureChatPresence(session.db);return ok(await snapshot(session.db,session.user))}
-   catch(err){console.error("Love Radar snapshot",err);return fail("Erreur temporaire du service.",500)}
+   try{
+    const session=await auth(request);
+    if(!session)return fail("Session expirée ou invalide.",401);
+    await ensureChatPresence(session.db);
+    const overview=await snapshot(session.db,session.user);
+    const id=new URL(request.url).searchParams.get("messageId");
+    if(id){
+     if(!/^[a-f0-9-]{36}$/i.test(id))return fail("Identifiant de message invalide.",400);
+     const focus=await session.db.prepare("SELECT id,sender_id,kind,content,object_key,mime,created_at FROM messages WHERE room_id=? AND id=? AND kind IN ('text','image','audio') LIMIT 1").bind(session.user.room_id,id).first();
+     return ok({...overview,focusMessage:focus||null});
+    }
+    return ok(overview);
+   }catch(err){console.error("Love Radar snapshot",err);return fail("Erreur temporaire du service.",500)}
   },
   POST:async({request})=>{
    try{
@@ -119,10 +132,11 @@ async function snapshot(db:D1Database,u:Member){
     if(op==="message"){
      const message=String(body.text||"").trim();
      if(!message||message.length>1600)return fail("Écris un message de 1 à 1 600 caractères.");
-     await db.prepare("INSERT INTO messages(id,room_id,sender_id,kind,content,created_at) VALUES(?,?,?,'text',?,?)").bind(crypto.randomUUID(),u.room_id,u.id,message,Date.now()).run();
+     const messageId=crypto.randomUUID();
+     await db.prepare("INSERT INTO messages(id,room_id,sender_id,kind,content,created_at) VALUES(?,?,?,'text',?,?)").bind(messageId,u.room_id,u.id,message,Date.now()).run();
      await ensureChatPresence(db);
      await db.prepare("UPDATE chat_presence SET typing_until=0 WHERE room_id=? AND member_id=?").bind(u.room_id,u.id).run();
-     waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",u.name+" t’a envoyé un message.","chat"));
+     waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",u.name+" t’a envoyé un message.","chat",{kind:"message",id:messageId}));
      return ok({sent:true});
     }
     if(op==="delete"){
