@@ -43,7 +43,7 @@ async function canvasState(db:D1Database,u:Member){
  const rows=await db.prepare("SELECT e.seq,e.id,e.kind,e.payload,e.created_at,m.seat FROM couple_canvas_events e JOIN members m ON m.id=e.sender_id WHERE e.room_id=? ORDER BY e.seq DESC LIMIT 180")
   .bind(u.room_id).all<CanvasRow>();
  const events=(rows.results||[]).reverse().map(e=>({seq:e.seq,id:e.id,seat:e.seat,kind:e.kind,content:JSON.parse(e.payload),createdAt:e.created_at}));
- const clear=events.findLastIndex(e=>e.kind==="clear");
+ const clear=events.map(e=>e.kind).lastIndexOf("clear");
  return {events:clear>=0?events.slice(clear+1):events,revision:events.at(-1)?.seq||0};
 }
 async function sendSignal(db:D1Database,u:Member,ctx:Ctx,kind:string,replyTo:string|null){
