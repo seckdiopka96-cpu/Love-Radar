@@ -685,3 +685,224 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
 .lr-push-focus-content small{font-size:11px;color:#c9adca;align-self:flex-end}
 .lr-push-focus-open-chat{width:100%;height:46px;padding:10px 12px;border:0;border-radius:12px;background:linear-gradient(125deg,#d76699,#af4b85);color:#fff;font-size:13px;font-weight:850}
 .lr-push-focus-card>p{color:#f1d8e4;font-size:13px;line-height:1.5}
+
+
+/* Public welcome/onboarding: deliberately compact, with only the actions needed.
+   Logged-in pages keep all of their existing layouts. */
+.lr-welcome-mode>.lr-bg-decor{display:none}
+.lr-welcome-mode .lr-auth{
+ max-width:920px;
+ min-height:calc(100dvh - 84px);
+ padding:clamp(22px,4.5vh,52px) 24px;
+ gap:clamp(22px,4vw,55px);
+ grid-template-columns:minmax(0,1fr) minmax(320px,.95fr);
+}
+.lr-welcome-mode .lr-auth-story{
+ min-height:0;
+ align-self:center;
+ display:flex;
+ flex-direction:column;
+ align-items:flex-start;
+ justify-content:center;
+}
+.lr-welcome-mode .lr-auth-heart{
+ width:66px;height:66px;display:grid;place-items:center;
+ border:1px solid #c478a6;border-radius:21px;
+ background:linear-gradient(140deg,#9d4d78,#5b305c);
+ color:#ffd2e6;font:normal 42px/1 Georgia,serif;
+ box-shadow:0 9px 27px #10081772;
+ margin-bottom:18px;
+}
+.lr-welcome-mode .lr-auth-story h1{
+ font-size:clamp(39px,5vw,63px);
+ margin:13px 0 12px;
+ letter-spacing:-1.7px;
+ line-height:1.12;
+}
+.lr-welcome-mode .lr-auth-story h1 em{white-space:normal}
+.lr-welcome-mode .lr-auth-story>p{font-size:14px;line-height:1.6;max-width:400px}
+.lr-welcome-mode .lr-auth-panel{
+ width:100%;
+ max-width:440px;
+ padding:clamp(22px,3vw,35px);
+ border-radius:24px;
+}
+.lr-welcome-mode .lr-panel-head h2{
+ font-size:clamp(23px,3vw,31px);
+ line-height:1.13;
+ letter-spacing:-.6px;
+ margin:0 0 7px;
+}
+.lr-welcome-mode .lr-panel-head p{
+ font-size:12px;line-height:1.45;
+ margin:0 0 20px;
+}
+.lr-welcome-mode .lr-auth-switch{margin-bottom:18px}
+.lr-welcome-mode .lr-auth-switch button{padding:12px 6px}
+.lr-welcome-mode .lr-auth-form{gap:9px}
+.lr-welcome-mode .lr-auth-form label{font-size:12px}
+.lr-welcome-mode .lr-auth-form input{min-height:44px;padding:11px 14px;font-size:16px}
+.lr-welcome-mode .lr-auth-form>button{min-height:48px;margin-top:8px;font-size:13px}
+.lr-welcome-mode .lr-safe-copy{
+ display:flex;align-items:center;justify-content:center;gap:6px;
+ border-top:1px solid #74465a;
+ margin-top:18px;padding-top:14px;
+ font-size:11px;line-height:1.35;text-align:center;
+}
+
+/* A genuine one-screen onboarding experience on mobile: no page scrolling. */
+@media(max-width:700px){
+ html:has(.lr-app.lr-welcome-mode),
+ body:has(.lr-app.lr-welcome-mode),
+ #root:has(.lr-app.lr-welcome-mode){
+  height:100dvh!important;
+  min-height:0!important;
+  max-height:100dvh!important;
+  overflow:hidden!important;
+  overscroll-behavior:none;
+ }
+ body:has(.lr-app.lr-welcome-mode){position:fixed!important;inset:0!important;width:100%}
+ .lr-app.lr-welcome-mode{
+  position:fixed!important;
+  inset:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  height:100dvh!important;
+  min-height:0!important;
+  max-height:100dvh!important;
+  width:100%!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+ }
+ .lr-app.lr-welcome-mode>.lr-header{
+  flex:0 0 auto!important;
+  height:calc(49px + env(safe-area-inset-top))!important;
+  min-height:0!important;
+  padding:env(safe-area-inset-top) 18px 0!important;
+  box-shadow:none;
+  border-bottom:0;
+  background:transparent;
+ }
+ .lr-app.lr-welcome-mode>.lr-header .lr-brand>b{font-size:22px}
+ .lr-app.lr-welcome-mode .lr-auth{
+  flex:1 1 0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  align-items:center!important;
+  gap:clamp(9px,2dvh,17px)!important;
+  padding:clamp(6px,1.5dvh,13px) 17px calc(10px + env(safe-area-inset-bottom))!important;
+  margin:0!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-height:0!important;
+  height:auto!important;
+  overflow:hidden!important;
+ }
+ .lr-app.lr-welcome-mode .lr-auth-story{
+  flex:0 1 auto;
+  align-self:stretch;
+  width:100%;
+  max-width:420px;
+  min-height:0!important;
+  gap:0;
+  align-items:center!important;
+  justify-content:center;
+  text-align:center;
+ }
+ .lr-app.lr-welcome-mode .lr-auth-heart{
+  width:43px;height:43px;font-size:28px;
+  border-radius:14px;margin:0 0 9px;
+  box-shadow:0 6px 18px #1409175c;
+ }
+ .lr-app.lr-welcome-mode .lr-eyebrow{font-size:9px;letter-spacing:1.5px}
+ .lr-app.lr-welcome-mode .lr-auth-story h1{
+  font-size:clamp(26px,7.7vw,34px);
+  letter-spacing:-.9px;
+  line-height:1.09;
+  margin:7px 0 7px!important;
+ }
+ .lr-app.lr-welcome-mode .lr-auth-story>p{
+  font-size:11px;
+  line-height:1.45!important;
+  max-width:290px;
+  margin:0!important;
+ }
+ .lr-app.lr-welcome-mode .lr-auth-panel{
+  flex:0 1 auto;
+  max-width:420px;
+  align-self:stretch;
+  width:100%;
+  min-height:0;
+  padding:clamp(13px,2.6dvh,21px)!important;
+  border-radius:19px!important;
+  box-shadow:0 12px 35px #1007178b;
+ }
+ .lr-app.lr-welcome-mode .lr-panel-head h2{font-size:clamp(21px,5.3vw,26px);margin:0 0 4px}
+ .lr-app.lr-welcome-mode .lr-panel-head p{font-size:11px;line-height:1.4;margin:0 0 13px}
+ .lr-app.lr-welcome-mode .lr-auth-switch{margin:0 0 13px;gap:3px;padding:4px}
+ .lr-app.lr-welcome-mode .lr-auth-switch button{font-size:11px;padding:10px 3px;min-height:38px}
+ .lr-app.lr-welcome-mode .lr-auth-form{gap:7px}
+ .lr-app.lr-welcome-mode .lr-auth-form label{font-size:11px}
+ .lr-app.lr-welcome-mode .lr-auth-form input{height:43px;min-height:43px;padding:9px 11px;font-size:16px;border-radius:10px}
+ .lr-app.lr-welcome-mode .lr-auth-form>button{min-height:45px;margin-top:5px;border-radius:11px;font-size:12px}
+ .lr-app.lr-welcome-mode .lr-safe-copy{
+  margin-top:11px;
+  padding-top:10px;
+  font-size:10px;
+  border-color:#70435e;
+ }
+ .lr-app.lr-welcome-mode>.lr-error{
+  position:absolute;z-index:70;
+  top:calc(49px + env(safe-area-inset-top));
+  left:12px;right:12px;margin:0;
+  max-height:70px;overflow:auto;
+ }
+}
+
+/* Small phones in join mode can show both inputs without leaving the viewport. */
+@media(max-width:700px) and (max-height:740px){
+ .lr-app.lr-welcome-mode .lr-auth{gap:7px!important;padding-top:5px!important;padding-bottom:calc(5px + env(safe-area-inset-bottom))!important}
+ .lr-app.lr-welcome-mode .lr-auth-heart{width:31px;height:31px;font-size:22px;margin-bottom:4px}
+ .lr-app.lr-welcome-mode .lr-auth-story h1{font-size:clamp(24px,6.6vw,30px);margin:4px 0!important}
+ .lr-app.lr-welcome-mode .lr-auth-story>p{font-size:10px}
+ .lr-app.lr-welcome-mode .lr-auth-panel{padding:12px!important}
+ .lr-app.lr-welcome-mode .lr-panel-head h2{font-size:21px}
+ .lr-app.lr-welcome-mode .lr-panel-head p{margin-bottom:8px}
+ .lr-app.lr-welcome-mode .lr-auth-switch{margin-bottom:8px}
+ .lr-app.lr-welcome-mode .lr-auth-switch button{min-height:34px;padding:7px 2px}
+ .lr-app.lr-welcome-mode .lr-auth-form{gap:5px}
+ .lr-app.lr-welcome-mode .lr-auth-form input{height:39px;min-height:39px}
+ .lr-app.lr-welcome-mode .lr-auth-form>button{min-height:40px;margin-top:2px}
+ .lr-app.lr-welcome-mode .lr-safe-copy{margin-top:7px;padding-top:7px}
+}
+@media(max-width:700px) and (max-height:600px){
+ .lr-app.lr-welcome-mode .lr-auth-story>p,
+ .lr-app.lr-welcome-mode .lr-panel-head p{display:none}
+ .lr-app.lr-welcome-mode .lr-auth-heart{display:none}
+ .lr-app.lr-welcome-mode .lr-auth-story h1{font-size:24px}
+ .lr-app.lr-welcome-mode .lr-safe-copy{border-top:0;margin-top:4px;padding-top:0}
+}
+
+/* iOS keyboard: keep the form in the visible viewport without page scrolling. */
+@media(max-width:700px){
+ .lr-app.lr-welcome-mode:has(.lr-auth-form input:focus){
+  top:var(--lr-visible-top,0px)!important;
+  height:var(--lr-visible-height,100dvh)!important;
+  max-height:var(--lr-visible-height,100dvh)!important;
+ }
+ .lr-app.lr-welcome-mode:has(.lr-auth-form input:focus)>.lr-header,
+ .lr-app.lr-welcome-mode:has(.lr-auth-form input:focus) .lr-auth-story{display:none!important}
+ .lr-app.lr-welcome-mode:has(.lr-auth-form input:focus) .lr-auth{
+  gap:0!important;
+  padding:5px 13px!important;
+ }
+ .lr-app.lr-welcome-mode:has(.lr-auth-form input:focus) .lr-auth-panel{
+  flex:0 1 auto!important;
+  max-height:100%!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+ }
+ .lr-app.lr-welcome-mode:has(.lr-auth-form input:focus) .lr-panel-head{display:none!important}
+}

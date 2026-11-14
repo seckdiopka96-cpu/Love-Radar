@@ -484,7 +484,7 @@ export default function LoveRadar(){
  const partnerOnline=Boolean(room?.partnerLastSeenAt&&Date.now()-room.partnerLastSeenAt<35000);
  const images=room?.messages.filter(m=>m.kind==="image")||[];
  const lastOwnMessage=[...(room?.messages||[])].reverse().find(m=>m.sender_id===room?.user.id);
- return <div className={"lr-app "+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+(tab==="ludo"&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
+ return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+(tab==="ludo"&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-brand"><b>Love Radar</b></div>
    <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>Love Radar · Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span><button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
@@ -494,22 +494,28 @@ export default function LoveRadar(){
   {notice?<div className="lr-toast" onClick={()=>setNotice("")}>{notice} <span>×</span></div>:null}
   {error?<div className="lr-error" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
   {initializing?<main className="lr-loading">Un petit moment de magie… 💕</main>:!room?
-   <main className="lr-auth"><div className="lr-auth-story">
-    <span className="lr-eyebrow">LE JEU QUI RAPPROCHE</span>
-    <h1>Et si l’amour<br/>avait son <em>radar ?</em></h1>
-    <p>Un espace privé pour discuter, partager vos souvenirs et rester proches, même à distance.</p>
-    <div className="lr-story-chips"><span>💬 Parlez librement</span><span>📸 Partagez vos souvenirs</span><span>💞 Restez complices</span></div>
-    <div className="lr-story-scene"><div className="lr-scene-heart">♥</div><div className="lr-float-note lr-note-one">« Tu me connais si bien ! » 💌</div><div className="lr-float-note lr-note-two">💞 Toujours ensemble</div><div className="lr-scene-orbit">✦</div></div>
-   </div>
-   <div className="lr-auth-panel"><div className="lr-panel-head"><span>♡ VOTRE HISTOIRE COMMENCE ICI</span><h2>{joinMode?"Rejoins ton amour.":"Créez votre bulle."}</h2><p>{joinMode?"Entre le code privé envoyé par ton partenaire.":"Invitez votre moitié avec un code unique, puis jouez ensemble où que vous soyez."}</p></div>
-    <div className="lr-auth-switch"><button className={!joinMode?"active":""} onClick={()=>setJoinMode(false)}>Créer mon espace</button><button className={joinMode?"active":""} onClick={()=>setJoinMode(true)}>J’ai un code</button></div>
-    <form onSubmit={startRoom} className="lr-auth-form"><label htmlFor="lr-name">Ton prénom</label><input id="lr-name" value={name} onChange={e=>setName(e.target.value)} minLength={2} maxLength={30} placeholder="Comment doit-on t’appeler ?" required/>
-     {joinMode?<><label htmlFor="lr-code">Code d’invitation</label><input id="lr-code" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} maxLength={14} placeholder="EX : AB23CD45EF" required autoCapitalize="characters"/></>:null}
-     <button type="submit" disabled={busy}>{busy?"Connexion…":joinMode?"Rejoindre mon partenaire →":"Créer notre espace →"}</button>
-    </form>
-    <div className="lr-safe-copy">🔒 Un espace privé accessible uniquement avec une invitation. Sans géolocalisation ni espionnage.</div>
-   </div>
-  </main>:
+   <main className="lr-auth lr-auth-simple">
+     <section className="lr-auth-story" aria-label="Bienvenue sur Love Radar">
+      <span className="lr-auth-heart" aria-hidden="true">♥</span>
+      <span className="lr-eyebrow">UN ESPACE RIEN QU'À VOUS</span>
+      <h1>Votre amour,<br/><em>même à distance.</em></h1>
+      <p>Discutez, jouez et partagez vos moments à deux.</p>
+     </section>
+     <section className="lr-auth-panel" aria-label="Créer ou rejoindre votre espace privé">
+      <div className="lr-panel-head"><h2>{joinMode?"Rejoins ton amour ♡":"Bienvenue à deux ♡"}</h2><p>{joinMode?"Entre ton prénom et votre code privé.":"Crée ton espace et invite ton partenaire."}</p></div>
+      <div className="lr-auth-switch" role="group" aria-label="Créer ou rejoindre un espace">
+       <button type="button" className={!joinMode?"active":""} aria-pressed={!joinMode} onClick={()=>setJoinMode(false)}>Créer mon espace</button>
+       <button type="button" className={joinMode?"active":""} aria-pressed={joinMode} onClick={()=>setJoinMode(true)}>J’ai un code</button>
+      </div>
+      <form onSubmit={startRoom} className="lr-auth-form">
+       <label htmlFor="lr-name">Ton prénom</label>
+       <input id="lr-name" value={name} onChange={e=>setName(e.target.value)} minLength={2} maxLength={30} placeholder="Entre ton prénom" autoComplete="given-name" autoCapitalize="words" required/>
+       {joinMode?<><label htmlFor="lr-code">Code d’invitation</label><input id="lr-code" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} maxLength={14} placeholder="Code reçu de ton partenaire" required autoCapitalize="characters" autoCorrect="off" spellCheck={false}/></>:null}
+       <button type="submit" disabled={busy}>{busy?"Connexion…":joinMode?"Rejoindre notre espace →":"Créer notre espace →"}</button>
+      </form>
+      <div className="lr-safe-copy"><span aria-hidden="true">🔒</span> Privé · Gratuit · Sur invitation</div>
+     </section>
+   </main>:
   <div className="lr-shell">
    <aside className="lr-sidebar"><div className="lr-sidebar-top"><span className="lr-side-label">VOTRE PETIT UNIVERS</span><div className="lr-couple"><Initials name={room.user.name}/><span className="lr-couple-mid">♥</span><Initials name={partner}/></div><h2>{room.user.name}<span> &amp; </span>{partner}</h2><p>{room.partner?"La belle aventure continue…":"En attente de ta moitié."}</p></div>
     <div className="lr-side-nav">{NAV.map(n=><button key={n.id} className={tab===n.id?"active":""} onClick={()=>navigate(n.id)}><span>{n.id==="ludo"?<DiceFace value={4} size="mini"/>:n.icon}</span>{n.label}{n.id==="chat"&&room.messages.length>0?<small>{room.messages.length}</small>:null}</button>)}</div>

@@ -179,3 +179,11 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - La première réponse déclenche une notification Push à l'autre partenaire (« À ton tour ») et la deuxième prévient que les deux réponses sont révélées, avec un **lien direct vers la question de la date** (`?tab=moment&kind=daily-question&id=YYYY-MM-DD`). Sans autorisation Push, l'espace se synchronise à l'ouverture de l'app.
 - L'espace quotidien est stocké dans `daily_moments`, sur la base D1 existante, et lié au salon privé ; les messages, appels et jeux ne sont pas modifiés.
 - Love Radar fonctionne avec un hébergement Cloudflare Pages + D1 indépendant des plateformes de messagerie tierces. Les questions changent à minuit UTC, affiché clairement à l'écran.
+
+
+## Première page simplifiée et fixe sur téléphone
+
+- Page publique uniquement : logo, courte accroche romantique et accès direct au formulaire « Créer mon espace / J'ai un code ». L'ancienne grande illustration, les trois pastilles et les longs paragraphes ont été retirés.
+- Sur les petits écrans, le contenu est dimensionné pour tenir dans la hauteur du téléphone sans défilement normal. Les variantes « créer » (un champ) et « rejoindre » (deux champs) restent visibles et utilisables.
+- Lorsqu'un champ reçoit le focus sur iOS, seule la zone formulaire reste visible et elle est contrainte à la hauteur de visualViewport pour éviter que le clavier masque les commandes. Un défilement intérieur au formulaire reste possible uniquement dans le cas extrême d'un clavier/écran trop petit.
+- L'écran d'accueil du couple connecté, les jeux, les notifications, les conversations et les données restent inchangés.
