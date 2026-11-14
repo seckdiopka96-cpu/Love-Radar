@@ -140,3 +140,8 @@
  .ludo-roll{width:85px;font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){.ludo-pawn.can-move{animation:none}}
+
+/* The dice are square, not circular badges: one rendered die for each roll. */
+.ludo-dice-face{width:68px;height:68px;display:flex;align-items:center;justify-content:center;padding:0;border:0;background:none;box-shadow:none;border-radius:0}
+.ludo-dice-face .lr-die{transform:none}
+@media(max-width:700px){.ludo-dice-face{width:48px;height:48px;border:0;background:none;box-shadow:none}.ludo-dice-face .lr-die{width:48px;height:48px}}

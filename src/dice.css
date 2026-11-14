@@ -1,0 +1,9 @@
+/* Real square dice with correctly arranged pips: never a circular dice icon */
+.lr-die{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:2px;flex:none;
+ width:53px;height:53px;padding:9px;border:1.5px solid #fff9ee;border-radius:12px;background:linear-gradient(145deg,#fffefa,#efe9ee);
+ box-shadow:inset 0 -4px 0 #c7b7c72c,0 5px 14px #13082044;transform:rotate(-4deg)}
+.lr-die i{display:block;width:100%;height:100%;min-width:0;min-height:0;align-self:center;justify-self:center;border-radius:50%;transform:scale(.77);opacity:0}
+.lr-die i.is-dot{opacity:1;background:#6b3254;box-shadow:inset 0 1px 1px #190c253d}
+.lr-die-gold i.is-dot{background:#ae7133}
+.lr-die-large{width:68px;height:68px;padding:11px;gap:3px;border-radius:15px}
+@media(max-width:700px){.lr-die-large{width:48px;height:48px;padding:8px;border-radius:11px}.lr-die{transform:rotate(-3deg)}}

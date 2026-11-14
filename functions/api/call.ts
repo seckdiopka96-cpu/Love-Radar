@@ -15,19 +15,19 @@ async function authenticate(request:Request,db:D1Database):Promise<Member|null>{
  const hashed=Array.from(new Uint8Array(bytes)).map(v=>v.toString(16).padStart(2,"0")).join("");
  return db.prepare("SELECT id,room_id,name FROM members WHERE token_hash=?").bind(hashed).first<Member>();
 }
-// Tables are initialized when a member opens the app; existing rooms stay intact.
-const ready=new WeakMap<D1Database,Promise<void>>();
+// Tables are initialized automatically; one migration per isolate.
+let ready:Promise<void>|null=null;
 async function ensureTables(db:D1Database){
- if(!ready.has(db)){
+ if(!ready){
   const initializing=db.exec(
    "CREATE TABLE IF NOT EXISTS voice_calls (id TEXT PRIMARY KEY,room_id TEXT NOT NULL,caller_id TEXT NOT NULL,callee_id TEXT NOT NULL,status TEXT NOT NULL,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,expires_at INTEGER NOT NULL);"+
    "CREATE INDEX IF NOT EXISTS idx_voice_calls_room ON voice_calls(room_id,expires_at);"+
    "CREATE TABLE IF NOT EXISTS voice_signals (id INTEGER PRIMARY KEY AUTOINCREMENT,call_id TEXT NOT NULL,room_id TEXT NOT NULL,from_member TEXT NOT NULL,to_member TEXT NOT NULL,kind TEXT NOT NULL,payload TEXT NOT NULL,created_at INTEGER NOT NULL);"+
    "CREATE INDEX IF NOT EXISTS idx_voice_signals_next ON voice_signals(call_id,to_member,id);"
-  ).then(()=>{}).catch(err=>{ready.delete(db);throw err});
-  ready.set(db,initializing);
+  ).then(()=>{}).catch(err=>{ready=null;throw err});
+  ready=initializing;
  }
- await ready.get(db);
+ await ready;
 }
 async function activeCall(db:D1Database,roomId:string):Promise<VoiceCall|null>{
  return db.prepare("SELECT id,room_id,caller_id,callee_id,status,created_at,updated_at,expires_at FROM voice_calls WHERE room_id=? AND status IN ('ringing','active') AND expires_at>? ORDER BY created_at DESC LIMIT 1").bind(roomId,now()).first<VoiceCall>();
@@ -90,9 +90,15 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
    if(call.callee_id!==u.id)return fail("Seul le destinataire peut répondre.",403);
    if(call.status==="ringing"){
     await db.prepare("UPDATE voice_calls SET status='active',updated_at=?,expires_at=? WHERE id=? AND status='ringing' AND expires_at>?")
-     .bind(t,t+4*3600000,call.id,t).run();
+     .bind(t,t+90000,call.id,t).run();
    }
    return response({ok:true,accepted:true});
+  }
+  if(action==="heartbeat"){
+   if(call.status!=="active")return fail("Appel non accepté.",409);
+   await db.prepare("UPDATE voice_calls SET expires_at=?,updated_at=? WHERE id=? AND room_id=? AND status='active'")
+    .bind(t+90000,t,call.id,u.room_id).run();
+   return response({ok:true,alive:true});
   }
   if(action==="decline"||action==="end"){
    if(action==="decline"&&call.callee_id!==u.id)return fail("Seul le destinataire peut refuser.",403);

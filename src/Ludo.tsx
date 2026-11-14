@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import "./ludo.css";
+import DiceFace from "./DiceFace";
 
 type Point=[number,number];
 type Game={id:string;version:number;turn:number;dice:number|null;positions:number[][];status:"playing"|"won";winner:number|null;lastAction:string};
@@ -31,7 +32,6 @@ const BASE:Point[][]=[
 const trackAt=new Map(TRACK.map((p,i)=>[key(p[0],p[1]),i]));
 const homeAt=HOME.map(list=>new Set(list.map(p=>key(p[0],p[1]))));
 const SAFE=new Set([0,8,13,21,26,34,39,47]);
-const DIE=["","⚀","⚁","⚂","⚃","⚄","⚅"];
 const CELL=Array.from({length:225},(_,i)=>[Math.floor(i/15),i%15] as Point);
 function allowed(progress:number,dice:number|null){return dice!==null&&(progress===-1?dice===6:progress>=0&&progress<57&&progress+dice<=57)}
 function labelPosition(progress:number){return progress===-1?"Dans la base":progress===57?"Arrivé !":progress>=51?"Couloir final":"Sur le plateau"}
@@ -130,7 +130,7 @@ export default function Ludo({token,mySeat,myName,partnerName}:Props){
      {game.status==="won"?<div className="ludo-winner"><span>🏆</span><h2>{game.winner===mySeat?"Tu as gagné !":"Victoire de "+displayName(game.winner??0)+" !"}</h2><p>Les quatre pions ont atteint le centre.</p><button disabled={busy} onClick={()=>void act("restart")} type="button">Nouvelle partie ♥</button></div>:<>
       <div className={"ludo-turn-card"+(myTurn?" ludo-its-you":"")}>
        <div className="ludo-state"><span className="ludo-eyebrow">{myTurn?"C’EST TON TOUR":"AU TOUR DE TON AMOUR"}</span><h2>{myTurn?"À toi de jouer !":displayName(game.turn)}</h2><p>{game.dice!==null&&myTurn?"Choisis un pion lumineux.":game.dice!==null?"Ton partenaire choisit son pion.":myTurn?"Tente ta chance avec le dé !":"Le jeu se synchronise automatiquement."}</p></div>
-       <div className="ludo-dice-row"><div className="ludo-dice-face" aria-label={game.dice?"Dé : "+game.dice:"Dé en attente"}>{game.dice?DIE[game.dice]:"⚄"}</div><button type="button" className="ludo-roll" disabled={!myTurn||busy||game.dice!==null} onClick={()=>void act("roll")}>{busy?"Un instant…":game.dice!==null?"Choisir un pion":myTurn?"Lancer le dé":"Patiente…"}</button></div>
+       <div className="ludo-dice-row"><div className="ludo-dice-face" aria-label={game.dice?"Dé : "+game.dice:"Dé en attente"}><DiceFace value={game.dice??5} size="large"/></div><button type="button" className="ludo-roll" disabled={!myTurn||busy||game.dice!==null} onClick={()=>void act("roll")}>{busy?"Un instant…":game.dice!==null?"Choisir un pion":myTurn?"Lancer le dé":"Patiente…"}</button></div>
       </div>
       <div className="ludo-pawn-actions"><strong>MES 4 PIONS <span>• Choisis un pion après le lancer</span></strong><div>{game.positions[mySeat].map((p,i)=><button key={i} type="button" disabled={!canPlay||!legal[i]} onClick={()=>void act("move",i)}><b>{i+1}</b><span>{labelPosition(p)}</span></button>)}</div></div>
      </>}
