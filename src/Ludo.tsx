@@ -447,7 +447,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    <div className="ludo-agreement-dialog" role="dialog" aria-modal="true" aria-label="Règles et signature avant la partie">
     <div className="ludo-agreement-heading"><span className="ludo-agreement-icon">📜</span><div><h2>Avant de jouer</h2><p>Règles et accord des deux partenaires</p></div></div>
     {challengeId&&game?.id!==challengeId?<div className="ludo-challenge-alert" role="status">⏳ Le défi de cette notification n’est plus actif. Voici la manche actuelle.</div>:null}
-    {challenge?.gameId===game?.id&&challenge?.fromName!==myName?<div className="ludo-challenge-alert" role="status">🎲 {challenge.fromName} t’a lancé un défi ! Lis et signe pour le rejoindre.</div>:null}
+    {challenge&&challenge.gameId===game?.id&&challenge.fromName!==myName?<div className="ludo-challenge-alert" role="status">🎲 {challenge.fromName} t’a lancé un défi ! Lis et signe pour le rejoindre.</div>:null}
     <div className="ludo-agreement-status">
      {[0,1].map(seat=><div key={seat} className={"ludo-agreement-player"+(agreement?.signed[seat]?" is-signed":"")}>
        <span>{agreement?.signed[seat]?"✓":"✎"}</span>
