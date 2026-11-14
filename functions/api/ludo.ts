@@ -13,7 +13,7 @@ type GiftRow={game_id:string;consent_0:number;consent_1:number;choice:string|nul
 type Gift={consents:[boolean,boolean];choice:"credit"|"internet"|"wave2000"|null;chosenBy:number|null;given:boolean};
 type AgreementRow={room_id:string;game_id:string;signed_0_name:string|null;signed_1_name:string|null;signed_0_at:number|null;signed_1_at:number|null;gift_0:number|null;gift_1:number|null;started_at:number|null;updated_at:number};
 type Agreement={signed:[boolean,boolean];names:[string|null,string|null];giftChoices:[boolean|null,boolean|null];signedAt:[number|null,number|null];startedAt:number|null};
-type Challenge={gameId:string;fromId:string;fromName:string;sentAt:number};
+type Challenge={gameId:string;fromId:string;fromName:string;fromSeat:number;sentAt:number};
 const TURN_MS=30000;
 const GIFTS=new Set(["credit","internet","wave2000"]);
 const initial=():Board=>[[-1,-1,-1,-1],[-1,-1,-1,-1]];
@@ -93,7 +93,7 @@ async function syncAgreement(db:D1Database,g:Game){
 }
 
 async function challenge(db:D1Database,g:Game):Promise<Challenge|null>{
- const r=await db.prepare("SELECT game_id AS gameId,from_id AS fromId,from_name AS fromName,sent_at AS sentAt FROM ludo_challenges WHERE room_id=? AND game_id=?")
+ const r=await db.prepare("SELECT c.game_id AS gameId,c.from_id AS fromId,c.from_name AS fromName,m.seat AS fromSeat,c.sent_at AS sentAt FROM ludo_challenges c JOIN members m ON m.id=c.from_id WHERE c.room_id=? AND c.game_id=?")
  .bind(g.room_id,g.game_id).first<Challenge>();
  return r||null;
 }

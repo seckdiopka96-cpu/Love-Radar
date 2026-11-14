@@ -66,6 +66,10 @@ export default function LoveRadar(){
  function navigate(tab:Tab){
   closeNotice();
   setTab(tab);
+  const url=new URL(window.location.href);
+  url.searchParams.set("tab",tab);
+  url.searchParams.delete("kind");url.searchParams.delete("id");
+  window.history.replaceState(null,"",url.pathname+url.search);
   firstPoll.current=true;
  }
  const [draft,setDraft]=useState("");

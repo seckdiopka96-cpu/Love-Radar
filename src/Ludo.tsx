@@ -13,7 +13,7 @@ const GIFT_OPTIONS:{id:GiftChoice;label:string;detail:string}[]=[{id:"credit",la
 const giftLabel=(choice:GiftChoice|null|undefined)=>GIFT_OPTIONS.find(item=>item.id===choice)?.label||"Cadeau à choisir";
 type Reaction={seat:number;emoji:string;at:number};
 type PawnMotion={seat:number;pawn:number;progress:number};
-type Challenge={gameId:string;fromId:string;fromName:string;sentAt:number};
+type Challenge={gameId:string;fromId:string;fromName:string;fromSeat:number;sentAt:number};
 type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;gift?:Gift|null;agreement?:Agreement|null;challenge?:Challenge|null;notificationRequested?:boolean;serverNow?:number};
 type Props={token:string;mySeat:number;myName:string;partnerName:string|null;onExit:()=>void;challengeId?:string|null};
 const key=(r:number,c:number)=>r+"-"+c;
@@ -447,7 +447,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    <div className="ludo-agreement-dialog" role="dialog" aria-modal="true" aria-label="Règles et signature avant la partie">
     <div className="ludo-agreement-heading"><span className="ludo-agreement-icon">📜</span><div><h2>Avant de jouer</h2><p>Règles et accord des deux partenaires</p></div></div>
     {challengeId&&game?.id!==challengeId?<div className="ludo-challenge-alert" role="status">⏳ Le défi de cette notification n’est plus actif. Voici la manche actuelle.</div>:null}
-    {challenge&&challenge.gameId===game?.id&&challenge.fromName!==myName?<div className="ludo-challenge-alert" role="status">🎲 {challenge.fromName} t’a lancé un défi ! Lis et signe pour le rejoindre.</div>:null}
+    {challenge&&challenge.gameId===game?.id&&challenge.fromSeat!==mySeat?<div className="ludo-challenge-alert" role="status">🎲 {challenge.fromName} t’a lancé un défi ! Lis et signe pour le rejoindre.</div>:null}
     <div className="ludo-agreement-status">
      {[0,1].map(seat=><div key={seat} className={"ludo-agreement-player"+(agreement?.signed[seat]?" is-signed":"")}>
        <span>{agreement?.signed[seat]?"✓":"✎"}</span>
