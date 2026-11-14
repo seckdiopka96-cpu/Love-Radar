@@ -242,7 +242,7 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenL
      <rect width="1000" height="1000" fill="#fff9f3"/>
      <g opacity=".35" stroke="#e9d8dc" strokeWidth="1">{Array.from({length:20},(_,i)=><g key={i}><line x1={(i+1)*50} y1="0" x2={(i+1)*50} y2="1000"/><line x1="0" y1={(i+1)*50} x2="1000" y2={(i+1)*50}/></g>)}</g>
      {events.map(drawEvent)}
-     {liveStroke?.points?.length>1?<path d={pathOf(liveStroke.points)} stroke={liveStroke.color} strokeWidth={liveStroke.width} fill="none" strokeLinecap="round" strokeLinejoin="round" opacity=".75" strokeDasharray="4 3" pointerEvents="none"/>:null}
+     {liveStroke&&liveStroke.points.length>1?<path d={pathOf(liveStroke.points)} stroke={liveStroke.color} strokeWidth={liveStroke.width} fill="none" strokeLinecap="round" strokeLinejoin="round" opacity=".75" strokeDasharray="4 3" pointerEvents="none"/>:null}
      {preview.length>0?<path d={pathOf(preview)} stroke={color} strokeWidth={size} fill="none" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none"/>:null}
     </svg>
     {loading&&!events.length?<div className="tg-board-loading">Ouverture de votre tableau…</div>:null}
