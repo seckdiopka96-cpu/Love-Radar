@@ -196,3 +196,41 @@
  .ludo-moving-pawn{transition:none;will-change:auto}
  .ludo-confetti-layer i,.ludo-is-capture .ludo-board-wrap-immersive{animation:none}
 }
+
+/* 30-second authoritative turn timer, with urgent warning in the last 10 s. */
+.ludo-countdown{display:flex;align-items:center;justify-content:center;gap:1px;flex:none;min-width:42px;color:#fff0f5;font-weight:950;font-variant-numeric:tabular-nums;letter-spacing:-.2px;background:#2a173f9c;border:1px solid #b881bd;border-radius:9px;padding:3px 6px}
+.ludo-time-ring{font-size:14px;line-height:17px;min-width:17px;text-align:right}
+.ludo-countdown small{font-size:9px;align-self:flex-end;margin-bottom:1px}
+.ludo-countdown.urgent{border-color:#ff886d;background:#922e53;animation:ludo-countdown-pulse .75s infinite alternate}
+@keyframes ludo-countdown-pulse{to{box-shadow:0 0 12px #ff67599b;transform:scale(1.06)}}
+.ludo-gift-shortcut{width:35px;height:35px;display:grid;place-items:center;flex:none;border-radius:11px;border:1px solid #91688c;background:#61415e;color:#fff1f7;font-size:18px;touch-action:manipulation}
+.ludo-gift-shortcut.agreed{border-color:#e9c66b;box-shadow:inset 0 0 0 1px #f5de9170}
+.ludo-gift-dialog{max-height:min(85dvh,650px);overflow-y:auto;gap:10px}
+.ludo-gift-dialog>.ludo-modal-symbol{font-size:33px}
+.ludo-gift-dialog>p{font-size:12px;line-height:1.5}
+.ludo-gift-dialog .ludo-gift-option{display:flex;flex-direction:column;gap:4px;text-align:left;padding:12px;border:1px solid #926789;background:linear-gradient(130deg,#674b73,#3a2d54);color:#fff;border-radius:12px}
+.ludo-gift-option b{font-size:13px}
+.ludo-gift-option span{font-size:10px;color:#e9cbdc}
+.ludo-gift-agreement{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%}
+.ludo-gift-agreement span{display:inline-flex;align-items:center;justify-content:center;flex:1;min-width:120px;background:#382849;border:1px solid #805c89;padding:9px 6px;border-radius:9px;font-size:11px}
+.ludo-gift-confirmed{color:#a7edc6!important;font-weight:800}
+.ludo-gift-selected{font-weight:900;color:#ffd26e!important}
+.ludo-victory-gift{display:flex;flex-direction:column;gap:5px;align-items:center;width:100%;padding:8px;border:1px solid #c99967;border-radius:10px;background:#4b2d54}
+.ludo-victory-gift span{font-size:11px;line-height:1.3;font-weight:800;color:#ffdb95}
+.ludo-victory .ludo-gift-victory-button{background:#e4b762;color:#32213c;font-size:11px;padding:8px}
+@media(max-width:950px){
+ .ludo-top-actions{gap:3px}
+ .ludo-gift-shortcut,.ludo-sound,.ludo-help{width:31px;height:32px;border-radius:9px;font-size:16px}
+ .ludo-brand strong{font-size:clamp(16px,4.5vw,19px)}
+ .ludo-brand small{letter-spacing:.5px}
+ .ludo-leave{min-width:72px}
+}
+@media(max-width:365px){
+ .ludo-top-actions{gap:2px}
+ .ludo-gift-shortcut,.ludo-sound,.ludo-help{width:29px;height:30px;font-size:15px}
+ .ludo-brand strong{font-size:15px}
+ .ludo-leave{min-width:67px;padding:0 5px}
+ .ludo-time-ring{font-size:13px}
+ .ludo-countdown{min-width:37px;padding:3px 4px}
+}
+@media(prefers-reduced-motion:reduce){.ludo-countdown.urgent{animation:none}}

@@ -8,6 +8,10 @@ type Member={id:string;room_id:string;seat:number;name:string};
 type GameRow={room_id:string;game_id:string;version:number;turn:number;dice:number|null;positions:string;status:string;winner:number|null;streak:number;last_action:string;updated_at:number};
 type Board=number[][];
 type Game={room_id:string;game_id:string;version:number;turn:number;dice:number|null;positions:Board;status:"playing"|"won";winner:number|null;streak:number;last_action:string;updated_at:number};
+type GiftRow={game_id:string;consent_0:number;consent_1:number;choice:string|null;chosen_by:number|null;given:number};
+type Gift={consents:[boolean,boolean];choice:"credit"|"internet"|"wave2000"|null;chosenBy:number|null;given:boolean};
+const TURN_MS=30000;
+const GIFTS=new Set(["credit","internet","wave2000"]);
 const initial=():Board=>[[-1,-1,-1,-1],[-1,-1,-1,-1]];
 const SAFE=new Set([0,8,13,21,26,34,39,47]);
 const reply=(payload:object,status=200)=>Response.json(payload,{status,headers:{"Cache-Control":"no-store"}});
@@ -16,7 +20,8 @@ let ready:Promise<void>|null=null;
 async function ensureTable(db:D1Database){
  if(!ready){
   ready=db.exec("CREATE TABLE IF NOT EXISTS ludo_games (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, version INTEGER NOT NULL, turn INTEGER NOT NULL, dice INTEGER, positions TEXT NOT NULL, status TEXT NOT NULL, winner INTEGER, streak INTEGER NOT NULL DEFAULT 0, last_action TEXT NOT NULL, updated_at INTEGER NOT NULL);"+
-   "CREATE TABLE IF NOT EXISTS ludo_reactions (room_id TEXT PRIMARY KEY, seat INTEGER NOT NULL, emoji TEXT NOT NULL, updated_at INTEGER NOT NULL)").then(()=>{}).catch(e=>{ready=null;throw e});
+   "CREATE TABLE IF NOT EXISTS ludo_reactions (room_id TEXT PRIMARY KEY, seat INTEGER NOT NULL, emoji TEXT NOT NULL, updated_at INTEGER NOT NULL);"+
+   "CREATE TABLE IF NOT EXISTS ludo_gifts (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, consent_0 INTEGER NOT NULL DEFAULT 0, consent_1 INTEGER NOT NULL DEFAULT 0, choice TEXT, chosen_by INTEGER, given INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL)").then(()=>{}).catch(e=>{ready=null;throw e});
  }
  await ready;
 }
@@ -55,12 +60,95 @@ async function save(db:D1Database,g:Game){
  .bind(g.game_id,g.turn,g.dice,JSON.stringify(g.positions),g.status,g.winner,g.streak,g.last_action,Date.now(),g.room_id,g.version).run();
  return result.meta.changes===1;
 }
-const publicGame=(g:Game)=>({id:g.game_id,version:g.version,turn:g.turn,dice:g.dice,positions:g.positions,status:g.status,winner:g.winner,lastAction:g.last_action,updatedAt:g.updated_at});
+const publicGame=(g:Game)=>({id:g.game_id,version:g.version,turn:g.turn,dice:g.dice,positions:g.positions,status:g.status,winner:g.winner,lastAction:g.last_action,updatedAt:g.updated_at,deadlineAt:g.status==="playing"?g.updated_at+TURN_MS:null});
 async function reaction(db:D1Database,room:string){
  const result=await db.prepare("SELECT seat,emoji,updated_at AS at FROM ludo_reactions WHERE room_id=? AND updated_at>?").bind(room,Date.now()-7000).first<{seat:number;emoji:string;at:number}>();
  return result||null;
 }
 const EMOJIS=new Set(["❤️","😂","🔥","👏","😍","💋"]);
+
+/* Timeouts are checked on each authenticated poll/request. No cron or unattended background job. */
+async function syncGift(db:D1Database,g:Game){
+ await db.prepare(
+  "INSERT INTO ludo_gifts(room_id,game_id,consent_0,consent_1,choice,chosen_by,given,updated_at) VALUES(?,?,0,0,NULL,NULL,0,?) "+
+  "ON CONFLICT(room_id) DO UPDATE SET game_id=excluded.game_id,consent_0=0,consent_1=0,choice=NULL,chosen_by=NULL,given=0,updated_at=excluded.updated_at "+
+  "WHERE ludo_gifts.game_id<>excluded.game_id"
+ ).bind(g.room_id,g.game_id,Date.now()).run();
+}
+async function gift(db:D1Database,g:Game):Promise<Gift>{
+ const row=await db.prepare("SELECT game_id,consent_0,consent_1,choice,chosen_by,given FROM ludo_gifts WHERE room_id=? AND game_id=?")
+ .bind(g.room_id,g.game_id).first<GiftRow>();
+ return {consents:[Boolean(row?.consent_0),Boolean(row?.consent_1)],
+  choice:row?.choice&&GIFTS.has(row.choice)?row.choice as Gift["choice"]:null,
+  chosenBy:row?.chosen_by??null,given:Boolean(row?.given)};
+}
+function botChoose(g:Game,seat:number,rolled:number){
+ const available=g.positions[seat].map((progress,pawn)=>({progress,pawn})).filter(x=>movable(x.progress,rolled));
+ if(!available.length)return null;
+ const score=({progress}:typeof available[number])=>{
+  const next=progress===-1?0:progress+rolled;
+  let points=next===57?250:next>=51?90+next:progress===-1?85:next;
+  if(next<=50){
+   const land=(seat*26+next)%52;
+   if(!SAFE.has(land)&&g.positions[1-seat].some(other=>other>=0&&other<=50&&((1-seat)*26+other)%52===land))points+=200;
+   if(SAFE.has(land))points+=35;
+  }
+  return points;
+ };
+ available.sort((a,b)=>score(b)-score(a)||a.pawn-b.pawn);
+ return available[0].pawn;
+}
+function botTurn(g:Game,name:string){
+ const seat=g.turn;
+ let last="L'ordinateur a passé le tour.";
+ for(let tries=0;tries<12&&g.status==="playing"&&g.turn===seat;tries++){
+  if(g.dice===null){
+   const rolled=die();
+   if(rolled===6&&g.streak>=2){
+    g.dice=null;g.turn=1-seat;g.streak=0;last="Troisième 6 : tour passé.";break;
+   }
+   g.streak=rolled===6?g.streak+1:0;
+   last="Dé : "+rolled+".";
+   if(g.positions[seat].some(p=>movable(p,rolled)))g.dice=rolled;
+   else{g.dice=null;if(rolled!==6)g.turn=1-seat;continue}
+  }
+  if(g.dice===null)continue;
+  const rolled=g.dice;
+  const pawn=botChoose(g,seat,rolled);
+  if(pawn===null){g.dice=null;g.turn=1-seat;g.streak=0;break}
+  const old=g.positions[seat][pawn];
+  const next=old===-1?0:old+rolled;
+  g.positions[seat][pawn]=next;
+  let captured=0;
+  if(next<=50){
+   const land=(seat*26+next)%52;
+   if(!SAFE.has(land)){
+    for(let i=0;i<4;i++){
+     const enemy=g.positions[1-seat][i];
+     if(enemy>=0&&enemy<=50&&((1-seat)*26+enemy)%52===land){g.positions[1-seat][i]=-1;captured++}
+    }
+   }
+  }
+  last="Pion "+(pawn+1)+" avancé"+(captured?", capture !":"")+".";
+  g.dice=null;
+  if(g.positions[seat].every(p=>p===57)){
+   g.status="won";g.winner=seat;last="Le joueur gagne la partie !";break;
+  }
+  if(rolled!==6)g.streak=0;
+  if(!(rolled===6||captured>0||next===57))g.turn=1-seat;
+ }
+ if(g.status==="playing"&&g.turn===seat){g.turn=1-seat;g.dice=null;g.streak=0}
+ g.last_action="🤖 Après 30 s, l'ordinateur a joué pour "+name+". "+last;
+}
+async function autoIfLate(db:D1Database,g:Game):Promise<Game>{
+ if(g.status!=="playing"||Date.now()<g.updated_at+TURN_MS)return g;
+ const acting=g.turn;
+ const row=await db.prepare("SELECT name FROM members WHERE room_id=? AND seat=?").bind(g.room_id,acting).first<{name:string}>();
+ botTurn(g,(row?.name||"le joueur").slice(0,30));
+ if(!await save(db,g))return await getGame(db,g.room_id)||g;
+ return await getGame(db,g.room_id)||g;
+}
+
 async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
  try{
   const db=ctx.env.DB;
@@ -74,7 +162,8 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    await createIfMissing(db,player.room_id);
    g=await getGame(db,player.room_id);
   }
-  if(method==="GET")return reply({ok:true,members,seat:player.seat,game:g?publicGame(g):null,reaction:members===2?await reaction(db,player.room_id):null});
+  if(g){g=await autoIfLate(db,g);await syncGift(db,g)}
+  if(method==="GET")return reply({ok:true,members,seat:player.seat,game:g?publicGame(g):null,reaction:members===2?await reaction(db,player.room_id):null,gift:g?await gift(db,g):null,serverNow:Date.now()});
   const text=await ctx.request.text();
   if(text.length>1024)return fail("Requête trop grande.",413);
   let data:Record<string,unknown>;
@@ -87,6 +176,31 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    await db.prepare("INSERT INTO ludo_reactions(room_id,seat,emoji,updated_at) VALUES(?,?,?,?) ON CONFLICT(room_id) DO UPDATE SET seat=excluded.seat,emoji=excluded.emoji,updated_at=excluded.updated_at")
     .bind(player.room_id,player.seat,data.emoji,Date.now()).run();
    return reply({ok:true,reaction:await reaction(db,player.room_id)});
+  }
+  if(action==="gift_consent"){
+   if(g.status!=="playing")return fail("L'accord cadeau doit être donné avant la victoire.",409);
+   if(typeof data.accept!=="boolean")return fail("Choix invalide.",400);
+   const column=player.seat===0?"consent_0":"consent_1";
+   await db.prepare("UPDATE ludo_gifts SET "+column+"=?,updated_at=? WHERE room_id=? AND game_id=?")
+   .bind(data.accept?1:0,Date.now(),player.room_id,g.game_id).run();
+   return reply({ok:true,gift:await gift(db,g)});
+  }
+  if(action==="gift_choose"){
+   const current=await gift(db,g);
+   if(g.status!=="won"||g.winner!==player.seat)return fail("Seul le gagnant peut choisir le cadeau.",403);
+   if(!current.consents.every(Boolean))return fail("Le défi cadeau doit être accepté par les deux partenaires.",409);
+   if(typeof data.choice!=="string"||!GIFTS.has(data.choice))return fail("Cadeau inconnu.",400);
+   await db.prepare("UPDATE ludo_gifts SET choice=?,chosen_by=?,given=0,updated_at=? WHERE room_id=? AND game_id=?")
+   .bind(data.choice,player.seat,Date.now(),player.room_id,g.game_id).run();
+   return reply({ok:true,gift:await gift(db,g)});
+  }
+  if(action==="gift_given"){
+   const current=await gift(db,g);
+   if(g.status!=="won"||g.winner===player.seat||!current.choice)return fail("Aucun cadeau à confirmer.",403);
+   if(typeof data.given!=="boolean")return fail("Choix invalide.",400);
+   await db.prepare("UPDATE ludo_gifts SET given=?,updated_at=? WHERE room_id=? AND game_id=?")
+   .bind(data.given?1:0,Date.now(),player.room_id,g.game_id).run();
+   return reply({ok:true,gift:await gift(db,g)});
   }
   if(!Number.isInteger(data.version)||data.version!==g.version)return fail("La partie a changé. Actualise le plateau.",409);
   const name=player.name.slice(0,30);
@@ -158,7 +272,11 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   }
   if(!await save(db,g))return fail("Ton partenaire a joué entre-temps. Plateau actualisé.",409);
   const updated=await getGame(db,player.room_id);
-  return reply({ok:true,members,seat:player.seat,game:updated?publicGame(updated):null});
+  if(updated){
+   await syncGift(db,updated);
+   if(action==="restart")await db.prepare("DELETE FROM ludo_reactions WHERE room_id=?").bind(player.room_id).run();
+  }
+  return reply({ok:true,members,seat:player.seat,game:updated?publicGame(updated):null,gift:updated?await gift(db,updated):null,serverNow:Date.now()});
  }catch(e){console.error("Love Radar Ludo",e);return fail("Le jeu est temporairement indisponible.",500)}
 }
 export const onRequestGet=(ctx:Ctx)=>handle(ctx,"GET");
