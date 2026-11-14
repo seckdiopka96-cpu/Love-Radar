@@ -1,5 +1,5 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
-const CACHE="love-radar-static-v8";
+const CACHE="love-radar-static-v9";
 const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png"];
 self.addEventListener("install",event=>{
  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));

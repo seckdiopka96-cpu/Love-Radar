@@ -650,3 +650,8 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
 .lr-dash-grid-simple{grid-template-columns:repeat(2,minmax(0,1fr))}
 .lr-feature-memories{background:linear-gradient(145deg,#754d77,#37264e);border:1px solid #906b9b;color:#fff0f4}
 @media(max-width:700px){.lr-dash-grid-simple{grid-template-columns:1fr}}
+
+/* The Ludo card is the hero card on the couple home screen. */
+.lr-feature-ludo{grid-column:1/-1;background:linear-gradient(110deg,#703f76,#482e72);border:1px solid #b07dbe;color:#ffeef6;min-height:210px}
+.lr-feature-ludo p{max-width:340px}
+@media(max-width:700px){.lr-feature-ludo{min-height:170px}}

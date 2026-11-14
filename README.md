@@ -87,3 +87,14 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Si les notifications push sont déjà activées, une invitation à l'appel peut aussi apparaître lorsque l’app est fermée, mais **l’appel ne sonne pas comme un appel téléphonique natif sur iOS**. Il faut ouvrir l’application pour répondre.
 - Les deux personnes doivent conserver l’app ouverte pendant l’appel. Certaines versions d’iOS interrompent le micro des PWA si l’app passe en arrière-plan ou si l’écran se verrouille.
 - Si aucune adresse ICE n’est disponible, l’interface donne un message d’erreur explicite plutôt que prétendre que l’appel est connecté.
+
+## Ludo en ligne — exactement deux joueurs
+
+- Chaque espace privé Love Radar dispose d'une partie de Ludo synchronisée à l'aide de Cloudflare D1.
+- 2 joueurs uniquement, chacun avec 4 pions (rouge et jaune) ; même code de couple que pour la messagerie.
+- La valeur du dé est créée côté serveur et chaque déplacement est validé côté serveur ; accès par jeton de membre.
+- Sortir de la base exige un 6. Cases étoilées sûres, captures, tour bonus après 6 ou capture, troisième 6 consécutif perd le tour, arrivée exacte au centre (progression 57).
+- La partie est créée automatiquement à la première ouverture lorsque les deux partenaires ont rejoint. Elle se met à jour toutes les 2 secondes lorsque l'onglet est visible ; chaque coup est protégé contre les mises à jour simultanées.
+- Les parties terminées peuvent être relancées sans perdre les messages ni les souvenirs. Aucun paiement ni jeu avec des inconnus.
+- La table `ludo_games` est créée automatiquement pour les espaces D1 existants. `schema.sql` la définit pour les nouvelles installations.
+- La première version utilise une synchronisation par requêtes périodiques ; les notifications dédiées aux tours ne sont pas encore proposées.
