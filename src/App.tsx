@@ -549,6 +549,8 @@ export default function LoveRadar(){
  const partnerOnline=Boolean(room?.partnerLastSeenAt&&Date.now()-room.partnerLastSeenAt<35000);
  const images=room?.messages.filter(m=>m.kind==="image")||[];
  const lastOwnMessage=[...(room?.messages||[])].reverse().find(m=>m.sender_id===room?.user.id);
+ const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
+ const unreadLabel=unreadCount>99?"99+":String(unreadCount);
  return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+(tab==="ludo"&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+(tab==="location"&&room?"lr-location-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-brand"><b>Love Radar</b></div>
@@ -593,7 +595,7 @@ export default function LoveRadar(){
    </main>:
   <div className="lr-shell">
    <aside className="lr-sidebar"><div className="lr-sidebar-top"><span className="lr-side-label">VOTRE PETIT UNIVERS</span><div className="lr-couple"><Initials name={room.user.name}/><span className="lr-couple-mid">♥</span><Initials name={partner}/></div><h2>{room.user.name}<span> &amp; </span>{partner}</h2><p>{room.partner?"La belle aventure continue…":"En attente de ta moitié."}</p></div>
-    <div className="lr-side-nav">{NAV.map(n=><button key={n.id} className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} onClick={()=>navigate(n.id)}><span aria-hidden="true">{n.icon}</span>{n.label}{n.id==="chat"&&room.messages.length>0?<small>{room.messages.length}</small>:null}</button>)}</div>
+    <div className="lr-side-nav">{NAV.map(n=><button key={n.id} className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} onClick={()=>navigate(n.id)}><span aria-hidden="true">{n.icon}</span>{n.label}{n.id==="chat"&&unreadCount>0?<b className="lr-side-unread" aria-hidden="true">{unreadLabel}</b>:null}</button>)}</div>
     <div className="lr-sidebar-bottom"><div className="lr-side-heart">♡</div>Vos messages et vos souvenirs, toujours à portée de main.</div>
    </aside>
    <main className="lr-main">
@@ -670,7 +672,7 @@ export default function LoveRadar(){
      <button type="button" className="lr-push-focus-open-chat" onClick={closeNotice}>Voir la conversation</button>
     </div>
    </div>:null}
-   <nav className="lr-mobile-nav" aria-label="Navigation principale à cinq onglets">{NAV.map(n=><button key={n.id} type="button" className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} onClick={()=>navigate(n.id)}><span aria-hidden="true">{n.icon}</span><small>{n.label}</small></button>)}</nav>
+   <nav className="lr-mobile-nav" aria-label="Navigation principale à cinq onglets">{NAV.map(n=><button key={n.id} type="button" className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} aria-label={n.id==="chat"&&unreadCount>0?"Messages, "+unreadCount+" non lus":n.label} onClick={()=>navigate(n.id)}><span aria-hidden="true">{n.icon}</span>{n.id==="chat"&&unreadCount>0?<b className="lr-nav-unread" aria-hidden="true">{unreadLabel}</b>:null}<small>{n.label}</small></button>)}</nav>
   </div>}
  </div>;
 }
