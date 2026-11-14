@@ -655,3 +655,18 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
 .lr-feature-ludo{grid-column:1/-1;background:linear-gradient(110deg,#703f76,#482e72);border:1px solid #b07dbe;color:#ffeef6;min-height:210px}
 .lr-feature-ludo p{max-width:340px}
 @media(max-width:700px){.lr-feature-ludo{min-height:170px}}
+
+/* Immersive fixed Ludo mode: no scroll, no app chrome, no bottom nav on mobile. */
+@media(max-width:950px){
+ html:has(.lr-app.lr-ludo-mode),body:has(.lr-app.lr-ludo-mode),#root:has(.lr-app.lr-ludo-mode){height:100dvh!important;max-height:100dvh!important;overflow:hidden!important}
+ .lr-app.lr-ludo-mode.lr-app-locked{position:fixed!important;inset:0!important;height:100dvh!important;min-height:0!important;max-height:100dvh!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;overscroll-behavior:none!important}
+ .lr-app.lr-ludo-mode.lr-app-locked>.lr-header,
+ .lr-app.lr-ludo-mode.lr-app-locked>.lr-notification-area,
+ .lr-app.lr-ludo-mode.lr-app-locked>.lr-toast,
+ .lr-app.lr-ludo-mode.lr-app-locked>.lr-bg-decor,
+ .lr-app.lr-ludo-mode.lr-app-locked .lr-sidebar,
+ .lr-app.lr-ludo-mode.lr-app-locked .lr-mobile-nav{display:none!important}
+ .lr-app.lr-ludo-mode.lr-app-locked .lr-shell{display:flex!important;flex:1 1 0!important;min-height:0!important;max-height:100%!important;width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;overflow:hidden!important}
+ .lr-app.lr-ludo-mode.lr-app-locked .lr-main{display:flex!important;flex:1 1 0!important;min-height:0!important;max-height:100%!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;overflow:hidden!important;overscroll-behavior:none!important;touch-action:manipulation!important}
+ .lr-app.lr-ludo-mode.lr-app-locked .ludo-experience{flex:1 1 0!important;min-height:0!important;max-height:100%!important}
+}

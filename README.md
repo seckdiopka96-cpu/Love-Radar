@@ -109,3 +109,13 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - L'album et les messages restent privés. Les photos ne sont pas incluses dans le HTML public : elles utilisent les médias déjà chargés par le compte authentifié.
 
 <!-- Déploiement de production relancé pour appliquer les variables TURN des Pages Functions. -->
+
+## Ludo Duo : plein écran fixe et sortie de partie
+
+- En mode Ludo sur téléphone, l'en-tête de Love Radar, la barre de navigation et la notification globale se masquent pour donner toute la hauteur disponible au plateau.
+- Le plateau adapte sa taille via ResizeObserver et reste intégralement visible sans défilement horizontal ni vertical (iPhone, Android et petit écran).
+- « Quitter » propose **retour à l'accueil** (partie conservée) ou **abandonner** (victoire accordée au partenaire immédiatement, même si ce n'est pas votre tour).
+- Émoticônes ❤️ 😂 🔥 👏 😍 💋 synchronisées et éphémères dans le salon privé ; aucune messagerie ni donnée existante modifiée.
+- Dés carrés animés et pions SVG originaux en relief, quatre zones de plateau colorées, animation de mouvement et écran de victoire.
+- Un pion amené au centre donne un lancer supplémentaire. Les autres règles sont inchangées.
+- Les parties conservent leur état dans D1, y compris quand le joueur revient à l'accueil ; les conversations et appels sont inchangés.
