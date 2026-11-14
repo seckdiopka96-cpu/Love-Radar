@@ -83,3 +83,11 @@
 .lr-home-together small{font-size:11px;color:#e9cbdf;line-height:1.4;min-height:30px}
 .lr-home-together b{font-size:11px;color:#ffe2a1}
 @media(max-width:450px){.lr-home-together{gap:8px}.lr-home-together button{padding:11px;gap:6px}.lr-home-together strong{font-size:18px}.lr-home-together small{font-size:10px;min-height:40px}.lr-home-together b{font-size:10px}}
+
+/* Private, opt-in location request entry point. */
+.lr-home-location{display:flex;align-items:center;gap:13px;width:100%;margin:13px 0 18px;padding:15px;border:1px solid #c1a0bd;border-radius:17px;background:linear-gradient(125deg,#54415f,#453454);text-align:left;color:#fff0fa;box-shadow:0 6px 18px #1b0c2455}
+.lr-home-location-icon{display:grid;place-items:center;width:53px;height:53px;flex:none;background:#ffffff20;border:1px solid #b88eaf;border-radius:16px;font-size:27px}
+.lr-home-location>span:last-child{display:flex;flex-direction:column;gap:5px;min-width:0}
+.lr-home-location strong{font:600 21px Georgia,serif}
+.lr-home-location small{font-size:11px;line-height:1.35;color:#e6cce1}
+.lr-home-location b{font-size:11px;color:#ffe0a7}

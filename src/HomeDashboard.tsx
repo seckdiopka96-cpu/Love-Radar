@@ -5,7 +5,7 @@ type Message={id:string;sender_id:string;kind:"text"|"image"|"audio";content:str
 type Game={turn:number;status:"playing"|"won";winner:number|null;version:number;dice:number|null};
 type DailyOverview={ok:boolean;question:string;mine:{text:string}|null;partnerAnswered:boolean;revealed:boolean};
 type Room={user:{id:string;name:string;seat:number};partner:string|null;code:string;partnerLastSeenAt?:number;messages:Message[]};
-type Props={room:Room;token:string;media:Record<string,string>;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together",feature?:"heart"|"draw")=>void};
+type Props={room:Room;token:string;media:Record<string,string>;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"location",feature?:"heart"|"draw")=>void};
 export default function HomeDashboard({room,token,media,onInvite,onNavigate}:Props){
  const [game,setGame]=useState<Game|null>(null);
  const [daily,setDaily]=useState<DailyOverview|null>(null);
@@ -70,6 +70,10 @@ export default function HomeDashboard({room,token,media,onInvite,onNavigate}:Pro
    </span>
    {daily?.question?<span className="lr-home-daily-question">« {daily.question} »</span>:null}
    <span className="lr-home-daily-cta">{daily?.revealed?"Découvrir nos réponses":daily?.mine?"Voir notre moment":"Découvrir la question"} →</span>
+  </button>
+  <button type="button" className="lr-home-location" onClick={()=>onNavigate("location")}>
+   <span className="lr-home-location-icon" aria-hidden="true">📍</span>
+   <span><strong>Notre position</strong><small>Demander la position de ton amour — avec son accord, pendant 15 min seulement.</small><b>Demander sa position →</b></span>
   </button>
   <div className="lr-home-together">
    <button type="button" onClick={()=>onNavigate("together","heart")} className="lr-together-miss-card">
