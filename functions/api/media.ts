@@ -38,7 +38,7 @@ function sniff(bytes:Uint8Array,mime:string){
     const record=await db.prepare("SELECT object_key,mime FROM messages WHERE room_id=? AND object_key=?").bind(u.room_id,key).first<{object_key:string,mime:string}>();
     if(!record)return no("Média introuvable.",404);
     const asset=await bucket.get(record.object_key);if(!asset)return no("Média supprimé.",404);
-    return new Response(await asset.arrayBuffer(),{headers:{"Content-Type":record.mime,"Cache-Control":"private, max-age=120","X-Content-Type-Options":"nosniff","Content-Disposition":"inline"}});
+    return new Response(await asset.arrayBuffer(),{headers:{"Content-Type":record.mime,"Cache-Control":"private, no-store, max-age=0","X-Content-Type-Options":"nosniff","Cross-Origin-Resource-Policy":"same-origin","Referrer-Policy":"no-referrer","Content-Disposition":"inline"}});
    }catch(e){console.error("media get",e);return no("Erreur de lecture.",500)}
   },
   POST:async({request})=>{

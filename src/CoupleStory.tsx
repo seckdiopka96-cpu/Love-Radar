@@ -1,9 +1,10 @@
 import {useCallback,useEffect,useRef,useState,type ChangeEvent,type FormEvent} from "react";
 import {daysTo,emptyProfile,formatDate,todayLocal,upcomingDates,type StoryData,type StoryProfile} from "./story-dates";
 import "./couple-story.css";
+import PrivatePhoto from "./PrivatePhoto";
 
 type Mode="story"|"reunion";
-type Props={token:string;mode:Mode;myName:string;partnerName:string|null;onExit:()=>void;onOpenStory:()=>void;onOpenReunion:()=>void};
+type Props={token:string;mode:Mode;privacyEnabled:boolean;myName:string;partnerName:string|null;onExit:()=>void;onOpenStory:()=>void;onOpenReunion:()=>void};
 async function photoAsJpeg(file:File):Promise<File>{
  // The iPhone camera may produce large photos: resize and convert locally before upload.
  const url=URL.createObjectURL(file);
@@ -30,7 +31,7 @@ async function photoAsJpeg(file:File):Promise<File>{
   return new File([blob],"notre-photo.jpg",{type:"image/jpeg"});
  }finally{URL.revokeObjectURL(url)}
 }
-function Preview({token,profile}:{token:string;profile:StoryProfile}){
+function Preview({token,profile,privacyEnabled,viewer}:{token:string;profile:StoryProfile;privacyEnabled:boolean;viewer:string}){
  const [src,setSrc]=useState<string|null>(null);
  useEffect(()=>{
   let active=true,url="";
@@ -48,10 +49,10 @@ function Preview({token,profile}:{token:string;profile:StoryProfile}){
   })();
   return()=>{active=false;if(url)URL.revokeObjectURL(url)};
  },[token,profile.photoVersion,profile.hasPhoto]);
- return src?<img className="cs-photo-image" src={src} alt="Votre photo de couple privée"/>:
+ return src?<PrivatePhoto src={src} alt="Votre photo de couple privée" enabled={privacyEnabled} viewer={viewer} variant="portrait"/>:
   <div className="cs-photo-empty" aria-label="Aucune photo visible"><span>♡</span><small>{profile.hasPhoto?"Chargement de votre photo…":"Votre photo à deux"}</small></div>;
 }
-export default function CoupleStory({token,mode,myName,partnerName,onExit,onOpenStory,onOpenReunion}:Props){
+export default function CoupleStory({token,mode,privacyEnabled,myName,partnerName,onExit,onOpenStory,onOpenReunion}:Props){
  const [data,setData]=useState<StoryData|null>(null);
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false);
  const [error,setError]=useState(""),[success,setSuccess]=useState("");
@@ -176,7 +177,7 @@ export default function CoupleStory({token,mode,myName,partnerName,onExit,onOpen
     <h1>Toi, moi… <em>nous.</em></h1>
     <p>Chaque histoire d’amour commence quelque part. Voici la vôtre.</p>
     <div className="cs-portrait">
-     <Preview token={token} profile={profile}/>
+     <Preview token={token} profile={profile} privacyEnabled={privacyEnabled} viewer={myName}/>
      <div className="cs-photo-overlay"><input ref={inputFile} type="file" accept="image/*" hidden onChange={e=>void onPhoto(e)}/>
       <button type="button" onClick={()=>inputFile.current?.click()} disabled={busy}>{profile.hasPhoto?"📷 Changer la photo":"📸 Ajouter notre photo"}</button>
       {profile.hasPhoto?<button type="button" className="cs-remove-photo" disabled={busy} onClick={()=>void removePhoto()}>Supprimer</button>:null}
