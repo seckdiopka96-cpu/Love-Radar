@@ -1,0 +1,20 @@
+
+.lr-games-hub{width:100%;max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:20px;color:#ffeef7;padding:13px 3px 25px}
+.lr-games-hero{text-align:center;display:flex;flex-direction:column;gap:9px;padding:22px 10px 7px}
+.lr-games-kicker{font-size:10px;letter-spacing:2px;font-weight:900;color:#e4b2ce}
+.lr-games-hero h1{font:600 clamp(35px,6vw,50px)/1.13 Georgia,serif;margin:0;color:#fff0f8}
+.lr-games-hero h1 em{font-weight:400;color:#f49ec4}
+.lr-games-hero p{font-size:13px;line-height:1.5;color:#e3c4d6;margin:0}
+.lr-games-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.lr-games-choice{display:flex;flex-direction:column;gap:15px;align-items:flex-start;min-width:0;min-height:280px;border:1px solid #c191b4;border-radius:22px;padding:24px;text-align:left;background:linear-gradient(145deg,#66405e,#382a4a);color:#ffedf7;box-shadow:0 8px 25px #0f081c63;cursor:pointer;transition:transform .18s,border-color .18s}
+.lr-games-choice:focus-visible{outline:3px solid #e8b1d1;outline-offset:3px}
+.lr-games-choice:active{transform:scale(.99)}
+.lr-games-memory{background:linear-gradient(145deg,#534372,#342a53);border-color:#af9ac7}
+.lr-games-symbol{font-size:47px;line-height:1.25;filter:drop-shadow(0 5px 9px #0b061354)}
+.lr-games-copy{display:flex;flex-direction:column;gap:9px;flex:1}
+.lr-games-copy small{font-size:10px;letter-spacing:1px;font-weight:900;color:#dfbacd}
+.lr-games-copy strong{font:600 31px Georgia,serif}
+.lr-games-copy>span{font-size:13px;line-height:1.5;color:#f0d1e4}
+.lr-games-copy b{font-size:12px;color:#ffe0a6;margin-top:auto}
+.lr-games-note{text-align:center;font-size:11px;line-height:1.65;color:#d7b7ce;padding:0 10px;margin:0}
+@media(max-width:700px){.lr-games-hub{gap:13px;padding:5px 2px 17px}.lr-games-hero{padding:13px 8px 6px}.lr-games-hero h1{font-size:36px}.lr-games-hero p{font-size:12px}.lr-games-grid{grid-template-columns:1fr;gap:11px}.lr-games-choice{flex-direction:row;align-items:center;gap:15px;min-height:126px;padding:18px;border-radius:17px}.lr-games-symbol{font-size:40px;align-self:center;flex:none}.lr-games-copy{gap:6px}.lr-games-copy strong{font-size:25px}.lr-games-copy small{font-size:9px}.lr-games-copy>span{font-size:11px}.lr-games-copy b{font-size:11px;margin-top:2px}.lr-games-note{font-size:10px}}

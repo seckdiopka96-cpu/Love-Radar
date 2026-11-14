@@ -920,3 +920,29 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
  .lr-mobile-nav button span{font-size:clamp(18px,5vw,24px)}
  .lr-mobile-nav button small{font-size:clamp(8px,2.25vw,10px);letter-spacing:-.15px}
 }
+
+/* Five main destinations, not seven: equal-width mobile tabs with calm icon sizing. */
+@media(max-width:700px){
+ .lr-app.lr-app-locked .lr-mobile-nav{
+  justify-content:space-around!important;gap:0!important;
+  height:calc(63px + env(safe-area-inset-bottom))!important;
+  padding:3px 4px env(safe-area-inset-bottom)!important;
+  box-sizing:border-box!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button{
+  flex:1 1 20%!important;min-width:0!important;max-width:20%!important;
+  min-height:53px!important;height:56px!important;
+  padding:4px 1px!important;gap:5px!important;
+  border-radius:12px!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button span{
+  font-family:-apple-system,BlinkMacSystemFont,"Apple Color Emoji","Segoe UI Emoji",Arial,sans-serif;
+  font-size:24px!important;line-height:25px!important;
+  min-width:0!important;display:flex;align-items:center;justify-content:center;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button small{
+  font-size:10px!important;font-weight:750!important;line-height:12px!important;
+  letter-spacing:0!important;white-space:nowrap!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button.active{background:rgba(227,139,190,.095)!important}
+}
