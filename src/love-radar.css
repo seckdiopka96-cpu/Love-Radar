@@ -906,3 +906,9 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
  }
  .lr-app.lr-welcome-mode:has(.lr-auth-form input:focus) .lr-panel-head{display:none!important}
 }
+
+/* Understated developer attribution on the fixed public welcome screen. */
+.lr-welcome-mode .lr-made-by{text-align:center;color:#d7acc4;font-size:11px;line-height:1.2;margin-top:10px;letter-spacing:.1px}
+.lr-welcome-mode .lr-made-by strong{color:#f4bed6;font-weight:850}
+@media(max-width:700px){.lr-app.lr-welcome-mode .lr-made-by{font-size:10px;margin-top:7px}}
+@media(max-width:700px) and (max-height:740px){.lr-app.lr-welcome-mode .lr-made-by{font-size:9px;margin-top:4px}}
