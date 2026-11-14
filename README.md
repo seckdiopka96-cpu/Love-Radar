@@ -239,3 +239,21 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 ## Afficher le plateau Ludo avant l'arrivée de l'autre joueur
 
 Le plateau du Ludo Duo s'affiche **dès l'ouverture**, même si la pièce privée ne compte qu'une seule personne. Les huit pions apparaissent en position initiale pour donner un aperçu fidèle du jeu. Le message d'attente reste dans la petite barre de statut au-dessus du plateau et un bouton « Actualiser » est disponible à la place du lancer de dé. Il est impossible de déplacer les pions ou de lancer les dés avant l'arrivée du deuxième joueur et la validation des règles par chacun. La partie réelle et les scores continuent de venir exclusivement du serveur D1 ; aucune partie fictive n'est créée. Le cache PWA passe en v29.
+
+
+## 💑 Notre histoire — 📅 Nos retrouvailles
+
+Deux nouvelles activités privées, éditables par les deux membres du couple, sans alourdir la barre principale (toujours 5 onglets).
+
+**Notre histoire** (Accueil → Notre histoire ou Souvenirs → Notre histoire) :
+- Photo commune modifiable ou supprimable. JPEG/PNG/HEIC éventuellement converti côté iPhone en JPEG redimensionné (1500 px maximum), puis stocké dans le bucket R2 existant sous un préfixe spécifique au salon. Aucun lien R2 public. `GET /api/story-photo` exige le token du membre et n'est jamais mis en cache.
+- Date de rencontre, affichage automatique du nombre de jours ensemble (jours calendaires calculés localement).
+- Chronologie commune : jusqu'à 40 souvenirs ou dates importantes avec titre, date et petit mot facultatif ; suppression avec confirmation. Certains événements peuvent se répéter chaque année.
+- Les modifications du couple sont enregistrées en D1 et rechargées automatiquement sur les deux appareils lorsque la page reste ouverte.
+
+**Nos retrouvailles** (Accueil → Nos retrouvailles ou Ensemble → Retrouvailles) :
+- Date de la prochaine rencontre et petit mot ou lieu optionnel ; compte à rebours partagé en jours, sans inventer une heure ni supposer le fuseau horaire d'un partenaire.
+- Liste des prochaines dates importantes. La date de rencontre engendre automatiquement son anniversaire annuel ; les autres dates annuelles sont celles marquées « Chaque année ». Pour le 29 février, l'anniversaire tombe le 28 février les années non bissextiles.
+- La date peut être modifiée ou retirée à tout moment. Une modification de date envoie une notification au partenaire si les notifications sont activées.
+
+**Confidentialité et maintenance :** D1 crée les tables `couple_stories` et `couple_story_events` si nécessaire ; le serveur vérifie chaque token et limite systématiquement l'accès au salon du couple. Lors de la suppression du salon, ses événements, ses dates et la photo privée dans R2 sont également supprimés. Les API ne sont pas mises en cache. Cache PWA v30. Aucune dépendance externe ni Firebase.

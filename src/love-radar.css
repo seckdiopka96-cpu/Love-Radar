@@ -946,3 +946,12 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
  }
  .lr-app.lr-app-locked .lr-mobile-nav button.active{background:rgba(227,139,190,.095)!important}
 }
+
+/* Shared love-story entry on the Souvenirs album. */
+.lr-story-album-entry{width:100%;display:flex;align-items:center;gap:14px;text-align:left;margin:12px 0 23px;padding:17px;border:1px solid #d8a7bb;border-radius:18px;background:linear-gradient(120deg,#70465f,#42314c);color:#fff0f8}
+.lr-story-album-entry>span:first-child{font-size:33px;flex:none}
+.lr-story-album-entry>span:nth-child(2){display:flex;flex:1;min-width:0;flex-direction:column;gap:6px}
+.lr-story-album-entry strong{font:600 25px/1.15 Georgia,serif}
+.lr-story-album-entry small{font-size:11px;line-height:1.5;color:#e9cada}
+.lr-story-album-entry>b{font-size:25px;color:#ffcfb1}
+@media(max-width:700px){.lr-story-album-entry{padding:14px;gap:10px;margin-bottom:17px}.lr-story-album-entry strong{font-size:22px}.lr-story-album-entry>span:first-child{font-size:27px}}
