@@ -71,6 +71,7 @@ async function sendSignal(db:D1Database,u:Member,ctx:Ctx,kind:string,replyTo:str
 }
 function isCoord(n:unknown):n is number{return typeof n==="number"&&Number.isFinite(n)&&n>=0&&n<=1000}
 function parseStroke(input:Record<string,unknown>){
+ if(input.kind==="grid")return {kind:"grid",data:{}};
  if(input.kind==="stroke"){
   if(!Array.isArray(input.points)||input.points.length<2||input.points.length>170)return null;
   const points=input.points.map(p=>{

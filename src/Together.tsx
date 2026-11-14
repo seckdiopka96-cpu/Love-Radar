@@ -128,6 +128,9 @@ export default function Together({token,myName,partnerName,mySeat,onExit,focusKi
  };
  const drawEvent=(event:DrawEvent)=>{
   if(event.kind==="stroke"&&event.content.points)return <path key={event.id} d={pathOf(event.content.points)} fill="none" stroke={event.content.color||COLORS[0]} strokeWidth={event.content.width||6} strokeLinecap="round" strokeLinejoin="round"/>;
+  if(event.kind==="grid")return <g key={event.id} stroke="#9a6c87" strokeWidth="5" strokeLinecap="round" opacity=".82" pointerEvents="none">
+   <path d="M 416 240 L 416 760 M 584 240 L 584 760 M 250 413 L 750 413 M 250 587 L 750 587" fill="none"/>
+  </g>;
   if(event.kind==="heart")return <text key={event.id} x={event.content.x} y={event.content.y} dominantBaseline="central" textAnchor="middle" fontSize={94}>❤️</text>;
   if(event.kind==="text")return <text key={event.id} x={event.content.x} y={event.content.y} textAnchor="middle" fontSize={35} fill="#49334c" fontWeight="700" paintOrder="stroke" stroke="#fff9f2" strokeWidth="7">{event.content.text}</text>;
   return null;
@@ -172,6 +175,7 @@ export default function Together({token,myName,partnerName,mySeat,onExit,focusKi
     <button type="button" className={tool==="pen"?"active":""} aria-pressed={tool==="pen"} onClick={()=>setTool("pen")}>✏️ Dessin</button>
     <button type="button" className={tool==="heart"?"active":""} aria-pressed={tool==="heart"} onClick={()=>setTool("heart")}>❤️ Cœur</button>
     <button type="button" className={tool==="text"?"active":""} aria-pressed={tool==="text"} onClick={()=>setTool("text")}>✍️ Texte</button>
+    <button type="button" disabled={busy} title="Afficher une grille de morpion. Dessinez vos X et O avec le stylo." onClick={()=>{setTool("pen");void post({action:"draw",kind:"grid"})}}>⌗ Morpion</button>
    </div>
    <div className="tg-board-wrap">
     <svg ref={svg} viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet" className="tg-board" role="img" aria-label="Tableau blanc partagé où l'on dessine avec le doigt"

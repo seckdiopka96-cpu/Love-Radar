@@ -106,3 +106,8 @@
  .tg-draw-tools button{padding:6px 3px}
 }
 @media(prefers-reduced-motion:reduce){.tg-heart-animation{animation:none}}
+
+/* The fourth drawing tool places a shared tic-tac-toe grid. Draw X and O by hand. */
+.tg-draw-tools{grid-template-columns:repeat(4,minmax(0,1fr))}
+.tg-draw-tools button{font-size:11px;white-space:nowrap;min-width:0}
+@media(max-width:400px){.tg-draw-tools button{font-size:10px;padding:7px 1px}}
