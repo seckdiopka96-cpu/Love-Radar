@@ -162,3 +162,10 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Un bouton explicite « Lancer un défi » envoie une notification Push au partenaire, avec accès direct à Memory Love et à l'écran de signature ; au maximum une nouvelle invitation par minute et par manche.
 - L'écran reste fixe sur téléphone et le plateau est dimensionné pour rester visible. Le joueur peut revenir à l'accueil sans perdre sa partie, ou abandonner (victoire du partenaire).
 - D1 crée séparément `memory_games`, `memory_agreements`, `memory_gifts` et `memory_challenges` ; les données existantes de Ludo, du chat, de l'album et des appels restent inchangées.
+
+## Signatures simplifiées dans Memory Love et Ludo Duo
+
+- La signature ne nécessite plus de saisir son nom. Une **seule case à cocher**, que l'on peut cocher ou décocher avant validation, confirme la lecture des règles et autorise l'enregistrement de la signature.
+- Le bouton « Valider ma signature » n'est activé qu'après avoir coché la case et répondu oui ou non au défi cadeau.
+- Chaque API vérifie explicitement les deux consentements booléens, puis enregistre le nom du profil authentifié et l'horodatage dans D1. Chaque manche reste bloquée jusqu'à la validation des deux comptes.
+- La signature correspond à une attestation privée dans Love Radar, sans certification légale. Les cadeaux restent facultatifs et aucun paiement n'est effectué par l'app.

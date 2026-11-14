@@ -68,13 +68,11 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const [challenge,setChallenge]=useState<Challenge|null>(null);
  const [challengeBusy,setChallengeBusy]=useState(false);
  const [challengeHint,setChallengeHint]=useState("");
- const [signature,setSignature]=useState("");
  const [rulesAccepted,setRulesAccepted]=useState(false);
  const [giftPreference,setGiftPreference]=useState<"yes"|"no"|"">("");
  const [signBusy,setSignBusy]=useState(false);
  // A new match always requires a fresh read, choice and signature.
  useEffect(()=>{
-  setSignature("");
   setRulesAccepted(false);
   setGiftPreference("");
   setGiftOpen(false);
@@ -281,12 +279,12 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
 
  async function signRules(){
   if(signBusy||!game||agreement?.startedAt||agreement?.signed[mySeat])return;
-  if(!rulesAccepted||!signature.trim()||giftPreference==="")return;
+  if(!rulesAccepted||giftPreference==="")return;
   setSignBusy(true);setError("");
   try{
    const response=await fetch("/api/ludo",{method:"POST",
     headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
-    body:JSON.stringify({action:"sign_rules",acceptRules:true,signature:signature.trim(),giftConsent:giftPreference==="yes"})
+    body:JSON.stringify({action:"sign_rules",acceptRules:true,signed:true,giftConsent:giftPreference==="yes"})
    });
    const data=await response.json() as ResponseData;
    if(!response.ok||!data.ok)throw Error(data.error||"Impossible d’enregistrer la signature.");
@@ -465,14 +463,13 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
       <p>Si vous acceptez tous les deux le défi, <strong>le perdant propose d’offrir le cadeau choisi par le gagnant</strong> : crédit téléphonique, forfait Internet ou <strong>2 000 F CFA via Wave</strong>.</p>
       <p>Ce défi est un engagement amical, pas un contrat légal ni un paiement automatique. Vous pouvez jouer sans cadeau si l’un de vous refuse. Aucun achat ou transfert Wave n’est effectué dans Love Radar.</p>
      </div>
-     <label className="ludo-agreement-read"><input type="checkbox" checked={rulesAccepted} onChange={e=>setRulesAccepted(e.target.checked)}/><span>J’ai lu et compris les règles de cette partie.</span></label>
+     <label className="ludo-agreement-read"><input type="checkbox" checked={rulesAccepted} onChange={e=>setRulesAccepted(e.target.checked)}/><span>✍️ Je coche pour confirmer avoir lu les règles et signer avec mon profil <strong>{myName}</strong>.</span></label>
      <fieldset className="ludo-agreement-choice">
       <legend>Acceptes-tu le défi cadeau si tu perds ?</legend>
       <label><input type="radio" name="gift_preference" checked={giftPreference==="yes"} onChange={()=>setGiftPreference("yes")}/><span>Oui, j’accepte de participer 🎁</span></label>
       <label><input type="radio" name="gift_preference" checked={giftPreference==="no"} onChange={()=>setGiftPreference("no")}/><span>Non, jouons sans cadeau</span></label>
      </fieldset>
-     <label className="ludo-agreement-sign"><span>Ma signature (nom de mon profil : <strong>{myName}</strong>)</span><input type="text" maxLength={80} autoComplete="off" value={signature} onChange={e=>setSignature(e.target.value)} placeholder={"Écris « "+myName+" »"} aria-label="Signature électronique"/></label>
-     <button type="button" className="ludo-agreement-submit" disabled={signBusy||!rulesAccepted||!signature.trim()||giftPreference===""} onClick={()=>void signRules()}>{signBusy?"Enregistrement…":"✍️ Je signe et j’accepte les règles"}</button>
+     <button type="button" className="ludo-agreement-submit" disabled={signBusy||!rulesAccepted||giftPreference===""} onClick={()=>void signRules()}>{signBusy?"Enregistrement…":"Valider ma signature ✓"}</button>
     </>:<>
      <div className="ludo-agreement-wait">
       <span className="ludo-agreement-bigcheck">✓</span>

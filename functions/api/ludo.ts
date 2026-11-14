@@ -107,7 +107,6 @@ async function agreement(db:D1Database,g:Game):Promise<Agreement>{
   giftChoices:[r?.gift_0==null?null:Boolean(r.gift_0),r?.gift_1==null?null:Boolean(r.gift_1)],
   startedAt:r?.started_at??null};
 }
-const normName=(name:string)=>name.normalize("NFC").trim().replace(/\s+/g," ").toLocaleLowerCase("fr");
 
 async function gift(db:D1Database,g:Game):Promise<Gift>{
  const row=await db.prepare("SELECT game_id,consent_0,consent_1,choice,chosen_by,given FROM ludo_gifts WHERE room_id=? AND game_id=?")
@@ -235,9 +234,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   if(action==="sign_rules"){
    if(g.status!=="playing")return fail("Cette manche est déjà terminée.",409);
    if(signed?.startedAt)return fail("La partie a déjà commencé. Un nouvel accord sera proposé à la prochaine manche.",409);
-   if(data.acceptRules!==true)return fail("Lis et accepte les règles avant de signer.",400);
-   if(typeof data.signature!=="string"||data.signature.length>80||!data.signature.trim())return fail("Écris ton nom pour signer.",400);
-   if(normName(data.signature)!==normName(player.name))return fail("La signature doit correspondre au nom de ton profil Love Radar.",400);
+   if(data.acceptRules!==true||data.signed!==true)return fail("Lis les règles et coche la case de signature pour valider.",400);
    if(typeof data.giftConsent!=="boolean")return fail("Indique si tu acceptes ou refuses le défi cadeau.",400);
    const seat=player.seat;
    const now=Date.now();
