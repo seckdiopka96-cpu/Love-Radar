@@ -140,6 +140,8 @@ async function snapshot(db:D1Database,u:Member){
      }catch(err){console.error("Optional voice call cleanup",err)}
      try{await db.prepare("DELETE FROM couple_location_requests WHERE room_id=?").bind(u.room_id).run()}
      catch(e){console.error("Optional location consent cleanup",e)}
+     try{await db.prepare("DELETE FROM couple_canvas_presence WHERE room_id=?").bind(u.room_id).run()}
+     catch(e){console.error("Optional canvas presence cleanup",e)}
      for(const table of ["affection_signals","couple_canvas_events","couple_canvas_invites"]){
       try{await db.prepare("DELETE FROM "+table+" WHERE room_id=?").bind(u.room_id).run()}
       catch(e){console.error("Optional Together cleanup",table,e)}

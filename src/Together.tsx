@@ -71,6 +71,11 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenL
   document.addEventListener("visibilitychange",visible);
   return()=>{active.current=false;window.clearInterval(interval);document.removeEventListener("visibilitychange",visible)};
  },[load,mode]);
+ const leavePresence=useCallback(()=>{
+  void fetch(api,{method:"POST",keepalive:true,
+   headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
+   body:JSON.stringify({action:"leave_draw"})}).catch(()=>{});
+ },[token]);
  const sendPresence=useCallback(async(drawingNow:boolean,points:number[][]=[],strokeColor=COLORS[0],width=6)=>{
   if(document.visibilityState!=="visible"&&drawingNow)return;
   if(previewBusy.current)return;
@@ -91,13 +96,14 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenL
   },7500);
   const visible=()=>{
    if(document.visibilityState==="visible")void sendPresence(false);
+   else leavePresence();
   };
   document.addEventListener("visibilitychange",visible);
   return()=>{
    window.clearInterval(ping);document.removeEventListener("visibilitychange",visible);
-   void sendPresence(false);
+   leavePresence();
   };
- },[mode,sendPresence]);
+ },[mode,sendPresence,leavePresence]);
  const post=async(body:Record<string,unknown>,quiet=false)=>{
   if(busy&&!quiet)return false;
   if(!quiet)setBusy(true);

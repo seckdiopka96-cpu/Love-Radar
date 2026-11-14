@@ -176,6 +176,10 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
   if(input.action==="miss")return sendSignal(db,u,ctx,"miss",null);
   if(input.action==="reply")return sendSignal(db,u,ctx,typeof input.kind==="string"?input.kind:"",typeof input.replyTo==="string"?input.replyTo:null);
   if(input.action==="presence")return canvasPresence(db,u,input);
+  if(input.action==="leave_draw"){
+   await db.prepare("DELETE FROM couple_canvas_presence WHERE room_id=? AND member_id=?").bind(u.room_id,u.id).run();
+   return success({online:false});
+  }
   if(input.action==="draw"||input.action==="clear")return addCanvas(db,u,input);
   if(input.action==="undo")return undoCanvas(db,u);
   if(input.action==="invite_draw")return inviteDraw(db,u,ctx);

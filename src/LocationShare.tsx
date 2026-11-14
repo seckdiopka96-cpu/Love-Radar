@@ -154,7 +154,7 @@ export default function LocationShare({token,partnerName,myName,onExit,focusId}:
  return <section className="loc-page" aria-label="Partage de position avec consentement">
   <header className="loc-head"><button type="button" onClick={exit}>‹ Accueil</button><div><strong>Notre position <span>♡</span></strong><small>TOUJOURS AVEC TON ACCORD</small></div><span className="loc-pin">📍</span></header>
   <div className="loc-intro"><div className="loc-illustration">📍</div><h1>Se retrouver, <em>en toute confiance.</em></h1><p>Demande à voir la position de ton amour. La personne choisit librement d’accepter ou de refuser.</p>
-   <span role="status" className={"loc-sync "+(syncStatus==="offline"?"loc-sync-offline":"")}>{syncStatus==="synced"?"✓ Deux téléphones synchronisés via Love Radar":syncStatus==="connecting"?"⏳ Connexion…":"⚠️ Réseau indisponible · Reconnexion automatique"}</span>
+   <span role="status" className={"loc-sync "+(syncStatus==="offline"?"loc-sync-offline":"")}>{syncStatus==="synced"?"✓ Connecté au service de synchronisation":syncStatus==="connecting"?"⏳ Connexion…":"⚠️ Réseau indisponible · Reconnexion automatique"}</span>
   </div>
   {focusOld?<div className="loc-message" role="status">Cette notification concerne une ancienne demande. Voici la demande actuelle.</div>:null}
   {error?<div className="loc-message loc-error" role="alert">{error}</div>:null}
