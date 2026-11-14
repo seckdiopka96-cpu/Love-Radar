@@ -162,3 +162,37 @@
  .ludo-play-area>.ludo-stage{flex:1 1 56%;width:56%;height:100%;max-height:100%;margin:0}
  .ludo-play-area>.ludo-game-footer{flex:0 0 40%;width:40%;max-width:40%;height:100%;margin:0}
 }
+
+
+/* Premium gameplay polish — movement, optional sound and victory. */
+.ludo-top-actions{display:flex;align-items:center;gap:5px}
+.ludo-sound{width:35px;height:35px;display:grid;place-items:center;flex:none;border-radius:11px;border:1px solid #91688c;background:#61415e;color:#fff1f7;font-size:17px;line-height:1;touch-action:manipulation}
+.ludo-sound[aria-pressed="false"]{opacity:.72}
+.ludo-moving-pawn{position:absolute;z-index:18;pointer-events:none;display:grid;place-items:center;width:clamp(17px,5vw,33px);height:clamp(24px,6.5vw,43px);transform:translate(-50%,-58%);transition:left .105s linear,top .105s linear;will-change:top,left;filter:drop-shadow(0 3px 4px #20112688)}
+.ludo-moving-pawn svg{display:block;width:100%;height:100%;overflow:visible}
+.ludo-is-capture .ludo-board-wrap-immersive{animation:ludo-capture-glow .48s ease 1}
+@keyframes ludo-capture-glow{0%,100%{filter:brightness(1)}45%{filter:brightness(1.36) drop-shadow(0 0 18px #ffe071a8)}}
+/* A softly illuminated play table makes the extra height on tall iPhones intentional. */
+.ludo-play-area{position:relative;isolation:isolate}
+.ludo-play-area::before{content:"";z-index:-1;position:absolute;inset:0;pointer-events:none;opacity:.9;background:radial-gradient(ellipse 56% 48% at 50% 50%,#e99cbd1c,transparent 80%),repeating-radial-gradient(ellipse 56% 48% at 50% 50%,transparent 0 25px,#f1c0e006 26px 27px,transparent 28px 52px)}
+.ludo-confetti-layer{pointer-events:none;position:absolute;inset:0;overflow:hidden;border-radius:17px}
+.ludo-confetti-layer i{position:absolute;top:-18px;display:block;width:7px;height:13px;opacity:0;border-radius:2px;transform:rotate(10deg);animation:ludo-confetti-fall 1.9s cubic-bezier(.2,.65,.8,.95) infinite}
+@keyframes ludo-confetti-fall{0%{opacity:0;transform:translateY(-12px) rotate(0)}15%{opacity:1}92%{opacity:1}100%{opacity:0;transform:translateY(240px) rotate(450deg)}}
+.ludo-victory{overflow:hidden}
+.ludo-victory>:not(.ludo-confetti-layer){position:relative;z-index:2}
+/* Let the board and controls feel like a unified compact console on phones. */
+@media(max-width:950px){
+ .ludo-play-area{gap:5px}
+ .ludo-play-area>.ludo-stage{height:min(calc(100vw - 12px),calc(100% - 145px))}
+ .ludo-experience .ludo-board-wrap-immersive{box-shadow:0 7px 30px #170b25a1,0 0 28px #dc83bf29}
+}
+@media(max-width:365px){
+ .ludo-top-actions{gap:3px}
+ .ludo-sound,.ludo-help{width:31px;height:31px;font-size:15px}
+ .ludo-leave{min-width:70px}
+ .ludo-brand strong{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){
+ .ludo-moving-pawn{transition:none;will-change:auto}
+ .ludo-confetti-layer i,.ludo-is-capture .ludo-board-wrap-immersive{animation:none}
+}

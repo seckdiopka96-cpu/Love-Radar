@@ -230,7 +230,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
  const pawnCells=new Map<string,{seat:number;pawn:number;active:boolean}[]>();
  if(game)for(let side=0;side<2;side++)for(let pawn=0;pawn<4;pawn++){
   const progress=game.positions[side][pawn];
-  if(progress===57)continue;
+  if(progress===57||(motion?.seat===side&&motion.pawn===pawn))continue;
   const point=progress===-1?BASE[side][pawn]:progress<=50?TRACK[(side*26+progress)%52]:HOME[side][progress-51];
   if(!point)continue;
   const k=key(point[0],point[1]);
@@ -238,6 +238,8 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
   items.push({seat:side,pawn,active:canPlay&&side===mySeat&&legal[pawn]});
   pawnCells.set(k,items);
  }
+ const movingPoint:Point|null=motion?(motion.progress<0?BASE[motion.seat][motion.pawn]:motion.progress<=50?TRACK[(motion.seat*26+motion.progress)%52]:motion.progress===57?[7,7]:HOME[motion.seat][motion.progress-51]):null;
+ const movingStyle=movingPoint?{left:((movingPoint[1]+.5)/15*100)+"%",top:((movingPoint[0]+.5)/15*100)+"%"}:undefined;
  const shownReaction=reaction&&Date.now()-reaction.at<7000?reaction:null;
  const lastNumber=game?.lastAction.match(/lancé un ([1-6])/);
  const showLast=lastNumber?Number(lastNumber[1]):5;
@@ -250,7 +252,10 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
     <span aria-hidden="true">‹</span> Quitter
    </button>
    <div className="ludo-brand"><strong>LUDO <span>♥</span> DUO</strong><small>PARTIE PRIVÉE · 2 JOUEURS</small></div>
-   <button type="button" className="ludo-help" onClick={()=>setRules(true)} aria-label="Voir les règles du Ludo">?</button>
+   <div className="ludo-top-actions">
+    <button type="button" className="ludo-sound" onClick={toggleSound} aria-label={soundOn?"Couper les sons du jeu":"Activer les sons du jeu"} aria-pressed={soundOn}>{soundOn?"🔊":"🔇"}</button>
+    <button type="button" className="ludo-help" onClick={()=>setRules(true)} aria-label="Voir les règles du Ludo">?</button>
+   </div>
   </header>
 
   <div className="ludo-players">
@@ -268,7 +273,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
   </div>
 
   <div className="ludo-play-area">
-  <div className="ludo-stage" ref={boardStage}>
+  <div className={"ludo-stage"+(captureFlash?" ludo-is-capture":"")} ref={boardStage}>
    {!game?<div className="ludo-waiting"><span>🎲</span><h2>{loading?"Chargement du jeu…":members<2?"Ton partenaire n’a pas encore rejoint":"Ouverture du plateau…"}</h2><p>{members<2?"Partage votre code privé pour jouer ensemble.":"Synchronisation des deux téléphones."}</p><button onClick={()=>void load()}>Actualiser</button></div>:
     <div className={"ludo-board-wrap ludo-board-wrap-immersive"+(effect==="move"?" ludo-board-move":"")} style={boardSize?{width:boardSize,height:boardSize}:undefined}>
      <div className="ludo-board" role="group" aria-label="Plateau coloré de Ludo pour deux joueurs">
@@ -298,11 +303,15 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
       <div className="ludo-yard ludo-yard-lower" aria-hidden="true"/>
       <div className="ludo-yard ludo-yard-gold" aria-hidden="true"/>
       <div className="ludo-board-center" aria-hidden="true"><span>♥</span></div>
+      {motion&&movingStyle?<div className={"ludo-moving-pawn ludo-pawn-"+(motion.seat===0?"red":"gold")} style={movingStyle} aria-hidden="true">
+        <PawnShape index={motion.pawn}/>
+       </div>:null}
      </div>
     </div>}
    {error?<div className="ludo-alert-pop" role="alert">{error}</div>:null}
    {shownReaction?<div className={"ludo-floating-emoji"+(shownReaction.seat===mySeat?" mine":" theirs")} key={shownReaction.at} role="status">{shownReaction.emoji}</div>:null}
-   {game?.status==="won"?<div className="ludo-victory" role="dialog" aria-label="Partie terminée">
+   {game?.status==="won"&&!motion?<div className="ludo-victory" role="dialog" aria-label="Partie terminée">
+    <div className="ludo-confetti-layer" aria-hidden="true">{Array.from({length:20},(_,i)=><i key={i} style={{left:((i*37+9)%97)+"%",animationDelay:((i*71)%900)+"ms",backgroundColor:["#ffc757","#fa8db9","#5ed3ba","#b995ff"][i%4]}}/>)}</div>
     <div className="ludo-celebrate" aria-hidden="true">🏆</div>
     <strong>{game.winner===mySeat?"Victoire !":displayName(game.winner??0)+" gagne !"}</strong>
     <p>{game.lastAction.includes("abandonné")?"Un joueur a abandonné la partie.":"Les quatre pions ont atteint le centre !"}</p>
