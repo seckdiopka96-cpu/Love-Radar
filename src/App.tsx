@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useRef, useState, type ChangeEvent, t
 import "./love-radar.css";
 import VoiceCall from "./VoiceCall";
 import Ludo from "./Ludo";
+import HomeDashboard from "./HomeDashboard";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "ludo" | "chat" | "memories";
@@ -419,15 +420,7 @@ export default function LoveRadar(){
     <div className="lr-sidebar-bottom"><div className="lr-side-heart">♡</div>Vos messages et vos souvenirs, toujours à portée de main.</div>
    </aside>
    <main className="lr-main">
-    {tab==="home"?<><div className="lr-hello"><span className="lr-eyebrow">VOTRE BULLE D'AMOUR</span><h1>Bonjour, {room.user.name} <span>♥</span></h1><p>Un petit moment à deux, même à des kilomètres.</p></div>
-      {!room.partner?<div className="lr-invite"><div className="lr-invite-left"><span className="lr-invite-emoji">💌</span><div><h3>Il manque juste ton amour !</h3><p>Partage ce code pour ouvrir votre espace à deux.</p></div></div><div className="lr-code">{room.code}</div><button onClick={shareCode} className="lr-invite-button">Partager l’invitation ↗</button></div>:<div className="lr-connected"><span>💞</span><div><b>Vous êtes connectés !</b><p>Vos échanges restent dans votre espace privé.</p></div><button onClick={()=>setTab("chat")}>Écrire à {partner} →</button></div>}
-      <div className="lr-dash-grid lr-dash-grid-simple">
-       <button className="lr-feature-card lr-feature-ludo" onClick={()=>setTab("ludo")}><span>🎲 LUDO EN LIGNE · À DEUX</span><h3>Une partie<br/>ensemble ?</h3><p>Quatre pions chacun, des dés et des moments à partager, même à distance.</p><b>Jouer au Ludo ↗</b></button>
-       <button className="lr-feature-card lr-feature-chat" onClick={()=>setTab("chat")}><span>✉ VOTRE CONVERSATION</span><h3>Un petit mot<br/>d’amour ?</h3><p>Messages, photos et vocaux, juste entre vous deux.</p><b>Ouvrir les messages ↗</b></button>
-       <button className="lr-feature-card lr-feature-memories" onClick={()=>setTab("memories")}><span>✦ VOTRE ALBUM</span><h3>Nos beaux<br/>souvenirs</h3><p>Retrouvez les photos partagées dans votre conversation.</p><b>Voir nos souvenirs ↗</b></button>
-      </div>
-      <div className="lr-footnote">✧ Créé avec amour par <a href="https://diao-tech.com" target="_blank" rel="noopener noreferrer">Diao-Tech.com</a></div>
-     </>:null}
+    {tab==="home"?<HomeDashboard room={room} token={token} media={media} onInvite={()=>void shareCode()} onNavigate={setTab}/>:null}
     {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner}/>:null}
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">

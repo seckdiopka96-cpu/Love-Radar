@@ -1,0 +1,52 @@
+/* Cozy, premium home: a private space made for two. */
+.lr-home{max-width:930px;width:100%;padding:5px 0 33px;display:grid;gap:14px}
+.lr-home-kicker{text-align:center;color:#dfa9c6;font-size:10px;letter-spacing:2px;font-weight:900}
+.lr-home-couple{text-align:center;padding:18px 15px 23px;border-radius:24px;border:1px solid #754760;background:radial-gradient(ellipse at 50% 0,#76426655,transparent 65%),linear-gradient(160deg,#3a2440,#26182d);box-shadow:0 14px 40px #1007154d}
+.lr-home-avatar{display:inline-grid;place-items:center;height:44px;width:44px;vertical-align:middle;border:2px solid #e9b0c7;border-radius:50%;background:#713b60;font-size:20px;font-weight:800;color:#fff4f7}
+.lr-home-avatar-other{background:#a25f7c;border-color:#f4bbcb}
+.lr-home-heart{display:inline-grid;place-items:center;vertical-align:middle;margin:0 15px;color:#f9b6ca;font-size:25px}
+.lr-home-couple h1{font:600 clamp(22px,4vw,35px)/1.2 'Playfair Display',Georgia,serif;color:#ffedf3;margin:11px 0 7px;overflow-wrap:anywhere}
+.lr-home-couple h1 span{color:#f3b1c7}
+.lr-home-couple p{color:#c9aec2;font-size:12px;margin:0}
+.lr-home-online{display:inline-block;width:7px;height:7px;margin-right:8px;border-radius:50%;background:#9f8b9f}
+.lr-home-online.is-online{background:#57dba0;box-shadow:0 0 0 3px #57dba01c}
+.lr-home-invite{padding:16px;border:1px dashed #bd7d98;border-radius:16px;background:#37253c;display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:#fff}
+.lr-home-invite div{flex:1 1 190px}.lr-home-invite strong{font-size:13px}.lr-home-invite p{font-size:11px;color:#c7a4b9;margin:5px 0 0}.lr-home-invite code{color:#ffe0ef;background:#573550;border-radius:9px;padding:9px;letter-spacing:2px;font-weight:850}
+.lr-home-invite button{border:0;border-radius:9px;background:#b55483;color:#fff;padding:11px;font-size:11px;font-weight:850}
+.lr-home-game{width:100%;border:1px solid #aa7097;border-radius:23px;min-height:184px;background:radial-gradient(circle at 90% 12%,#9c69847a,transparent 35%),linear-gradient(125deg,#8d4878,#4d315e 78%);color:#fff4fa;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;padding:22px;box-shadow:0 15px 35px #120c203b;overflow:hidden}
+.lr-home-game-copy{flex:1;min-width:0;position:relative;z-index:1}
+.lr-home-card-label{color:#ffccde;font-size:10px;letter-spacing:1.7px;font-weight:900}
+.lr-home-game h2{font:600 clamp(23px,3.3vw,34px)/1.15 'Playfair Display',Georgia,serif;letter-spacing:-.4px;margin:14px 0 8px;color:#fff5f7}
+.lr-home-game p{font-size:12px;line-height:1.5;color:#f0cddd;margin:0 0 17px}
+.lr-home-game-cta{display:inline-flex;align-items:center;gap:8px;border-radius:11px;background:#fff0f5;color:#702e53;padding:10px 13px;font-size:12px;font-weight:850}
+.lr-home-game-cta b{font-size:17px}
+.lr-home-game-dice{display:flex;align-items:center;justify-content:center;gap:1px;padding:5px 15px 5px 0}
+.lr-home-game-dice .lr-die:nth-child(2){transform:rotate(13deg) translate(-7px,19px)}
+.lr-home-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.lr-home-tile{display:flex;flex-direction:column;align-items:flex-start;gap:0;text-align:left;color:#fff0f6;border:1px solid #6b425b;background:linear-gradient(145deg,#39283e,#2a1e33);min-width:0;border-radius:19px;min-height:208px;padding:19px}
+.lr-home-tile-top{display:flex;align-items:center;gap:9px;color:#d9adc9;font-size:10px;letter-spacing:1px;font-weight:800}
+.lr-home-tile-icon{display:grid;place-items:center;background:#68415e;border-radius:9px;width:29px;height:29px;font-size:19px;color:#ffcce4}
+.lr-home-tile h2{font:600 23px/1.2 'Playfair Display',Georgia,serif;color:#ffebf3;margin:16px 0 8px}
+.lr-home-tile .lr-home-from{color:#e3b3cf;font-weight:750;margin:3px 0 2px;font-size:12px}
+.lr-home-preview{font-size:12px;line-height:1.55;color:#c6a7bd;margin:4px 0 17px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.lr-home-open{margin-top:auto;color:#f6b1d0;font-size:11px;font-weight:850}
+.lr-home-photo{width:100%;height:122px;border-radius:12px;object-fit:cover;margin:2px 0 12px}
+.lr-home-no-photo{height:122px;width:100%;display:grid;place-content:center;text-align:center;color:#a983a1;border:1px dashed #755169;background:#4d315038;border-radius:12px;margin:3px 0 12px}
+.lr-home-no-photo>span{font-size:27px}.lr-home-no-photo p{font-size:11px;margin:4px 0}
+.lr-home-credit{text-align:center;color:#a7839b;font-size:10px;margin:4px 0}
+.lr-home-credit a{color:#e2a5c6;text-decoration:none}
+@media(max-width:700px){
+ .lr-home{gap:11px;padding:0 0 17px}
+ .lr-home-couple{padding:13px 10px 16px;border-radius:18px}
+ .lr-home-couple h1{font-size:24px}
+ .lr-home-game{min-height:160px;padding:16px;border-radius:18px}
+ .lr-home-game h2{font-size:25px;margin:11px 0 6px}
+ .lr-home-game-dice{padding-right:0}
+ .lr-home-game-dice .lr-die:nth-child(2){transform:rotate(13deg) translate(-8px,15px)}
+ .lr-home-tiles{grid-template-columns:1fr;gap:10px}
+ .lr-home-tile{min-height:0;padding:14px 16px;border-radius:15px}
+ .lr-home-tile h2{font-size:21px;margin:9px 0 5px}
+ .lr-home-preview{margin-bottom:11px}
+ .lr-home-photo,.lr-home-no-photo{height:105px}
+ .lr-home-invite{padding:12px}
+}

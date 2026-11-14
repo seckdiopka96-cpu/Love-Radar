@@ -83,7 +83,10 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 
 - Dans la conversation, toucher le bouton téléphone 📞 pour appeler son/sa partenaire. Le/la destinataire peut décrocher ou refuser ; en communication, les deux personnes peuvent couper le micro ou raccrocher.
 - Les invitations et offres/réponses WebRTC sont synchronisées par la fonction Cloudflare Pages `functions/api/call.ts` et les tables D1 `voice_calls`, `voice_signals`, créées automatiquement. Le contenu vocal n’est ni enregistré ni sauvegardé.
-- Les appels utilisent la connexion WebRTC chiffrée de bout en bout (DTLS-SRTP) et des serveurs publics STUN. Les réseaux avec NAT strict peuvent nécessiter un relais TURN non configuré dans cette première version.
+- Les appels utilisent WebRTC (DTLS-SRTP) et une connexion directe STUN lorsqu'elle est possible. La nouvelle API `/api/call-config` peut générer des identifiants TURN temporaires pour assurer une connexion sur les réseaux stricts. Le contenu des appels n'est pas enregistré.
+- **Pour activer les relais TURN Cloudflare Realtime** : créer une clé TURN dans Cloudflare Realtime, puis configurer sur Cloudflare Pages, en Production, `TURN_KEY_ID` (UID de la clé) et `TURN_KEY_API_TOKEN` (valeur secrète de la clé). Garder `TURN_KEY_API_TOKEN` comme **secret**, jamais dans GitHub ou le navigateur. Redéployer. La fonction authentifie le membre Love Radar et génère un jeton TURN à validité limitée (7200 secondes) uniquement en mémoire. Documentation : https://developers.cloudflare.com/realtime/turn/generate-credentials/
+- Sans ces deux variables, le code conserve STUN comme solution de repli, mais certains appels échoueront sur les réseaux mobiles et Wi-Fi restrictifs. Le relais TURN peut occasionner des frais Cloudflare.
+- L'état d'appel, l'activation du microphone, le signalement des erreurs ICE et l'expiration des appels ont été améliorés. Pour un usage fiable, tester avec **deux téléphones sur des réseaux différents**, notamment un iPhone installé sur l'écran d'accueil et un appareil Android. Les appels interrompus en arrière-plan restent une limite iOS des applications web.
 - Si les notifications push sont déjà activées, une invitation à l'appel peut aussi apparaître lorsque l’app est fermée, mais **l’appel ne sonne pas comme un appel téléphonique natif sur iOS**. Il faut ouvrir l’application pour répondre.
 - Les deux personnes doivent conserver l’app ouverte pendant l’appel. Certaines versions d’iOS interrompent le micro des PWA si l’app passe en arrière-plan ou si l’écran se verrouille.
 - Si aucune adresse ICE n’est disponible, l’interface donne un message d’erreur explicite plutôt que prétendre que l’appel est connecté.
@@ -98,3 +101,9 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Les parties terminées peuvent être relancées sans perdre les messages ni les souvenirs. Aucun paiement ni jeu avec des inconnus.
 - La table `ludo_games` est créée automatiquement pour les espaces D1 existants. `schema.sql` la définit pour les nouvelles installations.
 - La première version utilise une synchronisation par requêtes périodiques ; les notifications dédiées aux tours ne sont pas encore proposées.
+
+## Accueil du couple et dés visuels (2026)
+
+- Accueil : les prénoms et le statut du partenaire, la partie Ludo synchronisée, l'aperçu du dernier message et la dernière image déjà partagée.
+- Les dés sont de vrais **carrés blancs avec des points disposés de 1 à 6**, pas des icônes rondes ; la représentation du dé suit la valeur côté serveur.
+- L'album et les messages restent privés. Les photos ne sont pas incluses dans le HTML public : elles utilisent les médias déjà chargés par le compte authentifié.

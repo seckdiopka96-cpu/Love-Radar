@@ -7,7 +7,7 @@ type Signal = {id:number;kind:"offer"|"answer";payload:string};
 type Result = {ok:boolean;error?:string;call?:Call|null;signals?:Signal[]};
 type Props = {token:string;partner:string;hasPartner:boolean;showButton:boolean};
 
-const ICE_SERVERS:RTCIceServer[]=[
+const STUN_SERVERS:RTCIceServer[]=[
  {urls:"stun:stun.cloudflare.com:3478"},
  {urls:"stun:stun.l.google.com:19302"}
 ];
@@ -17,7 +17,7 @@ function iceReady(pc:RTCPeerConnection):Promise<void>{
   let done=false;
   const finish=()=>{if(done)return;done=true;pc.removeEventListener("icegatheringstatechange",check);clearTimeout(timeout);resolve()};
   const check=()=>{if(pc.iceGatheringState==="complete")finish()};
-  const timeout=setTimeout(finish,10000);
+  const timeout=setTimeout(finish,14000);
   pc.addEventListener("icegatheringstatechange",check);
   check();
  });
@@ -32,9 +32,12 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
  const [needsPlay,setNeedsPlay]=useState(false);
  const [speakerHelp,setSpeakerHelp]=useState("");
  const [speakerSelected,setSpeakerSelected]=useState(false);
+ const [relayEnabled,setRelayEnabled]=useState(false);
+ const [networkHint,setNetworkHint]=useState("");
  const [duration,setDuration]=useState(0);
  const current=useRef<Call|null>(null);
  const pc=useRef<RTCPeerConnection|null>(null);
+ const iceServers=useRef<RTCIceServer[]>(STUN_SERVERS);
  const local=useRef<MediaStream|null>(null);
  const remote=useRef<HTMLAudioElement|null>(null);
  const signalAfter=useRef(0);
@@ -55,6 +58,21 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
   const data=await res.json() as Result;
   if(!res.ok||!data.ok)throw Error(data.error||"Le service d’appel ne répond pas.");
   return data;
+ },[token]);
+ const loadNetwork=useCallback(async()=>{
+  try{
+   const response=await fetch("/api/call-config",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+   const data=await response.json() as {ok?:boolean;relay?:boolean;iceServers?:RTCIceServer[];warning?:string};
+   if(!response.ok||!data.ok)throw Error("Configuration audio inaccessible.");
+   if(Array.isArray(data.iceServers)&&data.iceServers.length)iceServers.current=data.iceServers;
+   else iceServers.current=STUN_SERVERS;
+   setRelayEnabled(Boolean(data.relay));
+   setNetworkHint(data.warning||(!data.relay?"La connexion directe peut échouer sur certains réseaux. Un relais TURN doit être activé sur Cloudflare.":""));
+  }catch{
+   iceServers.current=STUN_SERVERS;
+   setRelayEnabled(false);
+   setNetworkHint("Le serveur relais audio n’a pas pu être contacté.");
+  }
  },[token]);
  const clearAudio=useCallback(()=>{
   const p=pc.current;
@@ -84,7 +102,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
   if(pc.current)return pc.current;
   if(!local.current)throw Error("Le microphone doit être autorisé.");
   if(typeof RTCPeerConnection==="undefined")throw Error("Les appels vocaux ne sont pas compatibles avec cet appareil.");
-  const peer=new RTCPeerConnection({iceServers:ICE_SERVERS});
+  const peer=new RTCPeerConnection({iceServers:iceServers.current});
   for(const track of local.current.getAudioTracks())peer.addTrack(track,local.current);
   peer.ontrack=event=>{
    const el=remote.current;
@@ -95,9 +113,16 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
   peer.onconnectionstatechange=()=>{
    if(pc.current!==peer)return;
    if(peer.connectionState==="connected"){
-    connectedSince.current=Date.now();setPhase("Connecté");setError("");
-   }else if(peer.connectionState==="failed")setError("Connexion impossible sur ce réseau. Réessaie avec un autre Wi-Fi ou réseau mobile.");
-   else if(peer.connectionState==="disconnected")setPhase("Reconnexion…");
+    if(!connectedSince.current)connectedSince.current=Date.now();setPhase("Connecté");setError("");
+   }else if(peer.connectionState==="failed"){
+    setPhase("Connexion échouée");
+    setError("Impossible de transmettre l'audio sur ce réseau. Vérifie la connexion ou le relais TURN.");
+   }else if(peer.connectionState==="disconnected")setPhase("Reconnexion…");
+   else if(peer.connectionState==="connecting")setPhase("Connexion audio…");
+  };
+  peer.oniceconnectionstatechange=()=>{
+   if(pc.current!==peer)return;
+   if(peer.iceConnectionState==="failed")setError("Aucun chemin audio trouvé. Un relais TURN peut être nécessaire.");
   };
   pc.current=peer;
   return peer;
@@ -131,7 +156,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
     if(!peer.localDescription?.sdp?.includes("a=candidate:"))throw Error("Impossible d’établir un lien audio sur ce réseau. Change de Wi-Fi ou de réseau mobile.");
     await api("signal",{id:call.id,kind:"answer",sdp:peer.localDescription.sdp});
     return true;
-   }catch(err){setError(err instanceof Error?err.message:"Réponse impossible.");return false}
+   }catch(err){answered.current=false;setError(err instanceof Error?err.message:"Réponse impossible.");return false}
   }
   if(signal.kind==="answer"&&call.direction==="outgoing"&&peer.signalingState==="have-local-offer"){
    try{await peer.setRemoteDescription({type:"answer",sdp:signal.payload});return true}
@@ -175,6 +200,18 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
   return()=>{clearInterval(interval);document.removeEventListener("visibilitychange",visible);window.removeEventListener("focus",focus)};
  },[sync,hasPartner]);
  useEffect(()=>{
+  if(!active||active.status!=="active")return;
+  const ping=()=>{if(document.visibilityState==="visible")void api("heartbeat",{id:active.id}).catch(()=>{})};
+  ping();
+  const interval=setInterval(ping,24000);
+  return()=>clearInterval(interval);
+ },[active?.id,active?.status,api]);
+ useEffect(()=>{
+  if(active?.status!=="ringing"||active.direction!=="incoming")return;
+  const vibration=navigator as Navigator & {vibrate?:(pattern:number[])=>boolean};
+  vibration.vibrate?.([180,130,180]);
+ },[active?.id,active?.status,active?.direction]);
+ useEffect(()=>{
   const tick=setInterval(()=>{if(connectedSince.current)setDuration(Math.floor((Date.now()-connectedSince.current)/1000))},1000);
   return()=>clearInterval(tick);
  },[]);
@@ -189,7 +226,8 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
   if(busy||current.current||!hasPartner)return;
   setBusy(true);starting.current=true;setError("");
   try{
-   await microphone(); // called immediately after the user taps, for iOS permission.
+   await microphone(); // Called immediately after the tap, for iOS permission.
+   await loadNetwork();
    const result=await api("start");
    if(!result.call)throw Error("Appel non créé.");
    if(result.call.direction==="incoming"){
@@ -207,6 +245,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
   setBusy(true);setError("");
   try{
    await microphone();
+   await loadNetwork();
    createPeer();
    await api("accept",{id:c.id});
    const updated={...c,status:"active" as const};
@@ -274,6 +313,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
     {error?<div className="lr-call-error" role="alert">{error}</div>:null}
     {needsPlay?<button type="button" className="lr-call-sound" onClick={enableAudio}>Activer le son</button>:null}
     {speakerHelp?<div className="lr-call-audio-hint" role="status">{speakerHelp}</div>:null}
+    {networkHint&&active.status==="active"&&phase!=="Connecté"?<div className="lr-call-audio-hint" role="status">{networkHint}</div>:null}
     <div className="lr-call-actions">
      {isIncoming?
       <>
@@ -299,7 +339,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton}:Props){
        </button>
       </>}
     </div>
-    <small>La communication fonctionne lorsque Love Radar est ouvert.</small>
+    <small>{relayEnabled?"Connexion sécurisée avec relais audio disponible.":"Appels sécurisés. Garde Love Radar ouvert durant la conversation."}</small>
    </div>
   </div>,document.body):null;
  return <>
