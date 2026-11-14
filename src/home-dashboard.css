@@ -50,3 +50,12 @@
  .lr-home-photo,.lr-home-no-photo{height:105px}
  .lr-home-invite{padding:12px}
 }
+
+.lr-home-memory{display:flex;align-items:center;gap:20px;width:100%;min-height:120px;padding:17px 20px;margin:13px 0 20px;border:1px solid #db9dbb;border-radius:18px;background:linear-gradient(120deg,#562e55,#8f446a 65%,#be6795);color:#fff1f7;text-align:left;box-shadow:0 5px 22px #4b21472c}
+.lr-home-memory-icons{font-size:35px;line-height:1.2;min-width:150px;text-align:center;letter-spacing:2px;text-shadow:0 3px 8px #350e3b}
+.lr-home-memory-copy{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+.lr-home-memory-copy small{color:#f0c2d5;font-size:9px;font-weight:900;letter-spacing:.9px}
+.lr-home-memory-copy strong{font-size:23px;font-family:Georgia,serif}
+.lr-home-memory-copy>span{font-size:11px;line-height:1.45;color:#f9e3ef}
+.lr-home-memory-copy b{font-size:11px;color:#ffdaac}
+@media(max-width:600px){.lr-home-memory{gap:9px;padding:14px 12px;min-height:108px}.lr-home-memory-icons{font-size:27px;min-width:86px;letter-spacing:0}.lr-home-memory-copy strong{font-size:19px}.lr-home-memory-copy>span{font-size:10px}}

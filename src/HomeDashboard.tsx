@@ -4,7 +4,7 @@ import "./home-dashboard.css";
 type Message={id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;created_at:number};
 type Game={turn:number;status:"playing"|"won";winner:number|null;version:number;dice:number|null};
 type Room={user:{id:string;name:string;seat:number};partner:string|null;code:string;partnerLastSeenAt?:number;messages:Message[]};
-type Props={room:Room;token:string;media:Record<string,string>;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memories")=>void};
+type Props={room:Room;token:string;media:Record<string,string>;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories")=>void};
 export default function HomeDashboard({room,token,media,onInvite,onNavigate}:Props){
  const [game,setGame]=useState<Game|null>(null);
  useEffect(()=>{
@@ -43,6 +43,10 @@ export default function HomeDashboard({room,token,media,onInvite,onNavigate}:Pro
   <button type="button" className="lr-home-game" onClick={()=>onNavigate("ludo")}>
    <div className="lr-home-game-copy"><span className="lr-home-card-label">✦ VOTRE JEU PRIVÉ</span><h2>{gameHeadline}</h2><p>{room.partner?gameSub:"Invite ton partenaire pour jouer à deux."}</p><span className="lr-home-game-cta">{game?"Jouer maintenant":"Découvrir le Ludo"} <b>→</b></span></div>
    <div className="lr-home-game-dice" aria-hidden="true"><DiceFace value={5} variant="pink" size="large"/><DiceFace value={3} variant="gold"/></div>
+  </button>
+  <button type="button" className="lr-home-memory" onClick={()=>onNavigate("memory")}>
+   <span className="lr-home-memory-icons" aria-hidden="true">🃏 ♡ 🌹 💌</span>
+   <span className="lr-home-memory-copy"><small>NOUVEAU · À DEUX EN LIGNE</small><strong>Memory Love 💞</strong><span>Retrouve les paires avec ton amour, même à distance. 30 s par tour.</span><b>Jouer à Memory Love →</b></span>
   </button>
   <div className="lr-home-tiles">
    <button type="button" className="lr-home-tile" onClick={()=>onNavigate("chat")}>
