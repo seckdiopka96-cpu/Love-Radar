@@ -1,3 +1,4 @@
+import {apiFetch} from "./api";
 import {useCallback,useEffect,useRef,useState,type ChangeEvent,type FormEvent} from "react";
 import {daysTo,emptyProfile,formatDate,todayLocal,upcomingDates,type StoryData,type StoryProfile} from "./story-dates";
 import "./couple-story.css";
@@ -39,7 +40,7 @@ function Preview({token,profile,privacyEnabled,viewer}:{token:string;profile:Sto
   if(!profile.hasPhoto)return()=>{};
   void (async()=>{
    try{
-    const response=await fetch("/api/story-photo",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+    const response=await apiFetch("/api/story-photo",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
     if(!response.ok)throw Error("Photo non disponible");
     const blob=await response.blob();
     if(!active)return;
@@ -82,7 +83,7 @@ export default function CoupleStory({token,mode,privacyEnabled,myName,partnerNam
   if(inFlight.current)return;
   inFlight.current=true;
   try{
-   const res=await fetch("/api/story",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+   const res=await apiFetch("/api/story",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
    const body=await res.json() as StoryData;
    if(!res.ok||!body.ok)throw Error(body.error||"Impossible d’ouvrir votre espace.");
    apply(body);
@@ -103,7 +104,7 @@ export default function CoupleStory({token,mode,privacyEnabled,myName,partnerNam
   if(busy)return false;
   setBusy(true);setError("");setSuccess("");
   try{
-   const res=await fetch("/api/story",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(action)});
+   const res=await apiFetch("/api/story",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(action)});
    const body=await res.json() as StoryData;
    if(!res.ok||!body.ok)throw Error(body.error||"Impossible d’enregistrer.");
    apply(body);setSuccess(confirmation);
@@ -143,7 +144,7 @@ export default function CoupleStory({token,mode,privacyEnabled,myName,partnerNam
   try{
    const prepared=await photoAsJpeg(file),form=new FormData();
    form.append("file",prepared);
-   const response=await fetch("/api/story-photo",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
+   const response=await apiFetch("/api/story-photo",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
    const result=await response.json() as {ok:boolean;error?:string};
    if(!response.ok||!result.ok)throw Error(result.error||"Envoi impossible.");
    dirtyMeeting.current=false;dirtyReunion.current=false;
@@ -155,7 +156,7 @@ export default function CoupleStory({token,mode,privacyEnabled,myName,partnerNam
   if(busy||!window.confirm("Supprimer votre photo de couple pour vous deux ?"))return;
   setBusy(true);setError("");setSuccess("");
   try{
-   const res=await fetch("/api/story-photo",{method:"DELETE",headers:{Authorization:"Bearer "+token}});
+   const res=await apiFetch("/api/story-photo",{method:"DELETE",headers:{Authorization:"Bearer "+token}});
    const body=await res.json() as {ok:boolean;error?:string};
    if(!res.ok||!body.ok)throw Error(body.error||"Suppression impossible.");
    setSuccess("Votre photo commune a été supprimée.");

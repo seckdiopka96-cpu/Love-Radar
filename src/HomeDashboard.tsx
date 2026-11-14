@@ -1,3 +1,4 @@
+import {apiFetch} from "./api";
 import {useEffect,useState} from "react";
 import DiceFace from "./DiceFace";
 import {daysTo,type StoryData} from "./story-dates";
@@ -16,7 +17,7 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
   async function refresh(){
    if(document.visibilityState!=="visible")return;
    try{
-    const res=await fetch("/api/story",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+    const res=await apiFetch("/api/story",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
     const data=await res.json() as StoryData;
     if(alive&&res.ok&&data.ok)setStory(data);
    }catch{/* Keep the home page usable if story data is temporarily unavailable. */}
@@ -32,7 +33,7 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
   async function checkDaily(){
    if(document.visibilityState==="hidden")return;
    try{
-    const res=await fetch("/api/moment",{headers:{"Authorization":"Bearer "+token},cache:"no-store"});
+    const res=await apiFetch("/api/moment",{headers:{"Authorization":"Bearer "+token},cache:"no-store"});
     const data=await res.json() as DailyOverview;
     if(active&&res.ok&&data.ok)setDaily(data);
    }catch{/* The daily card should never block the home page. */}
@@ -49,7 +50,7 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
   const refresh=async()=>{
    if(document.visibilityState!=="visible")return;
    try{
-    const response=await fetch("/api/ludo",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+    const response=await apiFetch("/api/ludo",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
     if(!response.ok)return;
     const payload=await response.json() as {ok:boolean;game?:Game|null};
     if(alive&&payload.ok)setGame(payload.game||null);

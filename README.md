@@ -279,3 +279,8 @@ Deux nouvelles activités privées, éditables par les deux membres du couple, s
 - Sur l’accueil, la dernière photo est représentée par un espace masqué tant que le mode est actif. Les souvenirs, les messages et les appels continuent de fonctionner.
 - Le serveur restreint toujours les téléchargements des médias aux membres authentifiés du salon et répond maintenant `Cache-Control: private, no-store` ainsi que `Cross-Origin-Resource-Policy: same-origin`. Cela n’efface pas les captures ou copies déjà faites et ne chiffre pas les photos de bout en bout.
 - Dans les paramètres : un bouton « Masquer l’écran maintenant » permet de couvrir l’application à la demande. Sur iOS, le navigateur ne garantit pas que le masque s’affiche avant chaque capture d’aperçu dans le sélecteur d’apps. Test réel sur les deux appareils recommandé.
+
+
+## 📱 Version native iPhone et Android (Capacitor)
+
+Première intégration du runtime mobile natif, plugin officiel de protection écran, API Cloudflare autorisée pour les WebViews locales et générateurs de projets iOS/Android. Voir [docs/native.md](docs/native.md) pour compiler un APK de test et découvrir les limitations restantes (notamment les notifications natives non encore intégrées).

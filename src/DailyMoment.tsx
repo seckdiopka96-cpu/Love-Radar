@@ -1,3 +1,4 @@
+import {apiFetch} from "./api";
 import {useEffect,useState} from "react";
 import "./daily-moment.css";
 
@@ -39,7 +40,7 @@ export default function DailyMoment({token,myName,partnerName,onExit,focusDay}:P
    if(!active||fetching||document.visibilityState==="hidden")return;
    fetching=true;
    try{
-    const response=await fetch("/api/moment?date="+encodeURIComponent(day),{headers:{"Authorization":"Bearer "+token},cache:"no-store"});
+    const response=await apiFetch("/api/moment?date="+encodeURIComponent(day),{headers:{"Authorization":"Bearer "+token},cache:"no-store"});
     const data=await response.json() as MomentData;
     if(!response.ok||!data.ok)throw Error(data.error||"Impossible de charger la question.");
     if(active){setResult(data);setToday(data.today);setError("")}
@@ -56,7 +57,7 @@ export default function DailyMoment({token,myName,partnerName,onExit,focusDay}:P
   if(busy)return;
   setBusy(true);setError("");setNote("");
   try{
-   const response=await fetch("/api/moment?date="+encodeURIComponent(day),{
+   const response=await apiFetch("/api/moment?date="+encodeURIComponent(day),{
     method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
     body:JSON.stringify({action,...body})
    });
