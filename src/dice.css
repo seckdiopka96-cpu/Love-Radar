@@ -1,9 +1,16 @@
-/* Real square dice with correctly arranged pips: never a circular dice icon */
-.lr-die{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:2px;flex:none;
- width:53px;height:53px;padding:9px;border:1.5px solid #fff9ee;border-radius:12px;background:linear-gradient(145deg,#fffefa,#efe9ee);
- box-shadow:inset 0 -4px 0 #c7b7c72c,0 5px 14px #13082044;transform:rotate(-4deg)}
-.lr-die i{display:block;width:100%;height:100%;min-width:0;min-height:0;align-self:center;justify-self:center;border-radius:50%;transform:scale(.77);opacity:0}
-.lr-die i.is-dot{opacity:1;background:#6b3254;box-shadow:inset 0 1px 1px #190c253d}
-.lr-die-gold i.is-dot{background:#ae7133}
-.lr-die-large{width:68px;height:68px;padding:11px;gap:3px;border-radius:15px}
-@media(max-width:700px){.lr-die-large{width:48px;height:48px;padding:8px;border-radius:11px}.lr-die{transform:rotate(-3deg)}}
+/* Real, visibly square 3-D dice. The circular dots belong on the SQUARE faces. */
+.lr-die{position:relative;isolation:isolate;display:inline-flex;align-items:flex-start;justify-content:flex-start;width:56px;height:56px;flex:0 0 auto;background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;transform:rotate(-7deg)}
+.lr-die::before{content:"";position:absolute;inset:5px 0 0 5px;border-radius:8px;background:linear-gradient(140deg,#cabfc8,#847586);box-shadow:3px 5px 9px #15091b55}
+.lr-die-face{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));width:calc(100% - 6px);height:calc(100% - 6px);padding:9px;gap:2px;border:2px solid #fff;border-radius:8px;background:linear-gradient(145deg,#fffdfa 5%,#f7eff3 85%);box-shadow:inset 0 -2px 3px #ada0ad44,1px 1px 1px #c3b3c2;box-sizing:border-box}
+.lr-die-face i{display:block;width:100%;height:100%;min-width:0;min-height:0;align-self:center;justify-self:center;opacity:0;transform:scale(.8);border-radius:50%}
+.lr-die-face i.is-dot{opacity:1;background:#683452;box-shadow:inset 0 1px 2px #1e0b2044}
+.lr-die-gold .lr-die-face i.is-dot{background:#a36c33}
+.lr-die-question{position:absolute;inset:0;display:grid;place-items:center;color:#754766;font-size:29px;font-weight:850;font-family:Arial,sans-serif}
+.lr-die-large{width:70px;height:70px}
+.lr-die-large::before{inset:6px 0 0 6px;border-radius:12px}
+.lr-die-large .lr-die-face{width:calc(100% - 7px);height:calc(100% - 7px);padding:11px;gap:3px;border-radius:11px}
+.lr-die-mini{width:29px;height:29px;transform:rotate(-7deg)}
+.lr-die-mini::before{inset:3px 0 0 3px;border-radius:5px;box-shadow:1px 2px 3px #13081b66}
+.lr-die-mini .lr-die-face{width:calc(100% - 3px);height:calc(100% - 3px);padding:4px;gap:1px;border:1px solid #fff;border-radius:4px}
+.lr-die-mini .lr-die-question{font-size:16px}
+@media(max-width:700px){.lr-die-large{width:52px;height:52px}.lr-die-large::before{inset:5px 0 0 5px}.lr-die-large .lr-die-face{padding:8px;gap:2px}.lr-die-question{font-size:23px}}
