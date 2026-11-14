@@ -670,3 +670,18 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
  .lr-app.lr-ludo-mode.lr-app-locked .lr-main{display:flex!important;flex:1 1 0!important;min-height:0!important;max-height:100%!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;overflow:hidden!important;overscroll-behavior:none!important;touch-action:manipulation!important}
  .lr-app.lr-ludo-mode.lr-app-locked .ludo-experience{flex:1 1 0!important;min-height:0!important;max-height:100%!important}
 }
+
+
+/* The notification opens ONLY the selected private message, photo or audio. */
+.lr-push-focus-backdrop{position:fixed;inset:0;z-index:999995;display:flex;align-items:center;justify-content:center;padding:calc(16px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));background:#140a21e8;backdrop-filter:blur(10px)}
+.lr-push-focus-card{width:min(100%,460px);max-height:calc(100dvh - 45px);overflow:auto;display:flex;flex-direction:column;gap:17px;padding:18px;border:1px solid #ad83b0;border-radius:22px;background:linear-gradient(145deg,#4d3559,#291e37);color:#ffedf5;box-shadow:0 18px 60px #090414ae}
+.lr-push-focus-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.lr-push-focus-header strong{font-size:17px;color:#ffe0f1}
+.lr-push-focus-header button{height:35px;width:35px;border:1px solid #976f95;border-radius:10px;background:#654869;color:white;font-size:23px;line-height:1}
+.lr-push-focus-content{min-height:60px;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;padding:10px;border:1px solid #866284;border-radius:14px;background:#291d35}
+.lr-push-focus-text{color:#fff;font-size:15px;line-height:1.65;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;width:100%;text-align:left}
+.lr-push-focus-content img{display:block;max-width:100%;max-height:63dvh;width:auto;height:auto;border-radius:12px;object-fit:contain}
+.lr-push-focus-content audio{width:100%;max-width:380px}
+.lr-push-focus-content small{font-size:11px;color:#c9adca;align-self:flex-end}
+.lr-push-focus-open-chat{width:100%;height:46px;padding:10px 12px;border:0;border-radius:12px;background:linear-gradient(125deg,#d76699,#af4b85);color:#fff;font-size:13px;font-weight:850}
+.lr-push-focus-card>p{color:#f1d8e4;font-size:13px;line-height:1.5}

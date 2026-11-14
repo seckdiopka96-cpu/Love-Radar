@@ -287,3 +287,10 @@
  .ludo-agreement-heading h2{font-size:19px}
  .ludo-agreement-player{padding:5px}
 }
+
+
+/* Private challenge invitation is shown inside the mandatory signature screen. */
+.ludo-challenge-alert{padding:9px 11px;border:1px solid #eed184;border-radius:11px;background:linear-gradient(125deg,#63445c,#3e354e);color:#ffeab5;font-size:12px;font-weight:800;line-height:1.4}
+.ludo-challenge-send{border:1px solid #f8c973;border-radius:11px;background:linear-gradient(140deg,#eab459,#c67f5e);color:#39243a;font-size:12px;font-weight:900;padding:12px;touch-action:manipulation;flex:none}
+.ludo-challenge-send:disabled{opacity:.6}
+.ludo-challenge-hint{font-size:11px;font-weight:700;color:#f8dda4;line-height:1.4;text-align:center;margin:0}

@@ -143,3 +143,11 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Aucun lancer de dé, déplacement ou coup automatique n'est autorisé avant **les deux signatures**. Le délai de 30 s ne démarre qu'après le deuxième accord. Les manches déjà ouvertes restent préservées mais doivent être signées pour continuer.
 - **Défi cadeau facultatif** : aucun des deux n'est forcé d'accepter un paiement ; seuls deux « oui » déclenchent le cadeau pour cette manche. Les options sont le crédit téléphonique, la connexion Internet et 2 000 F CFA par Wave, sans paiement automatique ni collecte de coordonnées financières.
 - Pour toute nouvelle manche, les signatures et les préférences cadeaux sont réinitialisées et chacun signe à nouveau. Les conversations et appels ne sont pas affectés.
+
+## Notifications avec accès direct au contenu et défi Ludo
+
+- Une invitation Ludo est **envoyée seulement sur action explicite** « Lancer un défi à mon partenaire » dans l'écran de règles, au maximum une fois par minute pour une même partie. Notification : « Ton partenaire t'a lancé un défi ! ». La destination inclut l'identifiant de la manche et ouvre directement le Ludo et ses signatures.
+- Le service worker conserve un type de notification, la destination et un identifiant de contenu. Le clic ouvre l'élément exact, même si l'application était fermée : message, photo ou vocal affiché dans une vue de détail ; appel dirigé vers l'écran d'appel ; défi dirigé vers le Ludo.
+- Les données privées sont chargées par les API existantes **après authentification**, vérifiées par room_id. L'identifiant dans le lien ne donne aucun accès sans le jeton valide du couple.
+- Les appels déjà terminés peuvent ne plus être disponibles ; les notifications ne garantissent pas que le destinataire soit encore joignable. Les notifications nécessitent VAPID configuré, un abonnement push et la permission iOS/Android.
+- Cache PWA actualisé pour que les liens de notification utilisent ce nouveau routage.

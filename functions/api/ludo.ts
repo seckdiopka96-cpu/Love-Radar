@@ -1,9 +1,10 @@
 import type { D1Database } from "@cloudflare/workers-types";
+import {notifyPartner, type PushEnv} from "../lib/push";
 
 // Server-authoritative, private two-player Ludo. Each couple has one live game.
 // Progress -1 = base, 0..50 = outer track, 51..56 = home lane, 57 = finished.
-type Env={DB?:D1Database};
-type Ctx={request:Request;env:Env};
+type Env=PushEnv;
+type Ctx={request:Request;env:Env;waitUntil?:(task:Promise<unknown>)=>void};
 type Member={id:string;room_id:string;seat:number;name:string};
 type GameRow={room_id:string;game_id:string;version:number;turn:number;dice:number|null;positions:string;status:string;winner:number|null;streak:number;last_action:string;updated_at:number};
 type Board=number[][];
@@ -12,6 +13,7 @@ type GiftRow={game_id:string;consent_0:number;consent_1:number;choice:string|nul
 type Gift={consents:[boolean,boolean];choice:"credit"|"internet"|"wave2000"|null;chosenBy:number|null;given:boolean};
 type AgreementRow={room_id:string;game_id:string;signed_0_name:string|null;signed_1_name:string|null;signed_0_at:number|null;signed_1_at:number|null;gift_0:number|null;gift_1:number|null;started_at:number|null;updated_at:number};
 type Agreement={signed:[boolean,boolean];names:[string|null,string|null];giftChoices:[boolean|null,boolean|null];signedAt:[number|null,number|null];startedAt:number|null};
+type Challenge={gameId:string;fromId:string;fromName:string;fromSeat:number;sentAt:number};
 const TURN_MS=30000;
 const GIFTS=new Set(["credit","internet","wave2000"]);
 const initial=():Board=>[[-1,-1,-1,-1],[-1,-1,-1,-1]];
@@ -24,7 +26,8 @@ async function ensureTable(db:D1Database){
   ready=db.exec("CREATE TABLE IF NOT EXISTS ludo_games (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, version INTEGER NOT NULL, turn INTEGER NOT NULL, dice INTEGER, positions TEXT NOT NULL, status TEXT NOT NULL, winner INTEGER, streak INTEGER NOT NULL DEFAULT 0, last_action TEXT NOT NULL, updated_at INTEGER NOT NULL);"+
    "CREATE TABLE IF NOT EXISTS ludo_reactions (room_id TEXT PRIMARY KEY, seat INTEGER NOT NULL, emoji TEXT NOT NULL, updated_at INTEGER NOT NULL);"+
    "CREATE TABLE IF NOT EXISTS ludo_gifts (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, consent_0 INTEGER NOT NULL DEFAULT 0, consent_1 INTEGER NOT NULL DEFAULT 0, choice TEXT, chosen_by INTEGER, given INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL);"+
-   "CREATE TABLE IF NOT EXISTS ludo_agreements (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, signed_0_name TEXT, signed_1_name TEXT, signed_0_at INTEGER, signed_1_at INTEGER, gift_0 INTEGER, gift_1 INTEGER, started_at INTEGER, updated_at INTEGER NOT NULL)" ).then(()=>{}).catch(e=>{ready=null;throw e});
+   "CREATE TABLE IF NOT EXISTS ludo_agreements (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, signed_0_name TEXT, signed_1_name TEXT, signed_0_at INTEGER, signed_1_at INTEGER, gift_0 INTEGER, gift_1 INTEGER, started_at INTEGER, updated_at INTEGER NOT NULL);"+
+   "CREATE TABLE IF NOT EXISTS ludo_challenges (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, from_id TEXT NOT NULL, from_name TEXT NOT NULL, sent_at INTEGER NOT NULL)" ).then(()=>{}).catch(e=>{ready=null;throw e});
  }
  await ready;
 }
@@ -88,6 +91,13 @@ async function syncAgreement(db:D1Database,g:Game){
   "WHERE ludo_agreements.game_id<>excluded.game_id"
  ).bind(g.room_id,g.game_id,Date.now()).run();
 }
+
+async function challenge(db:D1Database,g:Game):Promise<Challenge|null>{
+ const r=await db.prepare("SELECT c.game_id AS gameId,c.from_id AS fromId,c.from_name AS fromName,m.seat AS fromSeat,c.sent_at AS sentAt FROM ludo_challenges c JOIN members m ON m.id=c.from_id WHERE c.room_id=? AND c.game_id=?")
+ .bind(g.room_id,g.game_id).first<Challenge>();
+ return r||null;
+}
+
 async function agreement(db:D1Database,g:Game):Promise<Agreement>{
  const r=await db.prepare("SELECT * FROM ludo_agreements WHERE room_id=? AND game_id=?")
  .bind(g.room_id,g.game_id).first<AgreementRow>();
@@ -193,7 +203,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    signed=await agreement(db,g);
    g=await autoIfLate(db,g,signed);
   }
-  if(method==="GET")return reply({ok:true,members,seat:player.seat,game:g?publicGame(g,signed):null,reaction:members===2?await reaction(db,player.room_id):null,gift:g?await gift(db,g):null,agreement:signed,serverNow:Date.now()});
+  if(method==="GET")return reply({ok:true,members,seat:player.seat,game:g?publicGame(g,signed):null,reaction:members===2?await reaction(db,player.room_id):null,gift:g?await gift(db,g):null,agreement:signed,challenge:g?await challenge(db,g):null,serverNow:Date.now()});
   const text=await ctx.request.text();
   if(text.length>1024)return fail("Requête trop grande.",413);
   let data:Record<string,unknown>;
@@ -206,6 +216,21 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    await db.prepare("INSERT INTO ludo_reactions(room_id,seat,emoji,updated_at) VALUES(?,?,?,?) ON CONFLICT(room_id) DO UPDATE SET seat=excluded.seat,emoji=excluded.emoji,updated_at=excluded.updated_at")
     .bind(player.room_id,player.seat,data.emoji,Date.now()).run();
    return reply({ok:true,reaction:await reaction(db,player.room_id)});
+  }
+  if(action==="challenge"){
+   if(g.status!=="playing"||signed?.startedAt)return fail("La manche a déjà commencé. Tu pourras lancer un autre défi à la prochaine partie.",409);
+   const partner=await db.prepare("SELECT id FROM members WHERE room_id=? AND id<>? LIMIT 1").bind(player.room_id,player.id).first<{id:string}>();
+   if(!partner)return fail("Ton partenaire doit rejoindre votre espace avant de recevoir le défi.",409);
+   const now=Date.now();
+   const result=await db.prepare(
+    "INSERT INTO ludo_challenges(room_id,game_id,from_id,from_name,sent_at) VALUES(?,?,?,?,?) "+
+    "ON CONFLICT(room_id) DO UPDATE SET game_id=excluded.game_id,from_id=excluded.from_id,from_name=excluded.from_name,sent_at=excluded.sent_at "+
+    "WHERE ludo_challenges.game_id<>excluded.game_id OR ludo_challenges.sent_at<?"
+   ).bind(player.room_id,g.game_id,player.id,player.name.slice(0,30),now,now-60000).run();
+   if(result.meta.changes!==1)return fail("Défi déjà envoyé. Tu pourras relancer la notification dans une minute.",429);
+   const push=notifyPartner(ctx.env,player.room_id,player.id,"🎲 Défi Ludo Duo ❤️",player.name+" t’a lancé un défi ! Appuie pour lire et signer les règles.","ludo",{kind:"ludo-challenge",id:g.game_id});
+   if(ctx.waitUntil)ctx.waitUntil(push);else await push;
+   return reply({ok:true,challenge:await challenge(db,g),notificationRequested:true});
   }
   if(action==="sign_rules"){
    if(g.status!=="playing")return fail("Cette manche est déjà terminée.",409);
@@ -325,9 +350,12 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    await syncGift(db,updated);
    await syncAgreement(db,updated);
    nextAgreement=await agreement(db,updated);
-   if(action==="restart")await db.prepare("DELETE FROM ludo_reactions WHERE room_id=?").bind(player.room_id).run();
+   if(action==="restart"){
+    await db.prepare("DELETE FROM ludo_reactions WHERE room_id=?").bind(player.room_id).run();
+    await db.prepare("DELETE FROM ludo_challenges WHERE room_id=?").bind(player.room_id).run();
+   }
   }
-  return reply({ok:true,members,seat:player.seat,game:updated?publicGame(updated,nextAgreement):null,gift:updated?await gift(db,updated):null,agreement:nextAgreement,serverNow:Date.now()});
+  return reply({ok:true,members,seat:player.seat,game:updated?publicGame(updated,nextAgreement):null,gift:updated?await gift(db,updated):null,agreement:nextAgreement,challenge:updated?await challenge(db,updated):null,serverNow:Date.now()});
  }catch(e){console.error("Love Radar Ludo",e);return fail("Le jeu est temporairement indisponible.",500)}
 }
 export const onRequestGet=(ctx:Ctx)=>handle(ctx,"GET");
