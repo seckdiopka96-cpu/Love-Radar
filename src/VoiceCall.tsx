@@ -1,3 +1,4 @@
+import {apiFetch} from "./api";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
 import "./voice-call.css";
@@ -51,7 +52,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
 
  useEffect(()=>setAnchor(showButton?document.getElementById("lr-voice-button-slot"):null),[showButton]);
  const api=useCallback(async(action?:string,extra:Record<string,unknown>={},after=0):Promise<Result>=>{
-  const res=await fetch("/api/call"+(!action?"?after="+after:""),{
+  const res=await apiFetch("/api/call"+(!action?"?after="+after:""),{
    method:action?"POST":"GET",
    headers:{Authorization:"Bearer "+token,...(action?{"Content-Type":"application/json"}:{})},
    ...(action?{body:JSON.stringify({action,...extra})}:{cache:"no-store" as RequestCache})
@@ -62,7 +63,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
  },[token]);
  const loadNetwork=useCallback(async()=>{
   try{
-   const response=await fetch("/api/call-config",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+   const response=await apiFetch("/api/call-config",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
    const data=await response.json() as {ok?:boolean;relay?:boolean;iceServers?:RTCIceServer[];warning?:string};
    if(!response.ok||!data.ok)throw Error("Configuration audio inaccessible.");
    if(Array.isArray(data.iceServers)&&data.iceServers.length)iceServers.current=data.iceServers;

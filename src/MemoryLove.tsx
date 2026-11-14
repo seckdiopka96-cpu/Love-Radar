@@ -1,3 +1,4 @@
+import {apiFetch} from "./api";
 import {useCallback,useEffect,useRef,useState} from "react";
 import "./memory-love.css";
 type GiftChoice="credit"|"internet"|"wave2000";
@@ -35,7 +36,7 @@ export default function MemoryLove({token,mySeat,myName,partnerName,onExit,chall
   if(polling.current)return;
   polling.current=true;
   try{
-   const res=await fetch("/api/memory",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+   const res=await apiFetch("/api/memory",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
    const data=await res.json() as Data;
    if(!res.ok||!data.ok)throw Error(data.error||"Connexion impossible.");
    if(live.current){update(data);setError("")}
@@ -59,7 +60,7 @@ export default function MemoryLove({token,mySeat,myName,partnerName,onExit,chall
   if(!game||busy)return false;
   setBusy(true);setError("");
   try{
-   const res=await fetch("/api/memory",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
+   const res=await apiFetch("/api/memory",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
     body:JSON.stringify({action,version:game.version,...(index===undefined?{}:{index})})});
    const data=await res.json() as Data;
    if(!res.ok||!data.ok)throw Error(data.error||"Action impossible.");
@@ -71,7 +72,7 @@ export default function MemoryLove({token,mySeat,myName,partnerName,onExit,chall
  const post=async(action:"challenge"|"sign"|"gift_choose"|"gift_given",extra:Record<string,unknown>={})=>{
   setError("");setChallengeHint("");
   try{
-   const res=await fetch("/api/memory",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({action,...extra})});
+   const res=await apiFetch("/api/memory",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({action,...extra})});
    const data=await res.json() as Data;
    if(!res.ok||!data.ok)throw Error(data.error||"Impossible de continuer.");
    if(live.current){update(data);if(action==="challenge")setChallengeHint("Défi envoyé ! La notification ouvrira directement Memory Love ❤️");if(action==="gift_choose"||action==="gift_given")setGiftOpen(false)}

@@ -1,3 +1,4 @@
+import {apiFetch} from "./api";
 import {useCallback,useEffect,useRef,useState} from "react";
 import "./location-share.css";
 
@@ -47,7 +48,7 @@ export default function LocationShare({token,partnerName,myName,onExit,focusId}:
   // Also revoke on navigation away from the page if it was still sharing.
   const last=localRequest.current;
   if(last?.role==="sharer"&&last.status==="active"){
-   void fetch(endpoint,{method:"POST",keepalive:true,headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
+   void apiFetch(endpoint,{method:"POST",keepalive:true,headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
     body:JSON.stringify({action:"stop",id:last.id})}).catch(()=>{});
   }
  },[token]);
@@ -67,7 +68,7 @@ export default function LocationShare({token,partnerName,myName,onExit,focusId}:
   if(polling.current)return;
   polling.current=true;
   try{
-   const res=await fetch(endpoint,{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+   const res=await apiFetch(endpoint,{headers:{Authorization:"Bearer "+token},cache:"no-store"});
    const data=await res.json() as ResponseData;
    if(!res.ok||!data.ok)throw Error(data.error||"La localisation est indisponible.");
    if(active.current){update(data);setSyncStatus("synced");if(!silent)setError("")}
@@ -86,7 +87,7 @@ export default function LocationShare({token,partnerName,myName,onExit,focusId}:
   if(busy)return false;
   setBusy(true);setError("");setNotice("");
   try{
-   const res=await fetch(endpoint,{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({action,...extra})});
+   const res=await apiFetch(endpoint,{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({action,...extra})});
    const data=await res.json() as ResponseData;
    if(!res.ok||!data.ok)throw Error(data.error||"Impossible de continuer.");
    if(active.current){update(data);setMapOpen(false)}
@@ -122,7 +123,7 @@ export default function LocationShare({token,partnerName,myName,onExit,focusId}:
     const current=localRequest.current;
     if(!enabled||document.visibilityState!=="visible"||!current||current.role!=="sharer"||current.status!=="active"||current.id!==requestId||Date.now()+offsetRef.current>=current.expiresAt||updating.current)return;
     updating.current=true;
-    void fetch(endpoint,{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
+    void apiFetch(endpoint,{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
      body:JSON.stringify({action:"update",id:requestId,lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy})})
      .then(res=>res.json() as Promise<ResponseData>).then(data=>{
       if(active.current&&data.ok)update(data);

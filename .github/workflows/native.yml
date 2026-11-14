@@ -1,0 +1,82 @@
+name: Construire Love Radar native
+
+on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'capacitor.config.ts'
+      - 'src/**'
+      - 'scripts/configure-native.mjs'
+      - '.github/workflows/native.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Installer Capacitor et compiler l'interface
+        run: |
+          npm install
+          npm run build
+      - name: Générer Android et ses permissions
+        run: |
+          npx cap add android
+          node scripts/configure-native.mjs android
+          npx cap sync android
+      - name: Compiler APK debug Android
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew assembleDebug --no-daemon
+      - name: Joindre l'APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: love-radar-android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  ios-simulator:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Installer et compiler l'interface
+        run: |
+          npm install
+          npm run build
+      - name: Générer le projet iOS SPM
+        run: |
+          npx cap add ios --packagemanager SPM
+          node scripts/configure-native.mjs ios
+          npx cap sync ios
+      - name: Compiler le simulateur iOS sans signature
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/love-radar-derived CODE_SIGNING_ALLOWED=NO build
+      - name: Archiver le simulateur
+        run: |
+          cd /tmp/love-radar-derived/Build/Products/Debug-iphonesimulator
+          ditto -c -k --sequesterRsrc --keepParent App.app "$GITHUB_WORKSPACE/love-radar-ios-simulator.zip"
+      - name: Joindre l'application iOS
+        uses: actions/upload-artifact@v4
+        with:
+          name: love-radar-ios-simulator
+          path: love-radar-ios-simulator.zip
+          if-no-files-found: error
+          retention-days: 7

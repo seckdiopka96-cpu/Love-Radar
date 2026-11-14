@@ -1,3 +1,4 @@
+import {apiFetch} from "./api";
 import {useCallback,useEffect,useRef,useState,type PointerEvent} from "react";
 import "./together.css";
 
@@ -50,7 +51,7 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
   const beforeMutation=localMutation.current;
   try{
    const query=mode==="draw"?"mode=draw":"mode=miss"+(focusIdValid?"&focus="+encodeURIComponent(focusIdValid):"");
-   const res=await fetch(api+"?"+query,{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+   const res=await apiFetch(api+"?"+query,{headers:{Authorization:"Bearer "+token},cache:"no-store"});
    const data=await res.json() as ApiData;
    if(!res.ok||!data.ok)throw Error(data.error||"L’espace Ensemble est indisponible.");
    if(!active.current||modeRef.current!==mode)return;
@@ -72,7 +73,7 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
   return()=>{active.current=false;window.clearInterval(interval);document.removeEventListener("visibilitychange",visible)};
  },[load,mode]);
  const leavePresence=useCallback(()=>{
-  void fetch(api,{method:"POST",keepalive:true,
+  void apiFetch(api,{method:"POST",keepalive:true,
    headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
    body:JSON.stringify({action:"leave_draw"})}).catch(()=>{});
  },[token]);
@@ -81,7 +82,7 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
   if(previewBusy.current)return;
   previewBusy.current=true;
   try{
-   const res=await fetch(api,{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
+   const res=await apiFetch(api,{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
     body:JSON.stringify({action:"presence",drawing:drawingNow,...(drawingNow?{points,color:strokeColor,width}:{})})});
    if(!res.ok)throw Error("Présence non synchronisée");
   }catch{if(active.current&&modeRef.current==="draw")setSyncStatus("offline")}
@@ -111,7 +112,7 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
   if(isCanvasEdit)localMutation.current++;
   setError("");setNotice("");
   try{
-   const res=await fetch(api,{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(body)});
+   const res=await apiFetch(api,{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(body)});
    const data=await res.json() as ApiData;
    if(!res.ok||!data.ok)throw Error(data.error||"Impossible d’envoyer.");
    if(active.current){

@@ -1,3 +1,5 @@
+import {apiFetch,isNativeApp,publicInviteUrl} from "./api";
+import {setNativePrivacy} from "./native-privacy";
 import { Fragment, useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import "./love-radar.css";
 import VoiceCall from "./VoiceCall";
@@ -179,6 +181,7 @@ export default function LoveRadar(){
  function updatePrivacy(enabled:boolean){
   setPrivacyEnabled(enabled);
   try{localStorage.setItem("love-radar-privacy-mode",enabled?"on":"off")}catch{/* Device preference may not persist in private browsing. */}
+  void setNativePrivacy(enabled);
   if(!enabled){document.documentElement.classList.remove("lr-private-background-cover");setPrivacyCurtain(false)}
  }
  const [notificationsOn,setNotificationsOn]=useState(false);
@@ -283,7 +286,7 @@ export default function LoveRadar(){
   setFocusLoading(true);setFocusMessage(null);setFocusError("");
   void (async()=>{
    try{
-    const res=await fetch("/api/love?messageId="+encodeURIComponent(id),{headers:{Authorization:"Bearer "+token},cache:"no-store",signal:controller.signal});
+    const res=await apiFetch("/api/love?messageId="+encodeURIComponent(id),{headers:{Authorization:"Bearer "+token},cache:"no-store",signal:controller.signal});
     const data=await res.json() as {ok:boolean;focusMessage?:Message|null;error?:string};
     if(!res.ok||!data.ok)throw Error(data.error||"Ce message n’est pas disponible.");
     if(!data.focusMessage)throw Error("Ce contenu n’est plus disponible dans cet espace.");
@@ -300,7 +303,7 @@ export default function LoveRadar(){
   let cancelled=false;
   if(focusAsset.current){URL.revokeObjectURL(focusAsset.current);focusAsset.current="";}
   setFocusMedia("");
-  void fetch("/api/media?id="+encodeURIComponent(m.object_key),{headers:{Authorization:"Bearer "+token},signal:controller.signal})
+  void apiFetch("/api/media?id="+encodeURIComponent(m.object_key),{headers:{Authorization:"Bearer "+token},signal:controller.signal})
    .then(res=>{if(!res.ok)throw Error("Média indisponible");return res.blob()})
    .then(blob=>{if(cancelled)return;const url=URL.createObjectURL(blob);focusAsset.current=url;setFocusMedia(url)})
    .catch(()=>{if(!cancelled)setFocusError("Ce média n’est plus disponible.")});
@@ -310,7 +313,7 @@ export default function LoveRadar(){
  // Restore the server registration whenever this PWA is reopened.
  // Browser permission and a local subscription alone are not proof of delivery.
  useEffect(()=>{
-  if(!token||!room)return;
+  if(!token||!room||isNativeApp)return;
   if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window))return;
   let live=true;
   const sync=async()=>{
@@ -321,7 +324,7 @@ export default function LoveRadar(){
     const reg=await navigator.serviceWorker.ready;
     let sub=await reg.pushManager.getSubscription();
     if(!sub){if(live){setNotificationsOn(false);setNotificationsHint("Ce téléphone n’est plus abonné. Appuie sur Activer les notifications.")}return}
-    const configRes=await fetch("/api/push",{cache:"no-store"});
+    const configRes=await apiFetch("/api/push",{cache:"no-store"});
     const cfg=await configRes.json() as {ok?:boolean;enabled?:boolean;publicKey?:string};
     if(!configRes.ok||!cfg.enabled||!cfg.publicKey)throw Error("La configuration des notifications Cloudflare est indisponible.");
     const key=sub.options?.applicationServerKey||null;
@@ -332,7 +335,7 @@ export default function LoveRadar(){
       sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeApplicationKey(cfg.publicKey)});
      }
     }
-    const response=await fetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    const response=await apiFetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
      body:JSON.stringify({action:"subscribe",subscription:sub.toJSON()})});
     const saved=await response.json() as {ok?:boolean;error?:string};
     if(!response.ok||!saved.ok)throw Error(saved.error||"Abonnement non enregistré sur Cloudflare.");
@@ -347,7 +350,7 @@ export default function LoveRadar(){
   return()=>{live=false;window.removeEventListener("focus",visible);document.removeEventListener("visibilitychange",visible);window.clearInterval(timer)}
  },[token,room?.user.id]);
  async function enableNotifications(repair=false){
-  if(notificationsBusy||pushOperation.current||!token)return;
+  if(notificationsBusy||pushOperation.current||!token||isNativeApp)return;
   if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)){
    setNotificationsHint("Les notifications push ne sont pas disponibles sur ce navigateur. Utilise Chrome sur Android ou installe Love Radar sur l’écran d’accueil de l’iPhone.");
    return;
@@ -362,7 +365,7 @@ export default function LoveRadar(){
    // iOS requires asking permission from a direct user tap.
    const permission=Notification.permission==="granted"?"granted":await Notification.requestPermission();
    if(permission!=="granted"){setNotificationsHint("Notifications refusées. Tu peux les autoriser dans les réglages du téléphone.");return;}
-   const configRes=await fetch("/api/push",{cache:"no-store"});
+   const configRes=await apiFetch("/api/push",{cache:"no-store"});
    const cfg=await configRes.json() as {ok?:boolean,enabled?:boolean,publicKey?:string};
    if(!cfg.ok||!cfg.enabled||!cfg.publicKey){setNotificationsHint("Les notifications ne sont pas encore activées sur notre serveur. Configuration Cloudflare nécessaire.");return;}
    const registration=await navigator.serviceWorker.ready;
@@ -372,13 +375,13 @@ export default function LoveRadar(){
     const current=old?new Uint8Array(old):null;
     const keyMismatch=current&&(current.length!==expected.length||current.some((v,i)=>v!==expected[i]));
     if(repair||keyMismatch){
-     await fetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+     await apiFetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
       body:JSON.stringify({action:"unsubscribe",endpoint:sub.endpoint})}).catch(()=>{});
      await sub.unsubscribe();sub=null;
     }
    }
    if(!sub)sub=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeApplicationKey(cfg.publicKey)});
-   const response=await fetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({action:"subscribe",subscription:sub.toJSON()})});
+   const response=await apiFetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({action:"subscribe",subscription:sub.toJSON()})});
    const saved=await response.json() as {ok:boolean,error?:string};
    if(!response.ok||!saved.ok)throw Error(saved.error||"Activation impossible.");
    pushDisabled.current=false;
@@ -391,7 +394,7 @@ export default function LoveRadar(){
   if(!token||notificationsTesting)return;
   setNotificationsTesting(true);setNotificationsHint("");
   try{
-   const response=await fetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+   const response=await apiFetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
     body:JSON.stringify({action:"test"})});
    const data=await response.json() as {ok?:boolean;error?:string};
    if(!response.ok||!data.ok)throw Error(data.error||"Test de notification impossible.");
@@ -405,7 +408,7 @@ export default function LoveRadar(){
   try{
    const registration=await navigator.serviceWorker.ready,sub=await registration.pushManager.getSubscription();
    if(sub){
-    await fetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({action:"unsubscribe",endpoint:sub.endpoint})});
+    await apiFetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({action:"unsubscribe",endpoint:sub.endpoint})});
     await sub.unsubscribe();
    }
    setNotificationsOn(false);setNotificationsHint("Notifications désactivées sur cet appareil.");
@@ -416,14 +419,14 @@ export default function LoveRadar(){
   try{
    const registration=await navigator.serviceWorker.ready,sub=await registration.pushManager.getSubscription();
    if(sub){
-    await fetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},body:JSON.stringify({action:"unsubscribe",endpoint:sub.endpoint})});
+    await apiFetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},body:JSON.stringify({action:"unsubscribe",endpoint:sub.endpoint})});
     await sub.unsubscribe();
    }
   }catch{}
  }
  const request=useCallback(async(action:string,body:Record<string,unknown>={},authToken?:string):Promise<Result>=>{
   const t=authToken??token;
-  const res=await fetch("/api/love",{method:"POST",headers:{"Content-Type":"application/json",...(t?{Authorization:"Bearer "+t}:{})},body:JSON.stringify({action,...body})});
+  const res=await apiFetch("/api/love",{method:"POST",headers:{"Content-Type":"application/json",...(t?{Authorization:"Bearer "+t}:{})},body:JSON.stringify({action,...body})});
   const data=await res.json() as Result;
   if(!data.ok)throw new Error(data.error||"Une erreur est survenue.");
   return data;
@@ -432,7 +435,7 @@ export default function LoveRadar(){
   const t=key||token;
   if(!t)return;
   try{
-   const res=await fetch("/api/love",{headers:{Authorization:"Bearer "+t},cache:"no-store"});
+   const res=await apiFetch("/api/love",{headers:{Authorization:"Bearer "+t},cache:"no-store"});
    if(res.status===401){
     localStorage.removeItem("love-radar-token");setToken("");setRoom(null);setError("Ton accès a expiré. Rejoins un espace.");return;
    }
@@ -484,7 +487,7 @@ export default function LoveRadar(){
   const candidates=room.messages.filter(m=>m.object_key&&!mediaCache.current[m.id]);
   for(const item of candidates){
    mediaCache.current[item.id]="pending";
-   void fetch("/api/media?id="+encodeURIComponent(item.object_key!),{headers:{Authorization:"Bearer "+token}})
+   void apiFetch("/api/media?id="+encodeURIComponent(item.object_key!),{headers:{Authorization:"Bearer "+token}})
     .then(r=>{if(!r.ok)throw new Error("media inaccessible");return r.blob()})
     .then(blob=>{const url=URL.createObjectURL(blob);mediaCache.current[item.id]=url;setMedia(prev=>({...prev,[item.id]:url}))})
     .catch(()=>{delete mediaCache.current[item.id]});
@@ -537,7 +540,7 @@ export default function LoveRadar(){
   setBusy(true);setError("");
   try{
    const form=new FormData();form.append("file",file);form.append("kind",kind);
-   const res=await fetch("/api/media",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
+   const res=await apiFetch("/api/media",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
    const data=await res.json() as {ok:boolean;error?:string};
    if(!data.ok)throw new Error(data.error||"Envoi impossible.");
    await refresh();
@@ -575,8 +578,8 @@ export default function LoveRadar(){
   }catch{setError("Microphone refusé ou non disponible. Autorise le micro dans Safari.")}
  }
  async function shareCode(){
-  const url=new URL(window.location.href);url.search="?join="+room?.code;
-  const text="Rejoins-moi sur Love Radar ❤️\n"+url.href+"\nCode : "+room?.code;
+  const invite=publicInviteUrl(room?.code||"");
+  const text="Rejoins-moi sur Love Radar ❤️\n"+invite+"\nCode : "+room?.code;
   try{if(navigator.share)await navigator.share({title:"Love Radar ❤️",text});else if(navigator.clipboard){await navigator.clipboard.writeText(text);setNotice("Invitation copiée !")}else setNotice(text)}
   catch{setNotice("Utilise le code : "+room?.code)}
  }
@@ -605,7 +608,7 @@ export default function LoveRadar(){
     <button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
   </header>
   {showInstallHelp?<div className="lr-install-backdrop" onClick={()=>setShowInstallHelp(false)}><div className="lr-install-modal" role="dialog" aria-modal="true" aria-labelledby="lr-install-title" onClick={e=>e.stopPropagation()}><div className="lr-install-symbol">♥</div><h2 id="lr-install-title">Love Radar sur ton téléphone</h2><p>Installe l’application pour l’ouvrir en plein écran et recevoir des notifications.</p>{/iPhone|iPad|iPod/i.test(navigator.userAgent)?<ol><li>Ouvre ce site dans <strong>Safari</strong>.</li><li>Appuie sur <strong>Partager</strong> (le carré avec une flèche).</li><li>Choisis <strong>Sur l’écran d’accueil</strong>, puis <strong>Ajouter</strong>.</li><li>Ouvre Love Radar depuis sa nouvelle icône.</li></ol>:<ol><li>Ouvre le site dans <strong>Chrome Android</strong>.</li><li>Appuie sur <strong>⋮</strong> dans Chrome.</li><li>Choisis <strong>Installer l’application</strong> ou « Ajouter à l’écran d’accueil ».</li></ol>}<p className="lr-install-note">L’icône Love Radar apparaîtra parmi tes applications. Une connexion Internet est nécessaire pour jouer et échanger des messages.</p><button onClick={()=>setShowInstallHelp(false)}>J’ai compris ❤️</button></div></div>:null}
-  {token&&room?<div className="lr-notification-area">
+  {token&&room&&!isNativeApp?<div className="lr-notification-area">
    <div className="lr-notification-controls">
     <button type="button" className={"lr-notification-toggle "+(notificationsOn?"is-on":"")} onClick={()=>void enableNotifications(notificationsOn)} disabled={notificationsBusy||notificationsTesting}>
      {notificationsBusy?"Vérification…":notificationsOn?"🔔 Notifications activées · Réparer":"🔔 Activer les notifications"}

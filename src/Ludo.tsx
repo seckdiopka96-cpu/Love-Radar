@@ -1,3 +1,4 @@
+import {apiFetch} from "./api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./ludo.css";
 import "./ludo-immersive.css";
@@ -167,7 +168,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
 
  const load=useCallback(async()=>{
   try{
-   const res=await fetch("/api/ludo",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+   const res=await apiFetch("/api/ludo",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
    const data=await res.json() as ResponseData;
    if(!res.ok||!data.ok)throw Error(data.error||"Connexion au jeu impossible.");
    if(!isActive.current)return;
@@ -227,7 +228,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   setBusy(true);setError("");
   if(action==="roll")setRolling(true);
   try{
-   const res=await fetch("/api/ludo",{
+   const res=await apiFetch("/api/ludo",{
     method:"POST",
     headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
     body:JSON.stringify({action,version:game.version,...(pawn===undefined?{}:{pawn})})
@@ -254,7 +255,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   setGiftBusy(true);setError("");
   const details=action==="gift_choose"?{choice:value}:{given:value};
   try{
-   const response=await fetch("/api/ludo",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({action,...details})});
+   const response=await apiFetch("/api/ludo",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({action,...details})});
    const data=await response.json() as ResponseData;
    if(!response.ok||!data.ok)throw Error(data.error||"Impossible d’enregistrer le cadeau.");
    if(data.gift)setGift(data.gift);
@@ -267,7 +268,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   if(challengeBusy||!game||agreement?.startedAt)return;
   setChallengeBusy(true);setChallengeHint("");setError("");
   try{
-   const response=await fetch("/api/ludo",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+   const response=await apiFetch("/api/ludo",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
     body:JSON.stringify({action:"challenge"})});
    const data=await response.json() as ResponseData;
    if(!response.ok||!data.ok)throw Error(data.error||"Impossible d’envoyer le défi.");
@@ -282,7 +283,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   if(!rulesAccepted||giftPreference==="")return;
   setSignBusy(true);setError("");
   try{
-   const response=await fetch("/api/ludo",{method:"POST",
+   const response=await apiFetch("/api/ludo",{method:"POST",
     headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
     body:JSON.stringify({action:"sign_rules",acceptRules:true,signed:true,giftConsent:giftPreference==="yes"})
    });
@@ -299,7 +300,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  async function sendReaction(emoji:string){
   setEmotes(false);
   try{
-   const res=await fetch("/api/ludo",{
+   const res=await apiFetch("/api/ludo",{
     method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
     body:JSON.stringify({action:"react",emoji})
    });
