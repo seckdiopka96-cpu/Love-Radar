@@ -94,7 +94,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
     seat:side,pawn,from:prev.positions[side][pawn],to:progress
    }))).find(item=>item.to>item.from&&item.to>=0&&item.to<=57);
    const celebration=latest.status==="won"&&prev.status!=="won";
-   const canAnimate=Boolean(moved&&document.visibilityState==="visible"&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+   const canAnimate=Boolean(moved&&moved.to-moved.from<=6&&document.visibilityState==="visible"&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches);
    if(moved||captured||celebration){
     setEffect(celebration?"win":captured?"capture":"move");
     if(effectTimeout.current!==null)window.clearTimeout(effectTimeout.current);
@@ -322,10 +322,10 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
 
   <footer className="ludo-game-footer">
    <div className="ludo-bottom-actions">
-    <button type="button" className={"ludo-die-holder"+(rolling?" is-rolling":"")} disabled={!myTurn||busy||rolling||!game||game.status==="won"||game.dice!==null} onClick={()=>void act("roll")} aria-label="Lancer le dé">
+    <button type="button" className={"ludo-die-holder"+(rolling?" is-rolling":"")} disabled={!myTurn||busy||rolling||!!motion||!game||game.status==="won"||game.dice!==null} onClick={()=>void act("roll")} aria-label="Lancer le dé">
      <DiceFace value={dice||0} size="large" variant={red?"pink":"gold"}/>
     </button>
-    <button type="button" className="ludo-main-action" disabled={!myTurn||busy||rolling||!game||game.status==="won"||game.dice!==null}
+    <button type="button" className="ludo-main-action" disabled={!myTurn||busy||rolling||!!motion||!game||game.status==="won"||game.dice!==null}
      onClick={()=>void act("roll")}>{game?.dice!==null&&game?"DÉPLACE UN PION":myTurn?rolling?"LANCEMENT…":"LANCER LE DÉ":"ATTENDRE…"}</button>
     <button type="button" className={"ludo-emoji-button"+(emotes?" is-open":"")} onClick={()=>setEmotes(!emotes)} aria-label="Envoyer une réaction" aria-expanded={emotes}>♡</button>
    </div>
