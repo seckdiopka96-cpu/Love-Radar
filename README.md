@@ -107,3 +107,5 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Accueil : les prénoms et le statut du partenaire, la partie Ludo synchronisée, l'aperçu du dernier message et la dernière image déjà partagée.
 - Les dés sont de vrais **carrés blancs avec des points disposés de 1 à 6**, pas des icônes rondes ; la représentation du dé suit la valeur côté serveur.
 - L'album et les messages restent privés. Les photos ne sont pas incluses dans le HTML public : elles utilisent les médias déjà chargés par le compte authentifié.
+
+<!-- Déploiement de production relancé pour appliquer les variables TURN des Pages Functions. -->
