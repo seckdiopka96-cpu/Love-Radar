@@ -5,7 +5,7 @@ type Message={id:string;sender_id:string;kind:"text"|"image"|"audio";content:str
 type Game={turn:number;status:"playing"|"won";winner:number|null;version:number;dice:number|null};
 type DailyOverview={ok:boolean;question:string;mine:{text:string}|null;partnerAnswered:boolean;revealed:boolean};
 type Room={user:{id:string;name:string;seat:number};partner:string|null;code:string;partnerLastSeenAt?:number;messages:Message[]};
-type Props={room:Room;token:string;media:Record<string,string>;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment")=>void};
+type Props={room:Room;token:string;media:Record<string,string>;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together")=>void};
 export default function HomeDashboard({room,token,media,onInvite,onNavigate}:Props){
  const [game,setGame]=useState<Game|null>(null);
  const [daily,setDaily]=useState<DailyOverview|null>(null);
@@ -71,6 +71,14 @@ export default function HomeDashboard({room,token,media,onInvite,onNavigate}:Pro
    {daily?.question?<span className="lr-home-daily-question">« {daily.question} »</span>:null}
    <span className="lr-home-daily-cta">{daily?.revealed?"Découvrir nos réponses":daily?.mine?"Voir notre moment":"Découvrir la question"} →</span>
   </button>
+  <div className="lr-home-together">
+   <button type="button" onClick={()=>onNavigate("together")} className="lr-together-miss-card">
+    <span className="lr-together-icon">💗</span><strong>Tu me manques</strong><small>Un cœur pour ton amour, où qu’il soit.</small><b>Envoyer un cœur →</b>
+   </button>
+   <button type="button" onClick={()=>onNavigate("together")} className="lr-together-draw-card">
+    <span className="lr-together-icon">🎨</span><strong>Dessin à deux</strong><small>Un tableau commun pour dessiner ensemble.</small><b>Dessiner ensemble →</b>
+   </button>
+  </div>
   <button type="button" className="lr-home-game" onClick={()=>onNavigate("ludo")}>
    <div className="lr-home-game-copy"><span className="lr-home-card-label">✦ VOTRE JEU PRIVÉ</span><h2>{gameHeadline}</h2><p>{room.partner?gameSub:"Invite ton partenaire pour jouer à deux."}</p><span className="lr-home-game-cta">{game?"Jouer maintenant":"Découvrir le Ludo"} <b>→</b></span></div>
    <div className="lr-home-game-dice" aria-hidden="true"><DiceFace value={5} variant="pink" size="large"/><DiceFace value={3} variant="gold"/></div>

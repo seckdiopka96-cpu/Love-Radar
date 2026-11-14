@@ -73,3 +73,13 @@
 .lr-home-daily-question{font:italic 15px/1.55 Georgia,serif;color:#fff0f6;border-left:2px solid #ffd4de99;padding:4px 0 4px 12px}
 .lr-home-daily-cta{font-size:11px;font-weight:900;color:#ffe5ab}
 @media(max-width:600px){.lr-home-daily{padding:15px 13px;gap:10px}.lr-home-daily-icon{height:44px;width:44px;border-radius:13px;font-size:25px}.lr-home-daily-content strong{font-size:21px}.lr-home-daily-content>span{font-size:10px}}
+
+/* Two compact entry cards to the private "Ensemble" space. */
+.lr-home-together{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin:12px 0 19px}
+.lr-home-together button{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:15px;border:1px solid #d69db5;border-radius:17px;text-align:left;color:#ffecf7;background:linear-gradient(145deg,#743f68,#422c54);box-shadow:0 6px 18px #1e0e285e}
+.lr-home-together .lr-together-draw-card{background:linear-gradient(145deg,#594778,#3b2e56);border-color:#bc9bd0}
+.lr-home-together .lr-together-icon{font-size:28px}
+.lr-home-together strong{font:600 22px Georgia,serif}
+.lr-home-together small{font-size:11px;color:#e9cbdf;line-height:1.4;min-height:30px}
+.lr-home-together b{font-size:11px;color:#ffe2a1}
+@media(max-width:450px){.lr-home-together{gap:8px}.lr-home-together button{padding:11px;gap:6px}.lr-home-together strong{font-size:18px}.lr-home-together small{font-size:10px;min-height:40px}.lr-home-together b{font-size:10px}}

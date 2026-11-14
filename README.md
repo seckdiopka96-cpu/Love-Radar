@@ -187,3 +187,12 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Sur les petits écrans, le contenu est dimensionné pour tenir dans la hauteur du téléphone sans défilement normal. Les variantes « créer » (un champ) et « rejoindre » (deux champs) restent visibles et utilisables.
 - Lorsqu'un champ reçoit le focus sur iOS, seule la zone formulaire reste visible et elle est contrainte à la hauteur de visualViewport pour éviter que le clavier masque les commandes. Un défilement intérieur au formulaire reste possible uniquement dans le cas extrême d'un clavier/écran trop petit.
 - L'écran d'accueil du couple connecté, les jeux, les notifications, les conversations et les données restent inchangés.
+
+## Ensemble 💗 — « Tu me manques » et Dessiner ensemble 🎨
+
+- Nouveau menu « Ensemble » et deux cartes d'accès à l'accueil. L'écran s'adapte à la hauteur d'un iPhone avec deux onglets : « Tu me manques » et « Dessiner ensemble ».
+- Un clic sur « Tu me manques » envoie une pensée privée au partenaire, avec notification Push et lien direct vers **ce cœur précis**. Le destinataire peut répondre « Moi aussi ❤️ », « Je t'embrasse 😘 » ou « Je t'aime 💖 ». Une déclaration est limitée à une par 45 secondes pour éviter les notifications insistantes ; une seule réponse par déclaration. Les vocaux restent accessibles dans la conversation existante.
+- Le tableau commun reçoit les traits (au doigt/stylet), des cœurs, et des petits mots ; chaque trait terminé est enregistré dans D1 puis synchronisé sur l'autre appareil (polling ~1 seconde tant que le tableau est ouvert). Palette de couleurs, largeur du pinceau, annulation du **dernier trait de l'utilisateur** et effacement du tableau avec confirmation.
+- Bouton « Inviter » sur le tableau pour envoyer une notification privée qui ouvre directement le tableau partagé. Maximum une nouvelle invitation par minute. Un lien de notification ne donne aucun accès sans connexion au salon.
+- Les nouvelles tables `affection_signals`, `couple_canvas_events` et `couple_canvas_invites` sont créées automatiquement. Seuls les membres authentifiés du salon peuvent les consulter ou les modifier ; les traits sont bornés en taille et l'historique visuel est limité aux 180 dernières opérations.
+- Il n'y a pas de service Firebase : le stockage et les fonctions restent sur Cloudflare D1/Pages. Les données des jeux, des messages, des souvenirs et des appels restent intactes.
