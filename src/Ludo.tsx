@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import "./ludo.css";
 import "./ludo-immersive.css";
 import DiceFace from "./DiceFace";
+import {useLudoSounds} from "./ludo-sounds";
 
 type Point=[number,number];
 type Game={id:string;version:number;turn:number;dice:number|null;positions:number[][];status:"playing"|"won";winner:number|null;lastAction:string;updatedAt:number};
 type Reaction={seat:number;emoji:string;at:number};
+type PawnMotion={seat:number;pawn:number;progress:number};
 type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null};
 type Props={token:string;mySeat:number;myName:string;partnerName:string|null;onExit:()=>void};
 const key=(r:number,c:number)=>r+"-"+c;
@@ -65,25 +67,74 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
  const [emotes,setEmotes]=useState(false);
  const [effect,setEffect]=useState("");
  const [boardSize,setBoardSize]=useState(0);
+ const [motion,setMotion]=useState<PawnMotion|null>(null);
+ const [captureFlash,setCaptureFlash]=useState(false);
+ const {enabled:soundOn,unlock:unlockSound,play:playSound,toggle:toggleSound}=useLudoSounds();
  const boardStage=useRef<HTMLDivElement|null>(null);
  const prior=useRef<Game|null>(null);
  const effectTimeout=useRef<number|null>(null);
+ const movementTimers=useRef<number[]>([]);
+ const captureTimer=useRef<number|null>(null);
  const isActive=useRef(true);
+
+ const clearMotionTimers=useCallback(()=>{
+  for(const timer of movementTimers.current)window.clearTimeout(timer);
+  movementTimers.current=[];
+  if(captureTimer.current!==null){window.clearTimeout(captureTimer.current);captureTimer.current=null}
+ },[]);
 
  const onGame=useCallback((latest:Game)=>{
   const prev=prior.current;
+  // Concurrent polls must not roll the client back to an older version.
+  if(prev&&prev.id===latest.id&&latest.version<=prev.version)return;
+  if(prev?.id!==latest.id){clearMotionTimers();setMotion(null);setCaptureFlash(false)}
   if(prev&&prev.id===latest.id&&latest.version>prev.version){
-   const moving=latest.positions.some((p,side)=>p.some((value,i)=>value!==prev.positions[side][i]));
+   const captured=latest.positions.some((positions,side)=>positions.some((p,i)=>p===-1&&prev.positions[side][i]>=0));
+   const moved=latest.positions.flatMap((positions,side)=>positions.map((progress,pawn)=>({
+    seat:side,pawn,from:prev.positions[side][pawn],to:progress
+   }))).find(item=>item.to>item.from&&item.to>=0&&item.to<=57);
    const celebration=latest.status==="won"&&prev.status!=="won";
-   if(moving||celebration){
-    setEffect(celebration?"win":"move");
+   const canAnimate=Boolean(moved&&moved.to-moved.from<=6&&document.visibilityState==="visible"&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+   if(moved||captured||celebration){
+    setEffect(celebration?"win":captured?"capture":"move");
     if(effectTimeout.current!==null)window.clearTimeout(effectTimeout.current);
-    effectTimeout.current=window.setTimeout(()=>{if(isActive.current)setEffect("")},800);
+    effectTimeout.current=window.setTimeout(()=>{if(isActive.current){setEffect("");setCaptureFlash(false)}},1400);
+   }
+   clearMotionTimers();
+   if(moved){
+    if(canAnimate){
+     const route:number[]=[];
+     for(let step=moved.from+1;step<=moved.to;step++)route.push(step);
+     // Display animation only: D1 remains authoritative for game state.
+     setMotion({seat:moved.seat,pawn:moved.pawn,progress:moved.from});
+     route.forEach((progress,index)=>{
+      movementTimers.current.push(window.setTimeout(()=>{
+       if(!isActive.current)return;
+       setMotion({seat:moved.seat,pawn:moved.pawn,progress});
+       playSound("step");
+      },index*125+55));
+     });
+     const ending=route.length*125+90;
+     movementTimers.current.push(window.setTimeout(()=>{if(isActive.current)setMotion(null)},ending));
+     if(captured)captureTimer.current=window.setTimeout(()=>{
+      if(isActive.current){setCaptureFlash(true);playSound("capture")}
+     },ending);
+     if(celebration)captureTimer.current=window.setTimeout(()=>{if(isActive.current)playSound("win")},ending);
+    }else{
+     setMotion(null);
+     playSound("step");
+     if(captured){setCaptureFlash(true);playSound("capture")}
+     if(celebration)playSound("win");
+    }
+   }else{
+    setMotion(null);
+    if(captured){setCaptureFlash(true);playSound("capture")}
+    if(celebration)playSound("win");
    }
   }
   prior.current=latest;
-  setGame(previous=>!previous||latest.id!==previous.id||latest.version>=previous.version?latest:previous);
- },[]);
+  setGame(latest);
+ },[clearMotionTimers,playSound]);
 
  const load=useCallback(async()=>{
   try{
@@ -111,8 +162,9 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
    window.clearInterval(interval);
    document.removeEventListener("visibilitychange",visible);
    if(effectTimeout.current!==null)window.clearTimeout(effectTimeout.current);
+   clearMotionTimers();
   };
- },[load]);
+ },[load,clearMotionTimers]);
 
  useEffect(()=>{
   const el=boardStage.current;
@@ -133,6 +185,8 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
 
  async function act(action:"roll"|"move"|"restart"|"forfeit",pawn?:number){
   if(busy||!game)return false;
+  // WebAudio must be unlocked immediately by a user tap on iOS.
+  if(action==="roll"||action==="move"){unlockSound();if(action==="roll")playSound("roll")}
   setBusy(true);setError("");
   if(action==="roll")setRolling(true);
   try{
@@ -168,7 +222,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
  }
 
  const myTurn=Boolean(game&&game.status==="playing"&&game.turn===mySeat);
- const canPlay=Boolean(game&&myTurn&&game.dice!==null&&!busy&&!rolling);
+ const canPlay=Boolean(game&&myTurn&&game.dice!==null&&!busy&&!rolling&&!motion);
  const legal=game?game.positions[mySeat].map(p=>allowed(p,game.dice)):([false,false,false,false] as boolean[]);
  const displayName=(seat:number)=>seat===mySeat?myName:(partnerName||"Ton amour");
  const red= mySeat===0;
@@ -176,7 +230,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
  const pawnCells=new Map<string,{seat:number;pawn:number;active:boolean}[]>();
  if(game)for(let side=0;side<2;side++)for(let pawn=0;pawn<4;pawn++){
   const progress=game.positions[side][pawn];
-  if(progress===57)continue;
+  if(progress===57||(motion?.seat===side&&motion.pawn===pawn))continue;
   const point=progress===-1?BASE[side][pawn]:progress<=50?TRACK[(side*26+progress)%52]:HOME[side][progress-51];
   if(!point)continue;
   const k=key(point[0],point[1]);
@@ -184,6 +238,8 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
   items.push({seat:side,pawn,active:canPlay&&side===mySeat&&legal[pawn]});
   pawnCells.set(k,items);
  }
+ const movingPoint:Point|null=motion?(motion.progress<0?BASE[motion.seat][motion.pawn]:motion.progress<=50?TRACK[(motion.seat*26+motion.progress)%52]:motion.progress===57?[7,7]:HOME[motion.seat][motion.progress-51]):null;
+ const movingStyle=movingPoint?{left:((movingPoint[1]+.5)/15*100)+"%",top:((movingPoint[0]+.5)/15*100)+"%"}:undefined;
  const shownReaction=reaction&&Date.now()-reaction.at<7000?reaction:null;
  const lastNumber=game?.lastAction.match(/lancé un ([1-6])/);
  const showLast=lastNumber?Number(lastNumber[1]):5;
@@ -196,7 +252,10 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
     <span aria-hidden="true">‹</span> Quitter
    </button>
    <div className="ludo-brand"><strong>LUDO <span>♥</span> DUO</strong><small>PARTIE PRIVÉE · 2 JOUEURS</small></div>
-   <button type="button" className="ludo-help" onClick={()=>setRules(true)} aria-label="Voir les règles du Ludo">?</button>
+   <div className="ludo-top-actions">
+    <button type="button" className="ludo-sound" onClick={toggleSound} aria-label={soundOn?"Couper les sons du jeu":"Activer les sons du jeu"} aria-pressed={soundOn}>{soundOn?"🔊":"🔇"}</button>
+    <button type="button" className="ludo-help" onClick={()=>setRules(true)} aria-label="Voir les règles du Ludo">?</button>
+   </div>
   </header>
 
   <div className="ludo-players">
@@ -214,7 +273,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
   </div>
 
   <div className="ludo-play-area">
-  <div className="ludo-stage" ref={boardStage}>
+  <div className={"ludo-stage"+(captureFlash?" ludo-is-capture":"")} ref={boardStage}>
    {!game?<div className="ludo-waiting"><span>🎲</span><h2>{loading?"Chargement du jeu…":members<2?"Ton partenaire n’a pas encore rejoint":"Ouverture du plateau…"}</h2><p>{members<2?"Partage votre code privé pour jouer ensemble.":"Synchronisation des deux téléphones."}</p><button onClick={()=>void load()}>Actualiser</button></div>:
     <div className={"ludo-board-wrap ludo-board-wrap-immersive"+(effect==="move"?" ludo-board-move":"")} style={boardSize?{width:boardSize,height:boardSize}:undefined}>
      <div className="ludo-board" role="group" aria-label="Plateau coloré de Ludo pour deux joueurs">
@@ -244,11 +303,15 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
       <div className="ludo-yard ludo-yard-lower" aria-hidden="true"/>
       <div className="ludo-yard ludo-yard-gold" aria-hidden="true"/>
       <div className="ludo-board-center" aria-hidden="true"><span>♥</span></div>
+      {motion&&movingStyle?<div className={"ludo-moving-pawn ludo-pawn-"+(motion.seat===0?"red":"gold")} style={movingStyle} aria-hidden="true">
+        <PawnShape index={motion.pawn}/>
+       </div>:null}
      </div>
     </div>}
    {error?<div className="ludo-alert-pop" role="alert">{error}</div>:null}
    {shownReaction?<div className={"ludo-floating-emoji"+(shownReaction.seat===mySeat?" mine":" theirs")} key={shownReaction.at} role="status">{shownReaction.emoji}</div>:null}
-   {game?.status==="won"?<div className="ludo-victory" role="dialog" aria-label="Partie terminée">
+   {game?.status==="won"&&!motion?<div className="ludo-victory" role="dialog" aria-label="Partie terminée">
+    <div className="ludo-confetti-layer" aria-hidden="true">{Array.from({length:20},(_,i)=><i key={i} style={{left:((i*37+9)%97)+"%",animationDelay:((i*71)%900)+"ms",backgroundColor:["#ffc757","#fa8db9","#5ed3ba","#b995ff"][i%4]}}/>)}</div>
     <div className="ludo-celebrate" aria-hidden="true">🏆</div>
     <strong>{game.winner===mySeat?"Victoire !":displayName(game.winner??0)+" gagne !"}</strong>
     <p>{game.lastAction.includes("abandonné")?"Un joueur a abandonné la partie.":"Les quatre pions ont atteint le centre !"}</p>
@@ -259,10 +322,10 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
 
   <footer className="ludo-game-footer">
    <div className="ludo-bottom-actions">
-    <button type="button" className={"ludo-die-holder"+(rolling?" is-rolling":"")} disabled={!myTurn||busy||rolling||!game||game.status==="won"||game.dice!==null} onClick={()=>void act("roll")} aria-label="Lancer le dé">
+    <button type="button" className={"ludo-die-holder"+(rolling?" is-rolling":"")} disabled={!myTurn||busy||rolling||!!motion||!game||game.status==="won"||game.dice!==null} onClick={()=>void act("roll")} aria-label="Lancer le dé">
      <DiceFace value={dice||0} size="large" variant={red?"pink":"gold"}/>
     </button>
-    <button type="button" className="ludo-main-action" disabled={!myTurn||busy||rolling||!game||game.status==="won"||game.dice!==null}
+    <button type="button" className="ludo-main-action" disabled={!myTurn||busy||rolling||!!motion||!game||game.status==="won"||game.dice!==null}
      onClick={()=>void act("roll")}>{game?.dice!==null&&game?"DÉPLACE UN PION":myTurn?rolling?"LANCEMENT…":"LANCER LE DÉ":"ATTENDRE…"}</button>
     <button type="button" className={"ludo-emoji-button"+(emotes?" is-open":"")} onClick={()=>setEmotes(!emotes)} aria-label="Envoyer une réaction" aria-expanded={emotes}>♡</button>
    </div>

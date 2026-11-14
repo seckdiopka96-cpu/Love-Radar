@@ -119,3 +119,10 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Dés carrés animés et pions SVG originaux en relief, quatre zones de plateau colorées, animation de mouvement et écran de victoire.
 - Un pion amené au centre donne un lancer supplémentaire. Les autres règles sont inchangées.
 - Les parties conservent leur état dans D1, y compris quand le joueur revient à l'accueil ; les conversations et appels sont inchangés.
+
+## Animations et sons du Ludo Duo (novembre 2026)
+
+- Les pions parcourent les cases une par une uniquement à l'affichage : la logique et la validation des déplacements restent intégralement sur le serveur D1.
+- Effets sonores WebAudio originaux et courts pour les dés, le déplacement, une capture et la victoire, avec contrôle 🔊 / 🔇 dans la barre du haut. L'audio s'active lors du premier appui de l'utilisateur conformément aux restrictions iOS.
+- Animation de confettis lors de la victoire, dés carrés conservés. Les animations sont réduites si l'option système « réduire les animations » est activée.
+- Une nouvelle version du cache PWA est utilisée pour fournir le design à jour ; les parties et messages ne sont pas réinitialisés.
