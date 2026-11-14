@@ -25,8 +25,8 @@ const HOME:Point[][]=[
  [13,12,11,10,9,8].map(c=>[7,c] as Point),
 ];
 const BASE:Point[][]=[
- [[2,2],[2,4],[4,2],[4,4]],
- [[10,10],[10,12],[12,10],[12,12]],
+ [[1,1],[1,4],[4,1],[4,4]],
+ [[10,10],[10,13],[13,10],[13,13]],
 ];
 const trackAt=new Map(TRACK.map((p,i)=>[key(p[0],p[1]),i]));
 const homeAt=HOME.map(list=>new Set(list.map(p=>key(p[0],p[1]))));
@@ -92,12 +92,12 @@ export default function Ludo({token,mySeat,myName,partnerName}:Props){
  }
  const finished=(seat:number)=>game?.positions[seat].filter(p=>p===57).length||0;
  return <section className="ludo-page" aria-label="Ludo en ligne à deux joueurs">
-  <header className="ludo-heading"><span className="ludo-eyebrow">🎲 LE JEU DES COUPLES</span><h1>Ludo à deux <em>♥</em></h1><p>Un plateau, deux partenaires, quatre pions chacun. Jouez ensemble où que vous soyez.</p></header>
+  <header className="ludo-heading"><span className="ludo-eyebrow"><span className="ludo-live-dot"/> VOTRE SALON DE JEU PRIVÉ</span><h1>Ludo <em>♥</em> à deux</h1><p>Un petit défi, même à des kilomètres.</p></header>
   {!game?<div className="ludo-empty"><div>🎲</div><h2>{loading?"Ouverture du plateau…":members<2?"En attente de ton partenaire":"Préparation de la partie…"}</h2><p>{members<2?"Dès que ton partenaire rejoint votre espace privé avec votre code, la partie sera disponible.":"Le plateau se synchronise entre vos deux téléphones."}</p><button type="button" onClick={()=>void load()}>Actualiser le jeu</button>{error?<p role="alert" className="ludo-alert">{error}</p>:null}</div>:<>
    <div className="ludo-score">
     {[0,1].map(side=><div key={side} className={"ludo-person ludo-person-"+(side===0?"red":"gold")+(game.turn===side&&game.status==="playing"?" is-playing":"")}>
-      <div className="ludo-person-icon">{side===0?"●":"●"}</div>
-      <div><strong>{displayName(side)}{side===mySeat?" (toi)":""}</strong><small>{finished(side)}/4 pions arrivés</small></div>
+      <div className="ludo-person-icon">{displayName(side).charAt(0).toUpperCase()}</div>
+      <div className="ludo-person-details"><strong>{displayName(side)}{side===mySeat?" (toi)":""}</strong><small>{finished(side)} pion{finished(side)>1?"s":""} à l’arrivée sur 4</small></div>
       {game.turn===side&&game.status==="playing"?<span className="ludo-turn-pill">Tour</span>:null}
     </div>)}
    </div>
@@ -118,17 +118,25 @@ export default function Ludo({token,mySeat,myName,partnerName}:Props){
         {pawns.length?<div className="ludo-cell-pawns">{pawns.map(item=><button type="button" key={item.seat+"-"+item.pawn} disabled={!item.active} onClick={()=>void act("move",item.pawn)} title={"Pion "+(item.pawn+1)+" de "+displayName(item.seat)} aria-label={"Pion "+(item.pawn+1)+" de "+displayName(item.seat)+(item.active?", déplacer":"")} className={"ludo-pawn ludo-pawn-"+(item.seat===0?"red":"gold")+(item.active?" can-move":"")}>{item.pawn+1}</button>)}</div>:null}
        </div>;
       })}
+      <div className="ludo-yard ludo-yard-red" aria-hidden="true"/>
+      <div className="ludo-yard ludo-yard-upper" aria-hidden="true"/>
+      <div className="ludo-yard ludo-yard-lower" aria-hidden="true"/>
+      <div className="ludo-yard ludo-yard-gold" aria-hidden="true"/>
+      <div className="ludo-board-center" aria-hidden="true"><span>♥</span></div>
      </div>
+     <div className="ludo-board-caption"><span><i className="ludo-caption-red"/> Rouge</span><span><i className="ludo-caption-gold"/> Jaune</span><span className="ludo-safe-key">✦ Cases protégées</span></div>
     </div>
     <div className="ludo-controls">
      {game.status==="won"?<div className="ludo-winner"><span>🏆</span><h2>{game.winner===mySeat?"Tu as gagné !":"Victoire de "+displayName(game.winner??0)+" !"}</h2><p>Les quatre pions ont atteint le centre.</p><button disabled={busy} onClick={()=>void act("restart")} type="button">Nouvelle partie ♥</button></div>:<>
-      <div className="ludo-state"><span className="ludo-eyebrow">À QUI LE TOUR ?</span><h2>{myTurn?"À toi de jouer !":"Au tour de "+displayName(game.turn)}</h2><p>{game.dice!==null&&myTurn?"Choisis un pion à déplacer.":game.dice!==null?"Ton partenaire choisit son pion.":myTurn?"Lance le dé pour commencer.":"Le plateau se met à jour automatiquement."}</p></div>
-      <div className="ludo-dice-row"><div className="ludo-dice-face" aria-label={game.dice?"Dé : "+game.dice:"Dé en attente"}>{game.dice?DIE[game.dice]:"🎲"}</div><button type="button" className="ludo-roll" disabled={!myTurn||busy||game.dice!==null} onClick={()=>void act("roll")}>{busy?"Un instant…":game.dice!==null?"Choisis ton pion":myTurn?"Lancer le dé":"En attente…"}</button></div>
-      <div className="ludo-pawn-actions"><strong>TES PIONS</strong><div>{game.positions[mySeat].map((p,i)=><button key={i} type="button" disabled={!canPlay||!legal[i]} onClick={()=>void act("move",i)}><b>{i+1}</b><span>{labelPosition(p)}</span></button>)}</div></div>
+      <div className={"ludo-turn-card"+(myTurn?" ludo-its-you":"")}>
+       <div className="ludo-state"><span className="ludo-eyebrow">{myTurn?"C’EST TON TOUR":"AU TOUR DE TON AMOUR"}</span><h2>{myTurn?"À toi de jouer !":displayName(game.turn)}</h2><p>{game.dice!==null&&myTurn?"Choisis un pion lumineux.":game.dice!==null?"Ton partenaire choisit son pion.":myTurn?"Tente ta chance avec le dé !":"Le jeu se synchronise automatiquement."}</p></div>
+       <div className="ludo-dice-row"><div className="ludo-dice-face" aria-label={game.dice?"Dé : "+game.dice:"Dé en attente"}>{game.dice?DIE[game.dice]:"⚄"}</div><button type="button" className="ludo-roll" disabled={!myTurn||busy||game.dice!==null} onClick={()=>void act("roll")}>{busy?"Un instant…":game.dice!==null?"Choisir un pion":myTurn?"Lancer le dé":"Patiente…"}</button></div>
+      </div>
+      <div className="ludo-pawn-actions"><strong>MES 4 PIONS <span>• Choisis un pion après le lancer</span></strong><div>{game.positions[mySeat].map((p,i)=><button key={i} type="button" disabled={!canPlay||!legal[i]} onClick={()=>void act("move",i)}><b>{i+1}</b><span>{labelPosition(p)}</span></button>)}</div></div>
      </>}
-     <div className="ludo-log" role="status" aria-live="polite">{game.lastAction}</div>
+     <div className="ludo-log" role="status" aria-live="polite"><span aria-hidden="true">✦</span> {game.lastAction}</div>
      {error?<div role="alert" className="ludo-alert">{error}<button onClick={()=>void load()}>Réessayer</button></div>:null}
-     <p className="ludo-rules">Règles : un 6 pour sortir de la base. Un 6 ou une capture donne un tour supplémentaire. Trois 6 consécutifs font passer le tour. Il faut arriver au centre avec le nombre exact. ★ = case protégée.</p>
+     <p className="ludo-rules">Un 6 pour sortir • Un 6 ou une capture = rejouer • Trois 6 à la suite = tour perdu • Arrivée avec le nombre exact. Les étoiles protègent les pions.</p>
     </div>
    </div>
   </>}

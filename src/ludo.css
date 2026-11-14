@@ -1,53 +1,142 @@
-/* Love Radar Ludo — private two-player board */
-.ludo-page{width:100%;max-width:1050px;padding-bottom:36px;color:#ffeef7}
-.ludo-heading{padding:12px 0 18px}.ludo-eyebrow{display:block;font-size:10px;letter-spacing:1.7px;font-weight:850;color:#e9b886}
-.ludo-heading h1{font:600 clamp(32px,4vw,51px)/1.15 'Playfair Display',Georgia,serif;margin:10px 0;color:#fff0ee}
-.ludo-heading h1 em{color:#f49cbd;font-style:normal}.ludo-heading p{font-size:13px;line-height:1.6;color:#d5b4c6;margin:0}
-.ludo-score{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
-.ludo-person{display:flex;align-items:center;gap:10px;background:#342239;border:1px solid #74506b;border-radius:16px;padding:12px 14px;min-width:0}
-.ludo-person.is-playing{border-color:#db98bd;box-shadow:0 0 0 1px #d58cab44}.ludo-person-icon{font-size:26px;line-height:1;color:#f56675}
-.ludo-person-gold .ludo-person-icon{color:#ffd25e}
-.ludo-person strong{font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
-.ludo-person small{display:block;margin-top:4px;color:#d1a9bd;font-size:10px}
-.ludo-turn-pill{font-size:9px;font-weight:850;margin-left:auto;border-radius:999px;background:#8b4f73;color:#fff;padding:6px 8px}
-.ludo-layout{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(245px,.8fr);gap:18px;align-items:start}
-.ludo-board-wrap{background:#38283d;border:1px solid #82516e;border-radius:19px;padding:12px;box-shadow:0 16px 55px #10071477;min-width:0}
-.ludo-board{width:100%;aspect-ratio:1;display:grid;grid-template-columns:repeat(15,minmax(0,1fr));grid-template-rows:repeat(15,minmax(0,1fr));border:3px solid #9d7b8a;background:#e9dfe5;border-radius:10px;overflow:hidden;box-shadow:0 8px 30px #13081755}
-.ludo-cell{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;background:#f8f1f4;border:.5px solid #cbbbc8}
-.ludo-path{background:#fff;border-color:#c6b0bb}.ludo-center{background:#d9bacc}
-.ludo-red-base{background:#ed6475;border-color:#dd6374}.ludo-gold-base{background:#f4c95c;border-color:#e1b94f}
-.ludo-neutral-base{background:#c9c2cf;border-color:#b7afbd}
-.ludo-red-lane,.ludo-red-start{background:#f48a98;border-color:#d96c79}
-.ludo-gold-lane,.ludo-gold-start{background:#f7d77c;border-color:#dbb457}
-.ludo-star{position:absolute;font-size:clamp(8px,1.4vw,15px);line-height:1;color:#916882;opacity:.75;pointer-events:none}
-.ludo-red-start .ludo-star{color:#a63351}.ludo-gold-start .ludo-star{color:#987121}
-.ludo-heart{position:relative;z-index:1;font-size:clamp(13px,2.8vw,26px);color:#8c456a}
-.ludo-cell-pawns{position:absolute;inset:0;z-index:2;display:flex;flex-wrap:wrap;align-content:center;align-items:center;justify-content:center;gap:0}
-.ludo-pawn{width:clamp(10px,2.5vw,22px);height:clamp(10px,2.5vw,22px);border-radius:50%;border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;padding:0;font-size:clamp(7px,1vw,10px);font-weight:950;line-height:1;box-shadow:0 1px 3px #4d223d66;flex:0 0 auto}
-.ludo-pawn-red{background:#c83450;color:white}.ludo-pawn-gold{background:#e7a91a;color:#3e2b23;border-color:#fff5cb}
-.ludo-pawn:disabled{cursor:default;opacity:1}.ludo-pawn.can-move{cursor:pointer;outline:2px solid #613d9b;outline-offset:1px;animation:ludo-glow 1.2s ease-in-out infinite}
-@keyframes ludo-glow{0%,100%{transform:scale(1)}50%{transform:scale(1.16)}}
-.ludo-controls{display:grid;gap:14px}.ludo-state,.ludo-pawn-actions,.ludo-log,.ludo-winner{border:1px solid #754c69;background:linear-gradient(145deg,#3f2944,#2a1d33);border-radius:18px;padding:19px}
-.ludo-state h2,.ludo-winner h2{font:600 25px 'Playfair Display',Georgia,serif;margin:9px 0 5px;color:#ffecec}
-.ludo-state p,.ludo-winner p{font-size:12px;line-height:1.65;color:#e0bdcf;margin:0}
-.ludo-dice-row{display:flex;align-items:center;gap:12px}
-.ludo-dice-face{display:grid;place-items:center;width:76px;height:76px;border-radius:18px;background:#fff4f8;color:#8b3564;font-size:46px;line-height:1;border:3px solid #ffc3d9;box-shadow:0 8px 25px #0d061522}
-.ludo-roll,.ludo-winner button{border:0;border-radius:15px;color:#fff;font-size:13px;font-weight:850;background:linear-gradient(120deg,#e06c98,#9c3b72);padding:15px;min-height:55px;flex:1;box-shadow:0 8px 24px #10071655}
-.ludo-roll:disabled,.ludo-winner button:disabled{background:#65536a;color:#dac1d2;box-shadow:none}
-.ludo-pawn-actions>strong{font-size:10px;letter-spacing:1.5px;color:#f1c4dd}
-.ludo-pawn-actions>div{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:13px}
-.ludo-pawn-actions button{display:flex;align-items:center;gap:7px;padding:10px 8px;border-radius:10px;background:#674264;border:1px solid #a76a93;color:#fff;min-width:0;text-align:left}
-.ludo-pawn-actions button b{border-radius:50%;background:#e7aacb;color:#46203a;width:23px;height:23px;flex:none;display:grid;place-items:center;font-size:12px}
-.ludo-pawn-actions button span{font-size:10px;line-height:1.25}.ludo-pawn-actions button:disabled{opacity:.43;cursor:default}
-.ludo-log{font-size:12px;color:#f5c8e0;line-height:1.55;padding:14px 17px}
-.ludo-rules{font-size:11px;line-height:1.75;color:#bfa0b5;margin:0}
-.ludo-winner{text-align:center}.ludo-winner>span{font-size:52px}.ludo-winner button{margin-top:15px;width:100%}
-.ludo-alert{font-size:12px;color:#ffb4bf;background:#532a42;border:1px solid #9c5067;padding:12px;border-radius:12px}
-.ludo-alert button{background:transparent;border:0;color:#ffdeea;margin-left:7px;text-decoration:underline}
-.ludo-empty{text-align:center;border:1px solid #754c69;background:#38263e;border-radius:20px;padding:40px 22px}
-.ludo-empty>div{font-size:52px}.ludo-empty h2{font:600 27px 'Playfair Display',serif;color:#ffecec}
-.ludo-empty p{color:#d3b1c4;font-size:13px;line-height:1.7;max-width:400px;margin:0 auto 20px}
-.ludo-empty button{border:0;background:#a9497c;border-radius:11px;padding:13px 18px;color:#fff;font-weight:800}
-@media(max-width:950px){.ludo-layout{grid-template-columns:1fr}.ludo-board-wrap{max-width:560px;width:100%;margin:auto}.ludo-controls{max-width:560px;width:100%;margin:auto}.ludo-score{max-width:560px;margin-inline:auto}}
-@media(max-width:700px){.ludo-page{padding-bottom:100px}.ludo-heading{padding-top:4px}.ludo-board-wrap{padding:7px;border-radius:12px}.ludo-board{border-width:2px}.ludo-score{gap:8px;margin-bottom:10px}.ludo-person{padding:9px 8px;gap:6px;border-radius:12px}.ludo-person strong{max-width:100px;font-size:11px}.ludo-person-icon{font-size:20px}.ludo-turn-pill{display:none}.ludo-layout{gap:15px}.ludo-controls{gap:11px}.ludo-pawn{width:clamp(12px,3.7vw,18px);height:clamp(12px,3.7vw,18px);font-size:8px}.ludo-rules{padding-bottom:15px}}
+/* Love Radar ♥ Ludo — refined, touch-first board */
+.ludo-page{color:#fff0f6;width:100%;max-width:1080px;padding:0 0 40px}
+.ludo-heading{padding:4px 0 16px}
+.ludo-eyebrow{font-size:10px;letter-spacing:1.5px;font-weight:850;color:#e7b4d2;display:flex;align-items:center;gap:7px}
+.ludo-live-dot{height:7px;width:7px;border-radius:50%;background:#ed9d9e;box-shadow:0 0 0 4px #ed9d9e18}
+.ludo-heading h1{font:600 clamp(31px,4vw,43px)/1.17 'Playfair Display',Georgia,serif;letter-spacing:-.8px;margin:8px 0 5px;color:#fff0f4}
+.ludo-heading h1 em{font-style:normal;color:#f5a4bf}
+.ludo-heading p{margin:0;color:#bfa1b8;font-size:12px;line-height:1.5}
+.ludo-score{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin:0 0 14px}
+.ludo-person{display:flex;align-items:center;gap:9px;padding:11px 12px;min-width:0;min-height:68px;background:linear-gradient(150deg,#322036,#24182c);border:1px solid #573e57;border-radius:16px;position:relative;overflow:hidden}
+.ludo-person::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;opacity:.95;background:var(--person-color)}
+.ludo-person-red{--person-color:#ed6c83}
+.ludo-person-gold{--person-color:#f4c85a}
+.ludo-person.is-playing{border-color:var(--person-color);background:linear-gradient(125deg,#3b2844,#281a32);box-shadow:0 4px 24px #13091b25}
+.ludo-person-icon{display:grid;place-items:center;flex:none;width:35px;height:35px;border-radius:12px;background:var(--person-color);color:#4b263b;font-weight:900;font-size:16px;box-shadow:inset 0 -3px 0 #00000018}
+.ludo-person-red .ludo-person-icon{color:white}
+.ludo-person-details{min-width:0;flex:1}
+.ludo-person strong{display:block;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#fff2f6;font-weight:800}
+.ludo-person small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px;color:#bc9eaf;font-size:10px}
+.ludo-turn-pill{background:#66415c;border-radius:100px;font-weight:800;font-size:9px;color:#fce9f3;padding:5px 8px;white-space:nowrap}
+.ludo-layout{display:grid;grid-template-columns:minmax(0,1.22fr) minmax(280px,.78fr);gap:20px;align-items:start}
+.ludo-board-wrap{min-width:0;background:linear-gradient(145deg,#37263d,#281b32);border:1px solid #64435c;border-radius:24px;padding:14px;box-shadow:0 20px 50px #140b215c}
+.ludo-board{position:relative;width:100%;aspect-ratio:1;display:grid;grid-template-columns:repeat(15,minmax(0,1fr));grid-template-rows:repeat(15,minmax(0,1fr));overflow:hidden;border:3px solid #fff8f3;border-radius:14px;background:#fcf8f5;box-shadow:0 1px 3px #00000014,0 12px 30px #07021032}
+.ludo-cell{position:relative;min-height:0;min-width:0;display:flex;justify-content:center;align-items:center;border:0;background:#fffaf6}
+.ludo-path{background:#fffdfb;border:.5px solid #d7cbd0}
+.ludo-red-base{background:#e97e93}
+.ludo-gold-base{background:#f5c766}
+.ludo-neutral-base{background:#e7dfe9}
+.ludo-red-lane,.ludo-red-start{background:#f6a3b0;border:.5px solid #d98798}
+.ludo-gold-lane,.ludo-gold-start{background:#ffdf91;border:.5px solid #e0c079}
+.ludo-center{background:#f6e6ee;border:0}
+.ludo-star{font-size:clamp(8px,1.8vw,15px);line-height:1;color:#9b6783;opacity:.85;pointer-events:none}
+.ludo-gold-start .ludo-star{color:#b78b3d}
+.ludo-heart{font-size:clamp(13px,2vw,19px);color:#aa627e;line-height:1}
+.ludo-yard{position:absolute;z-index:1;width:40%;height:40%;pointer-events:none}
+.ludo-yard-red{left:0;top:0;--hole:#f9cad3;--edge:#ea7f98}
+.ludo-yard-gold{right:0;bottom:0;--hole:#f8d889;--edge:#e6c068}
+.ludo-yard-upper{right:0;top:0}
+.ludo-yard-lower{left:0;bottom:0}
+.ludo-yard-red::before,.ludo-yard-gold::before{content:"";position:absolute;inset:12%;border-radius:18%;background:#fff8f7;box-shadow:0 4px 15px #5026391f,0 0 0 2px #ffffff80}
+.ludo-yard-red::after,.ludo-yard-gold::after{content:"";position:absolute;inset:12%;border-radius:18%;
+ background:
+ radial-gradient(circle at 25% 25%,var(--hole) 0 11%,var(--edge) 11.6% 13%,transparent 13.5%),
+ radial-gradient(circle at 75% 25%,var(--hole) 0 11%,var(--edge) 11.6% 13%,transparent 13.5%),
+ radial-gradient(circle at 25% 75%,var(--hole) 0 11%,var(--edge) 11.6% 13%,transparent 13.5%),
+ radial-gradient(circle at 75% 75%,var(--hole) 0 11%,var(--edge) 11.6% 13%,transparent 13.5%)}
+.ludo-yard-upper::before,.ludo-yard-lower::before{content:"";position:absolute;inset:12%;border:1px solid #fff9fc;border-radius:18%;background:#fff8fc55;box-shadow:inset 0 0 0 1px #b8a8ba4d}
+.ludo-yard-upper::after,.ludo-yard-lower::after{content:"✦";position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(28px,5vw,58px);color:#fff9ff99}
+.ludo-board-center{position:absolute;top:40%;left:40%;width:20%;height:20%;display:grid;place-items:center;z-index:2;pointer-events:none;
+ background:conic-gradient(from 45deg,#f0ba62 0 25%,#f5d5df 25% 50%,#f0ba62 50% 75%,#f5d5df 75% 100%);
+ clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.ludo-board-center span{font-size:clamp(14px,3vw,28px);color:#9f516f;text-shadow:0 1px #fff6fb}
+.ludo-cell-pawns{position:absolute;inset:0;display:flex;flex-wrap:wrap;align-items:center;align-content:center;justify-content:center;z-index:4;gap:0}
+.ludo-pawn{position:relative;z-index:5;flex:none;display:grid;place-items:center;padding:0;margin:0;width:clamp(16px,2.9vw,23px);height:clamp(16px,2.9vw,23px);border:2px solid #fff8f6;border-radius:50%;font-weight:950;line-height:1;font-size:clamp(8px,1.1vw,11px);box-shadow:0 2px 5px #2915275c,inset 0 -3px 0 #00000029;transition:transform .15s}
+.ludo-pawn-red{color:#fff;background:linear-gradient(135deg,#fa718a,#bd314f)}
+.ludo-pawn-gold{color:#5b3923;background:linear-gradient(135deg,#ffe184,#dfa626);border-color:#fffdf4}
+.ludo-pawn:disabled{opacity:1;cursor:default}
+.ludo-pawn.can-move{cursor:pointer;outline:2px solid #644582;outline-offset:1px;animation:ludo-breathe 1.2s ease-in-out infinite}
+@keyframes ludo-breathe{50%{transform:scale(1.15)}}
+.ludo-board-caption{display:flex;align-items:center;gap:14px;padding:12px 3px 0;color:#d6b5c9;font-size:11px;font-weight:600}
+.ludo-board-caption span{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.ludo-board-caption i{display:inline-block;width:9px;height:9px;border-radius:50%}
+.ludo-caption-red{background:#ed6c83}.ludo-caption-gold{background:#f4c85a}
+.ludo-safe-key{margin-left:auto;color:#b99aae}
+.ludo-controls{display:grid;gap:14px;min-width:0}
+.ludo-turn-card,.ludo-pawn-actions,.ludo-log,.ludo-winner{border:1px solid #62445f;background:linear-gradient(150deg,#38243d,#2a1c33);border-radius:20px;padding:18px}
+.ludo-turn-card{display:grid;gap:13px;min-width:0}
+.ludo-turn-card.ludo-its-you{border-color:#c47f9e;box-shadow:inset 0 0 0 1px #a466893b}
+.ludo-state h2,.ludo-winner h2{font:600 clamp(19px,2.8vw,25px)/1.23 'Playfair Display',Georgia,serif;color:#ffe9f1;margin:8px 0 4px}
+.ludo-state p,.ludo-winner p{font-size:12px;line-height:1.55;color:#c6aabf;margin:0}
+.ludo-dice-row{display:flex;gap:10px;align-items:center}
+.ludo-dice-face{width:66px;height:66px;flex:none;display:grid;place-items:center;border-radius:17px;background:linear-gradient(145deg,#fffdfa,#f3e8f0);border:2px solid white;box-shadow:0 4px 13px #10081748,inset 0 -4px 0 #c9bbcd69;color:#7f4c73;font-size:49px;line-height:1}
+.ludo-roll,.ludo-winner button{flex:1;min-height:50px;padding:12px;border:0;border-radius:13px;color:#fffaf9;font-size:13px;font-weight:850;background:linear-gradient(120deg,#d95f90,#a93f78);box-shadow:0 7px 20px #13071f45}
+.ludo-roll:disabled,.ludo-winner button:disabled{background:#65546a;color:#e2d2df;box-shadow:none}
+.ludo-pawn-actions>strong{font-size:10px;letter-spacing:1.1px;color:#e9c0d7}
+.ludo-pawn-actions>strong span{font-weight:500;letter-spacing:0;color:#ab8da6;font-size:10px}
+.ludo-pawn-actions>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.ludo-pawn-actions button{display:flex;align-items:center;gap:7px;min-width:0;text-align:left;padding:10px 9px;border:1px solid #875c7d;border-radius:11px;background:#60405b;color:#fcecf3}
+.ludo-pawn-actions button b{flex:none;width:23px;height:23px;border-radius:50%;background:#e6abc9;color:#542b45;display:grid;place-items:center;font-size:12px}
+.ludo-pawn-actions button span{font-size:10px;line-height:1.35}
+.ludo-pawn-actions button:disabled{opacity:.45;cursor:default}
+.ludo-log{display:flex;gap:7px;padding:12px 15px;font-size:12px;line-height:1.5;color:#ebc6dc}
+.ludo-log>span{color:#eeaece}
+.ludo-rules{font-size:11px;line-height:1.65;color:#ae92a8;margin:0 2px}
+.ludo-winner{text-align:center}.ludo-winner>span{display:block;font-size:49px}.ludo-winner button{margin-top:15px;width:100%}
+.ludo-alert{color:#ffd3dc;font-size:12px;padding:11px;border:1px solid #b25b7c;border-radius:10px;background:#502b43}
+.ludo-alert button{background:none;border:0;text-decoration:underline;color:#fff}
+.ludo-empty{text-align:center;background:#342238;border:1px solid #6c4561;border-radius:20px;padding:35px 23px}
+.ludo-empty>div{font-size:40px}.ludo-empty h2{font:600 25px 'Playfair Display',serif;color:#ffe7f1}
+.ludo-empty p{font-size:12px;line-height:1.6;color:#cfb5c6;max-width:400px;margin:8px auto 18px}
+.ludo-empty button{color:#fff;background:#b64c7b;border:0;padding:12px 17px;border-radius:11px;font-weight:800}
+@media(max-width:950px){
+ .ludo-layout{grid-template-columns:1fr;display:flex;flex-direction:column;gap:12px}
+ .ludo-controls{display:contents}
+ .ludo-turn-card,.ludo-winner{order:0}
+ .ludo-board-wrap{order:1;max-width:600px;width:100%;align-self:center}
+ .ludo-pawn-actions{order:2}
+ .ludo-log{order:3}
+ .ludo-alert{order:4}
+ .ludo-rules{order:5}
+ .ludo-pawn-actions,.ludo-log,.ludo-turn-card,.ludo-winner,.ludo-alert,.ludo-rules{width:100%;max-width:600px;align-self:center}
+ .ludo-turn-card{display:flex;justify-content:space-between;align-items:center;gap:16px}
+ .ludo-state{flex:1;min-width:0}
+ .ludo-dice-row{flex:none}
+}
+@media(max-width:700px){
+ .ludo-page{padding:0 0 calc(40px + env(safe-area-inset-bottom))}
+ .ludo-heading{padding:0 0 12px}
+ .ludo-heading h1{font-size:30px;margin:6px 0 3px}
+ .ludo-heading p{font-size:11px}
+ .ludo-score{margin-bottom:10px;gap:8px}
+ .ludo-person{min-height:57px;gap:7px;padding:8px;border-radius:13px}
+ .ludo-person-icon{width:30px;height:30px;border-radius:10px;font-size:13px}
+ .ludo-person strong{font-size:11px}
+ .ludo-person small{font-size:9px}
+ .ludo-turn-pill{display:none}
+ .ludo-turn-card{gap:8px;padding:12px 12px;display:grid;grid-template-columns:minmax(0,1fr) 93px;align-items:center;border-radius:16px}
+ .ludo-state h2{font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:4px 0}
+ .ludo-state p{font-size:10px;line-height:1.35}
+ .ludo-turn-card .ludo-eyebrow{font-size:9px;letter-spacing:.8px}
+ .ludo-dice-row{display:flex;flex-direction:column;gap:5px}
+ .ludo-dice-face{height:43px;width:43px;border-radius:10px;font-size:34px}
+ .ludo-roll{width:93px;min-height:32px;border-radius:9px;padding:5px 3px;font-size:10px;line-height:1.15}
+ .ludo-layout{gap:9px}
+ .ludo-board-wrap{padding:7px;border-radius:15px}
+ .ludo-board{border-width:2px;border-radius:10px}
+ .ludo-yard-red::before,.ludo-yard-gold::before{box-shadow:0 2px 6px #5026391b,0 0 0 1px #fff}
+ .ludo-pawn{width:clamp(16px,4.4vw,21px);height:clamp(16px,4.4vw,21px);font-size:9px}
+ .ludo-board-caption{font-size:9px;gap:10px;padding:8px 3px 2px}
+ .ludo-board-caption i{width:7px;height:7px}
+ .ludo-pawn-actions{padding:14px;border-radius:14px}
+ .ludo-pawn-actions>strong span{display:none}
+ .ludo-log{border-radius:13px}
+}
+@media(max-width:350px){
+ .ludo-person-icon{display:none}
+ .ludo-person{padding:8px 6px}
+ .ludo-dice-face{height:39px;width:39px}
+ .ludo-turn-card{grid-template-columns:minmax(0,1fr) 85px}
+ .ludo-roll{width:85px;font-size:9px}
+}
 @media(prefers-reduced-motion:reduce){.ludo-pawn.can-move{animation:none}}
