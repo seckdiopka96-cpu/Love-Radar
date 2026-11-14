@@ -1,0 +1,97 @@
+/* Love Radar · Notre histoire + Nos retrouvailles (private couple pages). */
+.cs-page,.cs-page *{box-sizing:border-box}
+.cs-page{width:100%;max-width:780px;min-width:0;margin:0 auto;display:flex;flex-direction:column;gap:18px;padding:8px 4px 38px;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Arial,sans-serif;color:#fff0f8}
+.cs-header{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.cs-header>button{border:1px solid #936d91;background:#58415f;color:#ffe8f4;border-radius:12px;padding:10px 14px;font-size:12px;font-weight:850}
+.cs-header>strong{font-size:12px;font-weight:950;letter-spacing:1.3px}
+.cs-header>strong span{color:#f9a3cc}
+.cs-header>span{font-size:22px}
+.cs-loading,.cs-alert,.cs-success{padding:12px 14px;border-radius:11px;font-size:12px;line-height:1.5}
+.cs-loading{color:#f1d4e6}
+.cs-alert{background:#70334d;border:1px solid #f4a8b5;color:#ffe8eb}
+.cs-success{background:#36624c;border:1px solid #a2cfae;color:#edfff2}
+.cs-kicker{font-size:10px;letter-spacing:1.6px;color:#e8b2cc;font-weight:950}
+.cs-hero{display:flex;flex-direction:column;gap:10px;text-align:center;align-items:center;padding:20px 14px 24px;border:1px solid #a678a6;border-radius:25px;background:radial-gradient(ellipse at top,#a0537d77,transparent 60%),linear-gradient(140deg,#493151,#291d3b);box-shadow:0 15px 34px #130a205c;overflow:hidden}
+.cs-hero h1{font:600 clamp(33px,6.2vw,51px)/1.12 Georgia,serif;margin:3px 0 0;color:#fff2f8}
+.cs-hero h1 em{color:#ffafcd}
+.cs-hero>p{margin:0 0 5px;color:#e9cada;font-size:12px;line-height:1.5;max-width:420px}
+.cs-portrait{position:relative;width:min(100%,370px);aspect-ratio:5/4;border-radius:23px;overflow:hidden;border:3px solid #f4c6d8;box-shadow:0 12px 35px #190c287c;background:#63485f}
+.cs-photo-image{display:block;width:100%;height:100%;object-fit:cover;object-position:center}
+.cs-photo-empty{width:100%;height:100%;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,#a5678e,#503452 72%);color:#e9bdd4}
+.cs-photo-empty>span{font:500 91px/1 Georgia,serif;color:#ffbed9}
+.cs-photo-empty small{font-size:12px}
+.cs-photo-overlay{position:absolute;bottom:0;left:0;right:0;display:flex;gap:8px;justify-content:center;align-items:center;padding:21px 10px 12px;background:linear-gradient(transparent,#211226ef)}
+.cs-photo-overlay button{border:1px solid #f1c7dc;border-radius:11px;background:#b55f86;color:#fff;font-size:11px;font-weight:900;padding:10px 13px}
+.cs-photo-overlay button:disabled{opacity:.55}
+.cs-photo-overlay .cs-remove-photo{background:#50394e;border-color:#b58ba7}
+.cs-together-days{display:flex;flex-direction:column;align-items:center;gap:7px;margin-top:8px}
+.cs-together-days>span{font-size:27px;color:#ffa9c7;line-height:1}
+.cs-together-days>strong{font:600 clamp(21px,4.3vw,27px)/1.2 Georgia,serif}
+.cs-together-days>small{font-size:11px;color:#e8c6d7}
+.cs-panel{display:flex;flex-direction:column;gap:12px;padding:21px;border-radius:20px;border:1px solid #785d80;background:linear-gradient(130deg,#3b2a49,#30233e);box-shadow:0 7px 22px #0f081852}
+.cs-panel h2{margin:0;font:600 clamp(22px,4.5vw,28px)/1.2 Georgia,serif;color:#fff2f7}
+.cs-panel label{font-size:11px;font-weight:850;color:#e9c8da}
+.cs-panel input:not([type=checkbox]),.cs-panel textarea{width:100%;min-width:0;min-height:46px;border:1px solid #997595;border-radius:11px;background:#241a30;color:#fff2f7;padding:12px 13px;font-size:15px;font-family:inherit;outline-offset:2px}
+.cs-panel input[type=date]{color-scheme:dark}
+.cs-panel input::placeholder,.cs-panel textarea::placeholder{color:#ae93aa}
+.cs-panel textarea{resize:vertical;min-height:65px;line-height:1.5}
+.cs-inline-form{display:flex;align-items:center;gap:10px}
+.cs-inline-form>input{flex:1 1 auto}
+.cs-inline-form>button,.cs-panel button.cs-primary{border:0;border-radius:11px;background:linear-gradient(135deg,#f08eae,#bb527e);color:white;font-size:12px;font-weight:900;padding:13px 17px;min-height:46px;white-space:nowrap}
+.cs-panel button:disabled{opacity:.55}
+.cs-section-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cs-section-title>div{display:flex;flex-direction:column;gap:7px}
+.cs-section-title>button{flex:none;border:1px solid #e4b3d0;background:#775079;color:#fff4f8;border-radius:12px;padding:10px;font-size:11px;font-weight:850}
+.cs-event-form{display:flex;flex-direction:column;gap:9px;padding:14px;border-radius:15px;background:#251b34;border:1px solid #785c83}
+.cs-event-form .cs-check{display:flex;align-items:center;gap:10px;font-size:11px;line-height:1.5;cursor:pointer}
+.cs-check input{width:18px;height:18px;flex:none;accent-color:#d983ab}
+.cs-event-list{display:flex;flex-direction:column;gap:0}
+.cs-event{position:relative;display:flex;gap:12px;padding:17px 0 16px}
+.cs-event:not(:last-child){border-bottom:1px solid #7c5e80a8}
+.cs-event-mark{display:grid;place-items:center;flex:none;height:36px;width:36px;border-radius:13px;border:1px solid #b680ac;background:#654168;font-size:19px;color:#f1a2c9}
+.cs-event-content{display:flex;flex:1;min-width:0;flex-direction:column;gap:6px}
+.cs-event-content>span{font-size:10px;color:#e3b7cf}
+.cs-event-content>strong{font-size:15px;color:#fff1fa;overflow-wrap:anywhere}
+.cs-event-content>p{color:#ddc1d6;font-size:12px;line-height:1.6;margin:0;white-space:pre-line;overflow-wrap:anywhere}
+.cs-event-delete{align-self:start;flex:none;min-height:32px;min-width:32px;background:#51364b;border:1px solid #886b87;border-radius:9px;color:#f7cad9;font-size:23px;line-height:1}
+.cs-empty{border:1px dashed #80658b;border-radius:14px;background:#4a345267;padding:24px 18px;font-size:12px;line-height:1.7;text-align:center;color:#e4c6d8}
+.cs-crosslink{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;padding:18px;border-radius:16px;background:linear-gradient(125deg,#75456b,#463255);border:1px solid #b987ad;color:#ffeaf4;font-weight:850;font-size:13px}
+.cs-crosslink>span{font-size:20px;color:#ffe7aa}
+.cs-countdown{display:flex;flex-direction:column;align-items:center;text-align:center;gap:13px;padding:29px 17px 28px;border-radius:26px;border:1px solid #c18cad;background:radial-gradient(ellipse at 50% 45%,#b2578795,transparent 56%),linear-gradient(135deg,#583655,#332540);box-shadow:0 13px 34px #1709238a}
+.cs-countdown-hearts{font:500 36px/1 Georgia,serif;color:#ffa7c7;letter-spacing:13px;animation:cs-heartbeat 2.1s ease-in-out infinite alternate}
+@keyframes cs-heartbeat{to{transform:scale(1.07);filter:brightness(1.12)}}
+.cs-countdown h1{font:600 clamp(27px,5.5vw,41px)/1.22 Georgia,serif;max-width:500px;color:#fff5f9;margin:2px 0 4px}
+.cs-countdown h1 em{color:#f9b4d3}
+.cs-countdown-number{font:600 clamp(90px,18vw,142px)/1 Georgia,serif;color:#fff4f8;text-shadow:0 7px 18px #321233}
+.cs-countdown>p{font:600 clamp(17px,4vw,23px)/1.3 Georgia,serif;margin:0;color:#ffe3f0}
+.cs-countdown-date{max-width:100%;padding:10px 16px;background:#ffffff1d;border:1px solid #e1b8d061;border-radius:100px;color:#fff1f7;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.cs-countdown>small{max-width:420px;color:#d9b7d0;font-size:10px;line-height:1.6}
+.cs-panel .cs-secondary{min-height:42px;border:1px solid #ae87ac;background:#533c5d;color:#f4dce9;border-radius:11px;padding:12px 15px;font-size:11px;font-weight:850;text-align:center}
+.cs-anniversary-list{display:flex;flex-direction:column;gap:9px}
+.cs-anniversary-item{display:flex;gap:12px;align-items:center;padding:11px;border:1px solid #705879;border-radius:13px;background:#4b3459}
+.cs-anniversary-date{display:grid;place-items:center;gap:4px;flex:none;width:61px;min-height:59px;border:1px solid #e3a9be;border-radius:11px;background:#7c496c;color:#fff2f7}
+.cs-anniversary-date strong{font-size:13px;font-weight:900}
+.cs-anniversary-date small{font-size:10px;color:#ecd0dd}
+.cs-anniversary-item>div:last-child{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cs-anniversary-item>div:last-child strong{font-size:13px;line-height:1.3;overflow-wrap:anywhere}
+.cs-anniversary-item>div:last-child span{font-size:11px;color:#e0c1d7}
+.cs-credit{text-align:center;color:#b998b3;font-size:10px;line-height:1.5;padding:5px}
+.cs-credit strong{color:#e4bad1}
+@media(max-width:700px){
+ .cs-page{padding:8px 6px calc(95px + env(safe-area-inset-bottom));gap:13px}
+ .cs-header{padding:0 3px}
+ .cs-header>strong{font-size:10px}
+ .cs-header>button{font-size:11px}
+ .cs-hero{padding:18px 11px 20px;border-radius:21px}
+ .cs-hero h1{font-size:36px}
+ .cs-panel{padding:16px;border-radius:17px;gap:11px}
+ .cs-portrait{max-width:330px}
+ .cs-inline-form{gap:7px}
+ .cs-inline-form button{padding:10px;font-size:11px}
+ .cs-countdown{padding:23px 14px;border-radius:22px}
+ .cs-countdown-number{font-size:clamp(76px,21vw,120px)}
+ .cs-section-title h2{font-size:22px}
+ .cs-section-title>button{padding:9px 8px}
+}
+@media(max-width:360px){.cs-panel{padding:13px}.cs-hero h1{font-size:31px}.cs-photo-overlay button{font-size:10px;padding:8px}.cs-inline-form{flex-wrap:wrap}.cs-inline-form button{width:100%}}
+@media(prefers-reduced-motion:reduce){.cs-countdown-hearts{animation:none}}
