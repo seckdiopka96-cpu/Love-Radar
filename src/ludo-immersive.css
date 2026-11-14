@@ -140,3 +140,25 @@
 .ludo-die-holder:disabled{cursor:default}
 .ludo-die-holder:focus-visible{outline:2px solid #f9dd70;outline-offset:2px}
 .ludo-alert-pop{z-index:18;position:absolute;bottom:4px;left:8px;right:8px;padding:7px 10px;background:#6b2d51ed;border:1px solid #ffa9c0;color:#fff3f6;border-radius:8px;text-align:center;font-size:11px;font-weight:700;line-height:1.35;max-height:62px;overflow:hidden}
+
+/* Keep the board and its actual controls together as one game unit.
+   Any extra vertical space is shared above and below the unit, not between them. */
+.ludo-play-area{display:flex;flex:1 1 0;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:0;min-width:0;width:100%;overflow:hidden}
+.ludo-play-area>.ludo-stage{flex:0 1 auto;width:100%;height:min(calc(100vw - 34px),calc(100% - 151px));min-height:0;min-width:0;margin:0 auto}
+.ludo-play-area>.ludo-game-footer{flex:0 0 auto;width:100%;margin:0;max-width:650px}
+@media(min-width:951px){
+ .ludo-play-area>.ludo-stage{height:min(500px,calc(100% - 160px));max-width:550px}
+}
+@media(max-width:950px){
+ .ludo-play-area{gap:7px}
+ .ludo-play-area>.ludo-stage{height:min(calc(100vw - 24px),calc(100% - 145px))}
+}
+@media(max-height:700px) and (max-width:950px){
+ .ludo-play-area{gap:4px}
+ .ludo-play-area>.ludo-stage{height:min(calc(100vw - 24px),calc(100% - 122px))}
+}
+@media(max-height:500px) and (max-width:950px){
+ .ludo-play-area{flex-direction:row;align-items:center;justify-content:center;gap:7px}
+ .ludo-play-area>.ludo-stage{flex:1 1 56%;width:56%;height:100%;max-height:100%;margin:0}
+ .ludo-play-area>.ludo-game-footer{flex:0 0 40%;width:40%;max-width:40%;height:100%;margin:0}
+}
