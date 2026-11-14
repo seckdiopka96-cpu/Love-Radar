@@ -151,3 +151,14 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Les données privées sont chargées par les API existantes **après authentification**, vérifiées par room_id. L'identifiant dans le lien ne donne aucun accès sans le jeton valide du couple.
 - Les appels déjà terminés peuvent ne plus être disponibles ; les notifications ne garantissent pas que le destinataire soit encore joignable. Les notifications nécessitent VAPID configuré, un abonnement push et la permission iOS/Android.
 - Cache PWA actualisé pour que les liens de notification utilisent ce nouveau routage.
+
+## Memory Love 💞 — Deuxième jeu, en ligne à deux
+
+- Grille de 16 cartes (8 paires) aux symboles originaux. Les deux appareils voient le même plateau, les mêmes points et le même tour grâce à Cloudflare Pages Functions et D1 ; la composition des cartes cachées n'est jamais divulguée à l'interface.
+- Retrouver deux cartes identiques rapporte 1 point et permet de rejouer. Sinon, les cartes restent visibles environ 1,45 s puis le tour passe au partenaire. Le plus grand score à la fin des 8 paires remporte la manche ; une égalité ne déclenche pas de cadeau.
+- 30 secondes pour chaque action. Un joueur inactif est remplacé par un coup de l'ordinateur au prochain appel serveur : le bot ne connaît que les cartes déjà révélées au cours de la manche. Comme pour Ludo, sans téléphone actif, l'expiration se résout à la reprise des requêtes.
+- Avant **chaque** manche, les deux personnes lisent les règles, cochent leur compréhension, sélectionnent oui ou non pour le cadeau et signent avec leur nom de profil. Le serveur bloque les actions et le chrono avant la deuxième signature.
+- Cadeau amical uniquement si les deux optent pour oui : crédit téléphonique, Internet ou Wave 2 000 F CFA ; aucune transaction automatique.
+- Un bouton explicite « Lancer un défi » envoie une notification Push au partenaire, avec accès direct à Memory Love et à l'écran de signature ; au maximum une nouvelle invitation par minute et par manche.
+- L'écran reste fixe sur téléphone et le plateau est dimensionné pour rester visible. Le joueur peut revenir à l'accueil sans perdre sa partie, ou abandonner (victoire du partenaire).
+- D1 crée séparément `memory_games`, `memory_agreements`, `memory_gifts` et `memory_challenges` ; les données existantes de Ludo, du chat, de l'album et des appels restent inchangées.
