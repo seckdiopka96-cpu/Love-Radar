@@ -63,17 +63,17 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   if(!player)return fail("Session expirée, reconnecte-toi à Love Radar.",401);
   await ensureTable(db);
   const members=await countMembers(db,player.room_id);
-  if(members===2)await createIfMissing(db,player.room_id);
-  if(method==="GET"){
-   const g=members===2?await getGame(db,player.room_id):null;
-   return reply({ok:true,members,seat:player.seat,game:g?publicGame(g):null});
+  let g=members===2?await getGame(db,player.room_id):null;
+  if(members===2&&!g){
+   await createIfMissing(db,player.room_id);
+   g=await getGame(db,player.room_id);
   }
+  if(method==="GET")return reply({ok:true,members,seat:player.seat,game:g?publicGame(g):null});
   const text=await ctx.request.text();
   if(text.length>1024)return fail("Requête trop grande.",413);
   let data:Record<string,unknown>;
   try{data=JSON.parse(text) as Record<string,unknown>}catch{return fail("Requête invalide.")}
   if(members!==2)return fail("Il faut exactement deux partenaires pour jouer.",409);
-  const g=await getGame(db,player.room_id);
   if(!g)return fail("La partie n'est pas disponible.",503);
   if(!Number.isInteger(data.version)||data.version!==g.version)return fail("La partie a changé. Actualise le plateau.",409);
   const action=data.action;
