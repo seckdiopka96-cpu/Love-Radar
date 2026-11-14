@@ -60,7 +60,7 @@ function sniff(bytes:Uint8Array,mime:string){
     await bucket.put(id,bytes,{httpMetadata:{contentType:mime}});
     try{await db.prepare("INSERT INTO messages(id,room_id,sender_id,kind,object_key,mime,created_at) VALUES(?,?,?,?,?,?,?)").bind(id,u.room_id,u.id,kind,id,mime,now).run()}
     catch(e){await bucket.delete(id);throw e}
-    waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",kind==="image"?"Ton partenaire t’a envoyé une photo.":"Ton partenaire t’a envoyé un message vocal.","chat"));
+    waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",kind==="image"?"Ton partenaire t’a envoyé une photo.":"Ton partenaire t’a envoyé un message vocal.","chat",{kind:kind==="image"?"photo":"audio",id}));
     return Response.json({ok:true,id},{headers:{"Cache-Control":"no-store"}});
    }catch(e){console.error("media upload",e);return no("Envoi impossible. Réessaie.",500)}
   }

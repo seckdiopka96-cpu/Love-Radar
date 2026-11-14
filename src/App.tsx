@@ -19,6 +19,24 @@ const NAV: {id:Tab;label:string;icon:string}[] = [
  {id:"memories",label:"Souvenirs",icon:"✦"},
 ];
 const HEARTS = ["♡","♥","✦","♡","♥"];
+
+type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge";
+type NoticeTarget={tab:Tab;kind:NoticeKind|null;id:string|null};
+const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge"]);
+function parseNotice(search:string):NoticeTarget|null{
+ const q=new URLSearchParams(search);
+ const tab=q.get("tab");
+ if(tab!=="home"&&tab!=="chat"&&tab!=="ludo"&&tab!=="memories")return null;
+ const kind=q.get("kind"),id=q.get("id");
+ if(!kind||!NOTICE_KINDS.has(kind)||!id||!/^[0-9a-f-]{36}$/i.test(id))return {tab,kind:null,id:null};
+ return {tab:kind==="ludo-challenge"?"ludo":"chat",kind:kind as NoticeKind,id};
+}
+function noticeUrl(target:NoticeTarget){
+ const q=new URLSearchParams({tab:target.tab});
+ if(target.kind&&target.id){q.set("kind",target.kind);q.set("id",target.id)}
+ return "/?"+q.toString();
+}
+
 function Initials({name,size="normal"}:{name:string;size?:"normal"|"small"}) {
  return <div className={"lr-avatar "+(size==="small"?"lr-avatar-sm":"")}>{name.trim().slice(0,1).toUpperCase()||"♡"}</div>;
 }
@@ -29,7 +47,27 @@ export default function LoveRadar(){
  const [joinMode,setJoinMode]=useState(false);
  const [name,setName]=useState("");
  const [code,setCode]=useState("");
- const [tab,setTab]=useState<Tab>("home");
+ const [tab,setTab]=useState<Tab>(()=>parseNotice(window.location.search)?.tab||"home");
+ const [noticeTarget,setNoticeTarget]=useState<NoticeTarget|null>(()=>parseNotice(window.location.search));
+ const [focusMessage,setFocusMessage]=useState<Message|null>(null);
+ const [focusLoading,setFocusLoading]=useState(false);
+ const [focusError,setFocusError]=useState("");
+ const [focusMedia,setFocusMedia]=useState("");
+ const focusAsset=useRef("");
+ function closeNotice(){
+  setNoticeTarget(null);
+  setFocusMessage(null);
+  setFocusError("");
+  if(focusAsset.current){URL.revokeObjectURL(focusAsset.current);focusAsset.current="";setFocusMedia("")}
+  const url=new URL(window.location.href);
+  url.searchParams.delete("kind");url.searchParams.delete("id");
+  window.history.replaceState(null,"",url.pathname+(url.search||""));
+ }
+ function navigate(tab:Tab){
+  closeNotice();
+  setTab(tab);
+  firstPoll.current=true;
+ }
  const [draft,setDraft]=useState("");
  const [chatFocused,setChatFocused]=useState(false);
  const chatScroller=useRef<HTMLDivElement|null>(null);
@@ -149,14 +187,63 @@ export default function LoveRadar(){
  }
  useEffect(()=>{
   const onMessage=(event:MessageEvent)=>{
-   const next=event.data?.tab;
-   if(next==="chat"||next==="ludo"||next==="home"){setTab(next);firstPoll.current=true}
+   const data=event.data;
+   if(data?.type==="love-radar-open-notification"){
+    const dest=parseNotice(new URL(noticeUrl({tab:data.tab,kind:data.kind,id:data.id}),window.location.origin).search);
+    if(dest){
+     window.history.replaceState(null,"",noticeUrl(dest));
+     setNoticeTarget(dest);
+     setTab(dest.tab);firstPoll.current=true;
+    }
+   }else if(["chat","ludo","home","memories"].includes(data?.tab)){
+    const dest=data.tab as Tab;
+    setTab(dest);setNoticeTarget({tab:dest,kind:null,id:null});firstPoll.current=true;
+   }
+  };
+  const onRoute=()=>{
+   const dest=parseNotice(window.location.search);
+   if(dest){setNoticeTarget(dest);setTab(dest.tab);firstPoll.current=true}
   };
   navigator.serviceWorker?.addEventListener("message",onMessage);
-  const tabFromUrl=new URLSearchParams(location.search).get("tab");
-  if(tabFromUrl==="chat"||tabFromUrl==="ludo"||tabFromUrl==="home")setTab(tabFromUrl);
-  return()=>navigator.serviceWorker?.removeEventListener("message",onMessage);
+  window.addEventListener("popstate",onRoute);
+  return()=>{
+   navigator.serviceWorker?.removeEventListener("message",onMessage);
+   window.removeEventListener("popstate",onRoute);
+  };
  },[]);
+
+ useEffect(()=>{
+  const id=noticeTarget?.id,kind=noticeTarget?.kind;
+  if(!token||!room||!id||!["message","photo","audio"].includes(kind||""))return;
+  let cancelled=false;
+  const controller=new AbortController();
+  setFocusLoading(true);setFocusMessage(null);setFocusError("");
+  void (async()=>{
+   try{
+    const res=await fetch("/api/love?messageId="+encodeURIComponent(id),{headers:{Authorization:"Bearer "+token},cache:"no-store",signal:controller.signal});
+    const data=await res.json() as {ok:boolean;focusMessage?:Message|null;error?:string};
+    if(!res.ok||!data.ok)throw Error(data.error||"Ce message n’est pas disponible.");
+    if(!data.focusMessage)throw Error("Ce contenu n’est plus disponible dans cet espace.");
+    if(!cancelled)setFocusMessage(data.focusMessage);
+   }catch(err){if(!cancelled)setFocusError(err instanceof Error?err.message:"Impossible d’ouvrir le contenu.")}
+   finally{if(!cancelled)setFocusLoading(false)}
+  })();
+  return()=>{cancelled=true;controller.abort()};
+ },[token,room?.roomId,noticeTarget?.id,noticeTarget?.kind]);
+ useEffect(()=>{
+  const m=focusMessage;
+  if(!m||!m.object_key)return;
+  const controller=new AbortController();
+  let cancelled=false;
+  if(focusAsset.current){URL.revokeObjectURL(focusAsset.current);focusAsset.current="";}
+  setFocusMedia("");
+  void fetch("/api/media?id="+encodeURIComponent(m.object_key),{headers:{Authorization:"Bearer "+token},signal:controller.signal})
+   .then(res=>{if(!res.ok)throw Error("Média indisponible");return res.blob()})
+   .then(blob=>{if(cancelled)return;const url=URL.createObjectURL(blob);focusAsset.current=url;setFocusMedia(url)})
+   .catch(()=>{if(!cancelled)setFocusError("Ce média n’est plus disponible.")});
+  return()=>{cancelled=true;controller.abort();if(focusAsset.current){URL.revokeObjectURL(focusAsset.current);focusAsset.current="";}}
+ },[focusMessage?.id,token]);
+
  useEffect(()=>{
   if(!token||!room)return;
   if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window))return;
@@ -191,7 +278,7 @@ export default function LoveRadar(){
    const saved=await response.json() as {ok:boolean,error?:string};
    if(!saved.ok)throw Error(saved.error||"Activation impossible.");
    setNotificationsOn(true);
-   setNotificationsHint("Activées ❤️ Tu recevras une alerte lorsque ton partenaire t’écrit.");
+   setNotificationsHint("Activées ❤️ Messages, appels et défis Ludo ouvriront directement leur contenu.");
   }catch(e){setNotificationsHint(e instanceof Error?e.message:"Activation impossible. Réessaie.")}
   finally{setNotificationsBusy(false)}
  }
@@ -417,12 +504,12 @@ export default function LoveRadar(){
   </main>:
   <div className="lr-shell">
    <aside className="lr-sidebar"><div className="lr-sidebar-top"><span className="lr-side-label">VOTRE PETIT UNIVERS</span><div className="lr-couple"><Initials name={room.user.name}/><span className="lr-couple-mid">♥</span><Initials name={partner}/></div><h2>{room.user.name}<span> &amp; </span>{partner}</h2><p>{room.partner?"La belle aventure continue…":"En attente de ta moitié."}</p></div>
-    <div className="lr-side-nav">{NAV.map(n=><button key={n.id} className={tab===n.id?"active":""} onClick={()=>{setTab(n.id);firstPoll.current=true}}><span>{n.id==="ludo"?<DiceFace value={4} size="mini"/>:n.icon}</span>{n.label}{n.id==="chat"&&room.messages.length>0?<small>{room.messages.length}</small>:null}</button>)}</div>
+    <div className="lr-side-nav">{NAV.map(n=><button key={n.id} className={tab===n.id?"active":""} onClick={()=>navigate(n.id)}><span>{n.id==="ludo"?<DiceFace value={4} size="mini"/>:n.icon}</span>{n.label}{n.id==="chat"&&room.messages.length>0?<small>{room.messages.length}</small>:null}</button>)}</div>
     <div className="lr-sidebar-bottom"><div className="lr-side-heart">♡</div>Vos messages et vos souvenirs, toujours à portée de main.</div>
    </aside>
    <main className="lr-main">
-    {tab==="home"?<HomeDashboard room={room} token={token} media={media} onInvite={()=>void shareCode()} onNavigate={setTab}/>:null}
-    {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>setTab("home")}/>:null}
+    {tab==="home"?<HomeDashboard room={room} token={token} media={media} onInvite={()=>void shareCode()} onNavigate={navigate}/>:null}
+    {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("home")} challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}/>:null}
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">
       <div className="lr-chat-partner"><Initials name={partner} size="small"/>
@@ -472,10 +559,23 @@ export default function LoveRadar(){
       </form>
      </div>
     </section>:null}
-    {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Retrouvez les photos partagées dans votre conversation.</p></div><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>setTab("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<img src={media[m.id]} alt="Souvenir du couple"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
+    {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Retrouvez les photos partagées dans votre conversation.</p></div><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>navigate("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<img src={media[m.id]} alt="Souvenir du couple"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
    </main>
    {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} hasPartner={Boolean(room.partner)} showButton={tab==="chat"}/>:null}
-   <nav className="lr-mobile-nav" aria-label="Navigation du couple">{NAV.map(n=><button key={n.id} className={tab===n.id?"active":""} onClick={()=>{setTab(n.id);firstPoll.current=true}}><span>{n.id==="ludo"?<DiceFace value={4} size="mini"/>:n.icon}</span><small>{n.label}</small></button>)}</nav>
+   {room&&token&&tab==="chat"&&noticeTarget?.id&&["message","photo","audio"].includes(noticeTarget.kind||"")?<div className="lr-push-focus-backdrop" role="dialog" aria-modal="true" aria-label="Contenu de la notification">
+    <div className="lr-push-focus-card">
+     <div className="lr-push-focus-header"><strong>{noticeTarget.kind==="photo"?"📸 Photo reçue":noticeTarget.kind==="audio"?"🎙️ Message vocal reçu":"💌 Message reçu"}</strong><button type="button" onClick={closeNotice} aria-label="Fermer le contenu">×</button></div>
+     {focusLoading?<p>Ouverture du contenu…</p>:focusError?<p role="alert">{focusError}</p>:focusMessage?
+       <div className="lr-push-focus-content">
+        {focusMessage.kind==="text"?<p className="lr-push-focus-text">{focusMessage.content}</p>:focusMessage.kind==="image"?
+         focusMedia?<img src={focusMedia} alt="Photo reçue de ton partenaire"/>:<p>Chargement de la photo…</p>:
+         focusMedia?<audio src={focusMedia} controls preload="metadata"/>:<p>Chargement du message vocal…</p>}
+        <small>{new Date(focusMessage.created_at).toLocaleString("fr-FR",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})}</small>
+       </div>:<p>Ce contenu n’est pas disponible.</p>}
+     <button type="button" className="lr-push-focus-open-chat" onClick={closeNotice}>Voir la conversation</button>
+    </div>
+   </div>:null}
+   <nav className="lr-mobile-nav" aria-label="Navigation du couple">{NAV.map(n=><button key={n.id} className={tab===n.id?"active":""} onClick={()=>navigate(n.id)}><span>{n.id==="ludo"?<DiceFace value={4} size="mini"/>:n.icon}</span><small>{n.label}</small></button>)}</nav>
   </div>}
  </div>;
 }

@@ -22,6 +22,15 @@ export function validPushEndpoint(raw:string): boolean {
 }
 
 type StoredSub={endpoint:string,p256dh:string,auth:string};
+export type PushTarget={kind:"message"|"photo"|"audio"|"call"|"ludo-challenge";id:string};
+function notificationRoute(tab:"chat"|"home"|"ludo"|"memories",target?:PushTarget){
+ const route=new URLSearchParams({tab});
+ if(target&&/^[0-9a-f-]{36}$/i.test(target.id)){
+  route.set("kind",target.kind);
+  route.set("id",target.id);
+ }
+ return "/?"+route.toString();
+}
 
 export async function notifyPartner(
   env:PushEnv,
@@ -29,7 +38,8 @@ export async function notifyPartner(
   fromId:string,
   title:string,
   body:string,
-  tab:"chat"|"home"="chat"
+  tab:"chat"|"home"|"ludo"|"memories"="chat",
+  target?:PushTarget
 ): Promise<void> {
   if(!env.DB || !env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY)return;
   try {
@@ -42,7 +52,7 @@ export async function notifyPartner(
       publicKey:env.VAPID_PUBLIC_KEY,
       privateKey:env.VAPID_PRIVATE_KEY
     };
-    const data=JSON.stringify({title,body,tab,url:"/?tab="+tab,kind:tab==="chat"?"message":"notice"});
+    const data=JSON.stringify({title,body,tab,url:notificationRoute(tab,target),kind:target?.kind||(tab==="chat"?"message":"notice"),id:target?.id||null});
     await Promise.allSettled(result.results.filter(s=>validPushEndpoint(s.endpoint)).map(async sub=>{
       try{
         const payload=await buildPushPayload(

@@ -13,8 +13,9 @@ const GIFT_OPTIONS:{id:GiftChoice;label:string;detail:string}[]=[{id:"credit",la
 const giftLabel=(choice:GiftChoice|null|undefined)=>GIFT_OPTIONS.find(item=>item.id===choice)?.label||"Cadeau à choisir";
 type Reaction={seat:number;emoji:string;at:number};
 type PawnMotion={seat:number;pawn:number;progress:number};
-type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;gift?:Gift|null;agreement?:Agreement|null;serverNow?:number};
-type Props={token:string;mySeat:number;myName:string;partnerName:string|null;onExit:()=>void};
+type Challenge={gameId:string;fromId:string;fromName:string;sentAt:number};
+type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;gift?:Gift|null;agreement?:Agreement|null;challenge?:Challenge|null;notificationRequested?:boolean;serverNow?:number};
+type Props={token:string;mySeat:number;myName:string;partnerName:string|null;onExit:()=>void;challengeId?:string|null};
 const key=(r:number,c:number)=>r+"-"+c;
 const TRACK:Point[]=[
  ...[1,2,3,4,5].map(c=>[6,c] as Point),
@@ -58,12 +59,15 @@ function PawnShape({index}:{index:number}){
  </svg>;
 }
 
-export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
+export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId}:Props){
  const [game,setGame]=useState<Game|null>(null);
  const [members,setMembers]=useState(0);
  const [reaction,setReaction]=useState<Reaction|null>(null);
  const [gift,setGift]=useState<Gift|null>(null);
  const [agreement,setAgreement]=useState<Agreement|null>(null);
+ const [challenge,setChallenge]=useState<Challenge|null>(null);
+ const [challengeBusy,setChallengeBusy]=useState(false);
+ const [challengeHint,setChallengeHint]=useState("");
  const [signature,setSignature]=useState("");
  const [rulesAccepted,setRulesAccepted]=useState(false);
  const [giftPreference,setGiftPreference]=useState<"yes"|"no"|"">("");
@@ -175,6 +179,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
    setReaction(data.reaction||null);
    setGift(data.gift||null);
    setAgreement(data.agreement||null);
+   setChallenge(data.challenge||null);
    if(typeof data.serverNow==="number")setClockOffset(data.serverNow-Date.now());
    setError("");
   }catch(e){if(isActive.current)setError(e instanceof Error?e.message:"Connexion au jeu impossible.")}
@@ -258,6 +263,20 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
    setGiftOpen(false);
   }catch(e){setError(e instanceof Error?e.message:"Erreur cadeau.");}
   finally{setGiftBusy(false)}
+ }
+
+ async function sendChallenge(){
+  if(challengeBusy||!game||agreement?.startedAt)return;
+  setChallengeBusy(true);setChallengeHint("");setError("");
+  try{
+   const response=await fetch("/api/ludo",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    body:JSON.stringify({action:"challenge"})});
+   const data=await response.json() as ResponseData;
+   if(!response.ok||!data.ok)throw Error(data.error||"Impossible d’envoyer le défi.");
+   if(data.challenge)setChallenge(data.challenge);
+   setChallengeHint("Défi envoyé ! Ton partenaire recevra une notification s’il les a activées.");
+  }catch(e){setChallengeHint(e instanceof Error?e.message:"Envoi impossible.")}
+  finally{setChallengeBusy(false)}
  }
 
  async function signRules(){
@@ -427,6 +446,8 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
   {mustSign?<div className="ludo-agreement-backdrop">
    <div className="ludo-agreement-dialog" role="dialog" aria-modal="true" aria-label="Règles et signature avant la partie">
     <div className="ludo-agreement-heading"><span className="ludo-agreement-icon">📜</span><div><h2>Avant de jouer</h2><p>Règles et accord des deux partenaires</p></div></div>
+    {challengeId&&game?.id!==challengeId?<div className="ludo-challenge-alert" role="status">⏳ Le défi de cette notification n’est plus actif. Voici la manche actuelle.</div>:null}
+    {challenge?.gameId===game?.id&&challenge?.fromName!==myName?<div className="ludo-challenge-alert" role="status">🎲 {challenge.fromName} t’a lancé un défi ! Lis et signe pour le rejoindre.</div>:null}
     <div className="ludo-agreement-status">
      {[0,1].map(seat=><div key={seat} className={"ludo-agreement-player"+(agreement?.signed[seat]?" is-signed":"")}>
        <span>{agreement?.signed[seat]?"✓":"✎"}</span>
@@ -461,6 +482,8 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
       <p>Ton choix cadeau : <strong>{agreement?.giftChoices[mySeat]?"Accepté 🎁":"Sans cadeau"}</strong></p>
      </div>
     </>}
+    <button type="button" className="ludo-challenge-send" disabled={challengeBusy} onClick={()=>void sendChallenge()}>{challengeBusy?"Envoi…":"🎲 Lancer un défi à mon partenaire"}</button>
+    {challengeHint?<p className="ludo-challenge-hint" role="status">{challengeHint}</p>:null}
     {error?<div className="ludo-agreement-error" role="alert">{error}</div>:null}
     <button type="button" className="ludo-agreement-exit" onClick={onExit}>← Retour à l’accueil</button>
     <p className="ludo-agreement-footnote">Signature enregistrée dans votre espace privé pour cette manche uniquement.</p>

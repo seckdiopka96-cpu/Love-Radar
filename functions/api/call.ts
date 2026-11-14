@@ -77,7 +77,7 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
    const call=await activeCall(db,u.room_id);
    if(!call)return fail("Impossible de démarrer l’appel.",503);
    if(created.meta.changes){
-    waitUntil(notifyPartner(env,u.room_id,u.id,"📞 Appel Love Radar",u.name+" t’appelle. Ouvre Love Radar pour répondre.","chat"));
+    waitUntil(notifyPartner(env,u.room_id,u.id,"📞 Appel Love Radar",u.name+" t’appelle. Appuie pour répondre.","chat",{kind:"call",id:call.id}));
    }
    return response({ok:true,call:view(call,u),already:!created.meta.changes});
   }
