@@ -20,7 +20,7 @@ function pathOf(points:number[][]){
  return points.map((p,i)=>(i===0?"M":"L")+p[0]+" "+p[1]).join(" ");
 }
 export default function Together({token,myName,partnerName,mySeat,onExit,focusKind,focusId}:Props){
- const [mode,setMode]=useState<Mode>(()=>focusKind==="draw-invite"?"draw":"heart");
+ const [mode,setMode]=useState<Mode>(()=>focusKind==="draw-invite"||new URLSearchParams(window.location.search).get("mode")==="draw"?"draw":"heart");
  const [signals,setSignals]=useState<Signal[]>([]);
  const [focused,setFocused]=useState<Signal|null>(null);
  const [onlyFocused,setOnlyFocused]=useState(Boolean(focusKind==="love-signal"&&focusId));

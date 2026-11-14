@@ -69,12 +69,13 @@ export default function LoveRadar(){
   url.searchParams.delete("kind");url.searchParams.delete("id");
   window.history.replaceState(null,"",url.pathname+(url.search||""));
  }
- function navigate(tab:Tab){
+ function navigate(tab:Tab,feature?:"heart"|"draw"){
   closeNotice();
   setTab(tab);
   const url=new URL(window.location.href);
   url.searchParams.set("tab",tab);
-  url.searchParams.delete("kind");url.searchParams.delete("id");
+  url.searchParams.delete("kind");url.searchParams.delete("id");url.searchParams.delete("mode");
+  if(tab==="together"&&feature)url.searchParams.set("mode",feature);
   window.history.replaceState(null,"",url.pathname+url.search);
   firstPoll.current=true;
  }
