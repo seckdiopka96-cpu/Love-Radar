@@ -59,3 +59,17 @@
 .lr-home-memory-copy>span{font-size:11px;line-height:1.45;color:#f9e3ef}
 .lr-home-memory-copy b{font-size:11px;color:#ffdaac}
 @media(max-width:600px){.lr-home-memory{gap:9px;padding:14px 12px;min-height:108px}.lr-home-memory-icons{font-size:27px;min-width:86px;letter-spacing:0}.lr-home-memory-copy strong{font-size:19px}.lr-home-memory-copy>span{font-size:10px}}
+
+/* Our shared daily question deserves the first home slot. */
+.lr-home-daily{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:100%;margin:16px 0 20px;padding:18px 19px;text-align:left;border:1px solid #e5a9c6;border-radius:22px;background:radial-gradient(circle at top right,#e890b56b,transparent 49%),linear-gradient(135deg,#6a3865,#8f496e 66%,#70415f);box-shadow:0 12px 28px #27112861;color:#fff2f7;transition:transform .15s ease,box-shadow .15s ease}
+.lr-home-daily:hover{transform:translateY(-2px);box-shadow:0 15px 30px #27112888}
+.lr-home-daily-kicker{font-size:9px;color:#ffe2e9;font-weight:950;letter-spacing:1.3px}
+.lr-home-daily-line{display:flex;align-items:center;gap:12px}
+.lr-home-daily-icon{height:55px;width:55px;border-radius:17px;display:grid;place-items:center;flex:none;background:#ffffff27;border:1px solid #ffe2ea65;font-size:30px}
+.lr-home-daily-content{display:flex;flex-direction:column;gap:5px;flex:1;min-width:0}
+.lr-home-daily-content strong{font:600 clamp(21px,4vw,26px)/1.1 Georgia,serif;color:#fff5f9}
+.lr-home-daily-content>span{font-size:11px;line-height:1.5;color:#f8d9e7}
+.lr-home-daily-arrow{font-size:21px;color:#ffe0ad}
+.lr-home-daily-question{font:italic 15px/1.55 Georgia,serif;color:#fff0f6;border-left:2px solid #ffd4de99;padding:4px 0 4px 12px}
+.lr-home-daily-cta{font-size:11px;font-weight:900;color:#ffe5ab}
+@media(max-width:600px){.lr-home-daily{padding:15px 13px;gap:10px}.lr-home-daily-icon{height:44px;width:44px;border-radius:13px;font-size:25px}.lr-home-daily-content strong{font-size:21px}.lr-home-daily-content>span{font-size:10px}}
