@@ -7,24 +7,27 @@ import DailyMoment from "./DailyMoment";
 import Together from "./Together";
 import LocationShare from "./LocationShare";
 import HomeDashboard from "./HomeDashboard";
-import DiceFace from "./DiceFace";
+import GamesHub from "./GamesHub";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
-type Tab = "home" | "together" | "location" | "moment" | "ludo" | "memory" | "chat" | "memories";
+type Tab = "home" | "together" | "location" | "moment" | "games" | "ludo" | "memory" | "chat" | "memories";
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number};
 type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];partnerReadAt?:number;partnerTypingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
 
 
 const NAV: {id:Tab;label:string;icon:string}[] = [
- {id:"home",label:"Accueil",icon:"♡"},
- {id:"moment",label:"Moment",icon:"💌"},
- {id:"together",label:"Ensemble",icon:"💗"},
- {id:"ludo",label:"Ludo",icon:"🎲"},
- {id:"memory",label:"Memory",icon:"🃏"},
+ {id:"home",label:"Accueil",icon:"⌂"},
  {id:"chat",label:"Messages",icon:"✉"},
+ {id:"together",label:"Ensemble",icon:"♡"},
+ {id:"games",label:"Jeux",icon:"🎮"},
  {id:"memories",label:"Souvenirs",icon:"✦"},
 ];
+function selectedNav(tab:Tab):Tab {
+ if(tab==="moment"||tab==="location")return "together";
+ if(tab==="ludo"||tab==="memory")return "games";
+ return tab;
+}
 const HEARTS = ["♡","♥","✦","♡","♥"];
 
 type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"daily-question"|"love-signal"|"draw-invite"|"location-request";
@@ -33,7 +36,7 @@ const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","m
 function parseNotice(search:string):NoticeTarget|null{
  const q=new URLSearchParams(search);
  const tab=q.get("tab");
- if(tab!=="home"&&tab!=="moment"&&tab!=="together"&&tab!=="location"&&tab!=="chat"&&tab!=="ludo"&&tab!=="memory"&&tab!=="memories")return null;
+ if(tab!=="home"&&tab!=="moment"&&tab!=="together"&&tab!=="location"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo"&&tab!=="memory"&&tab!=="memories")return null;
  const kind=q.get("kind"),id=q.get("id");
  if(!kind||!NOTICE_KINDS.has(kind)||!id||!(/^[0-9a-f-]{36}$/i.test(id)||(kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(id))))return {tab,kind:null,id:null};
  return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":kind==="daily-question"?"moment":kind==="love-signal"||kind==="draw-invite"?"together":kind==="location-request"?"location":"chat",kind:kind as NoticeKind,id};
@@ -207,7 +210,7 @@ export default function LoveRadar(){
      setNoticeTarget(dest);
      setTab(dest.tab);firstPoll.current=true;
     }
-   }else if(["chat","ludo","memory","moment","together","location","home","memories"].includes(data?.tab)){
+   }else if(["chat","games","ludo","memory","moment","together","location","home","memories"].includes(data?.tab)){
     const dest=data.tab as Tab;
     setTab(dest);setNoticeTarget({tab:dest,kind:null,id:null});firstPoll.current=true;
    }
@@ -523,16 +526,17 @@ export default function LoveRadar(){
    </main>:
   <div className="lr-shell">
    <aside className="lr-sidebar"><div className="lr-sidebar-top"><span className="lr-side-label">VOTRE PETIT UNIVERS</span><div className="lr-couple"><Initials name={room.user.name}/><span className="lr-couple-mid">♥</span><Initials name={partner}/></div><h2>{room.user.name}<span> &amp; </span>{partner}</h2><p>{room.partner?"La belle aventure continue…":"En attente de ta moitié."}</p></div>
-    <div className="lr-side-nav">{NAV.map(n=><button key={n.id} className={tab===n.id?"active":""} onClick={()=>navigate(n.id)}><span>{n.id==="ludo"?<DiceFace value={4} size="mini"/>:n.icon}</span>{n.label}{n.id==="chat"&&room.messages.length>0?<small>{room.messages.length}</small>:null}</button>)}</div>
+    <div className="lr-side-nav">{NAV.map(n=><button key={n.id} className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} onClick={()=>navigate(n.id)}><span aria-hidden="true">{n.icon}</span>{n.label}{n.id==="chat"&&room.messages.length>0?<small>{room.messages.length}</small>:null}</button>)}</div>
     <div className="lr-sidebar-bottom"><div className="lr-side-heart">♡</div>Vos messages et vos souvenirs, toujours à portée de main.</div>
    </aside>
    <main className="lr-main">
     {tab==="home"?<HomeDashboard room={room} token={token} media={media} onInvite={()=>void shareCode()} onNavigate={navigate}/>:null}
-    {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("home")} focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
-    {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenLocation={()=>navigate("location")} focusKind={noticeTarget?.kind==="love-signal"||noticeTarget?.kind==="draw-invite"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"||noticeTarget?.kind==="draw-invite"?noticeTarget.id:null}/>:null}
-    {tab==="location"?<LocationShare token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("home")} focusId={noticeTarget?.kind==="location-request"?noticeTarget.id:null}/>:null}
-    {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("home")} challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}/>:null}
-    {tab==="memory"?<MemoryLove token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("home")} challengeId={noticeTarget?.kind==="memory-challenge"?noticeTarget.id:null}/>:null}
+    {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
+    {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenLocation={()=>navigate("location")} focusKind={noticeTarget?.kind==="love-signal"||noticeTarget?.kind==="draw-invite"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"||noticeTarget?.kind==="draw-invite"?noticeTarget.id:null}/>:null}
+    {tab==="location"?<LocationShare token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusId={noticeTarget?.kind==="location-request"?noticeTarget.id:null}/>:null}
+    {tab==="games"?<GamesHub onOpenGame={game=>navigate(game)} partnerName={room.partner}/>:null}
+    {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}/>:null}
+    {tab==="memory"?<MemoryLove token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} challengeId={noticeTarget?.kind==="memory-challenge"?noticeTarget.id:null}/>:null}
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">
       <div className="lr-chat-partner"><Initials name={partner} size="small"/>
@@ -598,7 +602,7 @@ export default function LoveRadar(){
      <button type="button" className="lr-push-focus-open-chat" onClick={closeNotice}>Voir la conversation</button>
     </div>
    </div>:null}
-   <nav className="lr-mobile-nav" aria-label="Navigation du couple">{NAV.map(n=><button key={n.id} className={tab===n.id?"active":""} onClick={()=>navigate(n.id)}><span>{n.id==="ludo"?<DiceFace value={4} size="mini"/>:n.icon}</span><small>{n.label}</small></button>)}</nav>
+   <nav className="lr-mobile-nav" aria-label="Navigation principale à cinq onglets">{NAV.map(n=><button key={n.id} type="button" className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} onClick={()=>navigate(n.id)}><span aria-hidden="true">{n.icon}</span><small>{n.label}</small></button>)}</nav>
   </div>}
  </div>;
 }

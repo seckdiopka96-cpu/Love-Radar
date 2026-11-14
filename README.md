@@ -227,3 +227,11 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - La barre est placée en haut afin de ne pas cacher le champ de saisie et le clavier iPhone. L'audio reste lié au composant VoiceCall toujours monté tant que le couple est connecté.
 - Cela ne permet pas de maintenir un appel en arrière-plan lorsque l'application iOS elle-même est fermée, verrouillée ou suspendue. Garder Love Radar à l'écran.
 - Pas de changement au serveur d'appel ni aux permissions micro ; cache PWA v27 pour activer les nouveaux contrôles.
+
+## Navigation mobile simplifiée : 5 onglets
+
+- La barre inférieure ne contient désormais que « Accueil », « Messages », « Ensemble », « Jeux » et « Souvenirs », tous de taille égale sur iPhone.
+- « Jeux » est un écran de sélection avec Ludo Duo et Memory Love. Le bouton retour de chaque jeu mène à cette sélection.
+- « Ensemble » regroupe le bouton « Tu me manques », le tableau partagé, le « Moment du jour » et « Notre position ». Le retour des pages Moment/Position mène à Ensemble.
+- Les anciens liens directs et notifications vers Ludo, Memory, Moment, Position, cœurs et dessin restent fonctionnels. L'onglet parent est sélectionné dans la barre du bas.
+- La barre latérale sur ordinateur utilise la même organisation en cinq destinations. Aucune donnée de jeu ou de conversation ne change. Cache PWA v28.
