@@ -68,6 +68,13 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
  const [rulesAccepted,setRulesAccepted]=useState(false);
  const [giftPreference,setGiftPreference]=useState<"yes"|"no"|"">("");
  const [signBusy,setSignBusy]=useState(false);
+ // A new match always requires a fresh read, choice and signature.
+ useEffect(()=>{
+  setSignature("");
+  setRulesAccepted(false);
+  setGiftPreference("");
+  setGiftOpen(false);
+ },[game?.id]);
  const [giftOpen,setGiftOpen]=useState(false);
  const [giftBusy,setGiftBusy]=useState(false);
  const [clock,setClock]=useState(Date.now());
