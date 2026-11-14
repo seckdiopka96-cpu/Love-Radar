@@ -7,12 +7,13 @@ import {useLudoSounds} from "./ludo-sounds";
 type Point=[number,number];
 type Game={id:string;version:number;turn:number;dice:number|null;positions:number[][];status:"playing"|"won";winner:number|null;lastAction:string;updatedAt:number;deadlineAt:number|null};
 type Gift={consents:[boolean,boolean];choice:"credit"|"internet"|"wave2000"|null;chosenBy:number|null;given:boolean};
+type Agreement={signed:[boolean,boolean];names:[string|null,string|null];giftChoices:[boolean|null,boolean|null];signedAt:[number|null,number|null];startedAt:number|null};
 type GiftChoice="credit"|"internet"|"wave2000";
 const GIFT_OPTIONS:{id:GiftChoice;label:string;detail:string}[]=[{id:"credit",label:"📱 Crédit téléphonique",detail:"Recharge à offrir"},{id:"internet",label:"🌐 Connexion Internet",detail:"Forfait Internet à offrir"},{id:"wave2000",label:"💸 Wave 2 000 F CFA",detail:"Cadeau à envoyer séparément"}];
 const giftLabel=(choice:GiftChoice|null|undefined)=>GIFT_OPTIONS.find(item=>item.id===choice)?.label||"Cadeau à choisir";
 type Reaction={seat:number;emoji:string;at:number};
 type PawnMotion={seat:number;pawn:number;progress:number};
-type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;gift?:Gift|null;serverNow?:number};
+type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;gift?:Gift|null;agreement?:Agreement|null;serverNow?:number};
 type Props={token:string;mySeat:number;myName:string;partnerName:string|null;onExit:()=>void};
 const key=(r:number,c:number)=>r+"-"+c;
 const TRACK:Point[]=[
@@ -62,6 +63,18 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
  const [members,setMembers]=useState(0);
  const [reaction,setReaction]=useState<Reaction|null>(null);
  const [gift,setGift]=useState<Gift|null>(null);
+ const [agreement,setAgreement]=useState<Agreement|null>(null);
+ const [signature,setSignature]=useState("");
+ const [rulesAccepted,setRulesAccepted]=useState(false);
+ const [giftPreference,setGiftPreference]=useState<"yes"|"no"|"">("");
+ const [signBusy,setSignBusy]=useState(false);
+ // A new match always requires a fresh read, choice and signature.
+ useEffect(()=>{
+  setSignature("");
+  setRulesAccepted(false);
+  setGiftPreference("");
+  setGiftOpen(false);
+ },[game?.id]);
  const [giftOpen,setGiftOpen]=useState(false);
  const [giftBusy,setGiftBusy]=useState(false);
  const [clock,setClock]=useState(Date.now());
@@ -95,7 +108,12 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
  const onGame=useCallback((latest:Game)=>{
   const prev=prior.current;
   // Concurrent polls must not roll the client back to an older version.
-  if(prev&&prev.id===latest.id&&latest.version<=prev.version)return;
+  if(prev&&prev.id===latest.id&&latest.version<prev.version)return;
+  if(prev&&prev.id===latest.id&&latest.version===prev.version){
+   prior.current=latest;
+   setGame(latest);
+   return;
+  }
   if(prev?.id!==latest.id){clearMotionTimers();setMotion(null);setCaptureFlash(false)}
   if(prev&&prev.id===latest.id&&latest.version>prev.version){
    const captured=latest.positions.some((positions,side)=>positions.some((p,i)=>p===-1&&prev.positions[side][i]>=0));
@@ -156,6 +174,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
    else {prior.current=null;setGame(null)}
    setReaction(data.reaction||null);
    setGift(data.gift||null);
+   setAgreement(data.agreement||null);
    if(typeof data.serverNow==="number")setClockOffset(data.serverNow-Date.now());
    setError("");
   }catch(e){if(isActive.current)setError(e instanceof Error?e.message:"Connexion au jeu impossible.")}
@@ -199,7 +218,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
  },[rolling]);
 
  async function act(action:"roll"|"move"|"restart"|"forfeit",pawn?:number){
-  if(busy||!game)return false;
+  if(busy||!game||(action!=="restart"&&!agreement?.startedAt))return false;
   // WebAudio must be unlocked immediately by a user tap on iOS.
   if(action==="roll"||action==="move"){unlockSound();if(action==="roll")playSound("roll")}
   setBusy(true);setError("");
@@ -214,6 +233,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
    if(!res.ok||!data.ok)throw Error(data.error||"Action impossible.");
    if(data.game)onGame(data.game);
    if(data.gift)setGift(data.gift);
+   if(data.agreement)setAgreement(data.agreement);
    if(typeof data.serverNow==="number")setClockOffset(data.serverNow-Date.now());
    return true;
   }catch(e){
@@ -226,18 +246,37 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
   }
  }
 
- async function giftAction(action:"gift_consent"|"gift_choose"|"gift_given",value:boolean|GiftChoice){
+ async function giftAction(action:"gift_choose"|"gift_given",value:boolean|GiftChoice){
   if(giftBusy||!game)return;
   setGiftBusy(true);setError("");
-  const details=action==="gift_consent"?{accept:value}:action==="gift_choose"?{choice:value}:{given:value};
+  const details=action==="gift_choose"?{choice:value}:{given:value};
   try{
    const response=await fetch("/api/ludo",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({action,...details})});
    const data=await response.json() as ResponseData;
    if(!response.ok||!data.ok)throw Error(data.error||"Impossible d’enregistrer le cadeau.");
    if(data.gift)setGift(data.gift);
-   if(action!=="gift_consent")setGiftOpen(false);
+   setGiftOpen(false);
   }catch(e){setError(e instanceof Error?e.message:"Erreur cadeau.");}
   finally{setGiftBusy(false)}
+ }
+
+ async function signRules(){
+  if(signBusy||!game||agreement?.startedAt||agreement?.signed[mySeat])return;
+  if(!rulesAccepted||!signature.trim()||giftPreference==="")return;
+  setSignBusy(true);setError("");
+  try{
+   const response=await fetch("/api/ludo",{method:"POST",
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    body:JSON.stringify({action:"sign_rules",acceptRules:true,signature:signature.trim(),giftConsent:giftPreference==="yes"})
+   });
+   const data=await response.json() as ResponseData;
+   if(!response.ok||!data.ok)throw Error(data.error||"Impossible d’enregistrer la signature.");
+   if(data.agreement)setAgreement(data.agreement);
+   if(data.gift)setGift(data.gift);
+   if(data.game)onGame(data.game);
+   if(typeof data.serverNow==="number")setClockOffset(data.serverNow-Date.now());
+  }catch(e){setError(e instanceof Error?e.message:"Signature non enregistrée.")}
+  finally{setSignBusy(false)}
  }
 
  async function sendReaction(emoji:string){
@@ -255,7 +294,10 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
  const remaining=game?.status==="playing"&&game.deadlineAt?Math.max(0,Math.ceil((game.deadlineAt-clock-clockOffset)/1000)):null;
  const giftAgreed=Boolean(gift?.consents.every(Boolean));
  const myConsent=Boolean(gift?.consents[mySeat]);
- const myTurn=Boolean(game&&game.status==="playing"&&game.turn===mySeat);
+ const mustSign=Boolean(game&&game.status==="playing"&&!agreement?.startedAt);
+ const mySigned=Boolean(agreement?.signed[mySeat]);
+ const otherSigned=Boolean(agreement?.signed[1-mySeat]);
+ const myTurn=Boolean(game&&game.status==="playing"&&agreement?.startedAt&&game.turn===mySeat);
  const canPlay=Boolean(game&&myTurn&&game.dice!==null&&!busy&&!rolling&&!motion);
  const legal=game?game.positions[mySeat].map(p=>allowed(p,game.dice)):([false,false,false,false] as boolean[]);
  const displayName=(seat:number)=>seat===mySeat?myName:(partnerName||"Ton amour");
@@ -382,16 +424,57 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
   </footer>
   </div>
 
+  {mustSign?<div className="ludo-agreement-backdrop">
+   <div className="ludo-agreement-dialog" role="dialog" aria-modal="true" aria-label="Règles et signature avant la partie">
+    <div className="ludo-agreement-heading"><span className="ludo-agreement-icon">📜</span><div><h2>Avant de jouer</h2><p>Règles et accord des deux partenaires</p></div></div>
+    <div className="ludo-agreement-status">
+     {[0,1].map(seat=><div key={seat} className={"ludo-agreement-player"+(agreement?.signed[seat]?" is-signed":"")}>
+       <span>{agreement?.signed[seat]?"✓":"✎"}</span>
+       <strong>{displayName(seat)}</strong>
+       <small>{agreement?.signed[seat]?"Signé":"Signature attendue"}</small>
+      </div>)}
+    </div>
+    {!mySigned?<>
+     <div className="ludo-agreement-rules" tabIndex={0} aria-label="Règles à lire">
+      <h3>🎲 Règles du Ludo Duo</h3>
+      <p>Vous jouez à deux, chacun avec quatre pions. Il faut faire un 6 pour sortir un pion. Le premier à amener ses quatre pions au centre gagne.</p>
+      <p>Un 6, une capture ou une arrivée au centre donne un tour supplémentaire. Trois 6 consécutifs font perdre le tour. Les étoiles ★ sont protégées et il faut le nombre exact pour terminer.</p>
+      <p><strong>⏱️ Chronomètre :</strong> chacun a 30 secondes pour agir. Après ce délai, l’ordinateur joue automatiquement à sa place dès qu’un appareil connecté interroge le serveur.</p>
+      <h3>🎁 Défi cadeau facultatif</h3>
+      <p>Si vous acceptez tous les deux le défi, <strong>le perdant propose d’offrir le cadeau choisi par le gagnant</strong> : crédit téléphonique, forfait Internet ou <strong>2 000 F CFA via Wave</strong>.</p>
+      <p>Ce défi est un engagement amical, pas un contrat légal ni un paiement automatique. Vous pouvez jouer sans cadeau si l’un de vous refuse. Aucun achat ou transfert Wave n’est effectué dans Love Radar.</p>
+     </div>
+     <label className="ludo-agreement-read"><input type="checkbox" checked={rulesAccepted} onChange={e=>setRulesAccepted(e.target.checked)}/><span>J’ai lu et compris les règles de cette partie.</span></label>
+     <fieldset className="ludo-agreement-choice">
+      <legend>Acceptes-tu le défi cadeau si tu perds ?</legend>
+      <label><input type="radio" name="gift_preference" checked={giftPreference==="yes"} onChange={()=>setGiftPreference("yes")}/><span>Oui, j’accepte de participer 🎁</span></label>
+      <label><input type="radio" name="gift_preference" checked={giftPreference==="no"} onChange={()=>setGiftPreference("no")}/><span>Non, jouons sans cadeau</span></label>
+     </fieldset>
+     <label className="ludo-agreement-sign"><span>Ma signature (nom de mon profil : <strong>{myName}</strong>)</span><input type="text" maxLength={80} autoComplete="off" value={signature} onChange={e=>setSignature(e.target.value)} placeholder={"Écris « "+myName+" »"} aria-label="Signature électronique"/></label>
+     <button type="button" className="ludo-agreement-submit" disabled={signBusy||!rulesAccepted||!signature.trim()||giftPreference===""} onClick={()=>void signRules()}>{signBusy?"Enregistrement…":"✍️ Je signe et j’accepte les règles"}</button>
+    </>:<>
+     <div className="ludo-agreement-wait">
+      <span className="ludo-agreement-bigcheck">✓</span>
+      <h3>Tu as signé !</h3>
+      <p>Signature enregistrée pour cette manche.</p>
+      <p>{otherSigned?"Vous avez signé tous les deux. La partie va commencer !":"En attente de la signature de "+displayName(1-mySeat)+"…"}</p>
+      <p>Ton choix cadeau : <strong>{agreement?.giftChoices[mySeat]?"Accepté 🎁":"Sans cadeau"}</strong></p>
+     </div>
+    </>}
+    {error?<div className="ludo-agreement-error" role="alert">{error}</div>:null}
+    <button type="button" className="ludo-agreement-exit" onClick={onExit}>← Retour à l’accueil</button>
+    <p className="ludo-agreement-footnote">Signature enregistrée dans votre espace privé pour cette manche uniquement.</p>
+   </div>
+  </div>:null}
+
   {giftOpen?<div className="ludo-modal-backdrop" role="presentation">
    <div className="ludo-modal ludo-gift-dialog" role="dialog" aria-modal="true" aria-label="Défi cadeau entre partenaires">
     <div className="ludo-modal-symbol">🎁</div>
     <h2>Défi cadeau</h2>
     {game?.status==="playing"?<>
-      <p>Le perdant pourra offrir un cadeau choisi par le gagnant : crédit téléphonique, connexion Internet ou 2 000 F CFA par Wave.</p>
-      <p>Participation facultative : <strong>les deux joueurs doivent accepter</strong>. Aucun paiement n’est effectué automatiquement.</p>
-      <div className="ludo-gift-agreement"><span>Toi : {myConsent?"✅ Accepté":"En attente"}</span><span>Partenaire : {gift?.consents[1-mySeat]?"✅ Accepté":"En attente"}</span></div>
-      <button type="button" className="ludo-modal-primary" disabled={giftBusy} onClick={()=>void giftAction("gift_consent",!myConsent)}>{myConsent?"Retirer mon accord":"J’accepte le défi cadeau"}</button>
-      {giftAgreed?<p className="ludo-gift-confirmed">✅ Vous avez accepté tous les deux.</p>:null}
+      <p>Le choix du cadeau a été enregistré avec vos signatures avant cette partie.</p>
+      <div className="ludo-gift-agreement"><span>Toi : {myConsent?"🎁 Oui":"Sans cadeau"}</span><span>Partenaire : {gift?.consents[1-mySeat]?"🎁 Oui":"Sans cadeau"}</span></div>
+      {giftAgreed?<p className="ludo-gift-confirmed">✅ Vous avez tous les deux signé le défi cadeau.</p>:<p>Cette manche se joue sans cadeau.</p>}
     </>:game?.status==="won"&&giftAgreed?<>
       <p>{game.winner===mySeat?"Tu as gagné ! Choisis ton cadeau.":"Le gagnant choisit le cadeau à offrir."}</p>
       {game.winner===mySeat?GIFT_OPTIONS.map(item=><button type="button" className="ludo-gift-option" key={item.id} disabled={giftBusy} onClick={()=>void giftAction("gift_choose",item.id)}>

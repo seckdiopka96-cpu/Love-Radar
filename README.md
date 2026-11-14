@@ -135,3 +135,11 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - 🎁 Défi cadeau entre partenaires, entièrement facultatif : les deux joueurs acceptent explicitement **avant la victoire** ; après la victoire, le gagnant peut demander du crédit téléphonique, un forfait Internet ou 2 000 F CFA via Wave. Le perdant peut marquer le cadeau comme offert.
 - **Aucun transfert de fonds, achat de crédit ou achat de data n'est effectué par Love Radar.** Les cadeaux sont des promesses informelles entre les participants ; l'application ne collecte ni numéros Wave, ni coordonnées de paiement, ni données bancaires.
 - Les accords et le choix de cadeau appartiennent à une manche, sont stockés dans D1 et sont réinitialisés au démarrage d'une nouvelle manche. Aucun changement de règles de jeu ni de données privées existantes.
+
+## Accord et signatures avant chaque partie de Ludo Duo
+
+- **Avant chaque manche**, les deux partenaires lisent les règles complètes dans un écran bloquant, cochent « J'ai lu et compris », répondent explicitement **oui ou non** au défi cadeau et signent avec le nom de leur compte Love Radar.
+- Les signatures sont enregistrées de manière privée par l'API authentifiée, avec le nom, le choix du défi et la date/heure, dans `ludo_agreements` (une entrée par salle et par manche). Le serveur valide que le nom saisi correspond au profil connecté ; il s'agit d'une **attestation dans l'application**, pas d'une signature légale certifiée ou d'une vérification d'identité.
+- Aucun lancer de dé, déplacement ou coup automatique n'est autorisé avant **les deux signatures**. Le délai de 30 s ne démarre qu'après le deuxième accord. Les manches déjà ouvertes restent préservées mais doivent être signées pour continuer.
+- **Défi cadeau facultatif** : aucun des deux n'est forcé d'accepter un paiement ; seuls deux « oui » déclenchent le cadeau pour cette manche. Les options sont le crédit téléphonique, la connexion Internet et 2 000 F CFA par Wave, sans paiement automatique ni collecte de coordonnées financières.
+- Pour toute nouvelle manche, les signatures et les préférences cadeaux sont réinitialisées et chacun signe à nouveau. Les conversations et appels ne sont pas affectés.
