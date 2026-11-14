@@ -9,6 +9,7 @@ import LocationShare from "./LocationShare";
 import HomeDashboard from "./HomeDashboard";
 import GamesHub from "./GamesHub";
 import CoupleStory from "./CoupleStory";
+import PrivatePhoto from "./PrivatePhoto";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "location" | "moment" | "reunion" | "games" | "ludo" | "memory" | "chat" | "memories" | "story";
@@ -148,6 +149,38 @@ export default function LoveRadar(){
   };
  },[!!room]);
  const [menu,setMenu]=useState(false);
+ const [privacyEnabled,setPrivacyEnabled]=useState(()=>{
+  try{return localStorage.getItem("love-radar-privacy-mode")!=="off"}catch{return true}
+ });
+ const [privacyCurtain,setPrivacyCurtain]=useState(false);
+ // An immediate CSS screen cover supplements React state during iOS app-switcher snapshots.
+ // It cannot block OS screenshots; iOS does not guarantee event ordering at capture time.
+ useEffect(()=>{
+  const html=document.documentElement;
+  const conceal=()=>{
+   if(!privacyEnabled||!token)return;
+   html.classList.add("lr-private-background-cover");
+   setPrivacyCurtain(true);
+  };
+  const foreground=()=>{html.classList.remove("lr-private-background-cover")};
+  const visibility=()=>{if(document.visibilityState==="hidden")conceal();else foreground()};
+  window.addEventListener("blur",conceal);
+  window.addEventListener("pagehide",conceal);
+  window.addEventListener("focus",foreground);
+  window.addEventListener("pageshow",foreground);
+  document.addEventListener("visibilitychange",visibility);
+  return()=>{
+   window.removeEventListener("blur",conceal);window.removeEventListener("pagehide",conceal);
+   window.removeEventListener("focus",foreground);window.removeEventListener("pageshow",foreground);
+   document.removeEventListener("visibilitychange",visibility);
+   foreground();
+  };
+ },[privacyEnabled,token]);
+ function updatePrivacy(enabled:boolean){
+  setPrivacyEnabled(enabled);
+  try{localStorage.setItem("love-radar-privacy-mode",enabled?"on":"off")}catch{/* Device preference may not persist in private browsing. */}
+  if(!enabled){document.documentElement.classList.remove("lr-private-background-cover");setPrivacyCurtain(false)}
+ }
  const [notificationsOn,setNotificationsOn]=useState(false);
  const [notificationsBusy,setNotificationsBusy]=useState(false);
  const [notificationsHint,setNotificationsHint]=useState("");
@@ -565,7 +598,11 @@ export default function LoveRadar(){
  return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+(tab==="ludo"&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+(tab==="location"&&room?"lr-location-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-brand"><b>Love Radar</b></div>
-   <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>Love Radar · Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span><button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
+   <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>Love Radar · Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span><button type="button" className="lr-privacy-toggle" aria-pressed={privacyEnabled} onClick={()=>updatePrivacy(!privacyEnabled)}>
+     {privacyEnabled?"🔐 Mode confidentialité : activé":"🔓 Mode confidentialité : désactivé"}
+    </button>{privacyEnabled?<button type="button" onClick={()=>{setMenu(false);setPrivacyCurtain(true)}}>🙈 Masquer l'écran maintenant</button>:null}
+    <small className="lr-privacy-menu-note">Masquage au changement d’app, photos révélées temporairement et filigrane. Les captures d'écran restent possibles.</small>
+    <button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
   </header>
   {showInstallHelp?<div className="lr-install-backdrop" onClick={()=>setShowInstallHelp(false)}><div className="lr-install-modal" role="dialog" aria-modal="true" aria-labelledby="lr-install-title" onClick={e=>e.stopPropagation()}><div className="lr-install-symbol">♥</div><h2 id="lr-install-title">Love Radar sur ton téléphone</h2><p>Installe l’application pour l’ouvrir en plein écran et recevoir des notifications.</p>{/iPhone|iPad|iPod/i.test(navigator.userAgent)?<ol><li>Ouvre ce site dans <strong>Safari</strong>.</li><li>Appuie sur <strong>Partager</strong> (le carré avec une flèche).</li><li>Choisis <strong>Sur l’écran d’accueil</strong>, puis <strong>Ajouter</strong>.</li><li>Ouvre Love Radar depuis sa nouvelle icône.</li></ol>:<ol><li>Ouvre le site dans <strong>Chrome Android</strong>.</li><li>Appuie sur <strong>⋮</strong> dans Chrome.</li><li>Choisis <strong>Installer l’application</strong> ou « Ajouter à l’écran d’accueil ».</li></ol>}<p className="lr-install-note">L’icône Love Radar apparaîtra parmi tes applications. Une connexion Internet est nécessaire pour jouer et échanger des messages.</p><button onClick={()=>setShowInstallHelp(false)}>J’ai compris ❤️</button></div></div>:null}
   {token&&room?<div className="lr-notification-area">
@@ -610,10 +647,10 @@ export default function LoveRadar(){
     <div className="lr-sidebar-bottom"><div className="lr-side-heart">♡</div>Vos messages et vos souvenirs, toujours à portée de main.</div>
    </aside>
    <main className="lr-main">
-    {tab==="home"?<HomeDashboard room={room} token={token} media={media} onInvite={()=>void shareCode()} onNavigate={navigate}/>:null}
+    {tab==="home"?<HomeDashboard room={room} token={token} media={media} privacyEnabled={privacyEnabled} onInvite={()=>void shareCode()} onNavigate={navigate}/>:null}
     {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
     {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenLocation={()=>navigate("location")} focusKind={noticeTarget?.kind==="love-signal"||noticeTarget?.kind==="draw-invite"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"||noticeTarget?.kind==="draw-invite"?noticeTarget.id:null}/>:null}
-    {tab==="story"||tab==="reunion"?<CoupleStory key={tab} token={token} mode={tab} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate(tab==="story"?"memories":"together")} onOpenStory={()=>navigate("story")} onOpenReunion={()=>navigate("reunion")}/>:null}
+    {tab==="story"||tab==="reunion"?<CoupleStory key={tab} token={token} mode={tab} privacyEnabled={privacyEnabled} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate(tab==="story"?"memories":"together")} onOpenStory={()=>navigate("story")} onOpenReunion={()=>navigate("reunion")}/>:null}
     {tab==="location"?<LocationShare token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusId={noticeTarget?.kind==="location-request"?noticeTarget.id:null}/>:null}
     {tab==="games"?<GamesHub onOpenGame={game=>navigate(game)} partnerName={room.partner}/>:null}
     {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}/>:null}
@@ -641,7 +678,7 @@ export default function LoveRadar(){
         <div className={"lr-bubble-row "+(mine?"mine ":"other ")+(groupedBefore?"lr-grouped ":"")+(groupedAfter?"lr-group-next":"")}>
          <div className="lr-bubble-stack">
           <div className="lr-bubble">{m.kind==="text"?<p>{m.content}</p>:m.kind==="image"?
-          media[m.id]?<img className="lr-chat-image" src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} />:
+          media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} enabled={privacyEnabled} viewer={room.user.name} variant="chat"/>:
           <div className="lr-media-loading">Chargement de la photo…</div>:
           media[m.id]?<div className="lr-voice"><span>Message vocal</span><audio controls preload="metadata" src={media[m.id]}/></div>:
           <div className="lr-media-loading">Chargement du vocal…</div>}</div>
@@ -667,7 +704,7 @@ export default function LoveRadar(){
       </form>
      </div>
     </section>:null}
-    {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Retrouvez les photos partagées dans votre conversation.</p></div><button type="button" className="lr-story-album-entry" onClick={()=>navigate("story")}><span aria-hidden="true">💑</span><span><strong>Notre histoire</strong><small>Notre photo, nos jours ensemble et nos souvenirs marquants.</small></span><b aria-hidden="true">→</b></button><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>navigate("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<img src={media[m.id]} alt="Souvenir du couple"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
+    {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Retrouvez les photos partagées dans votre conversation.</p></div><button type="button" className="lr-story-album-entry" onClick={()=>navigate("story")}><span aria-hidden="true">💑</span><span><strong>Notre histoire</strong><small>Notre photo, nos jours ensemble et nos souvenirs marquants.</small></span><b aria-hidden="true">→</b></button><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>navigate("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt="Souvenir du couple" enabled={privacyEnabled} viewer={room.user.name} variant="album"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
    </main>
    {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} hasPartner={Boolean(room.partner)} showButton={tab==="chat"} onOpenChat={()=>navigate("chat")}/>:null}
    {room&&token&&tab==="chat"&&noticeTarget?.id&&["message","photo","audio"].includes(noticeTarget.kind||"")?<div className="lr-push-focus-backdrop" role="dialog" aria-modal="true" aria-label="Contenu de la notification">
@@ -676,12 +713,19 @@ export default function LoveRadar(){
      {focusLoading?<p>Ouverture du contenu…</p>:focusError?<p role="alert">{focusError}</p>:focusMessage?
        <div className="lr-push-focus-content">
         {focusMessage.kind==="text"?<p className="lr-push-focus-text">{focusMessage.content}</p>:focusMessage.kind==="image"?
-         focusMedia?<img src={focusMedia} alt="Photo reçue de ton partenaire"/>:<p>Chargement de la photo…</p>:
+         focusMedia?<PrivatePhoto key={focusMessage.id} src={focusMedia} alt="Photo reçue de ton partenaire" enabled={privacyEnabled} viewer={room.user.name} variant="focus"/>:<p>Chargement de la photo…</p>:
          focusMedia?<audio src={focusMedia} controls preload="metadata"/>:<p>Chargement du message vocal…</p>}
         <small>{new Date(focusMessage.created_at).toLocaleString("fr-FR",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})}</small>
        </div>:<p>Ce contenu n’est pas disponible.</p>}
      <button type="button" className="lr-push-focus-open-chat" onClick={closeNotice}>Voir la conversation</button>
     </div>
+   </div>:null}
+   {token&&room&&privacyEnabled&&privacyCurtain?<div className="lr-private-curtain" role="dialog" aria-modal="true" aria-label="Écran masqué par le mode confidentialité">
+    <span className="lr-private-curtain-lock" aria-hidden="true">🔒</span>
+    <h2>Votre espace est masqué</h2>
+    <p>Love Radar protège l'affichage quand tu quittes l'application.</p>
+    <button type="button" onClick={()=>setPrivacyCurtain(false)}>♡ Reprendre Love Radar</button>
+    <small>Cette protection n'empêche pas les captures d'écran du système.</small>
    </div>:null}
    <nav className="lr-mobile-nav" aria-label="Navigation principale à cinq onglets">{NAV.map(n=><button key={n.id} type="button" className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} aria-label={n.id==="chat"&&unreadCount>0?"Messages, "+unreadCount+" non lus":n.label} onClick={()=>navigate(n.id)}><span aria-hidden="true">{n.icon}</span>{n.id==="chat"&&unreadCount>0?<b className="lr-nav-unread" aria-hidden="true">{unreadLabel}</b>:null}<small>{n.label}</small></button>)}</nav>
   </div>}

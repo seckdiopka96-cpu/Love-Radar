@@ -6,8 +6,8 @@ type Message={id:string;sender_id:string;kind:"text"|"image"|"audio";content:str
 type Game={turn:number;status:"playing"|"won";winner:number|null;version:number;dice:number|null};
 type DailyOverview={ok:boolean;question:string;mine:{text:string}|null;partnerAnswered:boolean;revealed:boolean};
 type Room={user:{id:string;name:string;seat:number};partner:string|null;code:string;partnerLastSeenAt?:number;messages:Message[]};
-type Props={room:Room;token:string;media:Record<string,string>;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"location"|"story"|"reunion",feature?:"heart"|"draw")=>void};
-export default function HomeDashboard({room,token,media,onInvite,onNavigate}:Props){
+type Props={room:Room;token:string;media:Record<string,string>;privacyEnabled:boolean;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"location"|"story"|"reunion",feature?:"heart"|"draw")=>void};
+export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,onNavigate}:Props){
  const [game,setGame]=useState<Game|null>(null);
  const [daily,setDaily]=useState<DailyOverview|null>(null);
  const [story,setStory]=useState<StoryData|null>(null);
@@ -132,7 +132,7 @@ export default function HomeDashboard({room,token,media,onInvite,onNavigate}:Pro
    <button type="button" className="lr-home-tile lr-home-photo-tile" onClick={()=>onNavigate("memories")}>
     <div className="lr-home-tile-top"><span className="lr-home-tile-icon">✦</span><span>SOUVENIRS</span></div>
     <h2>Notre dernier souvenir</h2>
-    {photo&&media[photo.id]?<img src={media[photo.id]} alt="Dernière photo partagée" className="lr-home-photo"/>:
+    {photo&&media[photo.id]?(privacyEnabled?<div className="lr-home-private-photo"><span aria-hidden="true">🔒</span><strong>Photo privée</strong><small>Ouvre Souvenirs pour l'afficher</small></div>:<img src={media[photo.id]} alt="Dernière photo partagée" className="lr-home-photo"/>):
       <div className="lr-home-no-photo"><span>♡</span><p>{photo?"Photo en chargement…":"Votre première photo ici"}</p></div>}
     <span className="lr-home-open">Voir nos souvenirs →</span>
    </button>

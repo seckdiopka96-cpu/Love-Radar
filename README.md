@@ -267,3 +267,15 @@ Deux nouvelles activités privées, éditables par les deux membres du couple, s
 - « Réparer » reconstruit volontairement l'abonnement sur cet appareil, « Tester » envoie un vrai push **à tes propres appareils** (limite : un essai/minute) et « Désactiver » reste disponible séparément.
 - Le backend compte les requêtes acceptées et refusées par les services push ; le test n'affirme jamais que le téléphone a effectivement affiché une notification. Une autorisation iOS, une installation PWA et les paramètres de notifications du système restent nécessaires. La clé VAPID et le service worker doivent être déployés sur Cloudflare.
 - Le service worker prévient l'application ouverte qu'un push est arrivé et qu'un abonnement a été remplacé. Il n'a jamais accès au token du membre. Le cache PWA est v31.
+
+
+## 🔐 Mode confidentialité · Love Radar (PWA v32)
+
+**Important : une PWA ne peut pas empêcher les captures d’écran iOS ou Android.** Cette fonctionnalité réduit l’exposition des contenus ; ce n’est ni un blocage système ni une protection absolue des photos. Une autre personne peut toujours prendre une photo de l’écran.
+
+- **Activé par défaut sur chaque appareil** ; contrôle « Mode confidentialité » dans le menu de profil. Choix conservé localement sur l’appareil (pas synchronisé avec le partenaire).
+- Lorsque Love Radar passe en arrière-plan, que la fenêtre perd le focus ou que la page est quittée, un écran de confidentialité est affiché ; le retour nécessite de toucher « Reprendre Love Radar » (ce n’est **pas** une authentification par Face ID ni un verrouillage par mot de passe). Un écran CSS rapide couvre également le contenu avant le rendu React, dans la mesure où le navigateur déclenche les événements à temps.
+- **Photos du chat, album, notification photo et photo de couple** : cachées par défaut et révélées explicitement au toucher pendant 30 secondes, puis automatiquement masquées. Elles se cachent aussi au passage en arrière-plan. Le filigrane d’affichage « LOVE RADAR · PRIVÉ · [prénom du spectateur] » est superposé aux photos révélées. Il ne modifie pas le fichier source et ne peut pas empêcher quelqu’un de recadrer une capture.
+- Sur l’accueil, la dernière photo est représentée par un espace masqué tant que le mode est actif. Les souvenirs, les messages et les appels continuent de fonctionner.
+- Le serveur restreint toujours les téléchargements des médias aux membres authentifiés du salon et répond maintenant `Cache-Control: private, no-store` ainsi que `Cross-Origin-Resource-Policy: same-origin`. Cela n’efface pas les captures ou copies déjà faites et ne chiffre pas les photos de bout en bout.
+- Dans les paramètres : un bouton « Masquer l’écran maintenant » permet de couvrir l’application à la demande. Sur iOS, le navigateur ne garantit pas que le masque s’affiche avant chaque capture d’aperçu dans le sélecteur d’apps. Test réel sur les deux appareils recommandé.
