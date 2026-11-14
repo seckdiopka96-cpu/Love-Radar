@@ -35,6 +35,7 @@ export default function LocationShare({token,partnerName,myName,onExit,focusId}:
  const [request,setRequest]=useState<SharingRequest|null>(null),[busy,setBusy]=useState(false);
  const [error,setError]=useState(""),[notice,setNotice]=useState("");
  const [loading,setLoading]=useState(true),[clock,setClock]=useState(Date.now());
+ const [syncStatus,setSyncStatus]=useState<"connecting"|"synced"|"offline">("connecting");
  const [mapOpen,setMapOpen]=useState(false),[permissionWaiting,setPermissionWaiting]=useState(false);
  const [mapPoint,setMapPoint]=useState<SharedLocation|null>(null);
  const mapUpdatedAt=useRef(0);
@@ -69,13 +70,13 @@ export default function LocationShare({token,partnerName,myName,onExit,focusId}:
    const res=await fetch(endpoint,{headers:{Authorization:"Bearer "+token},cache:"no-store"});
    const data=await res.json() as ResponseData;
    if(!res.ok||!data.ok)throw Error(data.error||"La localisation est indisponible.");
-   if(active.current){update(data);if(!silent)setError("")}
-  }catch(e){if(active.current&&!silent)setError(e instanceof Error?e.message:"Impossible de charger la demande.")}
+   if(active.current){update(data);setSyncStatus("synced");if(!silent)setError("")}
+  }catch(e){if(active.current){setSyncStatus("offline");if(!silent)setError(e instanceof Error?e.message:"Impossible de charger la demande.")}}
   finally{polling.current=false;if(active.current)setLoading(false)}
  },[token]);
  useEffect(()=>{
   active.current=true;void load();
-  const timer=window.setInterval(()=>{if(document.visibilityState==="visible")void load(true)},3000);
+  const timer=window.setInterval(()=>{if(document.visibilityState==="visible")void load(true)},1500);
   const ticker=window.setInterval(()=>setClock(Date.now()),500);
   const visible=()=>{if(document.visibilityState==="visible")void load(true)};
   document.addEventListener("visibilitychange",visible);
@@ -152,7 +153,9 @@ export default function LocationShare({token,partnerName,myName,onExit,focusId}:
  const focusOld=focusId&&request&&focusId!==request.id;
  return <section className="loc-page" aria-label="Partage de position avec consentement">
   <header className="loc-head"><button type="button" onClick={exit}>‹ Accueil</button><div><strong>Notre position <span>♡</span></strong><small>TOUJOURS AVEC TON ACCORD</small></div><span className="loc-pin">📍</span></header>
-  <div className="loc-intro"><div className="loc-illustration">📍</div><h1>Se retrouver, <em>en toute confiance.</em></h1><p>Demande à voir la position de ton amour. La personne choisit librement d’accepter ou de refuser.</p></div>
+  <div className="loc-intro"><div className="loc-illustration">📍</div><h1>Se retrouver, <em>en toute confiance.</em></h1><p>Demande à voir la position de ton amour. La personne choisit librement d’accepter ou de refuser.</p>
+   <span role="status" className={"loc-sync "+(syncStatus==="offline"?"loc-sync-offline":"")}>{syncStatus==="synced"?"✓ Deux téléphones synchronisés via Love Radar":syncStatus==="connecting"?"⏳ Connexion…":"⚠️ Réseau indisponible · Reconnexion automatique"}</span>
+  </div>
   {focusOld?<div className="loc-message" role="status">Cette notification concerne une ancienne demande. Voici la demande actuelle.</div>:null}
   {error?<div className="loc-message loc-error" role="alert">{error}</div>:null}
   {notice?<div className="loc-message loc-success" role="status">{notice}</div>:null}

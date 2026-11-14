@@ -6,6 +6,7 @@ type Ctx={request:Request;env:PushEnv;waitUntil:(task:Promise<unknown>)=>void};
 type Member={id:string;room_id:string;name:string;seat:number};
 type SignalRow={id:string;sender_id:string;kind:string;reply_to:string|null;created_at:number;seat:number};
 type CanvasRow={seq:number;id:string;seat:number;kind:string;payload:string;created_at:number};
+type PresenceRow={seat:number;drawing:number;payload:string;updated_at:number};
 const HEART_RESPONSES=new Set(["heart","kiss","love"]);
 const COLORS=new Set(["#ef7ca7","#7b4ac2","#3e8fa7","#e7a549","#4b3b55","#ffffff"]);
 const RETENTION=45*24*60*60*1000;
@@ -18,6 +19,7 @@ async function ensure(db:D1Database){
   "CREATE INDEX IF NOT EXISTS idx_affection_room_time ON affection_signals(room_id,created_at);"+
   "CREATE TABLE IF NOT EXISTS couple_canvas_events(seq INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL UNIQUE,room_id TEXT NOT NULL,sender_id TEXT NOT NULL,kind TEXT NOT NULL,payload TEXT NOT NULL,created_at INTEGER NOT NULL);"+
   "CREATE INDEX IF NOT EXISTS idx_canvas_room_seq ON couple_canvas_events(room_id,seq);"+
+  "CREATE TABLE IF NOT EXISTS couple_canvas_presence(room_id TEXT NOT NULL,member_id TEXT NOT NULL,drawing INTEGER NOT NULL,payload TEXT NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(room_id,member_id));"+
   "CREATE TABLE IF NOT EXISTS couple_canvas_invites(room_id TEXT PRIMARY KEY,id TEXT NOT NULL,sender_id TEXT NOT NULL,sent_at INTEGER NOT NULL)"
  ).then(()=>{}).catch(e=>{dbReady=null;throw e});
  await dbReady;
@@ -44,7 +46,19 @@ async function canvasState(db:D1Database,u:Member){
   .bind(u.room_id).all<CanvasRow>();
  const events=(rows.results||[]).reverse().map(e=>({seq:e.seq,id:e.id,seat:e.seat,kind:e.kind,content:JSON.parse(e.payload),createdAt:e.created_at}));
  const clear=events.map(e=>e.kind).lastIndexOf("clear");
- return {events:clear>=0?events.slice(clear+1):events,revision:events.at(-1)?.seq||0};
+ const now=Date.now();
+ const presence=await db.prepare("SELECT m.seat,p.drawing,p.payload,p.updated_at FROM couple_canvas_presence p JOIN members m ON m.id=p.member_id WHERE p.room_id=? AND p.member_id<>? AND p.updated_at>? ORDER BY p.updated_at DESC LIMIT 1")
+ .bind(u.room_id,u.id,now-18000).first<PresenceRow>();
+ let liveStroke:null|{seat:number;points:number[][];color:string;width:number}=null;
+ if(presence?.drawing&&presence.updated_at>now-4000){
+  try{
+   const payload=JSON.parse(presence.payload) as {points:number[][];color:string;width:number};
+   if(Array.isArray(payload.points)&&typeof payload.color==="string")
+    liveStroke={seat:presence.seat,points:payload.points,color:payload.color,width:payload.width};
+  }catch{/* Malformed ephemeral preview is ignored. */}
+ }
+ return {events:clear>=0?events.slice(clear+1):events,revision:events.at(-1)?.seq||0,
+  partnerOnBoard:Boolean(presence),liveStroke,serverNow:now};
 }
 async function sendSignal(db:D1Database,u:Member,ctx:Ctx,kind:string,replyTo:string|null){
  const now=Date.now();
@@ -93,6 +107,19 @@ function parseStroke(input:Record<string,unknown>){
   return {kind:"text",data:{x:Math.round(input.x),y:Math.round(input.y),text:msg}};
  }
  return null;
+}
+async function canvasPresence(db:D1Database,u:Member,input:Record<string,unknown>){
+ if(typeof input.drawing!=="boolean")return failure("État de dessin invalide.",400);
+ let serialized="{}";
+ if(input.drawing){
+  const stroke=parseStroke({...input,kind:"stroke"});
+  if(!stroke||stroke.kind!=="stroke")return failure("Aperçu de dessin non valide.",400);
+  serialized=JSON.stringify(stroke.data);
+ }
+ await db.prepare("INSERT INTO couple_canvas_presence(room_id,member_id,drawing,payload,updated_at) VALUES(?,?,?,?,?) "+
+ "ON CONFLICT(room_id,member_id) DO UPDATE SET drawing=excluded.drawing,payload=excluded.payload,updated_at=excluded.updated_at")
+ .bind(u.room_id,u.id,input.drawing?1:0,serialized,Date.now()).run();
+ return success({online:true});
 }
 async function addCanvas(db:D1Database,u:Member,input:Record<string,unknown>){
  let kind:string,data:object;
@@ -148,6 +175,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
   try{input=JSON.parse(raw) as Record<string,unknown>}catch{return failure("Requête non valide.",400)}
   if(input.action==="miss")return sendSignal(db,u,ctx,"miss",null);
   if(input.action==="reply")return sendSignal(db,u,ctx,typeof input.kind==="string"?input.kind:"",typeof input.replyTo==="string"?input.replyTo:null);
+  if(input.action==="presence")return canvasPresence(db,u,input);
   if(input.action==="draw"||input.action==="clear")return addCanvas(db,u,input);
   if(input.action==="undo")return undoCanvas(db,u);
   if(input.action==="invite_draw")return inviteDraw(db,u,ctx);
