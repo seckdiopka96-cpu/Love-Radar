@@ -15,7 +15,8 @@ const fail=(error:string,status=400)=>reply({ok:false,error},status);
 let ready:Promise<void>|null=null;
 async function ensureTable(db:D1Database){
  if(!ready){
-  ready=db.exec("CREATE TABLE IF NOT EXISTS ludo_games (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, version INTEGER NOT NULL, turn INTEGER NOT NULL, dice INTEGER, positions TEXT NOT NULL, status TEXT NOT NULL, winner INTEGER, streak INTEGER NOT NULL DEFAULT 0, last_action TEXT NOT NULL, updated_at INTEGER NOT NULL)").then(()=>{}).catch(e=>{ready=null;throw e});
+  ready=db.exec("CREATE TABLE IF NOT EXISTS ludo_games (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, version INTEGER NOT NULL, turn INTEGER NOT NULL, dice INTEGER, positions TEXT NOT NULL, status TEXT NOT NULL, winner INTEGER, streak INTEGER NOT NULL DEFAULT 0, last_action TEXT NOT NULL, updated_at INTEGER NOT NULL);"+
+   "CREATE TABLE IF NOT EXISTS ludo_reactions (room_id TEXT PRIMARY KEY, seat INTEGER NOT NULL, emoji TEXT NOT NULL, updated_at INTEGER NOT NULL)").then(()=>{}).catch(e=>{ready=null;throw e});
  }
  await ready;
 }
@@ -54,7 +55,12 @@ async function save(db:D1Database,g:Game){
  .bind(g.game_id,g.turn,g.dice,JSON.stringify(g.positions),g.status,g.winner,g.streak,g.last_action,Date.now(),g.room_id,g.version).run();
  return result.meta.changes===1;
 }
-const publicGame=(g:Game)=>({id:g.game_id,version:g.version,turn:g.turn,dice:g.dice,positions:g.positions,status:g.status,winner:g.winner,lastAction:g.last_action});
+const publicGame=(g:Game)=>({id:g.game_id,version:g.version,turn:g.turn,dice:g.dice,positions:g.positions,status:g.status,winner:g.winner,lastAction:g.last_action,updatedAt:g.updated_at});
+async function reaction(db:D1Database,room:string){
+ const result=await db.prepare("SELECT seat,emoji,updated_at AS at FROM ludo_reactions WHERE room_id=? AND updated_at>?").bind(room,Date.now()-7000).first<{seat:number;emoji:string;at:number}>();
+ return result||null;
+}
+const EMOJIS=new Set(["❤️","😂","🔥","👏","😍","💋"]);
 async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
  try{
   const db=ctx.env.DB;
@@ -68,22 +74,33 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    await createIfMissing(db,player.room_id);
    g=await getGame(db,player.room_id);
   }
-  if(method==="GET")return reply({ok:true,members,seat:player.seat,game:g?publicGame(g):null});
+  if(method==="GET")return reply({ok:true,members,seat:player.seat,game:g?publicGame(g):null,reaction:members===2?await reaction(db,player.room_id):null});
   const text=await ctx.request.text();
   if(text.length>1024)return fail("Requête trop grande.",413);
   let data:Record<string,unknown>;
   try{data=JSON.parse(text) as Record<string,unknown>}catch{return fail("Requête invalide.")}
   if(members!==2)return fail("Il faut exactement deux partenaires pour jouer.",409);
   if(!g)return fail("La partie n'est pas disponible.",503);
-  if(!Number.isInteger(data.version)||data.version!==g.version)return fail("La partie a changé. Actualise le plateau.",409);
   const action=data.action;
+  if(action==="react"){
+   if(typeof data.emoji!=="string"||!EMOJIS.has(data.emoji))return fail("Réaction inconnue.",400);
+   await db.prepare("INSERT INTO ludo_reactions(room_id,seat,emoji,updated_at) VALUES(?,?,?,?) ON CONFLICT(room_id) DO UPDATE SET seat=excluded.seat,emoji=excluded.emoji,updated_at=excluded.updated_at")
+    .bind(player.room_id,player.seat,data.emoji,Date.now()).run();
+   return reply({ok:true,reaction:await reaction(db,player.room_id)});
+  }
+  if(!Number.isInteger(data.version)||data.version!==g.version)return fail("La partie a changé. Actualise le plateau.",409);
   const name=player.name.slice(0,30);
-  if(action==="restart"){
+  if(action==="forfeit"){
+   if(g.status!=="playing")return fail("La partie est déjà terminée.",409);
+   g.status="won";g.winner=1-player.seat;g.turn=1-player.seat;g.dice=null;g.streak=0;
+   g.last_action=name+" a abandonné la partie. Victoire de son partenaire ! 🏆";
+  }else if(action==="restart"){
    if(g.status!=="won")return fail("Terminez la partie avant de recommencer.",409);
    g.game_id=crypto.randomUUID();
    g.turn=g.winner===0?1:0;
    g.dice=null;g.positions=initial();g.status="playing";g.winner=null;g.streak=0;
    g.last_action="Nouvelle partie à deux !";
+   await db.prepare("DELETE FROM ludo_reactions WHERE room_id=?").bind(player.room_id).run();
   }else{
    if(g.status!=="playing")return fail("La partie est terminée.",409);
    if(g.turn!==player.seat)return fail("Ce n'est pas ton tour.",403);
@@ -132,7 +149,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
      g.status="won";g.winner=player.seat;
      g.last_action=name+" a gagné la partie ! 🏆";
     }else{
-     const bonus=roll===6||captures>0;
+     const bonus=roll===6||captures>0||next===57;
      g.turn=bonus?player.seat:1-player.seat;
      if(roll!==6)g.streak=0;
      g.last_action=name+" a avancé un pion"+(captures?" et capturé "+captures+" pion"+(captures>1?"s":"")+" !":"")+(next===57?" 🏠":"")+".";

@@ -389,7 +389,7 @@ export default function LoveRadar(){
  const partnerOnline=Boolean(room?.partnerLastSeenAt&&Date.now()-room.partnerLastSeenAt<35000);
  const images=room?.messages.filter(m=>m.kind==="image")||[];
  const lastOwnMessage=[...(room?.messages||[])].reverse().find(m=>m.sender_id===room?.user.id);
- return <div className={"lr-app "+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
+ return <div className={"lr-app "+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+(tab==="ludo"&&room?"lr-ludo-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-brand"><b>Love Radar</b></div>
    <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>Love Radar · Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span><button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
@@ -422,7 +422,7 @@ export default function LoveRadar(){
    </aside>
    <main className="lr-main">
     {tab==="home"?<HomeDashboard room={room} token={token} media={media} onInvite={()=>void shareCode()} onNavigate={setTab}/>:null}
-    {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner}/>:null}
+    {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>setTab("home")}/>:null}
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">
       <div className="lr-chat-partner"><Initials name={partner} size="small"/>
