@@ -36,10 +36,20 @@ export default function LocationShare({token,partnerName,myName,onExit,focusId}:
  const [error,setError]=useState(""),[notice,setNotice]=useState("");
  const [loading,setLoading]=useState(true),[clock,setClock]=useState(Date.now());
  const [mapOpen,setMapOpen]=useState(false),[permissionWaiting,setPermissionWaiting]=useState(false);
+ const [mapPoint,setMapPoint]=useState<SharedLocation|null>(null);
+ const mapUpdatedAt=useRef(0);
  const [offset,setOffset]=useState(0);
  const active=useRef(true),polling=useRef(false),updating=useRef(false);
- const localRequest=useRef<SharingRequest|null>(null),watchId=useRef<number|null>(null);
+ const localRequest=useRef<SharingRequest|null>(null),watchId=useRef<number|null>(null),offsetRef=useRef(0);
  const partner=partnerName||"Ton amour";
+ useEffect(()=>()=> {
+  // Also revoke on navigation away from the page if it was still sharing.
+  const last=localRequest.current;
+  if(last?.role==="sharer"&&last.status==="active"){
+   void fetch(endpoint,{method:"POST",keepalive:true,headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
+    body:JSON.stringify({action:"stop",id:last.id})}).catch(()=>{});
+  }
+ },[token]);
  const requestId=request?.id||null,role=request?.role,status=request?.status;
  const serverNow=clock+offset;
  const remaining=request?Math.max(0,request.expiresAt-serverNow):0;
@@ -50,7 +60,7 @@ export default function LocationShare({token,partnerName,myName,onExit,focusId}:
  const stale=otherSharing&&!request?.location;
  const update=(data:ResponseData)=>{
   if(data.request!==undefined){localRequest.current=data.request||null;setRequest(data.request||null)}
-  if(typeof data.serverNow==="number")setOffset(data.serverNow-Date.now());
+  if(typeof data.serverNow==="number"){offsetRef.current=data.serverNow-Date.now();setOffset(offsetRef.current)}
  };
  const load=useCallback(async(silent=false)=>{
   if(polling.current)return;
@@ -109,7 +119,7 @@ export default function LocationShare({token,partnerName,myName,onExit,focusId}:
    if(!enabled||document.visibilityState!=="visible"||watchId.current!==null)return;
    watchId.current=navigator.geolocation.watchPosition(pos=>{
     const current=localRequest.current;
-    if(!enabled||document.visibilityState!=="visible"||!current||current.role!=="sharer"||current.status!=="active"||current.id!==requestId||Date.now()+offset>=current.expiresAt||updating.current)return;
+    if(!enabled||document.visibilityState!=="visible"||!current||current.role!=="sharer"||current.status!=="active"||current.id!==requestId||Date.now()+offsetRef.current>=current.expiresAt||updating.current)return;
     updating.current=true;
     void fetch(endpoint,{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
      body:JSON.stringify({action:"update",id:requestId,lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy})})
@@ -123,14 +133,25 @@ export default function LocationShare({token,partnerName,myName,onExit,focusId}:
   const visibility=()=>{if(document.visibilityState==="hidden")stop();else start()};
   document.addEventListener("visibilitychange",visibility);
   return()=>{enabled=false;stop();document.removeEventListener("visibilitychange",visibility)};
- },[mySharing,requestId,token,offset]);
+ },[mySharing,requestId,token]);
  const stop=async()=>{if(!request)return;if(await send("stop",{id:request.id}))setNotice("Partage arrêté : ta position n'est plus accessible.")};
+ const exit=()=>{
+  if(mySharing&&request)void send("stop",{id:request.id}).finally(onExit);
+  else onExit();
+ };
  const decline=async()=>{if(!request)return;if(await send("decline",{id:request.id}))setNotice("Demande refusée. Aucune position partagée.")};
  const cancel=async()=>{if(!request)return;if(await send("cancel",{id:request.id}))setNotice("Demande annulée.")};
  const center=request?.location;
+ useEffect(()=>{
+  if(!mapOpen||!center)return;
+  const now=Date.now();
+  if(!mapUpdatedAt.current||now-mapUpdatedAt.current>16000){
+   setMapPoint(center);mapUpdatedAt.current=now;
+  }
+ },[center?.updatedAt,mapOpen]);
  const focusOld=focusId&&request&&focusId!==request.id;
  return <section className="loc-page" aria-label="Partage de position avec consentement">
-  <header className="loc-head"><button type="button" onClick={onExit}>‹ Accueil</button><div><strong>Notre position <span>♡</span></strong><small>TOUJOURS AVEC TON ACCORD</small></div><span className="loc-pin">📍</span></header>
+  <header className="loc-head"><button type="button" onClick={exit}>‹ Accueil</button><div><strong>Notre position <span>♡</span></strong><small>TOUJOURS AVEC TON ACCORD</small></div><span className="loc-pin">📍</span></header>
   <div className="loc-intro"><div className="loc-illustration">📍</div><h1>Se retrouver, <em>en toute confiance.</em></h1><p>Demande à voir la position de ton amour. La personne choisit librement d’accepter ou de refuser.</p></div>
   {focusOld?<div className="loc-message" role="status">Cette notification concerne une ancienne demande. Voici la demande actuelle.</div>:null}
   {error?<div className="loc-message loc-error" role="alert">{error}</div>:null}
@@ -166,8 +187,8 @@ export default function LocationShare({token,partnerName,myName,onExit,focusId}:
    otherSharing?<div className="loc-card loc-map-card"><div className="loc-map-head"><div><span className="loc-live-indicator">● PARTAGE AUTORISÉ</span><h2>Position de {request.targetName}</h2></div><div className="loc-time-pill">{formatted(remaining)}</div></div>
     {center?<><p>{request.targetName} partage volontairement sa position. Dernière actualisation : {new Date(center.updatedAt).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}.</p>
      <div className="loc-accuracy">📡 Précision GPS estimée : ± {Math.max(1,Math.round(center.accuracy||1))} mètres</div>
-     {!mapOpen?<button type="button" className="loc-primary" onClick={()=>setMapOpen(true)}>🗺️ Afficher sur la carte</button>:<>
-      <div className="loc-map"><iframe title="Position partagée sur OpenStreetMap" src={mapUrl(center)} referrerPolicy="no-referrer" loading="lazy"/></div>
+     {!mapOpen?<button type="button" className="loc-primary" onClick={()=>{setMapPoint(center);mapUpdatedAt.current=Date.now();setMapOpen(true)}}>🗺️ Afficher sur la carte</button>:<>
+      <div className="loc-map"><iframe title="Position partagée sur OpenStreetMap" src={mapUrl(mapPoint||center)} referrerPolicy="no-referrer" loading="lazy"/></div><span className="loc-map-refresh">Carte actualisée environ toutes les 16 secondes.</span>
       <a className="loc-map-link" href={externalMapUrl(center)} rel="noopener noreferrer" target="_blank">Ouvrir la carte en grand ↗</a>
      </>}
      <small>Carte OpenStreetMap : si tu l’ouvres, ce service cartographique reçoit les coordonnées affichées. La position peut être imprécise et n’est pas une preuve d’identité ou de présence.</small>
