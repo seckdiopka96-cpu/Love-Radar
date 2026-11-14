@@ -22,8 +22,8 @@ export function validPushEndpoint(raw:string): boolean {
 }
 
 type StoredSub={endpoint:string,p256dh:string,auth:string};
-export type PushTarget={kind:"message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"daily-question";id:string};
-function notificationRoute(tab:"chat"|"home"|"ludo"|"memory"|"memories"|"moment",target?:PushTarget){
+export type PushTarget={kind:"message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"daily-question"|"love-signal"|"draw-invite";id:string};
+function notificationRoute(tab:"chat"|"home"|"ludo"|"memory"|"memories"|"moment"|"together",target?:PushTarget){
  const route=new URLSearchParams({tab});
  if(target&&(/^[0-9a-f-]{36}$/i.test(target.id)||(target.kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(target.id)))){
   route.set("kind",target.kind);
@@ -38,7 +38,7 @@ export async function notifyPartner(
   fromId:string,
   title:string,
   body:string,
-  tab:"chat"|"home"|"ludo"|"memory"|"memories"|"moment"="chat",
+  tab:"chat"|"home"|"ludo"|"memory"|"memories"|"moment"|"together"="chat",
   target?:PushTarget
 ): Promise<void> {
   if(!env.DB || !env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY)return;

@@ -138,6 +138,10 @@ async function snapshot(db:D1Database,u:Member){
       await db.prepare("DELETE FROM voice_signals WHERE room_id=?").bind(u.room_id).run();
       await db.prepare("DELETE FROM voice_calls WHERE room_id=?").bind(u.room_id).run();
      }catch(err){console.error("Optional voice call cleanup",err)}
+     for(const table of ["affection_signals","couple_canvas_events","couple_canvas_invites"]){
+      try{await db.prepare("DELETE FROM "+table+" WHERE room_id=?").bind(u.room_id).run()}
+      catch(e){console.error("Optional Together cleanup",table,e)}
+     }
      try{await db.prepare("DELETE FROM daily_moments WHERE room_id=?").bind(u.room_id).run()}
      catch(err){console.error("Optional daily moments cleanup",err)}
      for(const table of ["memory_challenges","memory_gifts","memory_agreements","memory_games"]){

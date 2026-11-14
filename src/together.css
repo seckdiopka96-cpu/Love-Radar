@@ -1,0 +1,113 @@
+/* Love Radar | Notre espace Ensemble (miss-you signals + drawing for two). */
+.tg-page,.tg-page *{box-sizing:border-box}
+.tg-page{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#fff0f6;max-width:840px;margin:0 auto;display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+.tg-top{display:flex;gap:8px;align-items:center;justify-content:space-between;flex:0 0 auto}
+.tg-back{background:#60415f;border:1px solid #956c89;border-radius:12px;padding:10px 13px;color:#fff1f6;font-size:12px;font-weight:850}
+.tg-brand{text-align:center;display:flex;flex-direction:column;gap:3px;min-width:0}
+.tg-brand strong{font:600 clamp(19px,4.8vw,28px)/1.1 Georgia,serif;white-space:nowrap}
+.tg-brand strong span{color:#ff9ec7}
+.tg-brand small{font-size:8px;letter-spacing:1.2px;font-weight:800;color:#d8b7cf}
+.tg-top-heart{font-size:24px;color:#ffaccb;border:1px solid #805e82;border-radius:12px;background:#503754;padding:6px 9px}
+.tg-modes{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px;border-radius:14px;border:1px solid #785478;background:#302239;flex:0 0 auto}
+.tg-modes button{border:0;border-radius:10px;background:transparent;color:#e8cce2;padding:11px 4px;font-size:12px;font-weight:800}
+.tg-modes button.selected{background:linear-gradient(125deg,#b35b87,#784b84);color:#fff;box-shadow:0 5px 14px #210d236b}
+.tg-heart-screen{display:flex;flex-direction:column;align-items:center;gap:13px;min-height:0;flex:1 1 auto}
+.tg-heart-center{width:100%;min-height:245px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;text-align:center;position:relative;border:1px solid #c58fae;border-radius:23px;padding:18px;background:radial-gradient(ellipse at 55% 38%,#ad567c9e,transparent 46%),linear-gradient(135deg,#57315c,#3a294b 90%);overflow:hidden}
+.tg-heart-kicker{font-size:9px;font-weight:900;letter-spacing:1.5px;color:#ffcddf}
+.tg-heart-animation{font-size:83px;line-height:1.1;color:#f392b8;text-shadow:0 10px 22px #431e47;animation:tg-heartbeat 1.6s ease-in-out infinite alternate}
+@keyframes tg-heartbeat{to{transform:scale(1.12);filter:brightness(1.1)}}
+.tg-heart-center h1{margin:0;font:600 clamp(25px,5vw,34px)/1.2 Georgia,serif}
+.tg-heart-center h1 em{color:#ffbbd8}
+.tg-heart-center p{font-size:12px;line-height:1.5;max-width:285px;margin:0;color:#f1d4e7}
+.tg-heart-center small{font-size:11px;color:#efd2e1}
+.tg-send-heart{min-width:230px;border:0;border-radius:14px;background:linear-gradient(130deg,#fa86ad,#ca4e89);padding:13px 18px;color:#fff;font-size:14px;font-weight:950;box-shadow:0 8px 22px #320a2d66}
+.tg-send-heart:disabled{opacity:.5}
+.tg-heart-feed{width:100%;display:flex;flex-direction:column;gap:9px;border:1px solid #765a80;background:#382944;padding:13px;border-radius:19px;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.tg-heart-feed-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tg-heart-feed-title strong{font:600 19px Georgia,serif}
+.tg-heart-feed-title span{color:#f5a7d0;font-size:24px}
+.tg-heart-feed>p{font-size:12px;color:#dabfd2;margin:2px 0}
+.tg-signal{display:flex;gap:9px;border:1px solid #775a76;border-radius:13px;padding:10px;background:#463450}
+.tg-signal.received{background:#754161;border-color:#cf87a9}
+.tg-signal-avatar{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:11px;background:#efa2c1;color:#382542;font-weight:950}
+.tg-signal.sent .tg-signal-avatar{background:#d3a4e9}
+.tg-signal-content{display:flex;flex-direction:column;gap:7px;flex:1;min-width:0}
+.tg-signal-content small{font-size:10px;color:#e0c6db}
+.tg-signal-content strong{font-size:13px;color:#fff6f7;overflow-wrap:anywhere}
+.tg-reply-options{display:flex;gap:6px;flex-wrap:wrap}
+.tg-reply-options button{border:1px solid #f0bfd6;background:#a15f82;color:#fff8fa;border-radius:9px;padding:8px 7px;font-size:10px;font-weight:800}
+.tg-vocal-hint{font-size:10px!important;color:#e3ccdc!important}
+.tg-direct-notice{width:100%;display:flex;flex-direction:column;gap:5px;padding:11px 13px;background:#8a5278;border:1px solid #e6b6d1;border-radius:13px}
+.tg-direct-notice>span{font-size:9px;letter-spacing:1px;color:#f1cfe6}
+.tg-direct-notice strong{font-size:12px}
+.tg-direct-notice button{font-size:11px;color:#ffe4ad;border:0;text-align:left;background:transparent;padding:3px 0}
+.tg-draw-screen{display:flex;flex:1 1 auto;min-height:0;flex-direction:column;gap:9px}
+.tg-draw-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex:0 0 auto}
+.tg-draw-heading>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.tg-draw-heading strong{font:600 21px Georgia,serif}
+.tg-draw-heading small{font-size:10px;color:#e0bcd5}
+.tg-invite{flex:none;border:1px solid #f3c68b;background:#c8876b;color:#321d36;border-radius:11px;font-size:12px;font-weight:900;padding:10px}
+.tg-invite:disabled{opacity:.5}
+.tg-draw-tools{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;flex:0 0 auto}
+.tg-draw-tools button{border:1px solid #815a80;background:#53395d;color:#f6e3f0;border-radius:10px;padding:10px 4px;font-size:12px;font-weight:850}
+.tg-draw-tools button.active{border-color:#f1b8d0;background:#9e5a83;color:#fff}
+.tg-board-wrap{position:relative;min-height:0;flex:1 1 auto;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:4px}
+.tg-board{touch-action:none;user-select:none;-webkit-user-select:none;display:block;aspect-ratio:1/1;width:min(100%,480px);height:auto;max-height:100%;background:#fff9f3;border:6px solid #c98ead;border-radius:21px;box-shadow:0 8px 30px #0e071999;cursor:crosshair}
+.tg-board-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;color:#573f58;font-weight:800;font-size:12px}
+.tg-draw-bottom{display:flex;flex-direction:column;gap:9px;flex:0 0 auto;background:#362943;border:1px solid #755678;border-radius:16px;padding:11px}
+.tg-draw-colors{display:flex;align-items:center;justify-content:center;gap:10px}
+.tg-draw-colors button{width:31px;height:31px;border:2px solid #ffffff75;border-radius:50%;padding:0}
+.tg-draw-colors button.active{border:3px solid #fff;box-shadow:0 0 0 2px #eaa4c6}
+.tg-draw-note{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:800}
+.tg-draw-note input{width:100%;padding:8px 11px;border:1px solid #cba0bd;border-radius:10px;background:#fff9fc;color:#38243d;font-size:14px}
+.tg-bottom-actions{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.tg-bottom-actions>button{border:1px solid #8e6b91;background:#644a6b;color:#fff0fa;border-radius:10px;padding:9px;font-size:11px;font-weight:800}
+.tg-stroke-widths{display:flex;gap:3px}
+.tg-stroke-widths button{min-width:30px;min-height:31px;border:1px solid #745671;border-radius:9px;background:#4b3658;color:#ffe7f7;font-size:16px}
+.tg-stroke-widths button.active{border-color:#ffd0e5;background:#955e89}
+.tg-draw-bottom>small{font-size:9px;line-height:1.35;text-align:center;color:#d1b6ca}
+.tg-floating-alert{position:absolute;z-index:12;bottom:8px;left:8px;right:8px;max-width:650px;margin:0 auto;border:1px solid #faa3aa;border-radius:10px;padding:11px;background:#7d344f;color:#fff;font-size:11px;line-height:1.4;text-align:center;box-shadow:0 5px 18px #100b1780}
+.tg-floating-success{background:#39664b;border-color:#a8e7bb}
+.tg-modal-backdrop{position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:#130b1bda;padding:18px}
+.tg-modal{width:min(100%,370px);display:flex;flex-direction:column;gap:12px;padding:22px;background:#483154;border:1px solid #c58eb7;border-radius:21px;text-align:center}
+.tg-modal h2{font:600 23px Georgia,serif;margin:0}
+.tg-modal p{font-size:12px;line-height:1.5;color:#e0c5d9;margin:0}
+.tg-modal button{border:0;padding:12px;border-radius:11px;background:#c26689;color:#fff;font-size:12px;font-weight:850}
+.tg-modal button.tg-cancel{background:#62486d}
+@media(max-width:950px){
+ html:has(.lr-app.lr-together-mode),body:has(.lr-app.lr-together-mode),#root:has(.lr-app.lr-together-mode){height:100dvh!important;max-height:100dvh!important;overflow:hidden!important}
+ .lr-app.lr-together-mode.lr-app-locked{position:fixed!important;inset:0!important;height:100dvh!important;min-height:0!important;max-height:100dvh!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;overscroll-behavior:none!important}
+ .lr-app.lr-together-mode.lr-app-locked>.lr-header,.lr-app.lr-together-mode.lr-app-locked>.lr-notification-area,.lr-app.lr-together-mode.lr-app-locked>.lr-toast,.lr-app.lr-together-mode.lr-app-locked>.lr-bg-decor,.lr-app.lr-together-mode.lr-app-locked .lr-sidebar,.lr-app.lr-together-mode.lr-app-locked .lr-mobile-nav{display:none!important}
+ .lr-app.lr-together-mode.lr-app-locked .lr-shell{display:flex!important;flex:1 1 0!important;min-height:0!important;max-height:100%!important;width:100%!important;margin:0!important;padding:0!important;overflow:hidden!important}
+ .lr-app.lr-together-mode.lr-app-locked .lr-main{display:flex!important;flex:1 1 0!important;min-height:0!important;max-height:100%!important;width:100%!important;max-width:none!important;padding:0!important;margin:0!important;overflow:hidden!important}
+ .lr-app.lr-together-mode.lr-app-locked .tg-page{position:relative;flex:1 1 0!important;min-height:0!important;max-height:100%!important;height:100%!important;width:100%!important;max-width:100%!important;overflow:hidden!important;padding:calc(6px + env(safe-area-inset-top)) 9px calc(7px + env(safe-area-inset-bottom));gap:7px;background:linear-gradient(160deg,#302039,#24182e)}
+ .tg-top{min-height:39px}
+ .tg-modes button{padding:9px 3px;font-size:11px}
+ .tg-heart-center{flex:0 1 auto;min-height:0;padding:11px 12px;gap:6px}
+ .tg-heart-animation{font-size:clamp(42px,8dvh,70px)}
+ .tg-heart-center h1{font-size:clamp(23px,3.7dvh,32px)}
+ .tg-heart-center p{font-size:11px}
+ .tg-send-heart{padding:11px}
+ .tg-heart-feed{flex:1 1 0;min-height:0}
+ .tg-draw-heading strong{font-size:18px}
+ .tg-draw-tools button{padding:8px 3px;font-size:11px}
+ .tg-draw-bottom{padding:7px;gap:6px}
+ .tg-draw-colors button{width:28px;height:28px}
+}
+@media(max-height:700px) and (max-width:950px){
+ .tg-page{gap:5px!important}
+ .tg-heart-kicker,.tg-heart-center p{display:none}
+ .tg-heart-animation{font-size:44px}
+ .tg-heart-center h1{font-size:24px}
+ .tg-heart-center{gap:4px!important}
+ .tg-draw-heading small{display:none}
+ .tg-draw-colors button{width:24px;height:24px}
+ .tg-draw-bottom>small{display:none}
+ .tg-draw-tools button{padding:6px 3px}
+}
+@media(prefers-reduced-motion:reduce){.tg-heart-animation{animation:none}}
+
+/* The fourth drawing tool places a shared tic-tac-toe grid. Draw X and O by hand. */
+.tg-draw-tools{grid-template-columns:repeat(4,minmax(0,1fr))}
+.tg-draw-tools button{font-size:11px;white-space:nowrap;min-width:0}
+@media(max-width:400px){.tg-draw-tools button{font-size:10px;padding:7px 1px}}

@@ -912,3 +912,11 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
 .lr-welcome-mode .lr-made-by strong{color:#f4bed6;font-weight:850}
 @media(max-width:700px){.lr-app.lr-welcome-mode .lr-made-by{font-size:10px;margin-top:7px}}
 @media(max-width:700px) and (max-height:740px){.lr-app.lr-welcome-mode .lr-made-by{font-size:9px;margin-top:4px}}
+
+/* 7 items in the mobile nav: keep every label visible without clipping. */
+@media(max-width:700px){
+ .lr-mobile-nav{justify-content:space-between;gap:0}
+ .lr-mobile-nav button{min-width:0;flex:1 1 0;padding:0 1px}
+ .lr-mobile-nav button span{font-size:clamp(18px,5vw,24px)}
+ .lr-mobile-nav button small{font-size:clamp(8px,2.25vw,10px);letter-spacing:-.15px}
+}
