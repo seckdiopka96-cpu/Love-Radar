@@ -208,3 +208,13 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Aucune variable Cloudflare supplémentaire : les tables se créent avec la liaison D1 existante et les alertes utilisent l'abonnement Web Push déjà configuré. Le cache PWA passe en v25.
 
 - L'écran de localisation masque les boutons de navigation du bas pendant le partage ; « Accueil » arrête explicitement le partage avant de quitter. Une tentative de révocation est aussi envoyée si la page est démontée. Si le téléphone est fermé brutalement et que l'arrêt ne peut pas être transmis, l'ancienne position devient automatiquement invisible après ~85 secondes.
+
+## Synchronisation renforcée entre les deux téléphones
+
+- Le tableau « Dessiner ensemble » est commun aux deux membres **du même espace privé**, accessible depuis chacun de ses téléphones.
+- Chaque trait en cours peut apparaître progressivement chez le partenaire : l'application envoie un aperçu léger du tracé (environ toutes les 420 ms pendant le geste), récupéré par l'autre appareil toutes les ~650 ms. La version définitive du trait est conservée dans D1 après avoir levé le doigt.
+- Un état de présence indique si le partenaire se trouve actuellement sur le tableau. Quand il ferme le tableau ou met l'application en arrière-plan, sa présence est supprimée; les aperçus transitoires expirent et ne restent pas visibles.
+- La synchronisation survit à la fermeture et à la réouverture du tableau : le serveur renvoie les dessins enregistrés. Les modifications de l'autre utilisateur (dessin, morpion, effacement, annulation) sont récupérées automatiquement.
+- Une protection contre les réponses réseau arrivées dans le désordre empêche un ancien rafraîchissement d'effacer momentanément les traits que vient de créer l'utilisateur.
+- Les demandes et partages GPS utilisent désormais un rafraîchissement toutes les ~1,5 seconde quand la page est ouverte, avec un état d'accès au service. Cela ne change **pas** le consentement obligatoire ni les limites de 15 minutes et 85 secondes de fraîcheur des coordonnées.
+- La présence est éphémère et sans localisation. Aucun nouveau service externe ni configuration n'est nécessaire. Build PWA v26.
