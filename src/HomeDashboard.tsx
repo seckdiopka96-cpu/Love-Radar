@@ -3,10 +3,28 @@ import DiceFace from "./DiceFace";
 import "./home-dashboard.css";
 type Message={id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;created_at:number};
 type Game={turn:number;status:"playing"|"won";winner:number|null;version:number;dice:number|null};
+type DailyOverview={ok:boolean;question:string;mine:{text:string}|null;partnerAnswered:boolean;revealed:boolean};
 type Room={user:{id:string;name:string;seat:number};partner:string|null;code:string;partnerLastSeenAt?:number;messages:Message[]};
-type Props={room:Room;token:string;media:Record<string,string>;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories")=>void};
+type Props={room:Room;token:string;media:Record<string,string>;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment")=>void};
 export default function HomeDashboard({room,token,media,onInvite,onNavigate}:Props){
  const [game,setGame]=useState<Game|null>(null);
+ const [daily,setDaily]=useState<DailyOverview|null>(null);
+ useEffect(()=>{
+  let active=true;
+  async function checkDaily(){
+   if(document.visibilityState==="hidden")return;
+   try{
+    const res=await fetch("/api/moment",{headers:{"Authorization":"Bearer "+token},cache:"no-store"});
+    const data=await res.json() as DailyOverview;
+    if(active&&res.ok&&data.ok)setDaily(data);
+   }catch{/* The daily card should never block the home page. */}
+  }
+  void checkDaily();
+  const timer=window.setInterval(()=>void checkDaily(),12000);
+  const visible=()=>{if(document.visibilityState==="visible")void checkDaily()};
+  document.addEventListener("visibilitychange",visible);
+  return()=>{active=false;window.clearInterval(timer);document.removeEventListener("visibilitychange",visible)};
+ },[token]);
  useEffect(()=>{
   if(!room.partner)return;
   let alive=true;
@@ -40,6 +58,19 @@ export default function HomeDashboard({room,token,media,onInvite,onNavigate}:Pro
    <p><span className={"lr-home-online"+(online?" is-online":"")}/>{!room.partner?"En attente de ton partenaire":online?"Ton amour est en ligne":"Votre espace privé, toujours connecté"}</p>
   </section>
   {!room.partner?<section className="lr-home-invite"><div><strong>Invite ton amour 💌</strong><p>Partage ce code pour vous retrouver ici.</p></div><code>{room.code}</code><button type="button" onClick={onInvite}>Partager l’invitation</button></section>:null}
+  <button type="button" className="lr-home-daily" onClick={()=>onNavigate("moment")}>
+   <span className="lr-home-daily-kicker">✦ NOTRE RENDEZ-VOUS QUOTIDIEN</span>
+   <span className="lr-home-daily-line">
+    <span className="lr-home-daily-icon" aria-hidden="true">💌</span>
+    <span className="lr-home-daily-content">
+     <strong>Notre moment du jour</strong>
+     <span>{daily?.revealed?"Vos deux réponses sont révélées ! 💞":daily?.partnerAnswered&&!daily?.mine?"Ton amour a répondu. À toi ! 💗":daily?.mine?"Ta réponse est enregistrée. En attente de ton amour…":"Une question pour deux, un moment rien qu’à vous."}</span>
+    </span>
+    <span className="lr-home-daily-arrow" aria-hidden="true">↗</span>
+   </span>
+   {daily?.question?<span className="lr-home-daily-question">« {daily.question} »</span>:null}
+   <span className="lr-home-daily-cta">{daily?.revealed?"Découvrir nos réponses":daily?.mine?"Voir notre moment":"Découvrir la question"} →</span>
+  </button>
   <button type="button" className="lr-home-game" onClick={()=>onNavigate("ludo")}>
    <div className="lr-home-game-copy"><span className="lr-home-card-label">✦ VOTRE JEU PRIVÉ</span><h2>{gameHeadline}</h2><p>{room.partner?gameSub:"Invite ton partenaire pour jouer à deux."}</p><span className="lr-home-game-cta">{game?"Jouer maintenant":"Découvrir le Ludo"} <b>→</b></span></div>
    <div className="lr-home-game-dice" aria-hidden="true"><DiceFace value={5} variant="pink" size="large"/><DiceFace value={3} variant="gold"/></div>

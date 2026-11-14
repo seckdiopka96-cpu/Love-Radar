@@ -169,3 +169,13 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Le bouton « Valider ma signature » n'est activé qu'après avoir coché la case et répondu oui ou non au défi cadeau.
 - Chaque API vérifie explicitement les deux consentements booléens, puis enregistre le nom du profil authentifié et l'horodatage dans D1. Chaque manche reste bloquée jusqu'à la validation des deux comptes.
 - La signature correspond à une attestation privée dans Love Radar, sans certification légale. Les cadeaux restent facultatifs et aucun paiement n'est effectué par l'app.
+
+## Notre moment du jour 💌 — question quotidienne privée
+
+- Nouvelle entrée `Moment` accessible depuis l'accueil et le menu. La même question romantique et originale est définie par la **date UTC** pour les deux personnes, même dans des pays différents. Le catalogue initial comporte 56 questions et peut être enrichi sans modifier le modèle D1.
+- Chacun peut envoyer **une seule réponse par jour** (2 à 1 200 caractères). La réponse de l'autre reste **strictement masquée par l'API serveur** tant que les deux n'ont pas répondu ; l'interface ne reçoit donc aucun texte caché à découvrir.
+- Dès que les deux ont participé, les réponses sont dévoilées simultanément et chacun peut réagir à la réponse de son partenaire avec un emoji enregistré.
+- Les derniers moments avec une réponse sont accessibles depuis une petite archive privée. Les questions précédentes sont consultables mais ne sont plus ouvertes à de nouvelles réponses.
+- La première réponse déclenche une notification Push à l'autre partenaire (« À ton tour ») et la deuxième prévient que les deux réponses sont révélées, avec un **lien direct vers la question de la date** (`?tab=moment&kind=daily-question&id=YYYY-MM-DD`). Sans autorisation Push, l'espace se synchronise à l'ouverture de l'app.
+- L'espace quotidien est stocké dans `daily_moments`, sur la base D1 existante, et lié au salon privé ; les messages, appels et jeux ne sont pas modifiés.
+- Love Radar fonctionne avec un hébergement Cloudflare Pages + D1 indépendant des plateformes de messagerie tierces. Les questions changent à minuit UTC, affiché clairement à l'écran.

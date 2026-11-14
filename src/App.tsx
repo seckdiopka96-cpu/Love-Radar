@@ -3,11 +3,12 @@ import "./love-radar.css";
 import VoiceCall from "./VoiceCall";
 import Ludo from "./Ludo";
 import MemoryLove from "./MemoryLove";
+import DailyMoment from "./DailyMoment";
 import HomeDashboard from "./HomeDashboard";
 import DiceFace from "./DiceFace";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
-type Tab = "home" | "ludo" | "memory" | "chat" | "memories";
+type Tab = "home" | "moment" | "ludo" | "memory" | "chat" | "memories";
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number};
 type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];partnerReadAt?:number;partnerTypingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
@@ -15,6 +16,7 @@ type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room
 
 const NAV: {id:Tab;label:string;icon:string}[] = [
  {id:"home",label:"Accueil",icon:"♡"},
+ {id:"moment",label:"Moment",icon:"💌"},
  {id:"ludo",label:"Ludo",icon:"🎲"},
  {id:"memory",label:"Memory",icon:"🃏"},
  {id:"chat",label:"Messages",icon:"✉"},
@@ -22,16 +24,16 @@ const NAV: {id:Tab;label:string;icon:string}[] = [
 ];
 const HEARTS = ["♡","♥","✦","♡","♥"];
 
-type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge";
+type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"daily-question";
 type NoticeTarget={tab:Tab;kind:NoticeKind|null;id:string|null};
-const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge"]);
+const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","daily-question"]);
 function parseNotice(search:string):NoticeTarget|null{
  const q=new URLSearchParams(search);
  const tab=q.get("tab");
- if(tab!=="home"&&tab!=="chat"&&tab!=="ludo"&&tab!=="memory"&&tab!=="memories")return null;
+ if(tab!=="home"&&tab!=="moment"&&tab!=="chat"&&tab!=="ludo"&&tab!=="memory"&&tab!=="memories")return null;
  const kind=q.get("kind"),id=q.get("id");
- if(!kind||!NOTICE_KINDS.has(kind)||!id||!/^[0-9a-f-]{36}$/i.test(id))return {tab,kind:null,id:null};
- return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":"chat",kind:kind as NoticeKind,id};
+ if(!kind||!NOTICE_KINDS.has(kind)||!id||!(/^[0-9a-f-]{36}$/i.test(id)||(kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(id))))return {tab,kind:null,id:null};
+ return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":kind==="daily-question"?"moment":"chat",kind:kind as NoticeKind,id};
 }
 function noticeUrl(target:NoticeTarget){
  const q=new URLSearchParams({tab:target.tab});
@@ -201,7 +203,7 @@ export default function LoveRadar(){
      setNoticeTarget(dest);
      setTab(dest.tab);firstPoll.current=true;
     }
-   }else if(["chat","ludo","memory","home","memories"].includes(data?.tab)){
+   }else if(["chat","ludo","memory","moment","home","memories"].includes(data?.tab)){
     const dest=data.tab as Tab;
     setTab(dest);setNoticeTarget({tab:dest,kind:null,id:null});firstPoll.current=true;
    }
@@ -515,6 +517,7 @@ export default function LoveRadar(){
    </aside>
    <main className="lr-main">
     {tab==="home"?<HomeDashboard room={room} token={token} media={media} onInvite={()=>void shareCode()} onNavigate={navigate}/>:null}
+    {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("home")} focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
     {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("home")} challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}/>:null}
     {tab==="memory"?<MemoryLove token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("home")} challengeId={noticeTarget?.kind==="memory-challenge"?noticeTarget.id:null}/>:null}
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
