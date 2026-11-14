@@ -207,6 +207,17 @@ export default function LoveRadar(){
  useEffect(()=>{
   const onMessage=(event:MessageEvent)=>{
    const data=event.data;
+   if(data?.type==="love-radar-push-received"){
+    firstPoll.current=true;
+    if(document.visibilityState==="visible"&&["message","photo","audio"].includes(data.kind||""))
+     setNotice("💌 Nouveau message reçu. Ouvre Messages pour le lire.");
+    return;
+   }
+   if(data?.type==="love-radar-push-needs-repair"){
+    setNotificationsOn(false);
+    setNotificationsHint("Le téléphone a renouvelé son abonnement push. Ouvre Réparer les notifications.");
+    return;
+   }
    if(data?.type==="love-radar-open-notification"){
     const dest=parseNotice(new URL(noticeUrl({tab:data.tab,kind:data.kind,id:data.id}),window.location.origin).search);
     if(dest){
