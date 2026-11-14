@@ -130,6 +130,19 @@ async function snapshot(db:D1Database,u:Member){
      const objects=await db.prepare("SELECT object_key FROM messages WHERE room_id=? AND object_key IS NOT NULL").bind(u.room_id).all<{object_key:string}>();
      const bucket=bindings().STORAGE;
      if(bucket)for(const row of objects.results)try{await bucket.delete(row.object_key)}catch(e){console.error("delete media",e);return fail("Suppression des médias impossible. Réessaie.",503)}
+     // The couple portrait is stored separately from chat images. Delete it too.
+     let portrait:{photo_key:string|null}|null=null;
+     try{portrait=await db.prepare("SELECT photo_key FROM couple_stories WHERE room_id=?").bind(u.room_id).first<{photo_key:string|null}>()}
+     catch(e){console.error("Optional story portrait lookup",e)}
+     if(portrait?.photo_key){
+      if(!bucket)return fail("Le stockage de la photo du couple est indisponible.",503);
+      try{await bucket.delete(portrait.photo_key)}
+      catch(e){console.error("delete story photo",e);return fail("Suppression de la photo commune impossible. Réessaie.",503)}
+     }
+     for(const table of ["couple_story_events","couple_stories"]){
+      try{await db.prepare("DELETE FROM "+table+" WHERE room_id=?").bind(u.room_id).run()}
+      catch(e){console.error("Optional couple story cleanup",table,e)}
+     }
      try{await db.prepare("DELETE FROM push_subscriptions WHERE room_id=?").bind(u.room_id).run()}catch(e){console.error("push cleanup",e)}
      await ensureChatPresence(db);
      await db.prepare("DELETE FROM chat_presence WHERE room_id=?").bind(u.room_id).run();

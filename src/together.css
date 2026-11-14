@@ -125,3 +125,9 @@
 .tg-shortcuts button{width:100%;min-width:0;border:1px solid #c79eaf;border-radius:11px;background:#60465f;color:#ffe0ec;padding:9px 4px;font-size:11px;line-height:1.25;font-weight:850;white-space:nowrap}
 .tg-shortcuts .tg-moment-link{background:#70435d;border-color:#dbacc4}
 @media(max-width:360px){.tg-shortcuts button{font-size:10px;padding:8px 2px}}
+
+/* Three concise links make room for reunions without hiding the drawing board. */
+.tg-shortcuts{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.tg-shortcuts button{font-size:10px;padding:9px 2px;white-space:normal}
+.tg-shortcuts .tg-reunion-link{background:#694565;border-color:#ddabc9}
+@media(max-width:360px){.tg-shortcuts button{font-size:9px;padding:8px 1px}}

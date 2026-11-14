@@ -1,14 +1,32 @@
 import {useEffect,useState} from "react";
 import DiceFace from "./DiceFace";
+import {daysTo,type StoryData} from "./story-dates";
 import "./home-dashboard.css";
 type Message={id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;created_at:number};
 type Game={turn:number;status:"playing"|"won";winner:number|null;version:number;dice:number|null};
 type DailyOverview={ok:boolean;question:string;mine:{text:string}|null;partnerAnswered:boolean;revealed:boolean};
 type Room={user:{id:string;name:string;seat:number};partner:string|null;code:string;partnerLastSeenAt?:number;messages:Message[]};
-type Props={room:Room;token:string;media:Record<string,string>;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"location",feature?:"heart"|"draw")=>void};
+type Props={room:Room;token:string;media:Record<string,string>;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"location"|"story"|"reunion",feature?:"heart"|"draw")=>void};
 export default function HomeDashboard({room,token,media,onInvite,onNavigate}:Props){
  const [game,setGame]=useState<Game|null>(null);
  const [daily,setDaily]=useState<DailyOverview|null>(null);
+ const [story,setStory]=useState<StoryData|null>(null);
+ useEffect(()=>{
+  let alive=true;
+  async function refresh(){
+   if(document.visibilityState!=="visible")return;
+   try{
+    const res=await fetch("/api/story",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+    const data=await res.json() as StoryData;
+    if(alive&&res.ok&&data.ok)setStory(data);
+   }catch{/* Keep the home page usable if story data is temporarily unavailable. */}
+  }
+  void refresh();
+  const interval=window.setInterval(()=>void refresh(),20000);
+  const onVisible=()=>{if(document.visibilityState==="visible")void refresh()};
+  document.addEventListener("visibilitychange",onVisible);
+  return()=>{alive=false;window.clearInterval(interval);document.removeEventListener("visibilitychange",onVisible)};
+ },[token]);
  useEffect(()=>{
   let active=true;
   async function checkDaily(){
@@ -58,6 +76,18 @@ export default function HomeDashboard({room,token,media,onInvite,onNavigate}:Pro
    <p><span className={"lr-home-online"+(online?" is-online":"")}/>{!room.partner?"En attente de ton partenaire":online?"Ton amour est en ligne":"Votre espace privé, toujours connecté"}</p>
   </section>
   {!room.partner?<section className="lr-home-invite"><div><strong>Invite ton amour 💌</strong><p>Partage ce code pour vous retrouver ici.</p></div><code>{room.code}</code><button type="button" onClick={onInvite}>Partager l’invitation</button></section>:null}
+  <div className="lr-home-our-story">
+   <button type="button" onClick={()=>onNavigate("story")}>
+    <span className="lr-home-our-symbol" aria-hidden="true">💑</span>
+    <span><strong>Notre histoire</strong><small>{story?.profile.meetingDate?Math.max(0,-daysTo(story.profile.meetingDate))+" jours ensemble ❤️":"Notre photo et nos plus beaux souvenirs."}</small></span>
+    <b aria-hidden="true">↗</b>
+   </button>
+   <button type="button" onClick={()=>onNavigate("reunion")}>
+    <span className="lr-home-our-symbol" aria-hidden="true">📅</span>
+    <span><strong>Nos retrouvailles</strong><small>{story?.profile.reunionDate?(daysTo(story.profile.reunionDate)>0?"J-"+daysTo(story.profile.reunionDate)+" avant de se revoir 💗":daysTo(story.profile.reunionDate)===0?"C'est aujourd'hui ! ❤️":"Choisissons notre prochaine date."): "Un compte à rebours rien qu'à nous."}</small></span>
+    <b aria-hidden="true">↗</b>
+   </button>
+  </div>
   <button type="button" className="lr-home-daily" onClick={()=>onNavigate("moment")}>
    <span className="lr-home-daily-kicker">✦ NOTRE RENDEZ-VOUS QUOTIDIEN</span>
    <span className="lr-home-daily-line">
