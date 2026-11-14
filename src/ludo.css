@@ -145,3 +145,21 @@
 .ludo-dice-face{width:68px;height:68px;display:flex;align-items:center;justify-content:center;padding:0;border:0;background:none;box-shadow:none;border-radius:0}
 .ludo-dice-face .lr-die{transform:none}
 @media(max-width:700px){.ludo-dice-face{width:48px;height:48px;border:0;background:none;box-shadow:none}.ludo-dice-face .lr-die{width:48px;height:48px}}
+
+/* A Ludo pawn is a sculpted peg, not a numbered round disc. */
+.ludo-pawn{position:relative;z-index:6;flex:none;display:grid;place-items:center;width:clamp(22px,3.9vw,33px);height:clamp(29px,5.2vw,43px);margin:0;padding:0;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:visible;color:inherit;cursor:pointer}
+.ludo-pawn svg{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 2px 2px #1b0d205c)}
+.ludo-pawn-shadow{fill:#29132444}
+.ludo-pawn-red{--pawn-dark:#ae2d4f;--pawn-mid:#e64b71;--pawn-light:#ff91a7}
+.ludo-pawn-gold{--pawn-dark:#b77a19;--pawn-mid:#e8b53b;--pawn-light:#ffe89f}
+.ludo-pawn-stem{fill:var(--pawn-mid);stroke:var(--pawn-dark);stroke-width:1.6}
+.ludo-pawn-head{fill:var(--pawn-light);stroke:var(--pawn-dark);stroke-width:1.8}
+.ludo-pawn-foot{fill:var(--pawn-mid);stroke:var(--pawn-dark);stroke-width:1.9}
+.ludo-pawn-shine{stroke:#ffffffb8}
+.ludo-pawn-number{fill:#512c3e;font-family:Arial,sans-serif;font-size:10px;font-weight:950;paint-order:stroke;stroke:#fffaf6;stroke-width:.9}
+.ludo-pawn-red .ludo-pawn-number{fill:#682138}
+.ludo-pawn:disabled{opacity:1;cursor:default}
+.ludo-pawn.can-move{outline:0!important;animation:ludo-breathe 1.2s ease-in-out infinite}
+.ludo-pawn.can-move svg{filter:drop-shadow(0 0 5px #866ae9)}
+.ludo-pawn:focus-visible{outline:2px solid #4d357d!important;border-radius:7px!important;outline-offset:1px}
+@media(max-width:700px){.ludo-pawn{width:clamp(21px,5.4vw,31px);height:clamp(28px,7vw,39px)}}

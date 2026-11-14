@@ -115,7 +115,16 @@ export default function Ludo({token,mySeat,myName,partnerName}:Props){
        return <div key={k} className={cellClass}>
         {track!==undefined&&SAFE.has(track)?<span className="ludo-star" aria-hidden="true">★</span>:null}
         {r===7&&c===7?<span className="ludo-heart" aria-hidden="true">♥</span>:null}
-        {pawns.length?<div className="ludo-cell-pawns">{pawns.map(item=><button type="button" key={item.seat+"-"+item.pawn} disabled={!item.active} onClick={()=>void act("move",item.pawn)} title={"Pion "+(item.pawn+1)+" de "+displayName(item.seat)} aria-label={"Pion "+(item.pawn+1)+" de "+displayName(item.seat)+(item.active?", déplacer":"")} className={"ludo-pawn ludo-pawn-"+(item.seat===0?"red":"gold")+(item.active?" can-move":"")}>{item.pawn+1}</button>)}</div>:null}
+        {pawns.length?<div className="ludo-cell-pawns">{pawns.map(item=><button type="button" key={item.seat+"-"+item.pawn} disabled={!item.active} onClick={()=>void act("move",item.pawn)} title={"Pion "+(item.pawn+1)+" de "+displayName(item.seat)} aria-label={"Pion "+(item.pawn+1)+" de "+displayName(item.seat)+(item.active?", déplacer":"")} className={"ludo-pawn ludo-pawn-"+(item.seat===0?"red":"gold")+(item.active?" can-move":"")}>
+         <svg viewBox="0 0 34 45" focusable="false" aria-hidden="true">
+          <ellipse className="ludo-pawn-shadow" cx="17" cy="41" rx="12" ry="3"/>
+          <path className="ludo-pawn-stem" d="M13 18C13 23 12 27 9 32Q8 34 12 35H22Q26 34 25 32C22 27 21 23 21 18Z"/>
+          <ellipse className="ludo-pawn-foot" cx="17" cy="36" rx="14" ry="6"/>
+          <circle className="ludo-pawn-head" cx="17" cy="13" r="10"/>
+          <path className="ludo-pawn-shine" d="M11 10Q13 5 17 5" fill="none" strokeWidth="2.3" strokeLinecap="round"/>
+          <text x="17" y="39" textAnchor="middle" className="ludo-pawn-number">{item.pawn+1}</text>
+         </svg>
+        </button>)}</div>:null}
        </div>;
       })}
       <div className="ludo-yard ludo-yard-red" aria-hidden="true"/>
@@ -130,7 +139,7 @@ export default function Ludo({token,mySeat,myName,partnerName}:Props){
      {game.status==="won"?<div className="ludo-winner"><span>🏆</span><h2>{game.winner===mySeat?"Tu as gagné !":"Victoire de "+displayName(game.winner??0)+" !"}</h2><p>Les quatre pions ont atteint le centre.</p><button disabled={busy} onClick={()=>void act("restart")} type="button">Nouvelle partie ♥</button></div>:<>
       <div className={"ludo-turn-card"+(myTurn?" ludo-its-you":"")}>
        <div className="ludo-state"><span className="ludo-eyebrow">{myTurn?"C’EST TON TOUR":"AU TOUR DE TON AMOUR"}</span><h2>{myTurn?"À toi de jouer !":displayName(game.turn)}</h2><p>{game.dice!==null&&myTurn?"Choisis un pion lumineux.":game.dice!==null?"Ton partenaire choisit son pion.":myTurn?"Tente ta chance avec le dé !":"Le jeu se synchronise automatiquement."}</p></div>
-       <div className="ludo-dice-row"><div className="ludo-dice-face" aria-label={game.dice?"Dé : "+game.dice:"Dé en attente"}><DiceFace value={game.dice??5} size="large"/></div><button type="button" className="ludo-roll" disabled={!myTurn||busy||game.dice!==null} onClick={()=>void act("roll")}>{busy?"Un instant…":game.dice!==null?"Choisir un pion":myTurn?"Lancer le dé":"Patiente…"}</button></div>
+       <div className="ludo-dice-row"><div className="ludo-dice-face" aria-label={game.dice?"Dé : "+game.dice:"Dé en attente"}><DiceFace value={game.dice??0} size="large"/></div><button type="button" className="ludo-roll" disabled={!myTurn||busy||game.dice!==null} onClick={()=>void act("roll")}>{busy?"Un instant…":game.dice!==null?"Choisir un pion":myTurn?"Lancer le dé":"Patiente…"}</button></div>
       </div>
       <div className="ludo-pawn-actions"><strong>MES 4 PIONS <span>• Choisis un pion après le lancer</span></strong><div>{game.positions[mySeat].map((p,i)=><button key={i} type="button" disabled={!canPlay||!legal[i]} onClick={()=>void act("move",i)}><b>{i+1}</b><span>{labelPosition(p)}</span></button>)}</div></div>
      </>}
