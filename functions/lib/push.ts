@@ -1,70 +1,69 @@
-import { buildPushPayload } from "@block65/webcrypto-web-push";
-import type { D1Database } from "@cloudflare/workers-types";
+import {buildPushPayload} from "@block65/webcrypto-web-push";
+import type {D1Database} from "@cloudflare/workers-types";
 
-export type PushEnv = {
-  DB?: D1Database;
-  VAPID_PUBLIC_KEY?: string;
-  VAPID_PRIVATE_KEY?: string;
-  VAPID_SUBJECT?: string;
+export type PushEnv={
+ DB?:D1Database;
+ VAPID_PUBLIC_KEY?:string;
+ VAPID_PRIVATE_KEY?:string;
+ VAPID_SUBJECT?:string;
 };
+export type PushDelivery={registered:number;accepted:number;failed:number};
 
-export function validPushEndpoint(raw:string): boolean {
-  try {
-    const u=new URL(raw);
-    const host=u.hostname.toLowerCase();
-    return u.protocol==="https:" && !u.username && !u.password && !u.port && raw.length<2048 && (
-      host==="fcm.googleapis.com" || host==="fcm-xm.googleapis.com" ||
-      host==="updates.push.services.mozilla.com" ||
-      host==="notify.windows.com" || host.endsWith(".notify.windows.com") ||
-      host==="push.apple.com" || host.endsWith(".push.apple.com")
-    );
-  } catch {return false;}
+export function validPushEndpoint(raw:string):boolean{
+ try{
+  const u=new URL(raw),host=u.hostname.toLowerCase();
+  return u.protocol==="https:"&&!u.username&&!u.password&&!u.port&&raw.length<2048&&(
+   host==="fcm.googleapis.com"||host==="fcm-xm.googleapis.com"||
+   host==="updates.push.services.mozilla.com"||
+   host==="notify.windows.com"||host.endsWith(".notify.windows.com")||
+   host==="push.apple.com"||host.endsWith(".push.apple.com")
+  );
+ }catch{return false}
 }
 
-type StoredSub={endpoint:string,p256dh:string,auth:string};
+type StoredSub={endpoint:string;p256dh:string;auth:string};
 export type PushTarget={kind:"message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"daily-question"|"love-signal"|"draw-invite"|"location-request";id:string};
-function notificationRoute(tab:"chat"|"home"|"ludo"|"memory"|"memories"|"moment"|"together"|"location",target?:PushTarget){
+type Tab="chat"|"home"|"ludo"|"memory"|"memories"|"moment"|"together"|"location";
+function notificationRoute(tab:Tab,target?:PushTarget){
  const route=new URLSearchParams({tab});
- if(target&&(/^[0-9a-f-]{36}$/i.test(target.id)||(target.kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(target.id)))){
-  route.set("kind",target.kind);
-  route.set("id",target.id);
+ if(target&&(/^[a-f0-9-]{36}$/i.test(target.id)||(target.kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(target.id)))){
+  route.set("kind",target.kind);route.set("id",target.id);
  }
  return "/?"+route.toString();
 }
-
+async function deliver(env:PushEnv,records:StoredSub[],title:string,body:string,tab:Tab,target?:PushTarget):Promise<PushDelivery>{
+ if(!env.DB||!env.VAPID_PUBLIC_KEY||!env.VAPID_PRIVATE_KEY)return {registered:records.length,accepted:0,failed:records.length};
+ const vapid={subject:env.VAPID_SUBJECT||"https://love-radar-acd.pages.dev/",publicKey:env.VAPID_PUBLIC_KEY,privateKey:env.VAPID_PRIVATE_KEY};
+ const data=JSON.stringify({title,body,tab,url:notificationRoute(tab,target),kind:target?.kind||(tab==="chat"?"message":"notice"),id:target?.id||null});
+ let accepted=0,failed=0;
+ await Promise.all(records.map(async sub=>{
+  if(!validPushEndpoint(sub.endpoint)){failed++;return;}
+  try{
+   const payload=await buildPushPayload({data,options:{ttl:7200,urgency:"high"}},
+    {endpoint:sub.endpoint,expirationTime:null,keys:{p256dh:sub.p256dh,auth:sub.auth}},vapid);
+   const response=await fetch(sub.endpoint,{...payload,signal:AbortSignal.timeout(9000)});
+   if(response.ok){accepted++;return}
+   failed++;
+   if(response.status===404||response.status===410)
+    await env.DB!.prepare("DELETE FROM push_subscriptions WHERE endpoint=?").bind(sub.endpoint).run();
+   console.error("Love Radar push rejected",response.status,sub.endpoint.split("/")[2]);
+  }catch(e){failed++;console.error("Love Radar push delivery error",e)}
+ }));
+ return {registered:records.length,accepted,failed};
+}
 export async function notifyPartner(
-  env:PushEnv,
-  roomId:string,
-  fromId:string,
-  title:string,
-  body:string,
-  tab:"chat"|"home"|"ludo"|"memory"|"memories"|"moment"|"together"|"location"="chat",
-  target?:PushTarget
-): Promise<void> {
-  if(!env.DB || !env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY)return;
-  try {
-    const result=await env.DB.prepare(
-      "SELECT endpoint,p256dh,auth FROM push_subscriptions WHERE room_id=? AND member_id<>? LIMIT 12"
-    ).bind(roomId,fromId).all<StoredSub>();
-    if(!result.results?.length)return;
-    const vapid={
-      subject:env.VAPID_SUBJECT||"https://love-radar-acd.pages.dev/",
-      publicKey:env.VAPID_PUBLIC_KEY,
-      privateKey:env.VAPID_PRIVATE_KEY
-    };
-    const data=JSON.stringify({title,body,tab,url:notificationRoute(tab,target),kind:target?.kind||(tab==="chat"?"message":"notice"),id:target?.id||null});
-    await Promise.allSettled(result.results.filter(s=>validPushEndpoint(s.endpoint)).map(async sub=>{
-      try{
-        const payload=await buildPushPayload(
-          {data,options:{ttl:7200,urgency:"normal"}},
-          {endpoint:sub.endpoint,expirationTime:null,keys:{p256dh:sub.p256dh,auth:sub.auth}},
-          vapid
-        );
-        const response=await fetch(sub.endpoint,{...payload,signal:AbortSignal.timeout(8000)});
-        if(response.status===404||response.status===410)
-          await env.DB!.prepare("DELETE FROM push_subscriptions WHERE endpoint=?").bind(sub.endpoint).run();
-        if(!response.ok)console.error("Love Radar push endpoint response",response.status);
-      }catch(e){console.error("Love Radar push error",e);}
-    }));
-  }catch(e){console.error("Love Radar push delivery failed",e);}
+ env:PushEnv,roomId:string,fromId:string,title:string,body:string,tab:Tab="chat",target?:PushTarget
+):Promise<void>{
+ if(!env.DB||!env.VAPID_PUBLIC_KEY||!env.VAPID_PRIVATE_KEY)return;
+ try{
+  const rows=await env.DB.prepare("SELECT endpoint,p256dh,auth FROM push_subscriptions WHERE room_id=? AND member_id<>? LIMIT 12")
+   .bind(roomId,fromId).all<StoredSub>();
+  await deliver(env,rows.results||[],title,body,tab,target);
+ }catch(e){console.error("Love Radar push lookup failed",e)}
+}
+export async function sendTestPush(env:PushEnv,roomId:string,memberId:string):Promise<PushDelivery>{
+ if(!env.DB||!env.VAPID_PUBLIC_KEY||!env.VAPID_PRIVATE_KEY)return {registered:0,accepted:0,failed:0};
+ const rows=await env.DB.prepare("SELECT endpoint,p256dh,auth FROM push_subscriptions WHERE room_id=? AND member_id=? LIMIT 12")
+  .bind(roomId,memberId).all<StoredSub>();
+ return deliver(env,rows.results||[],"❤️ Test Love Radar","Tes notifications fonctionnent si tu vois ce message sur ton téléphone.","home");
 }

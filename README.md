@@ -257,3 +257,13 @@ Deux nouvelles activités privées, éditables par les deux membres du couple, s
 - La date peut être modifiée ou retirée à tout moment. Une modification de date envoie une notification au partenaire si les notifications sont activées.
 
 **Confidentialité et maintenance :** D1 crée les tables `couple_stories` et `couple_story_events` si nécessaire ; le serveur vérifie chaque token et limite systématiquement l'accès au salon du couple. Lors de la suppression du salon, ses événements, ses dates et la photo privée dans R2 sont également supprimés. Les API ne sont pas mises en cache. Cache PWA v30. Aucune dépendance externe ni Firebase.
+
+## Messages non lus et réparation des notifications (PWA v31)
+
+- Le bouton « Messages » des 5 onglets affiche le **nombre de messages réellement non lus** sur l'enveloppe (1 à 99+), au lieu du nombre total de messages. Le compteur couvre les textes, photos et vocaux ; il est calculé côté serveur à partir du `last_read_at` de chaque membre, indépendamment des 90 derniers messages affichés.
+- L'ouverture de la conversation marque les messages reçus comme lus ; l'API renvoie le nouveau compteur sur la prochaine synchronisation. Les deux membres ont leur propre compteur de lecture.
+- Chaque nouveau message texte reçoit son identifiant et une notification ciblée, afin que plusieurs messages successifs puissent produire des alertes distinctes. `GET /api/love?messageId=...` valide le membre du salon et renvoie son message précis, comme le faisaient déjà les images/vocaux.
+- « Notifications activées » est maintenant confirmé par un **enregistrement serveur effectif**, pas seulement la permission du navigateur. Au retour dans l'application, tout abonnement push encore présent sur le téléphone est remis à jour dans D1 ; s'il utilise une ancienne clé VAPID, il est recréé, lorsque le navigateur le permet.
+- « Réparer » reconstruit volontairement l'abonnement sur cet appareil, « Tester » envoie un vrai push **à tes propres appareils** (limite : un essai/minute) et « Désactiver » reste disponible séparément.
+- Le backend compte les requêtes acceptées et refusées par les services push ; le test n'affirme jamais que le téléphone a effectivement affiché une notification. Une autorisation iOS, une installation PWA et les paramètres de notifications du système restent nécessaires. La clé VAPID et le service worker doivent être déployés sur Cloudflare.
+- Le service worker prévient l'application ouverte qu'un push est arrivé et qu'un abonnement a été remplacé. Il n'a jamais accès au token du membre. Le cache PWA est v31.

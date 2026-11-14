@@ -1,5 +1,5 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
-const CACHE="love-radar-static-v30";
+const CACHE="love-radar-static-v31";
 const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png"];
 self.addEventListener("install",event=>{
  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
@@ -49,12 +49,18 @@ self.addEventListener("push",event=>{
  const destination=notificationTarget(payload);
  const title=typeof payload.title==="string"?payload.title.slice(0,100):"Love Radar ❤️";
  const body=typeof payload.body==="string"?payload.body.slice(0,240):"Ton partenaire t’attend ❤️";
- event.waitUntil(self.registration.showNotification(title,{
-  body,icon:"/icons/icon-192.png",badge:"/icons/icon-192.png",
-  tag:destination.id?"love-radar-"+destination.kind+"-"+destination.id:destination.tab==="chat"?"love-radar-message":"love-radar-notice",
-  data:destination,
-  renotify:false
- }));
+ event.waitUntil((async()=>{
+  // Each text message has a distinct ID, so new alerts no longer replace older ones.
+  await self.registration.showNotification(title,{
+   body,icon:"/icons/icon-192.png",badge:"/icons/icon-192.png",
+   tag:destination.id?"love-radar-"+destination.kind+"-"+destination.id:destination.tab==="chat"?"love-radar-message-"+Date.now():"love-radar-notice-"+Date.now(),
+   data:destination,
+   renotify:false
+  });
+  // When the app is open, also signal it to refresh the conversation badge.
+  const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
+  for(const client of windows)client.postMessage({type:"love-radar-push-received",tab:destination.tab,kind:destination.kind});
+ })());
 });
 self.addEventListener("notificationclick",event=>{
  event.notification.close();
@@ -77,5 +83,15 @@ self.addEventListener("notificationclick",event=>{
    }catch{/* Fall back to opening the exact deep link below. */}
   }
   await self.clients.openWindow(url);
+ })());
+});
+
+/* The browser may rotate or drop a push subscription while the app is installed.
+   Tokens remain in the page, never in the service worker. Prompt an authenticated
+   page to reconcile its own subscription on the next foreground visit. */
+self.addEventListener("pushsubscriptionchange",event=>{
+ event.waitUntil((async()=>{
+  const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
+  for(const client of windows)client.postMessage({type:"love-radar-push-needs-repair"});
  })());
 });
