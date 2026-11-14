@@ -186,7 +186,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
  }
  const shownReaction=reaction&&Date.now()-reaction.at<7000?reaction:null;
  const lastNumber=game?.lastAction.match(/lancé un ([1-6])/);
- const showLast=game&&Date.now()-game.updatedAt<2700&&lastNumber?Number(lastNumber[1]):0;
+ const showLast=lastNumber?Number(lastNumber[1]):5;
  const dice=rolling?rollingFace:(game?.dice??showLast);
  const message=!game?"En attente de votre salon à deux":game.status==="won"?"Partie terminée":game.dice!==null&&myTurn?"Choisis un pion qui brille":game.dice!==null?"Ton partenaire choisit son pion":myTurn?"À TOI DE JOUER !":"AU TOUR DE "+displayName(game.turn);
  const status=game?.status==="won"?"🏆":myTurn?"✦":"◌";
@@ -213,6 +213,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
    {game?.status==="playing"?<span className="ludo-turn-mini">{myTurn?"Ton dé 🎲":"En direct"}</span>:null}
   </div>
 
+  <div className="ludo-play-area">
   <div className="ludo-stage" ref={boardStage}>
    {!game?<div className="ludo-waiting"><span>🎲</span><h2>{loading?"Chargement du jeu…":members<2?"Ton partenaire n’a pas encore rejoint":"Ouverture du plateau…"}</h2><p>{members<2?"Partage votre code privé pour jouer ensemble.":"Synchronisation des deux téléphones."}</p><button onClick={()=>void load()}>Actualiser</button></div>:
     <div className={"ludo-board-wrap ludo-board-wrap-immersive"+(effect==="move"?" ludo-board-move":"")} style={boardSize?{width:boardSize,height:boardSize}:undefined}>
@@ -277,6 +278,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
    <div className="ludo-last-move" role="status" aria-live="polite">{error?"⚠ "+error:(game?.lastAction||"Ludo privé : rien que vous deux ♥")}</div>
    {emotes?<div className="ludo-emote-tray" role="group" aria-label="Réactions rapides">{EMOJIS.map(e=><button key={e} onClick={()=>void sendReaction(e)} type="button" aria-label={"Envoyer "+e}>{e}</button>)}</div>:null}
   </footer>
+  </div>
 
   {menu?<div className="ludo-modal-backdrop" role="presentation">
    <div className="ludo-modal" role="dialog" aria-modal="true" aria-label="Quitter la partie">
