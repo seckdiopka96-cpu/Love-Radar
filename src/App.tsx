@@ -514,6 +514,7 @@ export default function LoveRadar(){
        <button type="submit" disabled={busy}>{busy?"Connexion…":joinMode?"Rejoindre notre espace →":"Créer notre espace →"}</button>
       </form>
       <div className="lr-safe-copy"><span aria-hidden="true">🔒</span> Privé · Gratuit · Sur invitation</div>
+      <div className="lr-made-by">Créé par <strong>Diao-Tech</strong></div>
      </section>
    </main>:
   <div className="lr-shell">
