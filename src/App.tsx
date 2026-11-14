@@ -291,7 +291,7 @@ export default function LoveRadar(){
     const configRes=await fetch("/api/push",{cache:"no-store"});
     const cfg=await configRes.json() as {ok?:boolean;enabled?:boolean;publicKey?:string};
     if(!configRes.ok||!cfg.enabled||!cfg.publicKey)throw Error("La configuration des notifications Cloudflare est indisponible.");
-    const key=sub.getKey("applicationServerKey");
+    const key=sub.options?.applicationServerKey||null;
     if(key){
      const actual=new Uint8Array(key),expected=new Uint8Array(decodeApplicationKey(cfg.publicKey));
      if(actual.length!==expected.length||actual.some((v,i)=>v!==expected[i])){
@@ -335,7 +335,7 @@ export default function LoveRadar(){
    const registration=await navigator.serviceWorker.ready;
    let sub=await registration.pushManager.getSubscription();
    if(sub){
-    const old=sub.getKey("applicationServerKey"),expected=new Uint8Array(decodeApplicationKey(cfg.publicKey));
+    const old=sub.options?.applicationServerKey||null,expected=new Uint8Array(decodeApplicationKey(cfg.publicKey));
     const current=old?new Uint8Array(old):null;
     const keyMismatch=current&&(current.length!==expected.length||current.some((v,i)=>v!==expected[i]));
     if(repair||keyMismatch){
