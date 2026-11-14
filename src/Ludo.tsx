@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import "./ludo.css";
 import "./ludo-immersive.css";
 import DiceFace from "./DiceFace";
+import {useLudoSounds} from "./ludo-sounds";
 
 type Point=[number,number];
 type Game={id:string;version:number;turn:number;dice:number|null;positions:number[][];status:"playing"|"won";winner:number|null;lastAction:string;updatedAt:number};
 type Reaction={seat:number;emoji:string;at:number};
+type PawnMotion={seat:number;pawn:number;progress:number};
 type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null};
 type Props={token:string;mySeat:number;myName:string;partnerName:string|null;onExit:()=>void};
 const key=(r:number,c:number)=>r+"-"+c;
@@ -65,25 +67,74 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
  const [emotes,setEmotes]=useState(false);
  const [effect,setEffect]=useState("");
  const [boardSize,setBoardSize]=useState(0);
+ const [motion,setMotion]=useState<PawnMotion|null>(null);
+ const [captureFlash,setCaptureFlash]=useState(false);
+ const {enabled:soundOn,unlock:unlockSound,play:playSound,toggle:toggleSound}=useLudoSounds();
  const boardStage=useRef<HTMLDivElement|null>(null);
  const prior=useRef<Game|null>(null);
  const effectTimeout=useRef<number|null>(null);
+ const movementTimers=useRef<number[]>([]);
+ const captureTimer=useRef<number|null>(null);
  const isActive=useRef(true);
+
+ const clearMotionTimers=useCallback(()=>{
+  for(const timer of movementTimers.current)window.clearTimeout(timer);
+  movementTimers.current=[];
+  if(captureTimer.current!==null){window.clearTimeout(captureTimer.current);captureTimer.current=null}
+ },[]);
 
  const onGame=useCallback((latest:Game)=>{
   const prev=prior.current;
+  // Concurrent polls must not roll the client back to an older version.
+  if(prev&&prev.id===latest.id&&latest.version<=prev.version)return;
+  if(prev?.id!==latest.id){clearMotionTimers();setMotion(null);setCaptureFlash(false)}
   if(prev&&prev.id===latest.id&&latest.version>prev.version){
-   const moving=latest.positions.some((p,side)=>p.some((value,i)=>value!==prev.positions[side][i]));
+   const captured=latest.positions.some((positions,side)=>positions.some((p,i)=>p===-1&&prev.positions[side][i]>=0));
+   const moved=latest.positions.flatMap((positions,side)=>positions.map((progress,pawn)=>({
+    seat:side,pawn,from:prev.positions[side][pawn],to:progress
+   }))).find(item=>item.to>item.from&&item.to>=0&&item.to<=57);
    const celebration=latest.status==="won"&&prev.status!=="won";
-   if(moving||celebration){
-    setEffect(celebration?"win":"move");
+   const canAnimate=Boolean(moved&&document.visibilityState==="visible"&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+   if(moved||captured||celebration){
+    setEffect(celebration?"win":captured?"capture":"move");
     if(effectTimeout.current!==null)window.clearTimeout(effectTimeout.current);
-    effectTimeout.current=window.setTimeout(()=>{if(isActive.current)setEffect("")},800);
+    effectTimeout.current=window.setTimeout(()=>{if(isActive.current){setEffect("");setCaptureFlash(false)}},1400);
+   }
+   clearMotionTimers();
+   if(moved){
+    if(canAnimate){
+     const route:number[]=[];
+     for(let step=moved.from+1;step<=moved.to;step++)route.push(step);
+     // Display animation only: D1 remains authoritative for game state.
+     setMotion({seat:moved.seat,pawn:moved.pawn,progress:moved.from});
+     route.forEach((progress,index)=>{
+      movementTimers.current.push(window.setTimeout(()=>{
+       if(!isActive.current)return;
+       setMotion({seat:moved.seat,pawn:moved.pawn,progress});
+       playSound("step");
+      },index*125+55));
+     });
+     const ending=route.length*125+90;
+     movementTimers.current.push(window.setTimeout(()=>{if(isActive.current)setMotion(null)},ending));
+     if(captured)captureTimer.current=window.setTimeout(()=>{
+      if(isActive.current){setCaptureFlash(true);playSound("capture")}
+     },ending);
+     if(celebration)captureTimer.current=window.setTimeout(()=>{if(isActive.current)playSound("win")},ending);
+    }else{
+     setMotion(null);
+     playSound("step");
+     if(captured){setCaptureFlash(true);playSound("capture")}
+     if(celebration)playSound("win");
+    }
+   }else{
+    setMotion(null);
+    if(captured){setCaptureFlash(true);playSound("capture")}
+    if(celebration)playSound("win");
    }
   }
   prior.current=latest;
-  setGame(previous=>!previous||latest.id!==previous.id||latest.version>=previous.version?latest:previous);
- },[]);
+  setGame(latest);
+ },[clearMotionTimers,playSound]);
 
  const load=useCallback(async()=>{
   try{
@@ -111,8 +162,9 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
    window.clearInterval(interval);
    document.removeEventListener("visibilitychange",visible);
    if(effectTimeout.current!==null)window.clearTimeout(effectTimeout.current);
+   clearMotionTimers();
   };
- },[load]);
+ },[load,clearMotionTimers]);
 
  useEffect(()=>{
   const el=boardStage.current;
@@ -133,6 +185,8 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
 
  async function act(action:"roll"|"move"|"restart"|"forfeit",pawn?:number){
   if(busy||!game)return false;
+  // WebAudio must be unlocked immediately by a user tap on iOS.
+  if(action==="roll"||action==="move"){unlockSound();if(action==="roll")playSound("roll")}
   setBusy(true);setError("");
   if(action==="roll")setRolling(true);
   try{
@@ -168,7 +222,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit}:Props){
  }
 
  const myTurn=Boolean(game&&game.status==="playing"&&game.turn===mySeat);
- const canPlay=Boolean(game&&myTurn&&game.dice!==null&&!busy&&!rolling);
+ const canPlay=Boolean(game&&myTurn&&game.dice!==null&&!busy&&!rolling&&!motion);
  const legal=game?game.positions[mySeat].map(p=>allowed(p,game.dice)):([false,false,false,false] as boolean[]);
  const displayName=(seat:number)=>seat===mySeat?myName:(partnerName||"Ton amour");
  const red= mySeat===0;
