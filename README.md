@@ -235,3 +235,7 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - « Ensemble » regroupe le bouton « Tu me manques », le tableau partagé, le « Moment du jour » et « Notre position ». Le retour des pages Moment/Position mène à Ensemble.
 - Les anciens liens directs et notifications vers Ludo, Memory, Moment, Position, cœurs et dessin restent fonctionnels. L'onglet parent est sélectionné dans la barre du bas.
 - La barre latérale sur ordinateur utilise la même organisation en cinq destinations. Aucune donnée de jeu ou de conversation ne change. Cache PWA v28.
+
+## Afficher le plateau Ludo avant l'arrivée de l'autre joueur
+
+Le plateau du Ludo Duo s'affiche **dès l'ouverture**, même si la pièce privée ne compte qu'une seule personne. Les huit pions apparaissent en position initiale pour donner un aperçu fidèle du jeu. Le message d'attente reste dans la petite barre de statut au-dessus du plateau et un bouton « Actualiser » est disponible à la place du lancer de dé. Il est impossible de déplacer les pions ou de lancer les dés avant l'arrivée du deuxième joueur et la validation des règles par chacun. La partie réelle et les scores continuent de venir exclusivement du serveur D1 ; aucune partie fictive n'est créée. Le cache PWA passe en v29.

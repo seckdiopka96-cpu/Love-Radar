@@ -320,9 +320,12 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const displayName=(seat:number)=>seat===mySeat?myName:(partnerName||"Ton amour");
  const red= mySeat===0;
  const finished=(seat:number)=>game?.positions[seat].filter(p=>p===57).length||0;
+ // Show the real Ludo board with starting pawns even before the second partner joins.
+ // This is a visual preview only: the server remains authoritative and controls stay disabled.
+ const displayPositions=game?.positions??[[-1,-1,-1,-1],[-1,-1,-1,-1]];
  const pawnCells=new Map<string,{seat:number;pawn:number;active:boolean}[]>();
- if(game)for(let side=0;side<2;side++)for(let pawn=0;pawn<4;pawn++){
-  const progress=game.positions[side][pawn];
+ for(let side=0;side<2;side++)for(let pawn=0;pawn<4;pawn++){
+  const progress=displayPositions[side][pawn];
   if(progress===57||(motion?.seat===side&&motion.pawn===pawn))continue;
   const point=progress===-1?BASE[side][pawn]:progress<=50?TRACK[(side*26+progress)%52]:HOME[side][progress-51];
   if(!point)continue;
@@ -337,7 +340,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const lastNumber=game?.lastAction.match(/lancé un ([1-6])/);
  const showLast=lastNumber?Number(lastNumber[1]):5;
  const dice=rolling?rollingFace:(game?.dice??showLast);
- const message=!game?"En attente de votre salon à deux":game.status==="won"?"Partie terminée":game.dice!==null&&myTurn?"Choisis un pion qui brille":game.dice!==null?"Ton partenaire choisit son pion":myTurn?"À TOI DE JOUER !":"AU TOUR DE "+displayName(game.turn);
+ const message=!game?(loading?"Ouverture du plateau…":members<2?"Plateau prêt · En attente de ton amour":"Connexion à la partie…"):game.status==="won"?"Partie terminée":game.dice!==null&&myTurn?"Choisis un pion qui brille":game.dice!==null?"Ton partenaire choisit son pion":myTurn?"À TOI DE JOUER !":"AU TOUR DE "+displayName(game.turn);
  const status=game?.status==="won"?"🏆":myTurn?"✦":"◌";
  return <section className="ludo-experience" aria-label="Ludo en ligne privé à deux joueurs">
   <header className="ludo-topbar">
@@ -368,9 +371,8 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
 
   <div className="ludo-play-area">
   <div className={"ludo-stage"+(captureFlash?" ludo-is-capture":"")} ref={boardStage}>
-   {!game?<div className="ludo-waiting"><span>🎲</span><h2>{loading?"Chargement du jeu…":members<2?"Ton partenaire n’a pas encore rejoint":"Ouverture du plateau…"}</h2><p>{members<2?"Partage votre code privé pour jouer ensemble.":"Synchronisation des deux téléphones."}</p><button onClick={()=>void load()}>Actualiser</button></div>:
-    <div className={"ludo-board-wrap ludo-board-wrap-immersive"+(effect==="move"?" ludo-board-move":"")} style={boardSize?{width:boardSize,height:boardSize}:undefined}>
-     <div className="ludo-board" role="group" aria-label="Plateau coloré de Ludo pour deux joueurs">
+   <div className={"ludo-board-wrap ludo-board-wrap-immersive"+(effect==="move"?" ludo-board-move":"")} style={boardSize?{width:boardSize,height:boardSize}:undefined}>
+     <div className="ludo-board" role="group" aria-label={game?"Plateau coloré de Ludo pour deux joueurs":"Aperçu du plateau Ludo avant l’arrivée du partenaire"}>
       {CELL.map(([r,c])=>{
        const k=key(r,c),track=trackAt.get(k);
        const redBase=r<6&&c<6, goldBase=r>8&&c>8;
@@ -401,7 +403,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
         <PawnShape index={motion.pawn}/>
        </div>:null}
      </div>
-    </div>}
+    </div>
    {error?<div className="ludo-alert-pop" role="alert">{error}</div>:null}
    {shownReaction?<div className={"ludo-floating-emoji"+(shownReaction.seat===mySeat?" mine":" theirs")} key={shownReaction.at} role="status">{shownReaction.emoji}</div>:null}
    {game?.status==="won"&&!motion?<div className="ludo-victory" role="dialog" aria-label="Partie terminée">
@@ -423,8 +425,8 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
     <button type="button" className={"ludo-die-holder"+(rolling?" is-rolling":"")} disabled={!myTurn||busy||rolling||!!motion||!game||game.status==="won"||game.dice!==null} onClick={()=>void act("roll")} aria-label="Lancer le dé">
      <DiceFace value={dice||0} size="large" variant={red?"pink":"gold"}/>
     </button>
-    <button type="button" className="ludo-main-action" disabled={!myTurn||busy||rolling||!!motion||!game||game.status==="won"||game.dice!==null}
-     onClick={()=>void act("roll")}>{game?.dice!==null&&game?"DÉPLACE UN PION":myTurn?rolling?"LANCEMENT…":"LANCER LE DÉ":"ATTENDRE…"}</button>
+    <button type="button" className="ludo-main-action" disabled={busy||Boolean(game&&(!myTurn||rolling||!!motion||game.status==="won"||game.dice!==null))}
+     onClick={()=>{if(game)void act("roll");else void load()}}>{!game?"ACTUALISER":game.dice!==null?"DÉPLACE UN PION":myTurn?rolling?"LANCEMENT…":"LANCER LE DÉ":"ATTENDRE…"}</button>
     <button type="button" className={"ludo-emoji-button"+(emotes?" is-open":"")} onClick={()=>setEmotes(!emotes)} aria-label="Envoyer une réaction" aria-expanded={emotes}>♡</button>
    </div>
    <div className="ludo-pick-row" aria-label="Choisir un de tes quatre pions">
@@ -436,7 +438,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
       <PawnShape index={i}/>
      </button>)}
    </div>
-   <div className="ludo-last-move" role="status" aria-live="polite">{error?"⚠ "+error:(game?.lastAction||"Ludo privé : rien que vous deux ♥")}</div>
+   <div className="ludo-last-move" role="status" aria-live="polite">{error?"⚠ "+error:(game?.lastAction||"Plateau visible · La partie commencera quand vous serez deux ♥")}</div>
    {emotes?<div className="ludo-emote-tray" role="group" aria-label="Réactions rapides">{EMOJIS.map(e=><button key={e} onClick={()=>void sendReaction(e)} type="button" aria-label={"Envoyer "+e}>{e}</button>)}</div>:null}
   </footer>
   </div>
