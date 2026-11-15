@@ -584,15 +584,61 @@ export default function LoveRadar(){
    void request("recording",{active:false}).catch(()=>{});
   }
  },[tab,request]);
+ // Verify that a media response actually contains decodable image bytes. A
+ // failed photo used to disappear silently, leaving an empty narrow rectangle.
+ async function fetchMedia(item:Message,force=false){
+  if(!token||!item.object_key)return;
+  const id=item.id;
+  if(mediaCache.current[id])return;
+  if(!force&&Date.now()<(mediaRetries.current[id]||0))return;
+  mediaCache.current[id]="pending";
+  try{
+   const response=await apiFetch("/api/media?id="+encodeURIComponent(item.object_key),{
+    headers:{Authorization:"Bearer "+token},cache:"no-store"
+   });
+   if(!response.ok)throw new Error("HTTP "+response.status);
+   const mime=(response.headers.get("content-type")||"").toLowerCase();
+   if(item.kind==="image"&&!mime.startsWith("image/"))throw new Error("Incorrect photo MIME");
+   if(item.kind==="audio"&&!mime.startsWith("audio/")&&!mime.startsWith("video/"))throw new Error("Incorrect sound MIME");
+   const blob=await response.blob();
+   if(blob.size===0)throw new Error("Empty file");
+   const url=URL.createObjectURL(blob);
+   if(item.kind==="image"){
+    const image=new Image();image.src=url;
+    try{await image.decode()}catch{URL.revokeObjectURL(url);throw new Error("Unable to decode photo")}
+   }
+   if(mediaCache.current[id]!=="pending"){URL.revokeObjectURL(url);return}
+   mediaCache.current[id]=url;
+   delete mediaRetries.current[id];
+   delete mediaFailures.current[id];
+   setMedia(prev=>({...prev,[id]:url}));
+   setMediaErrors(prev=>{
+    if(!prev[id])return prev;
+    const next={...prev};delete next[id];return next;
+   });
+  }catch{
+   if(mediaCache.current[id]==="pending")delete mediaCache.current[id];
+   const attempts=(mediaFailures.current[id]||0)+1;
+   mediaFailures.current[id]=attempts;
+   mediaRetries.current[id]=Date.now()+Math.min(30000,2500*2**Math.min(attempts-1,4));
+   if(item.kind==="image")
+    setMediaErrors(prev=>prev[id]?prev:{...prev,[id]:"Photo indisponible pour le moment."});
+  }
+ }
+ function retryMedia(item:Message){
+  const url=mediaCache.current[item.id];
+  if(url?.startsWith("blob:"))URL.revokeObjectURL(url);
+  delete mediaCache.current[item.id];
+  delete mediaRetries.current[item.id];
+  mediaFailures.current[item.id]=0;
+  setMedia(prev=>{if(!prev[item.id])return prev;const next={...prev};delete next[item.id];return next});
+  setMediaErrors(prev=>{if(!prev[item.id])return prev;const next={...prev};delete next[item.id];return next});
+  void fetchMedia(item,true);
+ }
  useEffect(()=>{
   if(!room||!token)return;
-  const candidates=room.messages.filter(m=>m.object_key&&!mediaCache.current[m.id]);
-  for(const item of candidates){
-   mediaCache.current[item.id]="pending";
-   void apiFetch("/api/media?id="+encodeURIComponent(item.object_key!),{headers:{Authorization:"Bearer "+token}})
-    .then(r=>{if(!r.ok)throw new Error("media inaccessible");return r.blob()})
-    .then(blob=>{const url=URL.createObjectURL(blob);mediaCache.current[item.id]=url;setMedia(prev=>({...prev,[item.id]:url}))})
-    .catch(()=>{delete mediaCache.current[item.id]});
+  for(const item of room.messages){
+   if(item.object_key&&!mediaCache.current[item.id])void fetchMedia(item);
   }
  },[room?.messages,token]);
  // Retire the local item only once the matching server row is visible.
