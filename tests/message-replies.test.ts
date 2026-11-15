@@ -27,7 +27,7 @@ test("quoted replies render partner name and quoted preview",()=>{
  assert.match(voice,/Message vocal/);
  assert.match(voice,/lr-quote-card is-composer/);
 });
-test("swipe is the only touch gesture for replying; long press does not select",()=>{
+test("swipe right replies while a stationary long press opens the action menu",()=>{
  assert.ok(app.includes('onPointerDown={e=>messagePointerDown(e,m)}'));
  assert.ok(app.includes('onPointerMove={messagePointerMove}'));
  assert.ok(app.includes('onPointerUp={e=>messagePointerUp(e,m)}'));
@@ -37,7 +37,11 @@ test("swipe is the only touch gesture for replying; long press does not select",
  assert.ok(app.includes('e.currentTarget.style.setProperty("--lr-reply-shift"'));
  assert.ok(!app.includes("selectedMessageId"));
  assert.ok(!app.includes("setSelectedMessageId"));
- assert.ok(!app.includes("onContextMenu={"));
+ assert.ok(app.includes("onContextMenu={"));
+ assert.ok(app.includes("window.setTimeout(()=>"));
+ assert.ok(app.includes("openMessageActions(message)"));
+ assert.ok(app.includes("gesture.held=true"));
+ assert.ok(app.includes("if(g.timer!==null){clearTimeout(g.timer);g.timer=null}"));
  assert.ok(!app.includes("messagePointerDown" + "LongPress"));
  assert.ok(css.includes("touch-action:pan-y"));
  assert.ok(css.includes(".lr-reply-arrow"));
@@ -64,4 +68,38 @@ test("back end validates same-room reference and inserts both records atomically
  assert.ok(api.includes("p.content AS reply_content"));
  assert.ok(api.includes("p.sender_id AS reply_sender_id"));
  assert.ok(api.includes('DELETE FROM message_replies WHERE room_id=?'));
+});
+
+test("long press menu offers real server-backed edit, reaction, copy, details and deletion",()=>{
+ const menu=readFileSync("src/message-actions.css","utf8");
+ assert.ok(app.includes('setActionMessageId(message.id)'));
+ assert.ok(app.includes('role="dialog" aria-modal="true" aria-label="Actions sur le message"'));
+ assert.ok(app.includes('CHAT_REACTIONS.map(emoji=>'));
+ assert.ok(app.includes('"react-message"'));
+ assert.ok(app.includes('"edit-message"'));
+ assert.ok(app.includes('"delete-message"'));
+ assert.ok(app.includes('copyMessage(actionMessage)'));
+ assert.ok(app.includes('beginEditing(actionMessage)'));
+ assert.ok(app.includes('setInfoMessageId(actionMessage.id)'));
+ assert.ok(app.includes('Supprimer pour tous'));
+ assert.ok(app.includes('sender_id===room.user.id&&actionMessage.kind==="text"'));
+ assert.ok(app.includes('onClick={cancelEditing}'));
+ assert.ok(menu.includes(".lr-message-action-sheet"));
+ assert.ok(menu.includes(".lr-message-reaction-picker"));
+ assert.ok(menu.includes(".lr-edit-compose"));
+});
+test("D1 edits/deletions are restricted to author and room, reactions to the same private chat",()=>{
+ assert.ok(api.includes("CREATE TABLE IF NOT EXISTS message_edits"));
+ assert.ok(api.includes("CREATE TABLE IF NOT EXISTS message_reactions"));
+ assert.ok(api.includes('op==="edit-message"'));
+ assert.ok(api.includes('op==="react-message"'));
+ assert.ok(api.includes('op==="delete-message"'));
+ assert.ok(api.includes('kind=\'text\''));
+ assert.ok(api.includes("Tu peux modifier uniquement tes propres textes."));
+ assert.ok(api.includes("Tu peux supprimer uniquement tes propres messages."));
+ assert.ok(api.includes('INSERT INTO message_edits(room_id,message_id,edited_at)'));
+ assert.ok(api.includes('INSERT INTO message_reactions(room_id,message_id,member_id,emoji,updated_at)'));
+ assert.ok(api.includes('DELETE FROM message_reactions WHERE room_id=?'));
+ assert.ok(api.includes('COALESCE(ed.edited_at,0) AS edited_at'));
+ assert.ok(api.includes('reactions:reactionsById.get(String(row.id))'));
 });
