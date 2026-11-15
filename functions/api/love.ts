@@ -38,6 +38,8 @@ async function ensureMessageActions(db:D1Database){
  if(!actionsReady)actionsReady=(async()=>{
   await db.exec("CREATE TABLE IF NOT EXISTS message_edits (room_id TEXT NOT NULL, message_id TEXT PRIMARY KEY, edited_at INTEGER NOT NULL)");
   await db.exec("CREATE TABLE IF NOT EXISTS message_reactions (room_id TEXT NOT NULL, message_id TEXT NOT NULL, member_id TEXT NOT NULL, emoji TEXT NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY(room_id,message_id,member_id))");
+  await db.exec("CREATE TABLE IF NOT EXISTS message_hidden (room_id TEXT NOT NULL, message_id TEXT NOT NULL, member_id TEXT NOT NULL, hidden_at INTEGER NOT NULL, PRIMARY KEY(room_id,message_id,member_id))");
+  await db.exec("CREATE TABLE IF NOT EXISTS message_one_time (room_id TEXT NOT NULL, message_id TEXT PRIMARY KEY, opened_by TEXT, opened_at INTEGER NOT NULL DEFAULT 0)");
  })().catch(err=>{actionsReady=null;throw err});
  await actionsReady;
 }
@@ -271,6 +273,16 @@ async function snapshot(db:D1Database,u:Member){
      waitUntil(notifyPartner(env,u.room_id,u.id,"Réaction à ton message ❤️",u.name+" a réagi "+body.emoji+" à «"+excerpt+"»","chat",{kind:"message",id:body.id}));
      return ok({reaction:body.emoji});
     }
+    if(op==="delete-for-me"){
+     if(!validMessageId(body.id))return fail("Message invalide.",400);
+     await ensureMessageActions(db);
+     const exists=await db.prepare("SELECT id FROM messages WHERE room_id=? AND id=? AND kind IN ('text','image','audio')")
+      .bind(u.room_id,body.id).first<{id:string}>();
+     if(!exists)return fail("Message introuvable.",404);
+     await db.prepare("INSERT OR IGNORE INTO message_hidden(room_id,message_id,member_id,hidden_at) VALUES(?,?,?,?)")
+      .bind(u.room_id,body.id,u.id,Date.now()).run();
+     return ok({deletedForMe:true});
+    }
     if(op==="delete-message"){
      if(!validMessageId(body.id))return fail("Message invalide.",400);
      const mine=await db.prepare("SELECT object_key FROM messages WHERE id=? AND room_id=? AND sender_id=? AND kind IN ('text','image','audio')")
@@ -280,6 +292,8 @@ async function snapshot(db:D1Database,u:Member){
      await ensureMessageReplies(db);
      await db.batch([
       db.prepare("DELETE FROM message_reactions WHERE room_id=? AND message_id=?").bind(u.room_id,body.id),
+      db.prepare("DELETE FROM message_hidden WHERE room_id=? AND message_id=?").bind(u.room_id,body.id),
+      db.prepare("DELETE FROM message_one_time WHERE room_id=? AND message_id=?").bind(u.room_id,body.id),
       db.prepare("DELETE FROM message_edits WHERE room_id=? AND message_id=?").bind(u.room_id,body.id),
       db.prepare("DELETE FROM message_replies WHERE room_id=? AND message_id=?").bind(u.room_id,body.id),
       db.prepare("DELETE FROM messages WHERE id=? AND room_id=? AND sender_id=?").bind(body.id,u.room_id,u.id)
@@ -350,6 +364,8 @@ async function snapshot(db:D1Database,u:Member){
      await ensureMessageActions(db);
      await db.prepare("DELETE FROM message_reactions WHERE room_id=?").bind(u.room_id).run();
      await db.prepare("DELETE FROM message_edits WHERE room_id=?").bind(u.room_id).run();
+     await db.prepare("DELETE FROM message_hidden WHERE room_id=?").bind(u.room_id).run();
+     await db.prepare("DELETE FROM message_one_time WHERE room_id=?").bind(u.room_id).run();
      await db.batch([
       db.prepare("DELETE FROM messages WHERE room_id=?").bind(u.room_id),
       db.prepare("DELETE FROM members WHERE room_id=?").bind(u.room_id),
