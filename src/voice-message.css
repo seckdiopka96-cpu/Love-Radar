@@ -1,0 +1,89 @@
+/* Love Radar — voice-note redesign. Compact, actual seek/play controls;
+   the dark/rose chat brand remains unchanged. */
+.lr-chat .lr-bubble-row .lr-bubble.lr-bubble-audio{
+ display:block!important;
+ width:min(318px,100%)!important;max-width:100%!important;
+ min-width:min(235px,calc(100vw - 64px))!important;
+ padding:12px 13px 10px!important;
+ border-radius:21px 21px 21px 7px!important;
+ border:1px solid #506d7d!important;
+ background:linear-gradient(145deg,#294456,#1c3444)!important;
+ box-shadow:0 8px 24px #06122154!important;
+ color:#f4eff2!important;overflow:visible!important;
+}
+.lr-chat .lr-bubble-row.mine .lr-bubble.lr-bubble-audio{
+ border-radius:21px 21px 7px 21px!important;
+ background:linear-gradient(137deg,#f47e9d 0%,#e7638c 54%,#d95582 100%)!important;
+ border:1px solid #ffacc0!important;
+ box-shadow:0 8px 24px #2a0e2454!important;
+}
+.lr-voice-note{width:100%;min-width:0;display:flex;flex-direction:column;gap:8px}
+.lr-voice-note-main{display:flex;align-items:center;gap:11px;min-width:0;min-height:56px;width:100%}
+.lr-voice-note-play{
+ flex:0 0 43px;width:43px;height:43px;padding:12px;
+ display:grid;place-items:center;border:1px solid #ffffff23!important;
+ border-radius:50%!important;background:#0d243a65!important;
+ color:#fff9f5!important;box-shadow:0 3px 8px #04151b16!important;
+ transition:background .15s ease,transform .15s ease;cursor:pointer
+}
+.lr-voice-note.is-own .lr-voice-note-play{background:#9934535a!important;border-color:#fff7f537!important}
+.lr-voice-note-play svg{display:block;width:21px;height:21px;fill:currentColor}
+.lr-voice-note-play:active{transform:scale(.94)}
+.lr-voice-note-play:focus-visible{outline:2px solid #fff0be;outline-offset:2px}
+.lr-voice-note-content{min-width:0;flex:1;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.lr-voice-note-wave-wrap{height:36px;width:100%;position:relative;min-width:0;display:flex;align-items:center}
+.lr-voice-note-wave{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:2px;width:100%;height:30px;pointer-events:none;overflow:hidden
+}
+.lr-voice-note-wave>span{
+ flex:1 1 0;min-width:2px;max-width:4px;border-radius:4px;
+ background:#c0d4dbbf;opacity:.88;
+ transition:background-color .14s linear,opacity .14s linear
+}
+.lr-voice-note-wave>span.played{background:#fff8f0!important;opacity:1}
+.lr-voice-note.is-own .lr-voice-note-wave>span{background:#ffe1e6b2}
+.lr-voice-note.is-own .lr-voice-note-wave>span.played{background:white!important}
+.lr-voice-note-seek{
+ position:absolute;inset:0!important;width:100%!important;height:100%!important;
+ padding:0!important;margin:0!important;border:0!important;background:none!important;
+ cursor:pointer;opacity:.001!important;touch-action:pan-y;
+}
+.lr-voice-note-seek:focus-visible{opacity:.3!important;outline:2px solid #fff4da!important;border-radius:8px}
+.lr-voice-note-seek:disabled{cursor:default}
+.lr-voice-note-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;
+ width:100%;font-size:11px;line-height:1.2;color:#e1e8eb}
+.lr-voice-note.is-own .lr-voice-note-meta{color:#fff7f9}
+.lr-voice-note-duration{font-variant-numeric:tabular-nums;font-weight:750;letter-spacing:.2px}
+.lr-voice-note-time{font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap;opacity:.9}
+.lr-voice-note-check{font-size:10px;color:#effffd;letter-spacing:-2px;padding-right:3px}
+.lr-voice-note-error{font-size:10px;color:#fff8ec;background:#61394755;border-radius:8px;padding:5px 7px;line-height:1.4}
+.lr-voice-note-fallback{display:block;width:100%;max-width:100%;height:38px}
+.lr-chat .lr-bubble-row .lr-bubble.lr-bubble-audio .lr-voice-note-fallback{
+ max-width:100%!important;min-width:0!important
+}
+.lr-chat .lr-bubble-row .lr-bubble.lr-bubble-audio .lr-voice-note-seek::-webkit-slider-thumb{
+ -webkit-appearance:none;appearance:none;background:transparent;width:15px;height:36px;border:0
+}
+.lr-chat .lr-bubble-row .lr-bubble.lr-bubble-audio .lr-voice-note-seek::-webkit-slider-runnable-track{
+ background:transparent;border:0;height:36px
+}
+.lr-chat .lr-bubble-row .lr-bubble.lr-bubble-audio .lr-voice-note-seek::-moz-range-thumb{
+ background:transparent;width:15px;border:0
+}
+/* Do not display the old native-control title/player chrome behind custom art. */
+.lr-chat .lr-bubble-row .lr-bubble.lr-bubble-audio .lr-voice,
+.lr-chat .lr-bubble-row .lr-bubble.lr-bubble-audio>audio{display:none}
+@media(max-width:700px){
+ .lr-chat-mode .lr-bubble-stack{min-width:0}
+ .lr-chat .lr-bubble-row .lr-bubble.lr-bubble-audio{width:min(318px,100%)!important;padding:11px 11px 9px!important}
+ .lr-voice-note-main{gap:9px;min-height:51px}
+ .lr-voice-note-play{flex-basis:39px;width:39px;height:39px;padding:10px}
+ .lr-voice-note-wave-wrap{height:32px}
+ .lr-voice-note-wave{height:28px;gap:1.5px}
+ .lr-voice-note-wave>span{min-width:1.5px}
+ .lr-voice-note-meta{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-voice-note-wave>span,.lr-voice-note-play{transition:none!important}
+}
