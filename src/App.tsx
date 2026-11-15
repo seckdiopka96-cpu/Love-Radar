@@ -86,6 +86,9 @@ export default function LoveRadar(){
  const [name,setName]=useState("");
  const [code,setCode]=useState("");
  const [tab,setTab]=useState<Tab>(()=>parseNotice(window.location.search)?.tab||"home");
+ const currentTab=useRef(tab);
+ currentTab.current=tab;
+ const chatReturnTab=useRef<Tab>("home");
  const [noticeTarget,setNoticeTarget]=useState<NoticeTarget|null>(()=>parseNotice(window.location.search));
  const [focusMessage,setFocusMessage]=useState<Message|null>(null);
  const [focusLoading,setFocusLoading]=useState(false);
@@ -102,6 +105,7 @@ export default function LoveRadar(){
   window.history.replaceState(null,"",url.pathname+(url.search||""));
  }
  function navigate(tab:Tab){
+  if(tab==="chat"&&currentTab.current!=="chat")chatReturnTab.current=currentTab.current;
   closeNotice();
   setTab(tab);
   if(tab==="watch"||tab==="watch-tiktok")setWatchInvite(null);
@@ -840,6 +844,9 @@ export default function LoveRadar(){
     {tab==="memory"?<MemoryLove token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} challengeId={noticeTarget?.kind==="memory-challenge"?noticeTarget.id:null}/>:null}
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">
+      <button type="button" className="lr-chat-back" aria-label="Revenir aux onglets" onClick={()=>navigate(chatReturnTab.current)}>
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
       <div className="lr-chat-partner"><Initials name={partner} size="small"/>
        <div><h2>{partner}</h2><span className={"lr-chat-status "+(partnerOnline?"online":"offline")}>{!room.partner?"En attente de votre partenaire…":partnerOnline?"En ligne":"Hors ligne"}</span></div>
       </div>
