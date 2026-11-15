@@ -4,7 +4,7 @@ import {createPortal} from "react-dom";
 import "./voice-call.css";
 
 type Call = {id:string;status:"ringing"|"active";direction:"incoming"|"outgoing";createdAt:number;updatedAt:number;expiresAt:number};
-type Signal = {id:number;kind:"offer"|"answer";payload:string};
+type Signal = {id:number;kind:"offer"|"answer"|"candidate";payload:string};
 type Result = {ok:boolean;error?:string;call?:Call|null;signals?:Signal[]};
 type Props = {token:string;partner:string;hasPartner:boolean;showButton:boolean;onOpenChat:()=>void};
 
@@ -12,17 +12,6 @@ const STUN_SERVERS:RTCIceServer[]=[
  {urls:"stun:stun.cloudflare.com:3478"},
  {urls:"stun:stun.l.google.com:19302"}
 ];
-function iceReady(pc:RTCPeerConnection):Promise<void>{
- if(pc.iceGatheringState==="complete")return Promise.resolve();
- return new Promise(resolve=>{
-  let done=false;
-  const finish=()=>{if(done)return;done=true;pc.removeEventListener("icegatheringstatechange",check);clearTimeout(timeout);resolve()};
-  const check=()=>{if(pc.iceGatheringState==="complete")finish()};
-  const timeout=setTimeout(finish,14000);
-  pc.addEventListener("icegatheringstatechange",check);
-  check();
- });
-}
 export default function VoiceCall({token,partner,hasPartner,showButton,onOpenChat}:Props){
  const [anchor,setAnchor]=useState<HTMLElement|null>(null);
  const [active,setActive]=useState<Call|null>(null);
@@ -49,6 +38,10 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
  const answered=useRef(false);
  const suppressed=useRef("");
  const connectedSince=useRef(0);
+ const queuedCandidates=useRef<RTCIceCandidateInit[]>([]);
+ const sendingCandidates=useRef(false);
+ const sessionDescriptionSent=useRef(false);
+ const networkWarmup=useRef<Promise<void>|null>(null);
 
  useEffect(()=>setAnchor(showButton?document.getElementById("lr-voice-button-slot"):null),[showButton]);
  const api=useCallback(async(action?:string,extra:Record<string,unknown>={},after=0):Promise<Result>=>{
@@ -76,14 +69,37 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
    setNetworkHint("Le serveur relais audio n’a pas pu être contacté.");
   }
  },[token]);
+ const warmNetwork=useCallback(()=>{
+  if(!networkWarmup.current)networkWarmup.current=loadNetwork();
+  return networkWarmup.current;
+ },[loadNetwork]);
+ useEffect(()=>{if(hasPartner)void warmNetwork()},[hasPartner,warmNetwork]);
+ const flushCandidates=useCallback(async(callId:string)=>{
+  if(sendingCandidates.current||!sessionDescriptionSent.current)return;
+  sendingCandidates.current=true;
+  try{
+   while(sessionDescriptionSent.current&&queuedCandidates.current.length&&current.current?.id===callId){
+    const candidate=queuedCandidates.current[0];
+    try{
+     await api("signal",{id:callId,kind:"candidate",candidate});
+     queuedCandidates.current.shift();
+    }catch(error){
+     // A transient error will be retried at the next signaling poll.
+     console.warn("Trickle ICE delivery retry",error);
+     break;
+    }
+   }
+  }finally{sendingCandidates.current=false}
+ },[api]);
  const clearAudio=useCallback(()=>{
   const p=pc.current;
   pc.current=null;
-  if(p){p.ontrack=null;p.onconnectionstatechange=null;p.oniceconnectionstatechange=null;p.close()}
+  if(p){p.ontrack=null;p.onicecandidate=null;p.onconnectionstatechange=null;p.oniceconnectionstatechange=null;p.close()}
   if(local.current){local.current.getTracks().forEach(track=>track.stop());local.current=null}
   if(remote.current){remote.current.pause();remote.current.srcObject=null}
   offered.current=false;answered.current=false;connectedSince.current=0;
   signalAfter.current=0;
+  queuedCandidates.current=[];sessionDescriptionSent.current=false;sendingCandidates.current=false;
   setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setMinimized(false);
  },[]);
  const reset=useCallback(()=>{
@@ -106,6 +122,11 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
   if(!local.current)throw Error("Le microphone doit être autorisé.");
   if(typeof RTCPeerConnection==="undefined")throw Error("Les appels vocaux ne sont pas compatibles avec cet appareil.");
   const peer=new RTCPeerConnection({iceServers:iceServers.current});
+  peer.onicecandidate=event=>{
+   if(pc.current!==peer||!event.candidate||!current.current)return;
+   queuedCandidates.current.push(event.candidate.toJSON());
+   void flushCandidates(current.current.id);
+  };
   for(const track of local.current.getAudioTracks())peer.addTrack(track,local.current);
   peer.ontrack=event=>{
    const el=remote.current;
@@ -129,7 +150,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
   };
   pc.current=peer;
   return peer;
- },[]);
+ },[flushCandidates]);
  const offer=useCallback(async(call:Call)=>{
   if(offered.current||!local.current)return;
   offered.current=true;
@@ -137,14 +158,16 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
    const peer=createPeer();
    setPhase("Connexion en cours…");
    await peer.setLocalDescription(await peer.createOffer({offerToReceiveAudio:true}));
-   await iceReady(peer);
    if(current.current?.id!==call.id||pc.current!==peer)return;
-   if(!peer.localDescription?.sdp?.includes("a=candidate:"))throw Error("Impossible de trouver un chemin audio sur ce réseau. Essaie avec un autre Wi-Fi ou réseau mobile.");
-   await api("signal",{id:call.id,kind:"offer",sdp:peer.localDescription.sdp});
+   // Send the offer immediately; trickle ICE paths over separate messages.
+   await api("signal",{id:call.id,kind:"offer",sdp:peer.localDescription?.sdp||""});
+   if(current.current?.id!==call.id||pc.current!==peer)return;
+   sessionDescriptionSent.current=true;
+   void flushCandidates(call.id);
   }catch(err){
    if(current.current?.id===call.id)setError(err instanceof Error?err.message:"Impossible de connecter l’appel.");
   }
- },[api,createPeer]);
+ },[api,createPeer,flushCandidates]);
  const receive=useCallback(async(call:Call,signal:Signal)=>{
   if(current.current?.id!==call.id||!local.current)return false;
   const peer=createPeer();
