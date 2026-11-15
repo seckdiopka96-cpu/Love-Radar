@@ -1,4 +1,5 @@
 import type {D1Database} from "@cloudflare/workers-types";
+import {purgeRetiredLocation} from "../lib/retired-location";
 import {notifyPartner,type PushEnv} from "../lib/push";
 
 /** Romantic heart messages only. Drawing has been retired in favour of the puzzle. */
@@ -36,6 +37,7 @@ async function handler(ctx:Ctx,method:"GET"|"POST"){
  try{
   const db=ctx.env.DB;if(!db)return fail("Service momentanément indisponible.",503);
   const user=await auth(ctx.request,db);if(!user)return fail("Session expirée. Reconnecte-toi.",401);
+  await purgeRetiredLocation(db,user.room_id);
   await ensure(db);
   if(method==="GET")return success({...await signals(db,user,new URL(ctx.request.url).searchParams.get("focus")),serverNow:Date.now()});
   const raw=await ctx.request.text();
