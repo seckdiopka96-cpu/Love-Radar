@@ -18,6 +18,7 @@ import GamesHub from "./GamesHub";
 import CoupleStory from "./CoupleStory";
 import PrivatePhoto from "./PrivatePhoto";
 import VoiceMessage from "./VoiceMessage";
+import {mergeOptimisticMessages,shouldKeepVoiceDraft,type AudioOutboxStatus} from "./voice-outbox";
 import "./redesign.css";
 import "./redesign-features.css";
 import "./chat-stability.css";
@@ -28,6 +29,7 @@ type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcil
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number};
 type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
+type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
 
 
 const NAV: {id:Tab;label:string}[] = [
@@ -121,6 +123,12 @@ export default function LoveRadar(){
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
  const [media,setMedia]=useState<Record<string,string>>({});
+ const [voiceOutbox,setVoiceOutbox]=useState<LocalVoice[]>([]);
+ const sendingVoiceIds=useRef(new Set<string>());
+ const chatMessages=mergeOptimisticMessages(room?.messages||[],voiceOutbox.map(entry=>({
+  id:entry.id,sender_id:room?.user.id||"",kind:"audio" as const,
+  content:null,object_key:entry.id,mime:entry.file.type,created_at:entry.created_at
+ })));
  const [recording,setRecording]=useState(false);
  const recorder=useRef<MediaRecorder|null>(null);
  const recordingStream=useRef<MediaStream|null>(null);
@@ -488,7 +496,7 @@ export default function LoveRadar(){
  },[token,request]);
  useEffect(()=>{
   if(!token)return;
-  const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh(undefined,true)},tab==="chat"?1800:4500);
+  const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh(undefined,true)},tab==="chat"?850:4500);
   const onFocus=()=>{void refresh(undefined,true)};
   window.addEventListener("focus",onFocus);
   return()=>{clearInterval(interval);window.removeEventListener("focus",onFocus)};
@@ -558,6 +566,15 @@ export default function LoveRadar(){
     .catch(()=>{delete mediaCache.current[item.id]});
   }
  },[room?.messages,token]);
+ // Retire the local item only once the matching server row is visible.
+ useEffect(()=>{
+  if(!room)return;
+  const received=new Set(room.messages.map(m=>m.id));
+  setVoiceOutbox(items=>{
+   if(!items.some(item=>!shouldKeepVoiceDraft(item.status,received.has(item.id))))return items;
+   return items.filter(item=>shouldKeepVoiceDraft(item.status,received.has(item.id)));
+  });
+ },[room?.messages,voiceOutbox]);
  useEffect(()=>()=>{for(const url of Object.values(mediaCache.current)){if(url.startsWith("blob:"))URL.revokeObjectURL(url)}},[]);
  const scrollToLatest=useCallback(()=>{
   const list=chatScroller.current;
@@ -575,7 +592,7 @@ export default function LoveRadar(){
   const closeToBottom=list.scrollHeight-list.scrollTop-list.clientHeight<155;
   if(firstPoll.current||chatFocused||closeToBottom)scrollToLatest();
   firstPoll.current=false;
- },[room?.messages.at(-1)?.id,tab,chatFocused,scrollToLatest]);
+ },[chatMessages.at(-1)?.id,tab,chatFocused,scrollToLatest]);
  useEffect(()=>()=>{if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current)},[]);
  useEffect(()=>{if(tab!=="chat"&&chatFocused)setChatFocused(false)},[tab,chatFocused]);
 
@@ -623,6 +640,38 @@ export default function LoveRadar(){
   }catch(e){setError(e instanceof Error?e.message:"Envoi impossible.")}
   finally{setBusy(false)}
  }
+ // Local first: a fresh recording is visible before any network request.
+ async function sendQueuedVoice(entry:LocalVoice){
+  if(!token||sendingVoiceIds.current.has(entry.id))return;
+  sendingVoiceIds.current.add(entry.id);
+  setVoiceOutbox(items=>items.map(v=>v.id===entry.id?{...v,status:"uploading",error:undefined}:v));
+  try{
+   const form=new FormData();
+   form.append("file",entry.file);
+   form.append("kind","audio");
+   form.append("messageId",entry.id);
+   const response=await apiFetch("/api/media",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
+   const result=await response.json() as {ok:boolean;error?:string;id?:string;created_at?:number};
+   if(!response.ok||!result.ok||result.id!==entry.id)throw Error(result.error||"Envoi vocal impossible.");
+   setVoiceOutbox(items=>items.map(v=>v.id===entry.id?{...v,status:"sent",created_at:result.created_at||v.created_at}:v));
+   void refresh(undefined,true);
+  }catch(error){
+   const message=error instanceof Error?error.message:"Échec de l'envoi vocal.";
+   setVoiceOutbox(items=>items.map(v=>v.id===entry.id?{...v,status:"failed",error:message}:v));
+  }finally{sendingVoiceIds.current.delete(entry.id)}
+ }
+ function enqueueVoice(file:File){
+  if(!room?.partner||!token)return;
+  if(file.size===0){setError("Aucun son enregistré. Réessaie.");return}
+  if(file.size>5_000_000){setError("Ce vocal dépasse 5 Mo. Réessaie avec un enregistrement plus court.");return}
+  const entry:LocalVoice={id:crypto.randomUUID(),created_at:Date.now(),file,status:"uploading"};
+  const url=URL.createObjectURL(file);
+  mediaCache.current[entry.id]=url;
+  setMedia(prev=>({...prev,[entry.id]:url}));
+  setVoiceOutbox(prev=>[...prev,entry]);
+  scrollToLatest();
+  void sendQueuedVoice(entry);
+ }
  async function onImageChange(e:ChangeEvent<HTMLInputElement>){
   const file=e.target.files?.[0];e.target.value="";
   if(file)await upload(file,"image");
@@ -653,7 +702,7 @@ export default function LoveRadar(){
     const type=rec.mimeType?.split(";")[0]||"audio/mp4";
     const ext=type.includes("webm")?"webm":type.includes("ogg")?"ogg":"m4a";
     const blob=new Blob(chunks,{type});
-    if(blob.size>0&&!discardRecording.current){void upload(new File([blob],"vocal."+ext,{type}),"audio")}
+    if(blob.size>0&&!discardRecording.current){enqueueVoice(new File([blob],"vocal."+ext,{type}))}
     discardRecording.current=false;
    };
    discardRecording.current=false;
@@ -685,7 +734,7 @@ export default function LoveRadar(){
  const partnerTyping=Boolean(!partnerRecording&&typingUntil>Date.now());
  const partnerOnline=Boolean(lastSeen&&Date.now()-lastSeen<35000);
  const images=room?.messages.filter(m=>m.kind==="image")||[];
- const lastOwnMessage=[...(room?.messages||[])].reverse().find(m=>m.sender_id===room?.user.id);
+ const lastOwnMessage=[...chatMessages].reverse().find(m=>m.sender_id===room?.user.id&&!voiceOutbox.some(v=>v.id===m.id&&v.status!=="sent"));
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
  return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
@@ -780,10 +829,10 @@ export default function LoveRadar(){
       <div id="lr-voice-button-slot"/>
      </div>
      <div className="lr-chat-messages" ref={chatScroller} onScroll={e=>{const list=e.currentTarget;setChatAtBottom(list.scrollHeight-list.scrollTop-list.clientHeight<120)}} role="log" aria-label="Messages" aria-live="off">
-      {room.messages.length===0?<div className="lr-chat-empty"><span>♡</span><h3>Votre conversation</h3><p>Écris ton premier message pour commencer.</p></div>:
-      room.messages.map((m,idx)=>{
+      {chatMessages.length===0?<div className="lr-chat-empty"><span>♡</span><h3>Votre conversation</h3><p>Écris ton premier message pour commencer.</p></div>:
+      chatMessages.map((m,idx)=>{
        const mine=m.sender_id===room.user.id;
-       const previous=room.messages[idx-1], next=room.messages[idx+1];
+       const previous=chatMessages[idx-1], next=chatMessages[idx+1];
        const day=new Date(m.created_at).toDateString();
        const newDay=!previous||new Date(previous.created_at).toDateString()!==day;
        const groupedBefore=previous&&!newDay&&previous.sender_id===m.sender_id&&m.created_at-previous.created_at<5*60*1000;
@@ -798,7 +847,15 @@ export default function LoveRadar(){
           media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} enabled={privacyEnabled} viewer={room.user.name} variant="chat"/>:
           <div className="lr-media-loading">Chargement de la photo…</div>:
           media[m.id]?<VoiceMessage id={m.id} src={media[m.id]} mine={mine} time={time} delivery={mine&&m.id===lastOwnMessage?.id?((room.partnerReadAt||0)>=m.created_at?"read":"sent"):undefined}/>:
-          <div className="lr-media-loading">Chargement du vocal…</div>}</div>
+          <div className="lr-media-loading">Chargement du vocal…</div>}
+           {voiceOutbox.some(v=>v.id===m.id&&v.status!=="sent")?
+            <div className={"lr-audio-send-state "+(voiceOutbox.find(v=>v.id===m.id)?.status==="failed"?"failed":"uploading")} role="status">
+             {voiceOutbox.find(v=>v.id===m.id)?.status==="failed"?<>
+              <span>⚠ Envoi non terminé</span>
+              <button type="button" onClick={()=>{const entry=voiceOutbox.find(v=>v.id===m.id);if(entry)void sendQueuedVoice(entry)}}>Réessayer</button>
+             </>:<span>◌ Envoi en cours…</span>}
+            </div>:null}
+           </div>
           {!groupedAfter&&m.kind!=="audio"?<time className="lr-message-time" dateTime={new Date(m.created_at).toISOString()}>{time}</time>:null}
           {mine&&m.kind!=="audio"&&m.id===lastOwnMessage?.id?<span className={"lr-read-receipt "+((room.partnerReadAt||0)>=m.created_at?"is-read":"")} aria-label="Statut du dernier message">{(room.partnerReadAt||0)>=m.created_at?"✓✓ Vu":"✓ Envoyé"}</span>:null}
          </div>
