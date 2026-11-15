@@ -46,7 +46,7 @@ export async function onRequestGet({request,env}:Context):Promise<Response>{
   let signals:{id:number;kind:string;payload:string}[]=[];
   if(call){
    const after=Math.max(0,Math.floor(Number(new URL(request.url).searchParams.get("after")||0)))||0;
-   const rows=await env.DB.prepare("SELECT id,kind,payload FROM voice_signals WHERE call_id=? AND to_member=? AND id>? ORDER BY id ASC LIMIT 10")
+   const rows=await env.DB.prepare("SELECT id,kind,payload FROM voice_signals WHERE call_id=? AND to_member=? AND id>? ORDER BY id ASC LIMIT 40")
     .bind(call.id,u.id,after).all<{id:number;kind:string;payload:string}>();
    signals=rows.results||[];
   }
@@ -108,17 +108,42 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
   }
   if(action==="signal"){
    if(call.status!=="active")return fail("L’appel doit d’abord être accepté.",409);
-   if(body.kind!=="offer"&&body.kind!=="answer")return fail("Signal invalide.");
-   if(body.kind==="offer"&&call.caller_id!==u.id)return fail("Signal invalide.",403);
-   if(body.kind==="answer"&&call.callee_id!==u.id)return fail("Signal invalide.",403);
-   const sdp=body.sdp;
-   if(typeof sdp!=="string"||!sdp.startsWith("v=0")||sdp.length>30000||sdp.length<50)return fail("Signal incorrect.");
+   const kind=body.kind;
+   if(kind!=="offer"&&kind!=="answer"&&kind!=="candidate")return fail("Signal invalide.");
+   if(kind==="offer"&&call.caller_id!==u.id)return fail("Signal invalide.",403);
+   if(kind==="answer"&&call.callee_id!==u.id)return fail("Signal invalide.",403);
    const remote=call.caller_id===u.id?call.callee_id:call.caller_id;
-   const previous=await db.prepare("SELECT id FROM voice_signals WHERE call_id=? AND from_member=? AND kind=? LIMIT 1")
-    .bind(call.id,u.id,body.kind).first();
-   if(previous)return response({ok:true,duplicate:true});
+   let payload:string;
+   if(kind==="candidate"){
+    // Trickle ICE: transmit candidates as they arrive, never wait 14 seconds for
+    // ICE gathering to finish. Validate every fragment before storing it.
+    const candidate=body.candidate;
+    if(!candidate||typeof candidate!=="object"||Array.isArray(candidate))return fail("Candidat réseau invalide.");
+    const ice=candidate as Record<string,unknown>;
+    if(typeof ice.candidate!=="string"||!ice.candidate.startsWith("candidate:")||ice.candidate.length>2600)
+     return fail("Candidat réseau invalide.");
+    const mid=ice.sdpMid;
+    const index=ice.sdpMLineIndex;
+    if(mid!==undefined&&mid!==null&&(typeof mid!=="string"||mid.length>30))return fail("Média invalide.");
+    if(index!==undefined&&index!==null&&(!Number.isInteger(index)||Number(index)<0||Number(index)>4))return fail("Média invalide.");
+    const fragment=ice.usernameFragment;
+    if(fragment!==undefined&&fragment!==null&&(typeof fragment!=="string"||fragment.length>128))return fail("Identifiant réseau invalide.");
+    payload=JSON.stringify({candidate:ice.candidate,sdpMid:mid??null,sdpMLineIndex:index??null,
+     ...(typeof fragment==="string"?{usernameFragment:fragment}:{})});
+    // Cap short-lived signal records so the endpoint cannot be flooded.
+    const count=await db.prepare("SELECT COUNT(*) AS n FROM voice_signals WHERE call_id=? AND from_member=? AND kind='candidate'")
+     .bind(call.id,u.id).first<{n:number}>();
+    if(Number(count?.n||0)>=64)return fail("Nombre maximum de chemins réseau atteint.",429);
+   }else{
+    const sdp=body.sdp;
+    if(typeof sdp!=="string"||!sdp.startsWith("v=0")||sdp.length>30000||sdp.length<50)return fail("Signal incorrect.");
+    payload=sdp;
+    const previous=await db.prepare("SELECT id FROM voice_signals WHERE call_id=? AND from_member=? AND kind=? LIMIT 1")
+     .bind(call.id,u.id,kind).first();
+    if(previous)return response({ok:true,duplicate:true});
+   }
    await db.prepare("INSERT INTO voice_signals(call_id,room_id,from_member,to_member,kind,payload,created_at) VALUES(?,?,?,?,?,?,?)")
-    .bind(call.id,u.room_id,u.id,remote,body.kind,sdp,t).run();
+    .bind(call.id,u.room_id,u.id,remote,kind,payload,t).run();
    return response({ok:true,sent:true});
   }
   return fail("Action inconnue.",404);
