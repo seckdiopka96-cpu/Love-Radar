@@ -234,6 +234,16 @@ Depuis **Ensemble → Regarder ensemble → TikTok**, chacun peut regarder la m�
 - Les anciennes tables de dessin ne sont plus utilisées ; les jeux, messages, souvenirs et appels restent indépendants et inchangés.
 - Tests : `npm run test:puzzle` et `npm run build`. Vérifier l'interaction sur deux vrais téléphones après déploiement.
 
+## ⚡ Priorité : accélérer la connexion des appels et fixer TikTok sur iPhone
+
+- **Cause principale identifiée :** les offres et réponses WebRTC attendaient auparavant la collecte ICE complète, avec un maximum de **14 secondes par appareil**. Un appel pouvait donc attendre plusieurs cycles pour obtenir une connexion audio.
+- **Trickle ICE :** l'offre SDP est maintenant envoyée dès sa création, suivie de chaque candidat réseau ; idem pour la réponse du second téléphone. Le serveur `/api/call` valide les candidats, les enregistre dans l'ordre et les limite à 64 par côté. Les anciens navigateurs qui n'ont pas encore chargé cette version doivent être rechargés, car le protocole de signalisation a changé.
+- Le service TURN Cloudflare est préchargé dès qu'un partenaire est présent, sans demande micro anticipée ; l'appel utilise les paramètres réseau préchargés. La collecte de chemins WebRTC peut commencer plus rapidement avec `iceCandidatePoolSize:2`.
+- Le rafraîchissement des appels passe à ~1,1 seconde au repos et ~650 ms pendant un appel, avec vérification immédiate après acceptation. Les candidats non transmis sont retentés. Le serveur peut maintenant renvoyer 40 signaux par requête au lieu de 10.
+- **L'amélioration de temps dépend du téléphone, des permissions micro, du réseau, des services STUN/TURN et de la présence de l'autre personne ; aucun délai de connexion ne peut être garanti.** Les échanges vocaux continuent d'être chiffrés par WebRTC. Une mesure réelle sur deux téléphones est nécessaire après déploiement.
+- **TikTok** : sur iPhone, plus de défilement de la page entière ; une zone vidéo flexible occupe l'espace disponible, les commandes de lecture, le formulaire de partage et l'entrée messagerie restent visibles. La grande carte vide a été raccourcie, l'explication secondaire condensée, et les champs de texte restent accessibles lorsque le clavier s'ouvre. L'historique de messages peut conserver son propre défilement lorsqu'il est développé.
+- Tests : `npm run test:call`, puis `npm run build`. Le cache PWA est monté en version 41 pour charger le nouveau protocole sur les deux appareils.
+
 ## 📞 Réduire l'appel et écrire en même temps
 
 - Pendant un appel accepté, le bouton « Réduire · Écrire » masque uniquement la grande fenêtre d'appel et revient à la conversation. Il ne ferme ni la connexion WebRTC ni le microphone.
