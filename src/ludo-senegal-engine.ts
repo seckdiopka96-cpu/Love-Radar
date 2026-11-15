@@ -205,13 +205,20 @@ export function chooseSenegalBotMove(game:SenegalGame):MoveOption|null{
  const options=movesForSeat(game,game.turn);
  if(!options.length)return null;
  const seat=game.turn,enemy=other(seat);
+ const enemyHomePawns=game.positions[enemy].filter(p=>p.zone==="home");
  const score=(option:MoveOption)=>{
   const to=option.to;
+  // Entering an EMPTY enemy lane traps this pawn until another six.
+  // A human may still choose the risky move, but the computer must not
+  // sacrifice a pawn for nothing (including during Duo inactivity turns).
+  if(option.action==="enemy"&&game.positions[seat][option.pawn].zone==="track"&&enemyHomePawns.length===0){
+   return Number.NEGATIVE_INFINITY;
+  }
   let s=to.zone==="finished"?20000:to.zone==="home"?2000+to.depth*60:to.zone==="enemy"?260:to.zone==="track"?to.step:0;
   if(option.action==="turn")s-=150;
   if(option.action==="reverse")s+=400;
   if(option.action==="enemy"&&to.zone==="enemy"){
-   s+=game.positions[enemy].filter(p=>p.zone==="home").length*275;
+   s+=enemyHomePawns.length*275;
   }
   const probe:[Pawn[],Pawn[]]=[[...game.positions[0]],[...game.positions[1]]];
   s+=captureTargets(probe,seat,to).length*1800;
