@@ -18,6 +18,7 @@ import GamesHub from "./GamesHub";
 import CoupleStory from "./CoupleStory";
 import PrivatePhoto from "./PrivatePhoto";
 import VoiceMessage from "./VoiceMessage";
+import ChatActivity from "./ChatActivity";
 import {mergeOptimisticMessages,shouldKeepVoiceDraft,type AudioOutboxStatus} from "./voice-outbox";
 import "./redesign.css";
 import "./redesign-features.css";
@@ -114,6 +115,7 @@ export default function LoveRadar(){
  const [draft,setDraft]=useState("");
  const [chatFocused,setChatFocused]=useState(false);
  const [chatAtBottom,setChatAtBottom]=useState(true);
+ const chatAtBottomRef=useRef(true);
  const [partnerActivity,setPartnerActivity]=useState<{partnerTypingUntil:number;partnerRecordingUntil:number;partnerLastSeenAt:number}|null>(null);
  const chatScroller=useRef<HTMLDivElement|null>(null);
  const snapshotStarted=useRef(0);
@@ -157,11 +159,11 @@ export default function LoveRadar(){
     }));
    }
   };
-  syncWithChat();viewport?.addEventListener("resize",syncWithChat);viewport?.addEventListener("scroll",syncWithChat);
-  window.addEventListener("resize",sync);
+  syncWithChat();viewport?.addEventListener("resize",syncWithChat);viewport?.addEventListener("scroll",sync);
+  window.addEventListener("resize",syncWithChat);
   return()=>{
-   viewport?.removeEventListener("resize",syncWithChat);viewport?.removeEventListener("scroll",syncWithChat);
-   window.removeEventListener("resize",sync);
+   viewport?.removeEventListener("resize",syncWithChat);viewport?.removeEventListener("scroll",sync);
+   window.removeEventListener("resize",syncWithChat);
    document.documentElement.style.removeProperty("--lr-visible-height");
    document.documentElement.style.removeProperty("--lr-visible-top");
   };
@@ -582,7 +584,7 @@ export default function LoveRadar(){
   if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current);
   scrollFrame.current=requestAnimationFrame(()=>{
    scrollFrame.current=null;
-   if(chatScroller.current){chatScroller.current.scrollTop=chatScroller.current.scrollHeight;setChatAtBottom(true)}
+   if(chatScroller.current){chatScroller.current.scrollTop=chatScroller.current.scrollHeight;chatAtBottomRef.current=true;setChatAtBottom(true)}
   });
  },[]);
  useEffect(()=>{
@@ -594,6 +596,16 @@ export default function LoveRadar(){
   firstPoll.current=false;
  },[chatMessages.at(-1)?.id,tab,chatFocused,scrollToLatest]);
  useEffect(()=>()=>{if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current)},[]);
+ // Keyboard changes the visible area: keep recent messages anchored, but
+ // don't jump down when a user deliberately reads older messages.
+ useEffect(()=>{
+  if(tab!=="chat"||!chatScroller.current||typeof ResizeObserver==="undefined")return;
+  const observer=new ResizeObserver(()=>{
+   if(chatFocused||chatAtBottomRef.current)scrollToLatest();
+  });
+  observer.observe(chatScroller.current);
+  return()=>observer.disconnect();
+ },[tab,chatFocused,scrollToLatest]);
  useEffect(()=>{if(tab!=="chat"&&chatFocused)setChatFocused(false)},[tab,chatFocused]);
 
  async function startRoom(event:FormEvent){
@@ -733,6 +745,11 @@ export default function LoveRadar(){
  const partnerRecording=Boolean(recordingUntil>Date.now());
  const partnerTyping=Boolean(!partnerRecording&&typingUntil>Date.now());
  const partnerOnline=Boolean(lastSeen&&Date.now()-lastSeen<35000);
+ const partnerActivityKind=partnerRecording?"recording":partnerTyping?"typing":null;
+ useEffect(()=>{
+  if(tab!=="chat"||!partnerActivityKind)return;
+  if(chatFocused||chatAtBottomRef.current)scrollToLatest();
+ },[tab,partnerActivityKind,chatFocused,scrollToLatest]);
  const images=room?.messages.filter(m=>m.kind==="image")||[];
  const lastOwnMessage=[...chatMessages].reverse().find(m=>m.sender_id===room?.user.id&&!voiceOutbox.some(v=>v.id===m.id&&v.status!=="sent"));
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
@@ -824,11 +841,11 @@ export default function LoveRadar(){
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">
       <div className="lr-chat-partner"><Initials name={partner} size="small"/>
-       <div><h2>{partner}</h2><span className={"lr-chat-status "+(partnerRecording?"recording":partnerTyping?"typing":partnerOnline?"online":"offline")} aria-live="polite">{partnerRecording?"Enregistre un vocal…":partnerTyping?"En train d’écrire…":!room.partner?"En attente de votre partenaire…":partnerOnline?"En ligne":"Hors ligne"}</span></div>
+       <div><h2>{partner}</h2><span className={"lr-chat-status "+(partnerOnline?"online":"offline")}>{!room.partner?"En attente de votre partenaire…":partnerOnline?"En ligne":"Hors ligne"}</span></div>
       </div>
       <div id="lr-voice-button-slot"/>
      </div>
-     <div className="lr-chat-messages" ref={chatScroller} onScroll={e=>{const list=e.currentTarget;setChatAtBottom(list.scrollHeight-list.scrollTop-list.clientHeight<120)}} role="log" aria-label="Messages" aria-live="off">
+     <div className="lr-chat-messages" ref={chatScroller} onScroll={e=>{const list=e.currentTarget;const near=list.scrollHeight-list.scrollTop-list.clientHeight<120;chatAtBottomRef.current=near;setChatAtBottom(prev=>prev===near?prev:near)}} role="log" aria-label="Messages" aria-live="off">
       {chatMessages.length===0?<div className="lr-chat-empty"><span>♡</span><h3>Votre conversation</h3><p>Écris ton premier message pour commencer.</p></div>:
       chatMessages.map((m,idx)=>{
        const mine=m.sender_id===room.user.id;
@@ -862,11 +879,7 @@ export default function LoveRadar(){
         </div>
        </Fragment>
       })}
-      {partnerTyping||partnerRecording?<div className="lr-typing" role="status">
-       <span>{partnerRecording?partner+" enregistre un vocal":partner+" écrit"}</span>
-       {partnerRecording?<span className="lr-voice-wave" aria-label="Enregistrement vocal"><i/><i/><i/><i/></span>:
-        <div className="lr-typing-dots" aria-label="En train d’écrire"><i/><i/><i/></div>}
-      </div>:null}
+      {partnerActivityKind?<ChatActivity kind={partnerActivityKind}/>:null}
       <div ref={tail}/>
      </div>
      {!chatAtBottom&&!chatFocused?<button type="button" className="lr-chat-jump" onClick={scrollToLatest}>↓ Derniers messages</button>:null}
