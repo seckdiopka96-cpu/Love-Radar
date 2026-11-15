@@ -91,6 +91,7 @@ export default function TikTokTogether({token,myId,myName,partnerName,messages,o
    if(!data.ok||!response.ok)throw Error(data.error||"Action refusée.");
    accept(data);
    if(action==="set-video"){setInput("");setNotice("💕 Cette vidéo TikTok est partagée avec ton partenaire !");}
+   if(action==="play")setNotice("🔔 Ton partenaire sera invité si ses notifications sont activées.");
   }catch(e){setError(e instanceof Error?e.message:"Impossible de synchroniser la vidéo.");void refresh()}
   finally{busyRef.current=false;setBusy(false)}
  },[token,accept,refresh]);
