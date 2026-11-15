@@ -54,3 +54,31 @@ test("YouTube co-watch also keeps its player, link editor and conversation on a 
  assert.ok(youtubeStyle.includes(".wt-conversation.is-open"));
  assert.ok(youtubeStyle.includes(".wt-page:has(.wt-link-line input:focus,.wt-chat-compose input:focus)"));
 });
+
+test("FaceTime-style call is audio-only with functional six-button controls and Love Radar styling",()=>{
+ const css=readFileSync("src/voice-call.css","utf8");
+ assert.ok(call.includes('className="lr-call-sheet lr-call-facetime"'));
+ assert.ok(call.includes('className="lr-call-identity"'));
+ assert.ok(call.includes('className="lr-call-initial"'));
+ assert.ok(call.includes('className="lr-call-actions"')||call.includes('"lr-call-actions"+'));
+ for(const cls of ["lr-call-speaker","lr-call-mute","lr-call-chat","lr-call-more","lr-call-hangup","lr-call-keypad"]){
+  assert.ok(call.includes(cls),"Missing control "+cls);
+ }
+ assert.ok(call.includes('onClick={selectSpeaker}'));
+ assert.ok(call.includes('onClick={toggleMute}'));
+ assert.ok(call.includes('onClick={minimizeAndWrite}'));
+ assert.ok(call.includes('onClick={hangup}'));
+ assert.ok(call.includes('onClick={()=>setCallPanel("more")}'));
+ assert.ok(call.includes('onClick={()=>setCallPanel("keypad")}'));
+ assert.ok(call.includes('onClick={()=>pressKey(key)}'));
+ assert.ok(call.includes('onClick={()=>setCallPanel("info")}'));
+ assert.ok(call.includes('onOpenChat()'));
+ assert.ok(call.includes('setMinimized(true)'));
+ assert.ok(call.includes('video:false'));
+ assert.ok(!call.includes('lr-call-video'));
+ assert.ok(css.includes('.lr-call-sheet.lr-call-facetime'));
+ assert.ok(css.includes('height:100dvh'));
+ assert.ok(css.includes('grid-template-columns:repeat(3,minmax(0,1fr))'));
+ assert.ok(css.includes('background:#df264e'));
+ assert.ok(css.includes('.lr-call-mini'));
+});
