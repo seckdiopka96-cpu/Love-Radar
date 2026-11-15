@@ -468,14 +468,20 @@
   z-index:100;
   width:clamp(24px,9.5%,41px);
   height:clamp(32px,12.5%,53px);
-  transform:translate(-50%,-59%);
-  transition:left .375s cubic-bezier(.22,.68,.27,1),top .375s cubic-bezier(.22,.68,.27,1);
+  --ludo-move-x:-50%;
+  --ludo-move-y:-59%;
+  transform:translate(var(--ludo-move-x),var(--ludo-move-y));
+  transition:left .375s cubic-bezier(.22,.68,.27,1),top .375s cubic-bezier(.22,.68,.27,1),transform .18s ease-out;
   filter:drop-shadow(0 8px 4px #160819b3) drop-shadow(0 0 6px #fff8dfb0);
   will-change:left,top;
   isolation:isolate;
   --ludo-move-glow:#ff627f
 }
 .ludo-experience .ludo-moving-pawn.ludo-pawn-gold{--ludo-move-glow:#ffcf43}
+.ludo-experience .ludo-motion-top{--ludo-move-y:-4%}
+.ludo-experience .ludo-motion-bottom{--ludo-move-y:-96%}
+.ludo-experience .ludo-motion-left{--ludo-move-x:-4%}
+.ludo-experience .ludo-motion-right{--ludo-move-x:-96%}
 .ludo-experience .ludo-motion-aura{
   position:absolute;
   z-index:-1;
