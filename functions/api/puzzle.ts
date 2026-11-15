@@ -1,4 +1,5 @@
 import type {D1Database} from "@cloudflare/workers-types";
+import {purgeRetiredLocation} from "../lib/retired-location";
 import {notifyPartner,type PushEnv} from "../lib/push";
 import {
  newShuffledTiles,swapTiles,puzzleSolved,isPuzzleTheme,isPuzzleTiles,
@@ -54,6 +55,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
  try{
   const db=ctx.env.DB;if(!db)return fail("Puzzle temporairement indisponible.",503);
   const user=await authorize(ctx.request,db);if(!user)return fail("Session expirée. Reconnecte-toi.",401);
+  await purgeRetiredLocation(db,user.room_id);
   await ensure(db);await init(db,user.room_id);
   let current=await read(db,user.room_id);
   if(method==="GET")return send(await view(db,user,current));
