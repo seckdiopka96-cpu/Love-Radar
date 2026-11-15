@@ -3,7 +3,7 @@ import DiceFace from "./DiceFace";
 import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,SAFE,CELL,key,pointForProgress,movementSteps,stackPosition,type Point} from "./ludo-visuals";
-import {freshSoloGame,isSoloGame,rollSolo,moveSolo,chooseSoloBotPawn,canSoloMove,soloDie,
+import {freshSoloGame,isSoloGame,rollSolo,moveSolo,chooseSoloBotPawn,canSoloMove,soloDie,SOLO_TURN_MS,shouldAutoPlaySolo,
  type SoloGame,type SoloSeat,type SoloMove} from "./ludo-solo-engine";
 import "./ludo.css";
 import "./ludo-immersive.css";
@@ -19,7 +19,7 @@ function loadSaved(scope:string):SoloGame{
   const raw=localStorage.getItem(storeKey(scope));
   if(raw){
    const saved=JSON.parse(raw) as unknown;
-   if(isSoloGame(saved))return saved;
+   if(isSoloGame(saved))return {...saved,updatedAt:saved.updatedAt||Date.now()};
   }
  }catch{/* Private mode may reject storage; solo still works. */}
  return freshSoloGame();
@@ -27,6 +27,8 @@ function loadSaved(scope:string):SoloGame{
 function haptic(){try{navigator.vibrate?.(16)}catch{/* Unsupported. */}}
 export default function SoloLudo({myName,storageKey,onExit}:Props){
  const [game,setGame]=useState<SoloGame>(()=>loadSaved(storageKey));
+ const [assisted,setAssisted]=useState(false);
+ const [now,setNow]=useState(Date.now());
  const [motion,setMotion]=useState<Motion|null>(null);
  const [rolling,setRolling]=useState(false);
  const [face,setFace]=useState(1);
@@ -66,25 +68,43 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   const id=window.setInterval(()=>setFace(1+Math.floor(Math.random()*6)),85);
   return ()=>window.clearInterval(id);
  },[rolling]);
- function performRoll(seat:SoloSeat){
-  if(game.turn!==seat||game.dice!==null||game.status!=="playing"||rolling||motion)return;
-  if(seat===0)unlockSound();
+ useEffect(()=>{
+  const id=window.setInterval(()=>setNow(Date.now()),250);
+  return ()=>window.clearInterval(id);
+ },[]);
+ // 15 seconds per move opportunity: no extra delay for an inactive player.
+ useEffect(()=>{
+  if(game.status!=="playing"||game.turn!==0||assisted||rolling||motion||confirmRestart)return;
+  const delay=Math.max(0,game.updatedAt+SOLO_TURN_MS-Date.now());
+  const id=window.setTimeout(()=>{if(shouldAutoPlaySolo(game,Date.now()))setAssisted(true);},delay);
+  return ()=>window.clearTimeout(id);
+ },[game,assisted,rolling,motion,confirmRestart]);
+ useEffect(()=>{
+  if(game.turn!==0||game.status!=="playing")setAssisted(false);
+ },[game.turn,game.status]);
+ function performRoll(seat:SoloSeat,automatic=false){
+  if(game.turn!==seat||game.dice!==null||game.status!=="playing"||rolling||motion||(seat===0&&assisted&&!automatic))return;
+  if(seat===0&&!automatic)unlockSound();
   playSound("roll");
   const outcome=soloDie();
   setRolling(true);
   later(()=>{
    setFace(outcome);
-   setGame(prev=>prev.turn===seat&&prev.dice===null?rollSolo(prev,outcome):prev);
+   setGame(prev=>{
+    if(prev.turn!==seat||prev.dice!==null)return prev;
+    const next=rollSolo(prev,outcome);
+    return automatic&&seat===0?{...next,lastAction:"🤖 Après 15 s, l’ordinateur a lancé le dé pour toi. "+next.lastAction}:next;
+   });
    setRolling(false);
   },620);
  }
- function performMove(seat:SoloSeat,pawn:number){
-  if(game.turn!==seat||game.status!=="playing"||game.dice===null||rolling||motion)return;
+ function performMove(seat:SoloSeat,pawn:number,automatic=false){
+  if(game.turn!==seat||game.status!=="playing"||game.dice===null||rolling||motion||(seat===0&&assisted&&!automatic))return;
   const result=moveSolo(game,pawn);
   if(!result)return;
   const {move}=result;
   const route=movementSteps(move.from,move.to);
-  setGame(result.game);
+  setGame(automatic&&seat===0?{...result.game,lastAction:"🤖 L’ordinateur a déplacé ton pion. "+result.game.lastAction}:result.game);
   setLanding(null);
   if(route.length){
    setMotion({...move,progress:move.from});
@@ -98,6 +118,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
    });
    later(()=>{
     setMotion(null);
+    if(result.game.turn===0&&!automatic)setGame(prev=>({...prev,updatedAt:Date.now()}));
     setLanding(pointForProgress(move.seat,move.pawn,move.to));
     playMoveEffects(move,result.game.winner);
    },initialDelay+route.length*stepDuration+100);
@@ -116,18 +137,20 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   }
   later(()=>setLanding(null),850);
  }
- // Only local solo turns are automated; the partner's shared online game is untouched.
+ // AI controls its own turn, or finishes the human turn when 15 s expires.
  useEffect(()=>{
-  if(game.status!=="playing"||game.turn!==1||rolling||motion)return;
+  if(game.status!=="playing"||rolling||motion||confirmRestart)return;
+  if(game.turn!==1&&!(game.turn===0&&assisted))return;
   const id=window.setTimeout(()=>{
-   if(game.dice===null)performRoll(1);
+   const seat=game.turn;
+   if(game.dice===null)performRoll(seat,true);
    else{
     const pawn=chooseSoloBotPawn(game);
-    if(pawn!==null)performMove(1,pawn);
+    if(pawn!==null)performMove(seat,pawn,true);
    }
   },game.dice===null?900:720);
   return ()=>window.clearTimeout(id);
- },[game,rolling,motion]);
+ },[game,rolling,motion,assisted,confirmRestart]);
  const isHumanTurn=game.status==="playing"&&game.turn===0;
  const canRoll=isHumanTurn&&game.dice===null&&!rolling&&!motion;
  const canPick=isHumanTurn&&game.dice!==null&&!rolling&&!motion;
