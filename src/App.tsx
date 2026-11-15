@@ -244,7 +244,7 @@ export default function LoveRadar(){
      setNoticeTarget(dest);
      setTab(dest.tab);setWatchInvite(null);firstPoll.current=true;
     }
-   }else if(["chat","watch","watch-tiktok","reconcile","games","ludo","ludo-solo","ludo-senegal","ludo-senegal-solo","memory" ,"moment","together","puzzle","reconcile","reunion","story","home","memories"].includes(data?.tab)){
+   }else if(["chat","watch","watch-tiktok","games","ludo","ludo-solo","ludo-senegal","ludo-senegal-solo","memory" ,"moment","together","puzzle","reconcile","reunion","story","home","memories"].includes(data?.tab)){
     const dest=data.tab as Tab;
     setTab(dest);setNoticeTarget({tab:dest,kind:null,id:null});firstPoll.current=true;
    }
