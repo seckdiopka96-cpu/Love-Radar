@@ -231,3 +231,12 @@
  .tg-send-heart{padding:8px 16px}
 }
 @media(prefers-reduced-motion:reduce){.tg-watch-feature:active{transform:none}}
+
+/* With drawing and location removed, this row now has two even shortcuts.
+   The former drawing tab becomes the highlighted co-operative puzzle entry. */
+.tg-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tg-modes .tg-puzzle-open{background:linear-gradient(125deg,#78518e,#9e5987);border:1px solid #cf9fbf;
+ color:#fff5fb;box-shadow:0 3px 12px #21122c60}
+.tg-modes .tg-puzzle-open:active{transform:scale(.98)}
+.tg-modes .tg-puzzle-open:focus-visible{outline:2px solid #ffe6ec;outline-offset:2px}
+@media(max-width:540px){.tg-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
