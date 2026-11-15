@@ -6,7 +6,7 @@ type Signal={id:string;sender_id:string;seat:number;kind:string;reply_to:string|
 type Reply={ok:boolean;error?:string;signals?:Signal[];focus?:Signal|null};
 type Props={
  token:string;myName:string;partnerName:string|null;mySeat:number;onExit:()=>void;
- onOpenMoment:()=>void;onOpenReunion:()=>void;onOpenWatch:()=>void;onOpenPuzzle:()=>void;
+ onOpenMoment:()=>void;onOpenReunion:()=>void;onOpenWatch:()=>void;onOpenPuzzle:()=>void;onOpenReconcile:()=>void;
  focusKind?:"love-signal"|null;focusId?:string|null
 };
 const RESPONSE_OPTIONS=[
@@ -20,7 +20,7 @@ function messageOf(signal:Signal){
  if(signal.kind==="love")return "Je t’aime 💖";
  return "Tu me manques aussi ❤️";
 }
-export default function Together({token,myName,partnerName,mySeat,onExit,onOpenMoment,onOpenReunion,onOpenWatch,onOpenPuzzle,focusKind,focusId}:Props){
+export default function Together({token,myName,partnerName,mySeat,onExit,onOpenMoment,onOpenReunion,onOpenWatch,onOpenPuzzle,onOpenReconcile,focusKind,focusId}:Props){
  const [signals,setSignals]=useState<Signal[]>([]);
  const [focused,setFocused]=useState<Signal|null>(null);
  const [onlyFocused,setOnlyFocused]=useState(Boolean(focusKind==="love-signal"&&focusId));
@@ -92,6 +92,11 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
     <button type="button" className="tg-reunion-link" onClick={onOpenReunion}><span aria-hidden="true">📅</span><strong>Retrouvailles</strong></button>
    </div>
   </div>
+  <button type="button" className="tg-reconcile-entry" onClick={onOpenReconcile} aria-label="Mode Réconciliation, exprimer librement ce qui me fait mal">
+   <span className="tg-reconcile-icon" aria-hidden="true">🕊️</span>
+   <span className="tg-reconcile-copy"><strong>On se comprend</strong><small>Un espace pour dire tout ce qui fait mal et s'écouter vraiment</small></span>
+   <span className="tg-reconcile-arrow" aria-hidden="true">›</span>
+  </button>
   <div className="tg-section-label tg-between-label"><strong>RIEN QUE NOUS DEUX</strong><small>Des attentions et des jeux</small></div>
   <div className="tg-modes" role="group" aria-label="Activités romantiques">
    <button type="button" className="selected" aria-current="page">💗 Tu me manques</button>
