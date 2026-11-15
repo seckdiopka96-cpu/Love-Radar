@@ -43,6 +43,8 @@ test("reconciliation API returns only own draft until both partners submitted",(
  assert.ok(api.includes("canRevealReconciliation"));
  assert.ok(api.includes("couple_reconciliation_entries.submitted=0"));
  assert.ok(api.includes("DELETE FROM couple_reconciliation_entries WHERE session_id=?"));
+ assert.ok(api.includes("SELECT ?,?,?,?,?,?,?,? WHERE EXISTS"),"delayed save must not restore erased feelings");
+ assert.ok(api.includes("status=\'writing\'"),"save is allowed only during a live writing session");
  assert.ok(api.includes('action==="start"'));
  assert.ok(api.includes('action==="save"')||api.includes('action!=="save"'));
  assert.ok(api.includes('action==="submit"'));
@@ -67,4 +69,6 @@ test("Reconcilation in Love Radar has deep-link, partner invitation and live cal
  assert.ok(ui.includes('Brouillon privé'));
  assert.ok(ui.includes('setTimeout(()=>{void saveDraft()},1500)'));
  assert.ok(ui.includes('onClick={()=>void close()}'));
+ assert.ok(app.includes("setReconcileInvite(true)"));
+ assert.ok(app.includes('onClick={()=>navigate("reconcile")}'));
 });
