@@ -1,0 +1,70 @@
+/* Love Radar — local Ludo challenge against a genuine automated opponent. */
+.ludo-solo{
+ --solo-lime:#ffd481;
+ background:radial-gradient(ellipse at 50% 40%,#6f557441 0,transparent 62%),linear-gradient(160deg,#362344 0%,#191729 66%,#2c223a 100%);
+ border-color:#997782;
+}
+.ludo-solo .ludo-brand strong>span{color:#ffdc80;text-shadow:0 0 12px #f4b96b70}
+.ludo-solo .ludo-brand small{color:#e5c2ad}
+.ludo-solo-restart{
+ display:grid;place-items:center;flex:none;width:35px;height:35px;
+ border:1px solid #aa8395;border-radius:11px;color:#ffedcf;
+ background:#61435f;font-weight:900;font-size:26px;line-height:1;
+}
+.ludo-solo-restart:active{transform:scale(.92)}
+.ludo-solo-mode-tag{
+ flex:none;border:1px solid #f3ce8a91;color:#ffdf9c;
+ background:#4e3854;border-radius:8px;padding:5px 7px;
+ font-size:9px;font-weight:950;letter-spacing:1px
+}
+.ludo-solo .ludo-player-gold .ludo-player-avatar{
+ background:linear-gradient(135deg,#ffe6ac,#e8ab2f);font-size:20px
+}
+.ludo-solo .ludo-main-action:not(:disabled){
+ background:linear-gradient(140deg,#ffb957,#e77c54 55%,#d4526c);
+ box-shadow:inset 0 1px #fff3c980,inset 0 -4px #b45e419a,0 4px 9px #150b19aa
+}
+.ludo-solo .ludo-game-footer{
+ border-color:#a381a6;
+ background:linear-gradient(140deg,#453153,#282036)
+}
+.ludo-solo .ludo-pick-row{
+ flex-shrink:0;
+ border-color:#684f73;
+}
+.ludo-solo .ludo-pick.can-play{
+ border-color:#ffce65;box-shadow:0 0 0 1px #ffe3a866,0 0 9px #ffc75d38
+}
+.ludo-solo .ludo-pick svg{max-width:100%;max-height:100%}
+.ludo-solo .ludo-die-holder[disabled]{opacity:.65}
+.ludo-solo .ludo-stage{isolation:isolate}
+.ludo-solo .ludo-board-center>span{
+ font-size:clamp(17px,5vw,32px);color:#fff4bf;
+ text-shadow:0 2px 4px #301225c2
+}
+.ludo-solo-reaction{
+ position:absolute;left:50%;top:17%;z-index:160;
+ transform:translateX(-50%);
+ pointer-events:none;
+ font-size:clamp(42px,11vw,72px);
+ filter:drop-shadow(0 4px 9px #180d20aa);
+ animation:ludo-solo-pop .68s cubic-bezier(.2,1.3,.3,1) both;
+}
+@keyframes ludo-solo-pop{
+ 0%{transform:translate(-50%,12px) scale(.4);opacity:0}
+ 40%{transform:translate(-50%,-8px) scale(1.25);opacity:1}
+ 100%{transform:translate(-50%,-22px) scale(1);opacity:1}
+}
+.ludo-solo-win{z-index:180}
+.ludo-solo .ludo-cell.has-pawns{overflow:visible}
+.ludo-solo .ludo-pawn.ludo-pawn-stacked{touch-action:manipulation}
+@media(max-width:950px){
+ .ludo-solo .ludo-topbar{gap:5px}
+ .ludo-solo-restart{height:32px;width:32px;border-radius:9px;font-size:23px}
+ .ludo-solo .ludo-brand strong{font-size:clamp(16px,4.4vw,19px)}
+ .ludo-solo .ludo-brand small{font-size:7px}
+ .ludo-solo .ludo-solo-mode-tag{font-size:8px;padding:3px 6px}
+}
+@media(prefers-reduced-motion:reduce){
+ .ludo-solo-reaction{animation:none;transform:translate(-50%,-16px)}
+}
