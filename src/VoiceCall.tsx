@@ -443,7 +443,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
    </button>
    <div className="lr-call-mini-actions">
     {needsPlay?<button type="button" onClick={enableAudio} className="lr-call-mini-sound" aria-label="Activer le son">🔊</button>:null}
-    <button type="button" className={"lr-call-mini-speaker "+(speakerSelected?"active":"")} onClick={selectSpeaker} disabled={speakerBusy} aria-pressed={speakerSelected} aria-label={speakerSelected?"Désactiver le haut-parleur":"Activer le haut-parleur"}>◖))</button>
+    <button type="button" className={"lr-call-mini-speaker "+(speakerSelected?"active":"")} onClick={selectSpeaker} disabled={speakerBusy} aria-pressed={speakerSelected} aria-label={speakerSelected?"Désactiver le haut-parleur":"Activer le haut-parleur"}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zM16 9a5 5 0 0 1 0 6M19 5a10 10 0 0 1 0 14"/></svg></button>
     <button type="button" className={"lr-call-mini-mute "+(muted?"active":"")} onClick={toggleMute} disabled={!local.current} aria-label={muted?"Réactiver le micro":"Couper le micro"} aria-pressed={muted}>{muted?"🔇":"🎙️"}</button>
     <button type="button" className="lr-call-mini-end" onClick={hangup} disabled={busy} aria-label="Raccrocher">✕</button>
    </div>
