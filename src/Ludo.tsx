@@ -125,7 +125,8 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
     effectTimeout.current=window.setTimeout(()=>{if(isActive.current){setEffect("");setCaptureFlash(false)}},3500);
     clearMotionTimers();setLanding(null);
     if(canAnimate&&moved){
-     const STEP_MS=235,START_MS=220;
+     // Hold each square long enough for the pawn to be readable on mobile.
+      const STEP_MS=moved.from===-1?590:415,START_MS=380;
      setCapturedMotions(captured.map(p=>({...p,returning:false})));
      setMotion({seat:moved.seat,pawn:moved.pawn,from:moved.from,to:moved.to,progress:moved.from});
      route.forEach((progress,index)=>{
@@ -136,7 +137,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
        if(index===route.length-1)haptic(18);
       },START_MS+index*STEP_MS));
      });
-     const finish=START_MS+route.length*STEP_MS+160;
+     const finish=START_MS+route.length*STEP_MS+90;
      movementTimers.current.push(window.setTimeout(()=>{
       if(!isActive.current)return;
       setMotion(null);
@@ -346,6 +347,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  }
  const movingPoint:Point|null=motion?pointForProgress(motion.seat,motion.pawn,motion.progress):null;
  const movingStyle=movingPoint?{left:((movingPoint[1]+.5)/15*100)+"%",top:((movingPoint[0]+.5)/15*100)+"%"}:undefined;
+  const motionStepCount=motion?movementSteps(motion.from,motion.to).length:0;
  const highlighted=new Map<string,"upcoming"|"passed"|"current"|"finish">();
  if(motion){
   for(const step of movementSteps(motion.from,motion.to)){
@@ -391,7 +393,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   <div className="ludo-play-area">
   <div className={"ludo-stage"+(captureFlash?" ludo-is-capture":"")} ref={boardStage}>
    <div className={"ludo-board-wrap ludo-board-wrap-immersive"+(effect==="move"?" ludo-board-move":"")} style={boardSize?{width:boardSize,height:boardSize}:undefined}>
-     <div className="ludo-board" role="group" aria-label={game?"Plateau coloré de Ludo pour deux joueurs":"Aperçu du plateau Ludo avant l’arrivée du partenaire"}>
+     <div className={"ludo-board"+(motion?" ludo-board-animating":"")} role="group" aria-label={game?"Plateau coloré de Ludo pour deux joueurs":"Aperçu du plateau Ludo avant l’arrivée du partenaire"}>
       {CELL.map(([r,c])=>{
        const k=key(r,c),track=trackAt.get(k);
        const redBase=r<6&&c<6, goldBase=r>8&&c>8;
@@ -433,8 +435,9 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
        </div>;
       })}
       {motion&&movingStyle?<div className={"ludo-moving-pawn ludo-pawn-"+(motion.seat===0?"red":"gold")} style={movingStyle} aria-hidden="true">
+       <i className="ludo-motion-aura"/>
        <span key={motion.progress} className="ludo-moving-bounce"><PawnShape index={motion.pawn}/></span>
-       <b className="ludo-motion-step">{Math.max(1,motion.progress-motion.from)} / {movementSteps(motion.from,motion.to).length}</b>
+       <b className="ludo-motion-step">{Math.max(0,motion.progress-motion.from)} / {motionStepCount}</b>
       </div>:null}
      </div>
     </div>
