@@ -16,6 +16,7 @@ test("removing the global mask retains independent photo privacy and YouTube wat
  assert.ok(app.includes('<PrivatePhoto'));
  assert.ok(app.includes("privacyEnabled"));
  assert.ok(app.includes('<WatchTogether'));
- assert.ok(app.includes("watch-netflix"));
+ assert.ok(app.includes("watch-tiktok"));
+ assert.ok(app.includes("<TikTokTogether"));
  assert.ok(css.includes(".lr-home-private-photo"));
 });
