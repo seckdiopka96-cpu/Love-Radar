@@ -41,17 +41,24 @@ export function movementSteps(from:number,to:number):number[]{
  return route;
 }
 export type StackPosition={x:number;y:number;scale:number};
-/** A stacked cluster, never a horizontal row, centered on the cell. */
+/**
+ * Stack pawns like overlapping physical Ludo pieces, NOT as a triangle or a row.
+ * Coordinates are percentages of the same square. Each later pawn sits slightly
+ * in front of the previous one, leaving just enough silhouette visible behind it.
+ * The pawn controls beneath the board remain available even when pieces overlap.
+ */
 export function stackPosition(count:number,index:number):StackPosition{
  const pattern:StackPosition[][]=[
-  [{x:50,y:50,scale:0.86}],
-  [{x:41,y:43,scale:0.74},{x:60,y:57,scale:0.74}],
-  [{x:50,y:34,scale:0.68},{x:37,y:60,scale:0.68},{x:64,y:60,scale:0.68}],
-  [{x:40,y:37,scale:0.61},{x:61,y:37,scale:0.61},{x:40,y:65,scale:0.61},{x:61,y:65,scale:0.61}],
+  [{x:50,y:50,scale:0.88}],
+  [{x:45,y:44,scale:0.82},{x:55,y:56,scale:0.82}],
+  [{x:43,y:40,scale:0.82},{x:50,y:49,scale:0.82},{x:57,y:58,scale:0.82}],
+  [{x:42,y:38,scale:0.79},{x:47,y:45,scale:0.79},{x:53,y:53,scale:0.79},{x:58,y:60,scale:0.79}],
  ];
- if(count<1||index<0||index>=count)throw new Error("Invalid stack");
+ if(!Number.isInteger(count)||!Number.isInteger(index)||count<1||index<0||index>=count)throw new Error("Invalid stack");
  if(count<=4)return pattern[count-1][index];
- // Defensive fallback (maximum four pawns per player, eight total on one safe square).
+ // On shared safe squares, more than four pawns can coexist: keep a tight pile.
+ // The slight spiral makes overlapping colors readable without spreading into a row.
  const angle=index*Math.PI*2/count-Math.PI/2;
- return {x:50+23*Math.cos(angle),y:50+23*Math.sin(angle),scale:0.54};
+ const radius=7+Math.floor(index/4)*3;
+ return {x:50+radius*Math.cos(angle),y:50+radius*Math.sin(angle),scale:0.73};
 }
