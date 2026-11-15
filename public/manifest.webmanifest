@@ -1,15 +1,15 @@
 {
   "id": "/",
-  "name": "Love Radar ❤️ — Jeu pour couples",
+  "name": "Love Radar ❤️ — Notre univers à deux",
   "short_name": "Love Radar",
-  "description": "Le jeu qui rapproche les couples : Radar de bluff, questions et messagerie privée.",
+  "description": "Votre espace privé à deux : messages, appels vocaux, moments, souvenirs, jeux et réconciliation.",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#140e1d",
-  "theme_color": "#251526",
+  "background_color": "#091520",
+  "theme_color": "#091520",
   "prefer_related_applications": false,
   "icons": [
     {
