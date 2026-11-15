@@ -32,7 +32,7 @@ body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
   linear-gradient(160deg,#0d1b27 0%,#07121e 80%)!important;
  color:var(--lr-text);
  --lr-surface:var(--lr-panel);--lr-surface2:var(--lr-panel-raised);
- --lr-stroke:var(--lr-line);--lr-rose:var(--lr-rose);--lr-muted:var(--lr-text-muted);
+ --lr-stroke:var(--lr-line);--lr-rose:#ff7292;--lr-muted:var(--lr-text-muted);
 }
 .lr-bg-decor{display:none!important}
 .lr-app button,.lr-app input,.lr-app textarea{font-family:inherit}
