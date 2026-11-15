@@ -763,10 +763,28 @@ export default function LoveRadar(){
   if(!window.confirm("Supprimer ce message pour vous deux ? Cette action est définitive."))return;
   try{
    await request("delete-message",{id:message.id});
+   const url=mediaCache.current[message.id];
+   if(url?.startsWith("blob:"))URL.revokeObjectURL(url);
+   delete mediaCache.current[message.id];
+   setMedia(prev=>{if(!prev[message.id])return prev;const next={...prev};delete next[message.id];return next});
    if(replyTarget?.id===message.id)setReplyTarget(null);
    if(editTarget?.id===message.id)cancelEditing();
    await refresh(undefined,true);
   }catch(err){setError(err instanceof Error?err.message:"Suppression impossible.")}
+ }
+ async function deleteForMe(message:Message){
+  setActionMessageId(null);
+  if(!window.confirm("Supprimer ce message uniquement pour toi ? Il restera visible pour ton partenaire."))return;
+  try{
+   await request("delete-for-me",{id:message.id});
+   if(replyTarget?.id===message.id)setReplyTarget(null);
+   if(editTarget?.id===message.id)cancelEditing();
+   const url=mediaCache.current[message.id];
+   if(url?.startsWith("blob:"))URL.revokeObjectURL(url);
+   delete mediaCache.current[message.id];
+   setMedia(prev=>{if(!prev[message.id])return prev;const next={...prev};delete next[message.id];return next});
+   await refresh(undefined,true);
+  }catch(err){setError(err instanceof Error?err.message:"Suppression pour moi impossible.")}
  }
  async function copyMessage(message:Message){
   setActionMessageId(null);
@@ -1131,6 +1149,7 @@ export default function LoveRadar(){
        {actionMessage.kind==="text"&&actionMessage.content?<button type="button" className="lr-message-action-row" onClick={()=>void copyMessage(actionMessage)}><span aria-hidden="true">⧉</span> Copier</button>:null}
        {actionMessage.sender_id===room.user.id&&actionMessage.kind==="text"?<button type="button" className="lr-message-action-row" onClick={()=>beginEditing(actionMessage)}><span aria-hidden="true">✎</span> Modifier le texte</button>:null}
        <button type="button" className="lr-message-action-row" onClick={()=>{setInfoMessageId(actionMessage.id);setActionMessageId(null)}}><span aria-hidden="true">ⓘ</span> Infos du message</button>
+       <button type="button" className="lr-message-action-row" onClick={()=>void deleteForMe(actionMessage)}><span aria-hidden="true">⌫</span> Supprimer pour moi</button>
        {actionMessage.sender_id===room.user.id?<button type="button" className="lr-message-action-row is-danger" onClick={()=>void deleteOwnMessage(actionMessage)}><span aria-hidden="true">⌫</span> Supprimer pour tous</button>:null}
        <button type="button" className="lr-message-action-close" onClick={()=>setActionMessageId(null)}>Annuler</button>
       </div>
