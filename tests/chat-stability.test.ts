@@ -50,7 +50,10 @@ test("composing and voice recording presence do not expire during pauses",()=>{
  assert.ok(chat.includes('window.setInterval(heartbeat,2800)'));
  assert.ok(chat.includes("/api/love?status=1"));
  assert.ok(chat.includes("partnerRecording?"));
- assert.ok(chat.includes("lr-voice-wave"));
+ assert.ok(chat.includes('<ChatActivity kind={partnerActivityKind}/>'));
+ assert.ok(chat.includes('partnerRecording?"recording":partnerTyping?"typing":null'));
+ assert.ok(!chat.includes('partner+" enregistre un vocal"'));
+ assert.ok(!chat.includes('partner+" écrit"'));
 });
 test("typing focuses last message and keyboard remains in safe iPhone viewport",()=>{
  assert.ok(chat.includes("snapshotStarted.current"));
@@ -59,6 +62,10 @@ test("typing focuses last message and keyboard remains in safe iPhone viewport",
  assert.ok(chat.includes('onClick={scrollToLatest}'));
  assert.ok(chat.includes('onFocus={()=>{firstPoll.current=true;setChatFocused(true);scrollToLatest()}'));
  assert.ok(chat.includes("syncWithChat"));
+ assert.ok(chat.includes("new ResizeObserver"));
+ assert.ok(chat.includes("chatAtBottomRef.current"));
+ assert.ok(chat.includes('viewport?.addEventListener("scroll",sync)'));
+ assert.ok(!chat.includes('viewport?.addEventListener("scroll",syncWithChat)'));
  assert.ok(chat.includes("discardRecording.current=true"));
  assert.ok(chat.includes("!discardRecording.current"));
  assert.ok(chat.includes('recorder.current.state==="recording"'));
