@@ -1,0 +1,97 @@
+/* Love Radar — dependable iPhone chat composer and real-time activity.
+   Loaded last so keyboard safeguards take precedence over older iterations. */
+.lr-chat{position:relative}
+.lr-chat-status.recording{color:#ffb9c7!important;font-weight:800}
+.lr-chat-status.recording::before{background:#ff819d!important;box-shadow:0 0 0 3px #ff819d24!important;animation:lr-record-presence 1.15s ease-in-out infinite}
+.lr-typing{display:flex;align-items:center;gap:9px;align-self:flex-start;width:max-content;max-width:90%;
+ background:#243f4e!important;border:1px solid #4f7280!important;border-radius:16px 16px 16px 4px;
+ color:#f5e8eb!important;padding:8px 13px!important;margin:6px 0!important;font-size:11px}
+.lr-typing span{color:#f9edf1}
+.lr-typing-dots{display:flex;gap:3px;align-items:center}
+.lr-typing-dots i{width:5px;height:5px;border-radius:50%;animation:lr-chat-dot 1.1s ease-in-out infinite}
+.lr-typing-dots i:nth-child(2){animation-delay:.15s}
+.lr-typing-dots i:nth-child(3){animation-delay:.3s}
+.lr-voice-wave{display:inline-flex;align-items:center;gap:3px;height:18px}
+.lr-voice-wave i{width:3px;height:5px;background:#ff94aa;border-radius:3px;animation:lr-chat-wave .85s ease-in-out infinite alternate}
+.lr-voice-wave i:nth-child(2){animation-delay:.18s}
+.lr-voice-wave i:nth-child(3){animation-delay:.3s}
+.lr-voice-wave i:nth-child(4){animation-delay:.42s}
+@keyframes lr-chat-wave{to{height:16px;opacity:.7}}
+@keyframes lr-chat-dot{50%{transform:translateY(-3px);opacity:.5}}
+@keyframes lr-record-presence{50%{box-shadow:0 0 0 6px #ff819d1a}}
+.lr-chat-jump{
+ position:absolute;bottom:calc(72px + env(safe-area-inset-bottom));left:50%;z-index:10;
+ transform:translateX(-50%);
+ background:#2e4e61!important;color:#fff5f1!important;
+ border:1px solid #6b93a0!important;border-radius:999px!important;
+ padding:8px 14px!important;box-shadow:0 6px 20px #030b18a8!important;
+ white-space:nowrap;font-size:11px;font-weight:850;line-height:1.4
+}
+.lr-chat-messages{scrollbar-width:thin;scrollbar-color:#56717e transparent;overflow-anchor:none}
+.lr-chat-compose{position:relative;z-index:3}
+.lr-chat-form input[type=text]{min-width:0!important;max-width:100%!important;font-size:16px!important}
+.lr-chat-form input[type=text]::placeholder{opacity:1}
+.lr-voice{width:min(315px,100%)}
+.lr-voice audio{max-width:100%!important;min-width:0!important;width:100%!important;height:38px!important}
+.lr-bubble-row .lr-bubble{box-sizing:border-box}
+.lr-call-mini-speaker.active{
+ background:#8b586f!important;border-color:#f7a6c7!important;color:#fff6f0!important
+}
+@media(max-width:700px){
+ /* Do not let the full page scroll behind chat or behind the keyboard. */
+ .lr-app.lr-app-locked.lr-chat-mode .lr-main{overflow:hidden!important;touch-action:auto}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat{display:flex!important;flex-direction:column!important;position:relative}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-messages{
+  min-height:0!important;flex:1 1 0!important;
+  overflow-y:auto!important;overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch;touch-action:pan-y
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-compose{flex:0 0 auto!important}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-form{display:flex!important;flex-wrap:nowrap!important}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-form input[type=text]{flex:1 1 0!important;font-size:16px!important}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-jump{bottom:72px}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-voice{width:min(295px,100%)}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-bubble:has(audio){
+  min-width:min(287px,calc(100vw - 42px))!important;
+  max-width:min(330px,calc(100vw - 38px))!important;
+ }
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-chat{
+  position:fixed!important;left:0!important;right:0!important;
+  top:var(--lr-visible-top,0px)!important;
+  height:var(--lr-visible-height,100dvh)!important;
+  max-height:var(--lr-visible-height,100dvh)!important;
+  bottom:auto!important;z-index:200!important;
+  display:flex!important;flex-direction:column!important;
+  border:0!important;border-radius:0!important;
+  overflow:hidden!important;
+ }
+ /* With iOS standalone, the visual viewport starts behind the dynamic
+    island on some devices. Reserve the physical status bar area. */
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-chat-head{
+  flex:0 0 auto!important;
+  padding:max(55px, env(safe-area-inset-top)) 14px 9px!important;
+  min-height:0!important;
+  background:#152635!important;
+  z-index:2!important
+ }
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-chat-messages{
+  flex:1 1 0!important;min-height:0!important;
+  overflow-y:auto!important;touch-action:pan-y!important;
+  padding-bottom:13px!important
+ }
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-chat-compose{
+  flex:0 0 auto!important;padding:8px 9px max(8px, env(safe-area-inset-bottom))!important;
+  background:#142432!important
+ }
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-chat-jump{display:none!important}
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-chat-form.is-writing .lr-attach,
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-chat-form.is-writing .lr-mic{display:none!important}
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-chat-form input[type=text]{min-width:0!important;flex:1 1 auto!important}
+}
+@media(max-height:570px) and (max-width:700px){
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-chat-head{padding-top:max(43px,env(safe-area-inset-top))!important;padding-bottom:5px!important}
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-chat-compose{padding:5px 8px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-chat-status.recording::before,.lr-typing-dots i,.lr-voice-wave i{animation:none!important}
+}
