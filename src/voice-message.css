@@ -87,3 +87,20 @@
 @media(prefers-reduced-motion:reduce){
  .lr-voice-note-wave>span,.lr-voice-note-play{transition:none!important}
 }
+
+/* Optimistic uploads: the playable bubble appears the instant recording stops. */
+.lr-audio-send-state{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ margin-top:5px;font-size:10px;font-weight:700;line-height:1.3;
+ padding:5px 4px 1px;color:#fff4f5;opacity:.95;
+}
+.lr-audio-send-state.uploading{opacity:.84}
+.lr-audio-send-state.failed{color:#fffbea;opacity:1}
+.lr-audio-send-state button{
+ flex:none;border:1px solid #ffdfdc!important;
+ background:#fff3ec!important;color:#8b3454!important;
+ border-radius:999px!important;padding:5px 10px!important;
+ font-size:10px!important;font-weight:850!important;
+ min-height:28px;cursor:pointer
+}
+.lr-audio-send-state button:focus-visible{outline:2px solid #fff5c5;outline-offset:2px}
