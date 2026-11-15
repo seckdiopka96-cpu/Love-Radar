@@ -982,3 +982,33 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
 .lr-home-private-photo strong{font-size:13px}
 .lr-home-private-photo small{font-size:10px;line-height:1.4;text-align:center;color:#dfbfd3;padding:0 8px}
 @media(max-width:700px){.lr-menu{width:min(290px,calc(100vw - 22px))}.lr-home-private-photo{min-height:110px}}
+
+/* An incoming co-watch invitation is actionable even when the partner
+   is already inside Love Radar; it never masks the full screen. */
+.lr-watch-invite{
+ position:fixed;z-index:99998;top:calc(12px + env(safe-area-inset-top));
+ left:50%;transform:translateX(-50%);
+ display:flex;align-items:center;gap:9px;min-width:0;
+ width:min(450px,calc(100vw - 22px));max-width:calc(100vw - 22px);
+ padding:11px 9px 11px 12px;border:1px solid #ffc1d7;border-radius:16px;
+ background:linear-gradient(130deg,#654466,#382e4b 80%);
+ box-shadow:0 10px 32px #180e25d1,0 0 0 1px #e39aba4a;
+ color:#fff0f4;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+ backdrop-filter:blur(14px)
+}
+.lr-watch-invite-icon{display:grid;place-items:center;width:37px;height:37px;flex:none;
+ border-radius:11px;background:#a65883;font-size:19px}
+.lr-watch-invite-copy{display:flex;flex-direction:column;flex:1 1 auto;min-width:0;gap:3px}
+.lr-watch-invite-copy strong{font-size:12px;font-weight:850;line-height:1.25}
+.lr-watch-invite-copy small{font-size:10px;line-height:1.3;color:#edd5e6}
+.lr-watch-invite-join{flex:none;border:1px solid #ffc1ce;border-radius:10px;
+ background:linear-gradient(135deg,#ef88a6,#c55a88);
+ color:white;min-height:37px;padding:8px 10px;font-size:11px;font-weight:900}
+.lr-watch-invite-dismiss{align-self:flex-start;flex:none;width:20px;min-height:26px;
+ border:0;background:transparent;color:#ead0de;font-size:20px;line-height:1;padding:0}
+@media(max-width:375px){
+ .lr-watch-invite{gap:5px;padding:9px 7px}
+ .lr-watch-invite-icon{width:32px;height:32px}
+ .lr-watch-invite-join{padding:7px;font-size:10px}
+ .lr-watch-invite-copy small{font-size:9px}
+}
