@@ -127,6 +127,17 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Animation de confettis lors de la victoire, dés carrés conservés. Les animations sont réduites si l'option système « réduire les animations » est activée.
 - Une nouvelle version du cache PWA est utilisée pour fournir le design à jour ; les parties et messages ne sont pas réinitialisés.
 
+## 🎬 Regarder ensemble — cinéma synchronisé à deux
+
+- Accessible dans **Ensemble → Regarder ensemble**, même à distance : chacun ouvre son propre lecteur YouTube intégré dans Love Radar.
+- L'un ou l'autre peut partager un lien `youtube.com/watch`, `youtu.be`, `/shorts`, `/live` ou `/embed`. Seuls les identifiants vidéo YouTube valides sont acceptés.
+- Le lien, les commandes **lecture/pause**, les sauts de **10 secondes** et le déplacement dans la vidéo sont enregistrés dans une table D1 privée à chaque couple. Les appareils récupèrent les changements toutes les ~1,6 seconde ; l'heure serveur permet de calculer la bonne position en cours de lecture. Une protection par version évite les mises à jour concurrentes.
+- Une indication montre si le partenaire a rejoint la salle ; un court message peut être envoyé sans quitter le lecteur. L'appel vocal existant est disponible depuis le haut de la salle.
+- La salle fonctionne sans clé API YouTube ni serveur de streaming vidéo : **chaque téléphone charge légalement la vidéo depuis le lecteur officiel YouTube**, séparément.
+- Limitations : certaines vidéos privées ou interdites d'intégration ne se lanceront pas ; sur iOS, chaque personne peut devoir toucher « Activer la vidéo » avant la lecture. Les publicités, les débits et les temps de chargement propres à chaque téléphone empêchent une synchronisation garantie à l'image près. Les services payants (Netflix, Disney+…) ne sont pas retransmis.
+- Sécurité : API authentifiée par membre de l'espace, contrôle de version et validation des IDs YouTube. Les règles CSP permettent exclusivement l'iframe YouTube et son API ; la politique de référent transmet seulement l'origine, pour respecter les nouvelles exigences d'identification de YouTube.
+- Tester : `npm run test:watch`, puis `npm run build`. Le fonctionnement iPhone/Android doit être confirmé sur deux appareils après le déploiement Cloudflare.
+
 ## Ludo Duo : chrono de 15 secondes et défi cadeau facultatif
 
 - Chaque joueur dispose de 15 secondes pour agir (lancer le dé ou déplacer son pion). Le délai est calculé et contrôlé sur le serveur avec l'horodatage enregistré dans D1.
