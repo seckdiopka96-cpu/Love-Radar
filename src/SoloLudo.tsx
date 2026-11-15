@@ -152,8 +152,9 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   return ()=>window.clearTimeout(id);
  },[game,rolling,motion,assisted,confirmRestart]);
  const isHumanTurn=game.status==="playing"&&game.turn===0;
- const canRoll=isHumanTurn&&game.dice===null&&!rolling&&!motion;
- const canPick=isHumanTurn&&game.dice!==null&&!rolling&&!motion;
+ const canRoll=isHumanTurn&&!assisted&&game.dice===null&&!rolling&&!motion;
+ const canPick=isHumanTurn&&!assisted&&game.dice!==null&&!rolling&&!motion;
+ const secondsLeft=isHumanTurn&&!assisted?Math.max(0,Math.ceil((game.updatedAt+SOLO_TURN_MS-now)/1000)):null;
  const counts=game.positions.map(row=>row.filter(progress=>progress===57).length);
  const pawnCells=new Map<string,{seat:SoloSeat;pawn:number;active:boolean}[]>();
  for(const seat of [0,1] as SoloSeat[])for(let pawn=0;pawn<4;pawn++){
@@ -175,12 +176,13 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  const movingPoint=motion?pointForProgress(motion.seat,motion.pawn,motion.progress):null;
  const movingStyle=movingPoint?{left:((movingPoint[1]+.5)/15*100)+"%",top:((movingPoint[0]+.5)/15*100)+"%"}:undefined;
  const message=game.status==="won"?(game.winner===0?"🏆 Victoire !":"🤖 L'ordinateur gagne"):
-  motion?"Le pion avance…":rolling?(game.turn===1?"L'ordinateur lance le dé…":"Le dé roule…"):
+  assisted&&game.turn===0?"🤖 L’ordinateur joue à ta place…":motion?"Le pion avance…":rolling?(game.turn===1?"L'ordinateur lance le dé…":"Le dé roule…"):
   game.turn===1?(game.dice===null?"L'ordinateur réfléchit…":"L'ordinateur choisit un pion…"):
   game.dice===null?"À toi de jouer : lance le dé !":"Choisis un pion qui brille";
  function reset(){
   clearTimers();
   setGame(freshSoloGame());
+  setAssisted(false);
   setMotion(null);setRolling(false);setLanding(null);setReaction("");
   setConfirmRestart(false);
  }
@@ -207,6 +209,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   </div>
   <div className={"ludo-turn-banner"+(isHumanTurn?" its-mine":"")} role="status" aria-live="polite">
    <span className="ludo-turn-icon">{isHumanTurn?"✦":"🎲"}</span><strong>{message}</strong>
+   {secondsLeft!==null?<span className={"ludo-countdown"+(secondsLeft<=5?" urgent":"")} aria-label={"Temps restant : "+secondsLeft+" secondes"}><span className="ludo-time-ring">{secondsLeft}</span><small>s</small></span>:null}
    <span className="ludo-solo-mode-tag">SOLO</span>
   </div>
   <div className="ludo-play-area">
@@ -268,7 +271,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
      <button type="button" className={"ludo-die-holder"+(rolling?" is-rolling":"")} disabled={!canRoll}
       onClick={()=>performRoll(0)} aria-label="Lancer le dé"><DiceFace value={face} variant={game.turn===1?"gold":"pink"} size="large"/></button>
      <button type="button" className="ludo-main-action" disabled={!canRoll} onClick={()=>performRoll(0)}>
-      {rolling?"LE DÉ ROULE…":motion?"DÉPLACEMENT…":game.turn===1?"🤖 L’ORDINATEUR JOUE":game.dice!==null?"CHOISIS UN PION":"🎲 LANCER LE DÉ"}
+      {rolling?"LE DÉ ROULE…":motion?"DÉPLACEMENT…":game.turn===1||assisted?"🤖 L’ORDINATEUR JOUE":game.dice!==null?"CHOISIS UN PION":"🎲 LANCER LE DÉ"}
      </button>
     </div>
     <div className="ludo-pick-row" aria-label="Tes quatre pions">
