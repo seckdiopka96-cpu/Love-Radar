@@ -116,3 +116,17 @@ test("reactions appear as latest activity, send push alerts and count as unread"
  assert.ok(home.includes('reaction.updated_at>=last.created_at'));
  assert.ok(app.includes('room.recentReaction?.updated_at'));
 });
+
+test("delete-for-me never removes partner copies, while author delete-for-all removes both",()=>{
+ assert.ok(api.includes('op==="delete-for-me"'));
+ assert.ok(api.includes('INSERT OR IGNORE INTO message_hidden'));
+ assert.ok(api.includes('SELECT 1 FROM message_hidden'));
+ assert.ok(api.includes('AS view_once'));
+ assert.ok(api.includes('AS once_opened_at'));
+ assert.ok(api.includes('DELETE FROM message_one_time WHERE room_id=? AND message_id=?'));
+ assert.ok(app.includes('request("delete-for-me",{id:message.id})'));
+ assert.ok(app.includes('onClick={()=>void deleteForMe(actionMessage)}'));
+ assert.ok(app.includes('onClick={()=>void deleteOwnMessage(actionMessage)}'));
+ assert.ok(app.includes('Supprimer pour moi'));
+ assert.ok(app.includes('Supprimer pour tous'));
+});
