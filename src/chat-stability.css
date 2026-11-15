@@ -95,3 +95,72 @@
 @media(prefers-reduced-motion:reduce){
  .lr-chat-status.recording::before,.lr-typing-dots i,.lr-voice-wave i{animation:none!important}
 }
+
+/* Compact, icon-only WhatsApp-style activity pills beneath the last message.
+   Keep private status accessible with aria-label, never display long text. */
+.lr-chat .lr-activity-bubble{
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ align-self:flex-start!important;flex:0 0 auto!important;
+ min-width:61px;width:max-content;height:34px;min-height:34px;
+ padding:0 13px;margin:9px 0 5px 2px;
+ border:1px solid #456272;border-radius:18px 18px 18px 6px;
+ background:#263947;box-shadow:0 4px 12px #000a163b;
+ color:#b9cbd4
+}
+.lr-activity-dots{display:inline-flex;gap:5px;align-items:center;justify-content:center;height:20px}
+.lr-activity-dots i{
+ width:6px;height:6px;border-radius:50%;
+ background:#becbd2;opacity:.5;transform:scale(.8);
+ animation:lr-activity-dots 1.15s infinite ease-in-out
+}
+.lr-activity-dots i:nth-child(2){animation-delay:.16s}
+.lr-activity-dots i:nth-child(3){animation-delay:.32s}
+.lr-chat .lr-activity-bubble.lr-activity-recording{
+ min-width:65px;background:#2a3b49;border-color:#536b78;
+}
+.lr-activity-recording-icon{display:inline-flex;gap:6px;align-items:center}
+.lr-activity-recording-icon svg{width:17px;height:17px;stroke:#f58fa8;flex:none}
+.lr-activity-wave{display:inline-flex;gap:2px;align-items:center;height:19px}
+.lr-activity-wave i{
+ display:block;width:3px;height:6px;border-radius:3px;background:#ff9db1;
+ animation:lr-activity-audio 0.85s infinite ease-in-out alternate
+}
+.lr-activity-wave i:nth-child(2){animation-delay:.14s}
+.lr-activity-wave i:nth-child(3){animation-delay:.28s}
+.lr-activity-wave i:nth-child(4){animation-delay:.42s}
+@keyframes lr-activity-dots{
+ 0%,65%,100%{opacity:.45;transform:scale(.75)}
+ 35%{opacity:1;transform:scale(1.15)}
+}
+@keyframes lr-activity-audio{
+ 0%{height:5px;opacity:.65}
+ 100%{height:16px;opacity:1}
+}
+@media(max-width:700px){
+ /* Keep the complete chat as a fixed flex column in the visible iOS viewport.
+    Only message history scrolls; the text composer never gets covered. */
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat{display:flex!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-head{flex:none!important}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-messages{
+  flex:1 1 0!important;min-height:0!important;
+  overflow-y:auto!important;overflow-x:hidden!important;scroll-behavior:auto!important;
+  overscroll-behavior:contain!important
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-compose{
+  flex:0 0 auto!important;min-height:0!important;position:relative!important
+ }
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-chat-head{
+  padding-top:max(55px,env(safe-area-inset-top))!important;
+  padding-bottom:8px!important;
+ }
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-chat-messages{
+  padding-top:8px!important;padding-bottom:12px!important
+ }
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-chat-compose{padding-bottom:7px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-activity-dots i,.lr-activity-wave i{animation:none!important;opacity:1!important}
+ .lr-activity-wave i:nth-child(2){height:10px!important}
+ .lr-activity-wave i:nth-child(3){height:14px!important}
+ .lr-activity-wave i:nth-child(4){height:8px!important}
+}
