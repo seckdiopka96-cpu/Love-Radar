@@ -19,4 +19,5 @@ jobs:
       - run: npm run test:call
       - run: npm run test:reconcile
       - run: npm run test:design
+      - run: npm run test:chat
       - run: npm run build
