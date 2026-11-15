@@ -240,3 +240,27 @@
 .tg-modes .tg-puzzle-open:active{transform:scale(.98)}
 .tg-modes .tg-puzzle-open:focus-visible{outline:2px solid #ffe6ec;outline-offset:2px}
 @media(max-width:540px){.tg-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* A calm, non-game alternative for partners who need to be heard. */
+.tg-reconcile-entry{display:flex;align-items:center;gap:11px;text-align:left;flex:none;
+ width:100%;min-width:0;border:1px solid #d6a6be;border-radius:14px;
+ background:linear-gradient(110deg,#624660,#463453);color:#fff1f6;
+ box-shadow:inset 0 1px #ffe9ec26;padding:11px 13px;min-height:66px}
+.tg-reconcile-entry:focus-visible{outline:2px solid #ffe4db;outline-offset:2px}
+.tg-reconcile-icon{width:42px;height:42px;flex:none;display:grid;place-items:center;
+ border-radius:12px;border:1px solid #ffcfdfa1;background:#955d83;font-size:23px}
+.tg-reconcile-copy{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.tg-reconcile-copy strong{font:700 17px Georgia,serif}
+.tg-reconcile-copy small{font-size:10px;line-height:1.35;color:#e9cbdc}
+.tg-reconcile-arrow{font-size:29px;color:#ffdae8;line-height:1}
+@media(max-width:950px){
+ .tg-reconcile-entry{padding:8px 10px;min-height:57px;gap:9px}
+ .tg-reconcile-icon{width:38px;height:38px;font-size:20px}
+ .tg-reconcile-copy strong{font-size:16px}
+ .tg-reconcile-copy small{font-size:10px}
+}
+@media(max-height:735px) and (max-width:950px){
+ .tg-reconcile-entry{min-height:49px;padding:5px 9px}
+ .tg-reconcile-icon{width:33px;height:33px}
+ .tg-reconcile-copy small{font-size:9px}
+}
