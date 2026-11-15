@@ -348,6 +348,9 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const movingPoint:Point|null=motion?pointForProgress(motion.seat,motion.pawn,motion.progress):null;
  const movingStyle=movingPoint?{left:((movingPoint[1]+.5)/15*100)+"%",top:((movingPoint[0]+.5)/15*100)+"%"}:undefined;
   const motionStepCount=motion?movementSteps(motion.from,motion.to).length:0;
+  // Keep taller pawns inside the board when crossing the outside border.
+  const movingEdge=movingPoint?(movingPoint[0]===0?" ludo-motion-top":movingPoint[0]===14?" ludo-motion-bottom":"")
+   +(movingPoint[1]===0?" ludo-motion-left":movingPoint[1]===14?" ludo-motion-right":""):"";
  const highlighted=new Map<string,"upcoming"|"passed"|"current"|"finish">();
  if(motion){
   for(const step of movementSteps(motion.from,motion.to)){
@@ -415,7 +418,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
            disabled={!item.active} onClick={()=>void act("move",item.pawn)}
            title={"Pion "+(item.pawn+1)+" de "+displayName(item.seat)}
            aria-label={"Pion "+(item.pawn+1)+" de "+displayName(item.seat)+(item.active?" : déplacer":"")}
-           style={{left:offset.x+"%",top:offset.y+"%",zIndex:5+index,transform:"translate(-50%,-50%) scale("+offset.scale+")"}}
+           style={{left:offset.x+"%",top:offset.y+"%",zIndex:5+index,transform:"translate("+(c===0?"-5%":c===14?"-95%":"-50%")+","+(r===0?"-5%":r===14?"-95%":"-50%")+") scale("+offset.scale+")"}}
            className={"ludo-pawn ludo-pawn-stacked ludo-pawn-"+(item.seat===0?"red":"gold")+(item.active?" can-move":"")}>
            <PawnShape index={item.pawn}/>
           </button>;
@@ -434,7 +437,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
         <PawnShape index={item.pawn}/>
        </div>;
       })}
-      {motion&&movingStyle?<div className={"ludo-moving-pawn ludo-pawn-"+(motion.seat===0?"red":"gold")} style={movingStyle} aria-hidden="true">
+      {motion&&movingStyle?<div className={"ludo-moving-pawn ludo-pawn-"+(motion.seat===0?"red":"gold")+movingEdge} style={movingStyle} aria-hidden="true">
        <i className="ludo-motion-aura"/>
        <span key={motion.progress} className="ludo-moving-bounce"><PawnShape index={motion.pawn}/></span>
        <b className="ludo-motion-step">{Math.max(0,motion.progress-motion.from)} / {motionStepCount}</b>
