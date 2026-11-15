@@ -158,35 +158,10 @@ export default function LoveRadar(){
  const [privacyEnabled,setPrivacyEnabled]=useState(()=>{
   try{return localStorage.getItem("love-radar-privacy-mode")!=="off"}catch{return true}
  });
- const [privacyCurtain,setPrivacyCurtain]=useState(false);
- // An immediate CSS screen cover supplements React state during iOS app-switcher snapshots.
- // It cannot block OS screenshots; iOS does not guarantee event ordering at capture time.
- useEffect(()=>{
-  const html=document.documentElement;
-  const conceal=()=>{
-   if(!privacyEnabled||!token)return;
-   html.classList.add("lr-private-background-cover");
-   setPrivacyCurtain(true);
-  };
-  const foreground=()=>{html.classList.remove("lr-private-background-cover")};
-  const visibility=()=>{if(document.visibilityState==="hidden")conceal();else foreground()};
-  window.addEventListener("blur",conceal);
-  window.addEventListener("pagehide",conceal);
-  window.addEventListener("focus",foreground);
-  window.addEventListener("pageshow",foreground);
-  document.addEventListener("visibilitychange",visibility);
-  return()=>{
-   window.removeEventListener("blur",conceal);window.removeEventListener("pagehide",conceal);
-   window.removeEventListener("focus",foreground);window.removeEventListener("pageshow",foreground);
-   document.removeEventListener("visibilitychange",visibility);
-   foreground();
-  };
- },[privacyEnabled,token]);
  function updatePrivacy(enabled:boolean){
   setPrivacyEnabled(enabled);
   try{localStorage.setItem("love-radar-privacy-mode",enabled?"on":"off")}catch{/* Device preference may not persist in private browsing. */}
   void setNativePrivacy(enabled);
-  if(!enabled){document.documentElement.classList.remove("lr-private-background-cover");setPrivacyCurtain(false)}
  }
  const [notificationsOn,setNotificationsOn]=useState(false);
  const [notificationsBusy,setNotificationsBusy]=useState(false);
@@ -607,8 +582,8 @@ export default function LoveRadar(){
   <header className="lr-header"><div className="lr-brand"><b>Love Radar</b></div>
    <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>Love Radar · Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span><button type="button" className="lr-privacy-toggle" aria-pressed={privacyEnabled} onClick={()=>updatePrivacy(!privacyEnabled)}>
      {privacyEnabled?"🔐 Mode confidentialité : activé":"🔓 Mode confidentialité : désactivé"}
-    </button>{privacyEnabled?<button type="button" onClick={()=>{setMenu(false);setPrivacyCurtain(true)}}>🙈 Masquer l'écran maintenant</button>:null}
-    <small className="lr-privacy-menu-note">Masquage au changement d’app, photos révélées temporairement et filigrane. Les captures d'écran restent possibles.</small>
+    </button>
+    <small className="lr-privacy-menu-note">Photos privées révélées temporairement et filigrane. Aucun écran violet ne masque la lecture vidéo.</small>
     <button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
   </header>
   {showInstallHelp?<div className="lr-install-backdrop" onClick={()=>setShowInstallHelp(false)}><div className="lr-install-modal" role="dialog" aria-modal="true" aria-labelledby="lr-install-title" onClick={e=>e.stopPropagation()}><div className="lr-install-symbol">♥</div><h2 id="lr-install-title">Love Radar sur ton téléphone</h2><p>Installe l’application pour l’ouvrir en plein écran et recevoir des notifications.</p>{/iPhone|iPad|iPod/i.test(navigator.userAgent)?<ol><li>Ouvre ce site dans <strong>Safari</strong>.</li><li>Appuie sur <strong>Partager</strong> (le carré avec une flèche).</li><li>Choisis <strong>Sur l’écran d’accueil</strong>, puis <strong>Ajouter</strong>.</li><li>Ouvre Love Radar depuis sa nouvelle icône.</li></ol>:<ol><li>Ouvre le site dans <strong>Chrome Android</strong>.</li><li>Appuie sur <strong>⋮</strong> dans Chrome.</li><li>Choisis <strong>Installer l’application</strong> ou « Ajouter à l’écran d’accueil ».</li></ol>}<p className="lr-install-note">L’icône Love Radar apparaîtra parmi tes applications. Une connexion Internet est nécessaire pour jouer et échanger des messages.</p><button onClick={()=>setShowInstallHelp(false)}>J’ai compris ❤️</button></div></div>:null}
@@ -736,14 +711,7 @@ export default function LoveRadar(){
      <button type="button" className="lr-push-focus-open-chat" onClick={closeNotice}>Voir la conversation</button>
     </div>
    </div>:null}
-   {token&&room&&privacyEnabled&&privacyCurtain?<div className="lr-private-curtain" role="dialog" aria-modal="true" aria-label="Écran masqué par le mode confidentialité">
-    <span className="lr-private-curtain-lock" aria-hidden="true">🔒</span>
-    <h2>Votre espace est masqué</h2>
-    <p>Love Radar protège l'affichage quand tu quittes l'application.</p>
-    <button type="button" onClick={()=>setPrivacyCurtain(false)}>♡ Reprendre Love Radar</button>
-    <small>Cette protection n'empêche pas les captures d'écran du système.</small>
-   </div>:null}
-   <nav className="lr-mobile-nav" aria-label="Navigation principale à cinq onglets">{NAV.map(n=><button key={n.id} type="button" className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} aria-label={n.id==="chat"&&unreadCount>0?"Messages, "+unreadCount+" non lus":n.label} onClick={()=>navigate(n.id)}><span aria-hidden="true">{n.icon}</span>{n.id==="chat"&&unreadCount>0?<b className="lr-nav-unread" aria-hidden="true">{unreadLabel}</b>:null}<small>{n.label}</small></button>)}</nav>
+      <nav className="lr-mobile-nav" aria-label="Navigation principale à cinq onglets">{NAV.map(n=><button key={n.id} type="button" className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} aria-label={n.id==="chat"&&unreadCount>0?"Messages, "+unreadCount+" non lus":n.label} onClick={()=>navigate(n.id)}><span aria-hidden="true">{n.icon}</span>{n.id==="chat"&&unreadCount>0?<b className="lr-nav-unread" aria-hidden="true">{unreadLabel}</b>:null}<small>{n.label}</small></button>)}</nav>
   </div>}
  </div>;
 }
