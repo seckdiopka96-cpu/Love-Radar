@@ -131,3 +131,14 @@
 .tg-shortcuts button{font-size:10px;padding:9px 2px;white-space:normal}
 .tg-shortcuts .tg-reunion-link{background:#694565;border-color:#ddabc9}
 @media(max-width:360px){.tg-shortcuts button{font-size:9px;padding:8px 1px}}
+
+/* Cinema is the fourth Together shortcut. Prevent four buttons from cramping phones. */
+.tg-shortcuts{grid-template-columns:repeat(4,minmax(0,1fr))}
+.tg-shortcuts .tg-watch-link{
+ background:linear-gradient(130deg,#b46483,#745080);
+ border-color:#f1a7ce;color:#fff5e8
+}
+@media(max-width:540px){
+ .tg-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+ .tg-shortcuts button{min-height:32px;padding:7px 4px;font-size:10px}
+}
