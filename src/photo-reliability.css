@@ -1,0 +1,102 @@
+/* Image width must be established before a percentage-based PrivatePhoto
+   gets measured. Otherwise an iOS flex/shrink-to-fit bubble collapses into
+   the skinny empty vertical strip seen in the chat screenshot. */
+.lr-chat .lr-bubble-row .lr-bubble-stack.lr-image-stack{
+ display:flex!important;
+ flex:0 1 auto!important;
+ width:min(280px,78vw)!important;
+ max-width:min(280px,78vw)!important;
+ min-width:min(220px,70vw)!important;
+ align-items:stretch!important;
+}
+.lr-chat .lr-bubble-row .lr-image-stack .lr-bubble.lr-bubble-image{
+ display:block!important;
+ width:100%!important;
+ min-width:0!important;
+ max-width:100%!important;
+ padding:5px!important;
+ overflow:hidden!important;
+ border-radius:16px!important;
+ box-sizing:border-box!important;
+}
+.lr-chat .lr-bubble-image .lr-private-photo-chat{
+ display:block!important;
+ box-sizing:border-box!important;
+ width:100%!important;
+ min-width:100%!important;
+ max-width:100%!important;
+ min-height:190px!important;
+ height:auto!important;
+ overflow:hidden!important;
+ border-radius:12px!important;
+}
+.lr-chat .lr-bubble-image .lr-private-photo-chat.is-concealed{
+ aspect-ratio:4/3;
+}
+.lr-chat .lr-bubble-image .lr-private-photo-chat>img{
+ display:block!important;
+ box-sizing:border-box!important;
+ width:100%!important;
+ height:auto!important;
+ min-width:0!important;
+ max-height:360px!important;
+ object-fit:contain!important;
+}
+.lr-chat .lr-bubble-image .lr-private-photo-reveal{
+ display:flex!important;
+ position:absolute!important;
+ inset:0!important;
+ width:100%!important;
+ min-width:0!important;
+ min-height:100%!important;
+ flex-direction:column!important;
+ justify-content:center!important;
+ align-items:center!important;
+ gap:7px!important;
+ padding:10px!important;
+ box-sizing:border-box!important;
+ color:#fff3f7!important;
+ text-align:center!important;
+ background:linear-gradient(155deg,#744c77,#3b304b)!important;
+}
+.lr-chat .lr-bubble-image .lr-private-photo-reveal strong{
+ display:block!important;
+ font-size:13px!important;
+ white-space:normal!important;
+}
+.lr-chat .lr-bubble-image .lr-private-photo-reveal small{
+ display:block!important;
+ white-space:normal!important;
+ line-height:1.4!important;
+}
+.lr-chat .lr-photo-loading{
+ box-sizing:border-box;display:flex;flex-direction:column;gap:9px;
+ align-items:center;justify-content:center;text-align:center;
+ min-height:185px;width:100%;padding:16px 12px;
+ background:linear-gradient(140deg,#223b4d,#1c2b3a);
+ color:#e2dfe6;font-size:12px;line-height:1.4;
+ border-radius:12px;
+}
+.lr-chat .lr-photo-loading>span:first-child{
+ font-size:28px;color:#ffaebf;line-height:1;
+}
+.lr-chat .lr-photo-loading button{
+ margin-top:3px;
+ min-height:35px;
+ padding:7px 14px!important;
+ border-radius:12px!important;
+ background:#e97397!important;
+ color:white!important;
+ border:1px solid #f5b2c8!important;
+ font-size:12px;font-weight:800;cursor:pointer;
+}
+.lr-chat .lr-photo-loading button:focus-visible{
+ outline:2px solid #fff3d7;outline-offset:2px;
+}
+@media(max-width:360px){
+ .lr-chat .lr-bubble-row .lr-bubble-stack.lr-image-stack{
+  width:min(260px,76vw)!important;
+  max-width:min(260px,76vw)!important;
+  min-width:min(185px,60vw)!important;
+ }
+}
