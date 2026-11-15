@@ -2,11 +2,11 @@ import {useEffect,useMemo,useRef,useState} from "react";
 import {audioDuration,formatVoiceTime,voiceBars} from "./voice-waveform";
 import "./voice-message.css";
 
-type Props={src:string;id:string;mine:boolean;time:string;read?:boolean};
+type Props={src:string;id:string;mine:boolean;time:string;delivery?:"read"|"sent"};
 type PlayEvent=CustomEvent<string>;
 
 /** Functional audio note: actual playback, scrub, duration and one-at-a-time listening. */
-export default function VoiceMessage({src,id,mine,time,read}:Props){
+export default function VoiceMessage({src,id,mine,time,delivery}:Props){
  const audio=useRef<HTMLAudioElement|null>(null);
  const [playing,setPlaying]=useState(false);
  const [duration,setDuration]=useState(0);
@@ -96,7 +96,7 @@ export default function VoiceMessage({src,id,mine,time,read}:Props){
      <span className="lr-voice-note-duration" aria-label={"Progression "+progressText+" sur "+totalText}>
       {playing||position>0?progressText:totalText}
      </span>
-     <span className="lr-voice-note-time">{time}{mine&&read?<span className="lr-voice-note-check" aria-label="Lu"> ✓✓</span>:null}</span>
+     <span className="lr-voice-note-time">{time}{mine&&delivery?<span className="lr-voice-note-check" aria-label={delivery==="read"?"Lu":"Envoyé"}> {delivery==="read"?"✓✓":"✓"}</span>:null}</span>
     </div>
    </div>
   </div>
