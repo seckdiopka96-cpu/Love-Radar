@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from "react";
 
-type SoundKind="roll"|"step"|"capture"|"win";
+type SoundKind="roll"|"step"|"capture"|"win"|"reaction";
 // Short original WebAudio effects: no external audio or copyrighted melody.
 export function useLudoSounds(){
  const [enabled,setEnabled]=useState(true);
@@ -22,6 +22,10 @@ export function useLudoSounds(){
    kind==="capture"?[
     {hz:730,time:0,dur:.14,volume:.042,type:"triangle" as OscillatorType},
     {hz:480,time:.125,dur:.19,volume:.046,type:"triangle" as OscillatorType}
+   ]:
+   kind==="reaction"?[
+    {hz:640,time:0,dur:.085,volume:.022,type:"sine" as OscillatorType},
+    {hz:890,time:.073,dur:.095,volume:.027,type:"sine" as OscillatorType}
    ]:
    [523,659,784,1047].map((hz,i)=>({hz,time:i*.12,dur:.22,volume:.038,type:"sine" as OscillatorType}));
   for(const note of notes)try{

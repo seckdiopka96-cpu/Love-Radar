@@ -294,3 +294,157 @@
 .ludo-challenge-send{border:1px solid #f8c973;border-radius:11px;background:linear-gradient(140deg,#eab459,#c67f5e);color:#39243a;font-size:12px;font-weight:900;padding:12px;touch-action:manipulation;flex:none}
 .ludo-challenge-send:disabled{opacity:.6}
 .ludo-challenge-hint{font-size:11px;font-weight:700;color:#f8dda4;line-height:1.4;text-align:center;margin:0}
+
+
+/* LUDO DUO · Arena edition: readable 3D pawns, animated tracks & social stickers.
+   All artwork is CSS/SVG created for Love Radar, not a Ludo King asset copy. */
+.ludo-experience{
+ border:1px solid #ad815b;
+ background:
+  radial-gradient(ellipse at 48% 43%,#76536c55 0%,transparent 62%),
+  linear-gradient(165deg,#3e2748 0%,#20162f 50%,#241b38 100%);
+ box-shadow:inset 0 1px 0 #ffe8cf25,0 15px 46px #0d06164b
+}
+.ludo-topbar{border-bottom:1px solid #d6a46a38}
+.ludo-brand strong{font-weight:950;letter-spacing:1.3px;color:#fff9ec;text-shadow:0 2px 4px #10091c}
+.ludo-brand strong>span{color:#ffc0d3;text-shadow:0 0 13px #f38bbd85}
+.ludo-brand small{color:#e7c59c;letter-spacing:1.3px}
+.ludo-player{background:linear-gradient(150deg,#59415b,#302741);border:1px solid #9c7893;box-shadow:inset 0 1px #f5c2e026}
+.ludo-player.is-active{background:linear-gradient(135deg,#614765,#32243e);box-shadow:inset 0 0 0 1px var(--player-tint),0 0 15px #faafcd20}
+.ludo-player-avatar{border:1px solid #fff0;box-shadow:inset 0 1px 2px #ffffff9c,inset 0 -4px 3px #19102132,0 3px 6px #10091c7b}
+.ludo-turn-banner{border-color:#a47d88;background:#4c3951;box-shadow:inset 0 1px 0 #f2cbd720}
+.ludo-turn-banner.its-mine{border-color:#f3c782;background:linear-gradient(95deg,#81516c,#5e366d);box-shadow:0 0 16px #efaa6f29}
+.ludo-experience .ludo-board-wrap-immersive{
+ border:3px solid #f8deb4;
+ background:linear-gradient(145deg,#fff8d9,#bc86a3 54%,#604262);
+ border-radius:17px;
+ padding:5px!important;
+ box-shadow:0 16px 34px #0c0711aa,0 0 0 1px #6d4260,inset 0 2px 2px #fff8e4
+}
+.ludo-experience .ludo-board{
+ border:2px solid #5f3848;
+ background:#fffef8;
+ border-radius:7px;
+ box-shadow:inset 0 0 14px #b4886a3d
+}
+.ludo-experience .ludo-path{background:#fffdf7;border:.65px solid #ddc8ab}
+.ludo-experience .ludo-cell.ludo-path:not(.ludo-red-lane):not(.ludo-gold-lane):not(.ludo-blue-lane):not(.ludo-green-lane):not(.ludo-red-start):not(.ludo-gold-start){background:linear-gradient(140deg,#fffefd,#fff8ec)}
+.ludo-experience .ludo-red-base{background:linear-gradient(130deg,#f97e94,#c52d54)}
+.ludo-experience .ludo-gold-base{background:linear-gradient(130deg,#ffe994,#eaa726)}
+.ludo-experience .ludo-blue-base{background:linear-gradient(130deg,#9fd4ff,#2b83cb)}
+.ludo-experience .ludo-green-base{background:linear-gradient(130deg,#a2f3c5,#23a178)}
+.ludo-experience .ludo-red-lane,.ludo-experience .ludo-red-start{background:#ef708a}
+.ludo-experience .ludo-gold-lane,.ludo-experience .ludo-gold-start{background:#ffe18a}
+.ludo-experience .ludo-star{color:#835879;text-shadow:0 1px #fff,0 0 4px #9e638543}
+.ludo-experience .ludo-yard::before{border:2.5px solid #fffaf0;box-shadow:0 3px 9px #2812294b,inset 0 2px 5px #8b5c6d16}
+.ludo-experience .ludo-yard::after{filter:drop-shadow(0 2px 2px #30112820)}
+/* Player pieces live in a raised cell layer; never disappear under the next grid cell. */
+.ludo-experience .ludo-cell.has-pawns{z-index:8;overflow:visible}
+.ludo-experience .ludo-cell-pawns{position:absolute;inset:0;display:block;z-index:14;overflow:visible;pointer-events:none}
+.ludo-experience .ludo-cell-pawns .ludo-pawn-stacked{
+ position:absolute;display:grid;place-items:center;
+ width:clamp(23px,5.5vw,34px);height:clamp(30px,7.3vw,45px);
+ margin:0;padding:0;transform-origin:50% 50%;pointer-events:auto;
+ border:0;background:transparent;box-shadow:none;z-index:9
+}
+.ludo-experience .ludo-cell-pawns .ludo-pawn-stacked svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 3px 2px #23091e9c) drop-shadow(0 0 1px #ffffffb4)}
+.ludo-experience .ludo-stack-3 .ludo-pawn-stacked svg,
+.ludo-experience .ludo-stack-4 .ludo-pawn-stacked svg{filter:drop-shadow(0 2px 2px #160a15d9)}
+.ludo-experience .ludo-pawn-red{--pawn-dark:#952447;--pawn-mid:#e04568;--pawn-light:#ffc3c8}
+.ludo-experience .ludo-pawn-gold{--pawn-dark:#a76a0d;--pawn-mid:#f1b93d;--pawn-light:#fff4bd}
+.ludo-experience .ludo-pawn-stem{stroke-width:2;filter:drop-shadow(0 1px 1px #21111b49)}
+.ludo-experience .ludo-pawn-head{stroke-width:2.2}
+.ludo-experience .ludo-pawn-foot{stroke-width:2;filter:drop-shadow(0 2px 1px #36142d85)}
+.ludo-experience .ludo-pawn-shine{stroke:#fffefa;stroke-width:3}
+.ludo-experience .ludo-pawn.can-move svg{filter:drop-shadow(0 0 8px #fff2a5) drop-shadow(0 2px 4px #24223191)}
+/* Step-by-step trail: upcoming square, current hop and celebration on arrival. */
+.ludo-experience .ludo-cell.ludo-route-upcoming:not(.has-pawns),
+.ludo-experience .ludo-cell.ludo-route-finish:not(.has-pawns){z-index:3}
+.ludo-experience .ludo-route-upcoming::before,
+.ludo-experience .ludo-route-finish::before,
+.ludo-experience .ludo-route-passed::before,
+.ludo-experience .ludo-route-current::before,
+.ludo-experience .ludo-landed::before{
+ content:"";position:absolute;inset:7%;border-radius:27%;pointer-events:none;z-index:1
+}
+.ludo-experience .ludo-route-upcoming::before{background:#fff1a760;box-shadow:inset 0 0 0 1px #ffbd54a8}
+.ludo-experience .ludo-route-finish::before{background:#fada7299;box-shadow:inset 0 0 0 2px #f4a744}
+.ludo-experience .ludo-route-passed::before{background:#fdd57b52}
+.ludo-experience .ludo-route-current::before,.ludo-experience .ludo-landed::before{
+ background:#ffdc6796;box-shadow:inset 0 0 0 2px #d68e23,0 0 11px 3px #ffd971d6;
+ animation:ludo-arrival-pulse .37s ease-out
+}
+@keyframes ludo-arrival-pulse{0%{transform:scale(.7);opacity:.6}100%{transform:scale(1);opacity:1}}
+.ludo-moving-pawn,.ludo-captured-pawn{
+ position:absolute;pointer-events:none;display:grid;place-items:center;
+ width:clamp(24px,6vw,39px);height:clamp(32px,8vw,50px);
+ transform:translate(-50%,-61%);z-index:46;
+ filter:drop-shadow(0 7px 4px #180b229b)
+}
+.ludo-moving-pawn{transition:left .205s cubic-bezier(.16,.7,.24,1),top .205s cubic-bezier(.16,.7,.24,1);will-change:left,top}
+.ludo-moving-pawn svg,.ludo-captured-pawn svg{display:block;width:100%;height:100%;overflow:visible}
+.ludo-moving-bounce{width:100%;height:100%;display:block;animation:ludo-hop-arc .25s ease-out}
+@keyframes ludo-hop-arc{
+ 0%{transform:translateY(0) scale(.99)}
+ 39%{transform:translateY(-13px) scale(1.1)}
+ 82%{transform:translateY(-3px) scale(1.04)}
+ 100%{transform:translateY(0) scale(1)}
+}
+.ludo-motion-step{position:absolute;left:50%;top:-19px;transform:translateX(-50%);font:950 10px/1.2 -apple-system,Arial,sans-serif;white-space:nowrap;background:#4c2553ed;color:#fff4db;border:1px solid #ffe19a;border-radius:100px;padding:3px 6px;box-shadow:0 3px 6px #170e1b99}
+.ludo-captured-pawn{z-index:43;transition:left .68s cubic-bezier(.17,.68,.28,1),top .68s cubic-bezier(.17,.68,.28,1),opacity .7s;opacity:1}
+.ludo-captured-pawn.is-returning{opacity:.77;filter:drop-shadow(0 4px 5px #1d071f99)}
+/* Social reactions: individual stickers anchored to their sender and a burst on board. */
+.ludo-player{overflow:visible}
+.ludo-player-info{overflow:hidden}
+.ludo-player-reaction{position:relative;flex:none;font-size:23px;line-height:1;z-index:20;filter:drop-shadow(0 3px 3px #0d0818c9);animation:ludo-sticker-in .4s cubic-bezier(.18,1.45,.32,1)}
+@keyframes ludo-sticker-in{0%{transform:scale(.15) rotate(-20deg);opacity:0}70%{transform:scale(1.25) rotate(9deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+.ludo-floating-emoji{z-index:33;top:13%;left:50%;display:flex;flex-direction:column;align-items:center;gap:1px;transform:translateX(-50%);animation:ludo-sticker-in .38s ease-out,ludo-emote-float 1.4s .38s infinite alternate}
+.ludo-floating-emoji.theirs{left:51%}
+.ludo-floating-emoji strong{font-size:clamp(44px,11vw,67px);line-height:1;filter:drop-shadow(0 3px 6px #160c21b7)}
+.ludo-floating-emoji small{font-size:11px;font-weight:950;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff;text-shadow:0 2px 5px #1c0923;background:#5b376ddd;padding:5px 11px;border:1px solid #c695bb;border-radius:20px}
+.ludo-emoji-button{font-size:23px;background:linear-gradient(145deg,#a66a98,#664071);border-color:#d69ebc;color:#fff;box-shadow:inset 0 1px #fff2f64a,0 4px 10px #11071b73}
+.ludo-emote-tray{display:flex;flex-direction:column;gap:6px;right:0;left:auto;bottom:calc(100% + 7px);width:min(310px,calc(100vw - 31px));max-width:calc(100vw - 20px);padding:10px;background:linear-gradient(145deg,#59405e,#281f3a);border:1.5px solid #d9af9b;border-radius:17px;box-shadow:0 9px 28px #11091bc2}
+.ludo-emote-heading{width:100%;display:flex;align-items:center;justify-content:space-between;color:#ffe8ee;font-size:12px;gap:12px}
+.ludo-emote-heading>button{flex:none;width:25px;height:25px;background:#4d3654;border:1px solid #a47d9a;border-radius:9px;color:#fff;font-size:18px}
+.ludo-emote-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.ludo-emote-grid>button{display:grid;place-items:center;width:100%;height:41px;min-width:0;padding:0;border:1px solid #9f7193;border-radius:11px;background:#624761;font-size:25px;touch-action:manipulation}
+.ludo-emote-grid>button:active{transform:scale(.88);background:#855b85}
+.ludo-emote-grid>button:disabled{opacity:.45}
+.ludo-main-action:not(:disabled){box-shadow:inset 0 1px #fff3cf86,inset 0 -4px #9e3955a3,0 6px 12px #160a187a;background:linear-gradient(155deg,#ffb16a,#e56a69 50%,#c34b77)}
+.ludo-die-holder:not(:disabled){filter:drop-shadow(0 4px 6px #150d1b9f)}
+.ludo-game-footer{border-color:#ac81a8;box-shadow:inset 0 1px #f4c6de29,0 6px 21px #180b1b59}
+@media(max-width:950px){
+ .ludo-experience{padding:calc(5px + env(safe-area-inset-top)) 5px calc(5px + env(safe-area-inset-bottom))}
+ .ludo-play-area>.ludo-stage{height:min(calc(100vw - 10px),calc(100% - 140px))}
+ .ludo-experience .ludo-board-wrap-immersive{border-width:2px;padding:3px!important;box-shadow:0 11px 29px #0a0615ac}
+ .ludo-experience .ludo-board{border-width:1.5px}
+ .ludo-experience .ludo-cell-pawns .ludo-pawn-stacked{width:clamp(23px,6.6vw,34px);height:clamp(31px,8.4vw,45px)}
+ .ludo-moving-pawn,.ludo-captured-pawn{width:clamp(24px,7.2vw,38px);height:clamp(32px,9vw,49px)}
+ .ludo-player-reaction{font-size:19px}
+}
+@media(max-height:680px) and (max-width:950px){
+ .ludo-play-area>.ludo-stage{height:min(calc(100vw - 10px),calc(100% - 123px))}
+ .ludo-player-reaction{font-size:17px}
+ .ludo-emote-grid>button{height:34px;font-size:21px}
+}
+@media(prefers-reduced-motion:reduce){
+ .ludo-moving-pawn,.ludo-captured-pawn{transition:none;will-change:auto}
+ .ludo-moving-bounce,.ludo-player-reaction,.ludo-floating-emoji,.ludo-route-current::before,.ludo-landed::before{animation:none}
+}
+
+/* The old breathing keyframe animated transform on the actual pawn button.
+   That overrode the new absolute cluster coordinates and made selectable stacks
+   jump back to the center. Glow the SVG instead, never move the button. */
+.ludo-experience .ludo-cell-pawns .ludo-pawn-stacked.can-move{
+ animation:none!important;
+}
+.ludo-experience .ludo-cell-pawns .ludo-pawn-stacked.can-move svg{
+ animation:ludo-premium-select-glow 1.15s ease-in-out infinite alternate;
+}
+@keyframes ludo-premium-select-glow{
+ 0%{filter:drop-shadow(0 0 3px #fff6ac) drop-shadow(0 2px 3px #1a0d19b0)}
+ 100%{filter:drop-shadow(0 0 11px #ffeb54) drop-shadow(0 2px 5px #1a0d19c9)}
+}
+@media(prefers-reduced-motion:reduce){
+ .ludo-experience .ludo-cell-pawns .ludo-pawn-stacked.can-move svg{animation:none}
+}
