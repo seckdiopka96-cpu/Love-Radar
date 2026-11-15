@@ -284,3 +284,15 @@ Deux nouvelles activités privées, éditables par les deux membres du couple, s
 ## 📱 Version native iPhone et Android (Capacitor)
 
 Première intégration du runtime mobile natif, plugin officiel de protection écran, API Cloudflare autorisée pour les WebViews locales et générateurs de projets iOS/Android. Voir [docs/native.md](docs/native.md) pour compiler un APK de test et découvrir les limitations restantes (notamment les notifications natives non encore intégrées).
+
+
+## 🎲 Ludo Duo — mise à niveau « arène premium »
+
+- **Plateau original redessiné en CSS/SVG** avec bordure ivoire, pions brillants en relief, zones et chemins contrastés ; aucune image ni marque Ludo King copiée.
+- **Déplacements réellement animés** à environ 235 ms par case avec saut, numéro de pas, chemin éclairé et lumière sur la case d'arrivée. Sortie de base et arrivée au centre incluses. Un mouvement validé est enregistré en D1 (table `ludo_move_events`) pour que l'autre téléphone puisse récupérer le dernier trajet même en cas de saut de versions pendant la synchronisation.
+- **Pions empilés dans la même case** : un pion centré ; deux légèrement superposés ; trois en triangle ; quatre en carré compact ; plus de quatre en cercle compact sur une case protégée. Les numéros et la barre « Mes pions » permettent toujours de choisir précisément le pion.
+- **Capture animée** : les pions mangés retournent visiblement à leur base après l'impact, avec son court et vibration légère lorsque la plateforme le permet.
+- **Réactions de couple en direct** : 15 stickers (😂 😱 😮 🤯 😍 😘 😤 😭 😎 👏 ❤️ 🔥 🥹 😡 💋). Les réactions de chaque joueur sont distinctes et synchronisées dans `ludo_reaction_events` (max. 1 envoi/700 ms/personne, rétention de 60 secondes), puis affichées sur la carte du joueur et au-dessus du plateau.
+- **Accessibilité** : disposition lisible sur iPhone, clavier/pions accessibles et préférence système « Réduire les animations » respectée. Les règles, signatures, consentement cadeau, dés et résultats restent autorisés **uniquement par le serveur**.
+- **Tests de géométrie** : `npm run test:ludo` contrôle les 52 cases du parcours, les 6 cases d'arrivée, les déplacements case par case et la disposition des piles.
+- **Cache PWA v34.** L'application n'a pas encore été validée par deux utilisateurs sur iPhone et Android ; un build réussi ne garantit pas l'affichage final ou la latence réelle.

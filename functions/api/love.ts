@@ -187,6 +187,10 @@ async function snapshot(db:D1Database,u:Member){
      catch(err){console.error("Optional Ludo gifts cleanup",err)}
      try{await db.prepare("DELETE FROM ludo_reactions WHERE room_id=?").bind(u.room_id).run()}
      catch(err){console.error("Optional Ludo reactions cleanup",err)}
+     for(const table of ["ludo_reaction_events","ludo_move_events"]){
+      try{await db.prepare("DELETE FROM "+table+" WHERE room_id=?").bind(u.room_id).run()}
+      catch(err){console.error("Optional Ludo animation cleanup",table,err)}
+     }
      // Existing couples may have a live Ludo match; erase it with the room.
      try{await db.prepare("DELETE FROM ludo_games WHERE room_id=?").bind(u.room_id).run()}
      catch(err){console.error("Optional Ludo cleanup",err)}
