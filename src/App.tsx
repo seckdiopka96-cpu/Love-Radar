@@ -11,14 +11,14 @@ import DailyMoment from "./DailyMoment";
 import Together from "./Together";
 import WatchTogether from "./WatchTogether";
 import TikTokTogether from "./TikTokTogether";
-import LocationShare from "./LocationShare";
+import SharedPuzzle from "./SharedPuzzle";
 import HomeDashboard from "./HomeDashboard";
 import GamesHub from "./GamesHub";
 import CoupleStory from "./CoupleStory";
 import PrivatePhoto from "./PrivatePhoto";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
-type Tab = "home" | "together" | "watch" | "watch-tiktok" | "location" | "moment" | "reunion" | "games" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story";
+type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "moment" | "reunion" | "games" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story";
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number};
 type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
@@ -32,23 +32,24 @@ const NAV: {id:Tab;label:string;icon:string}[] = [
  {id:"memories",label:"Souvenirs",icon:"✦"},
 ];
 function selectedNav(tab:Tab):Tab {
- if(tab==="moment"||tab==="location"||tab==="reunion"||tab==="watch"||tab==="watch-tiktok")return "together";
+ if(tab==="moment"||tab==="puzzle"||tab==="reunion"||tab==="watch"||tab==="watch-tiktok")return "together";
  if(tab==="story")return "memories";
  if(tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo"||tab==="memory")return "games";
  return tab;
 }
 const HEARTS = ["♡","♥","✦","♡","♥"];
 
-type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"daily-question"|"love-signal"|"draw-invite"|"location-request";
+type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"daily-question"|"love-signal";
 type NoticeTarget={tab:Tab;kind:NoticeKind|null;id:string|null};
-const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","daily-question","love-signal","draw-invite","location-request"]);
+const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","daily-question","love-signal"]);
 function parseNotice(search:string):NoticeTarget|null{
  const q=new URLSearchParams(search);
  const tab=q.get("tab");
- if(tab!=="home"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="location"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="memory"&&tab!=="memories")return null;
+ if(tab==="location")return {tab:"together",kind:null,id:null};
+ if(tab!=="home"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="puzzle"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="memory"&&tab!=="memories")return null;
  const kind=q.get("kind"),id=q.get("id");
  if(!kind||!NOTICE_KINDS.has(kind)||!id||!(/^[0-9a-f-]{36}$/i.test(id)||(kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(id))))return {tab,kind:null,id:null};
- return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":kind==="daily-question"?"moment":kind==="love-signal"||kind==="draw-invite"?"together":kind==="location-request"?"location":"chat",kind:kind as NoticeKind,id};
+ return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":kind==="daily-question"?"moment":kind==="love-signal"?"together":"chat",kind:kind as NoticeKind,id};
 }
 function noticeUrl(target:NoticeTarget){
  const q=new URLSearchParams({tab:target.tab});
@@ -82,14 +83,13 @@ export default function LoveRadar(){
   url.searchParams.delete("kind");url.searchParams.delete("id");
   window.history.replaceState(null,"",url.pathname+(url.search||""));
  }
- function navigate(tab:Tab,feature?:"heart"|"draw"){
+ function navigate(tab:Tab){
   closeNotice();
   setTab(tab);
   if(tab==="watch"||tab==="watch-tiktok")setWatchInvite(null);
   const url=new URL(window.location.href);
   url.searchParams.set("tab",tab);
   url.searchParams.delete("kind");url.searchParams.delete("id");url.searchParams.delete("mode");
-  if(tab==="together"&&feature)url.searchParams.set("mode",feature);
   window.history.replaceState(null,"",url.pathname+url.search);
   firstPoll.current=true;
  }
@@ -243,7 +243,7 @@ export default function LoveRadar(){
      setNoticeTarget(dest);
      setTab(dest.tab);setWatchInvite(null);firstPoll.current=true;
     }
-   }else if(["chat","watch","watch-tiktok","games","ludo","ludo-solo","ludo-senegal","ludo-senegal-solo","memory","moment","together","location","reunion","story","home","memories"].includes(data?.tab)){
+   }else if(["chat","watch","watch-tiktok","games","ludo","ludo-solo","ludo-senegal","ludo-senegal-solo","memory","moment","together","puzzle","reunion","story","home","memories"].includes(data?.tab)){
     const dest=data.tab as Tab;
     setTab(dest);setNoticeTarget({tab:dest,kind:null,id:null});firstPoll.current=true;
    }
@@ -580,7 +580,7 @@ export default function LoveRadar(){
  const lastOwnMessage=[...(room?.messages||[])].reverse().find(m=>m.sender_id===room?.user.id);
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
- return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="location"&&room?"lr-location-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
+ return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-brand"><b>Love Radar</b></div>
    <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>Love Radar · Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span><button type="button" className="lr-privacy-toggle" aria-pressed={privacyEnabled} onClick={()=>updatePrivacy(!privacyEnabled)}>
@@ -640,7 +640,7 @@ export default function LoveRadar(){
    <main className="lr-main">
     {tab==="home"?<HomeDashboard room={room} token={token} media={media} privacyEnabled={privacyEnabled} onInvite={()=>void shareCode()} onNavigate={navigate}/>:null}
     {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
-    {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenLocation={()=>navigate("location")} onOpenWatch={()=>navigate("watch")} focusKind={noticeTarget?.kind==="love-signal"||noticeTarget?.kind==="draw-invite"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"||noticeTarget?.kind==="draw-invite"?noticeTarget.id:null}/>:null}
+    {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenWatch={()=>navigate("watch")} onOpenPuzzle={()=>navigate("puzzle")} focusKind={noticeTarget?.kind==="love-signal"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"?noticeTarget.id:null}/>:null}
     {tab==="watch"?<WatchTogether token={token} myId={room.user.id} myName={room.user.name}
       partnerName={room.partner} messages={room.messages}
       onSendText={async text=>{await request("message",{text});await refresh()}}
@@ -650,7 +650,7 @@ export default function LoveRadar(){
       onSendText={async text=>{await request("message",{text});await refresh()}}
       onExit={()=>navigate("watch")} onOpenYouTube={()=>navigate("watch")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="story"||tab==="reunion"?<CoupleStory key={tab} token={token} mode={tab} privacyEnabled={privacyEnabled} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate(tab==="story"?"memories":"together")} onOpenStory={()=>navigate("story")} onOpenReunion={()=>navigate("reunion")}/>:null}
-    {tab==="location"?<LocationShare token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusId={noticeTarget?.kind==="location-request"?noticeTarget.id:null}/>:null}
+    {tab==="puzzle"?<SharedPuzzle token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")}/>:null}
     {tab==="games"?<GamesHub onOpenGame={game=>navigate(game)} partnerName={room.partner}/>:null}
     {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}/>:null}
      {tab==="ludo-solo"?<SoloLudo myName={room.user.name} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("games")}/>:null}
