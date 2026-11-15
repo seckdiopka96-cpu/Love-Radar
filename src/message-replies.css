@@ -1,0 +1,94 @@
+/* Love Radar · swipe-to-reply, inspired by clean mobile messenger patterns.
+   No long-press selection. Swipe right on any message and type a reply. */
+
+/* Keep horizontal gestures available without stealing vertical chat scrolling. */
+.lr-chat .lr-reply-gesture{
+ position:relative;touch-action:pan-y;overflow:visible!important;
+ -webkit-tap-highlight-color:transparent;
+}
+.lr-chat .lr-reply-gesture .lr-bubble-stack{
+ transform:translate3d(var(--lr-reply-shift,0px),0,0);
+ transition:transform .19s cubic-bezier(.22,.85,.25,1);
+ will-change:transform;
+}
+.lr-chat .lr-reply-gesture.lr-swiping .lr-bubble-stack{
+ transition:none!important
+}
+.lr-chat .lr-reply-gesture .lr-reply-arrow{
+ position:absolute;z-index:1;left:11px;top:50%;
+ transform:translateY(-50%) scale(calc(.78 + .22 * var(--lr-reply-progress,0)));
+ width:34px;height:34px;display:grid;place-items:center;
+ color:#ffc0cc;background:#314657;
+ border:1px solid #647585;border-radius:50%;
+ opacity:var(--lr-reply-progress,0);
+ pointer-events:none;
+ box-shadow:0 6px 16px #020d1c40;
+ transition:opacity .16s,transform .16s;
+}
+.lr-chat .lr-reply-gesture.lr-swiping .lr-reply-arrow{transition:none!important}
+.lr-chat .lr-reply-gesture .lr-reply-arrow svg{width:19px;height:19px}
+.lr-chat .lr-quote-card{
+ display:flex;flex-direction:column;gap:4px;
+ text-align:left;overflow:hidden;
+ padding:8px 10px!important;margin:0 0 7px!important;
+ border:0!important;border-left:3px solid #ffcad7!important;border-radius:8px!important;
+ background:#0f233046!important;color:#fff8f2!important;
+ max-width:100%;box-sizing:border-box;
+}
+.lr-chat .lr-quote-card.is-bubble{background:#0615233c!important}
+.lr-chat .lr-bubble-row.mine .lr-quote-card.is-bubble{background:#8f365446!important;border-left-color:#ffe5bb!important}
+.lr-chat .lr-quote-card:is(button){
+ width:100%;cursor:pointer;
+}
+.lr-chat .lr-quote-author{
+ color:#ffc2c7!important;font:800 12px/1.35 'DM Sans',-apple-system,sans-serif!important;
+ max-width:100%;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;
+}
+.lr-chat .lr-bubble-row.mine .lr-quote-author{color:#fff2c8!important}
+.lr-chat .lr-quote-text{
+ color:#d1e3e8!important;font:500 12px/1.45 'DM Sans',-apple-system,sans-serif!important;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;
+}
+.lr-chat .lr-bubble-row.mine .lr-quote-text{color:#fff4f4!important}
+.lr-chat .lr-reply-compose{
+ display:flex;align-items:center;gap:8px;width:100%;min-width:0;
+ padding:7px 8px 5px;border-bottom:1px solid #314b5b;
+ background:linear-gradient(90deg,#1b3443,#162c3a);
+}
+.lr-chat .lr-reply-compose .lr-quote-card{
+ flex:1 1 auto;min-width:0;margin:0!important;
+ padding:5px 10px!important;
+ border-left-color:#f38fa7!important;background:#243f4d!important;
+}
+.lr-chat .lr-reply-compose .lr-quote-author{color:#ffb5c6!important}
+.lr-chat .lr-reply-compose .lr-quote-text{color:#c6d7e1!important}
+.lr-chat .lr-reply-compose-close{
+ flex:0 0 32px;display:grid;place-items:center;
+ width:32px;height:32px;border:1px solid #4a6475!important;
+ border-radius:50%!important;padding:0!important;
+ background:#324a58!important;color:#f7e5eb!important;
+ font-size:22px!important;line-height:1!important;
+ cursor:pointer;
+}
+.lr-chat .lr-reply-compose-close:focus-visible,.lr-chat .lr-quote-card:focus-visible{
+ outline:2px solid #ffbbce;outline-offset:2px;
+}
+.lr-chat .lr-bubble .lr-quote-card+p{margin-top:4px!important}
+@media(max-width:700px){
+ .lr-app.lr-app-locked.lr-chat-mode .lr-reply-gesture .lr-bubble-stack{
+  max-width:min(82vw,400px);
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-reply-gesture .lr-reply-arrow{
+  left:7px;width:31px;height:31px
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-reply-compose{
+  padding:6px 5px!important;min-height:0
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-reply-compose .lr-quote-card{min-width:0}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-quote-author{font-size:11px!important}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-quote-text{font-size:11px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-chat .lr-reply-gesture .lr-bubble-stack,
+ .lr-chat .lr-reply-gesture .lr-reply-arrow{transition:none!important}
+}
