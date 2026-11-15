@@ -570,3 +570,43 @@
   font:900 10px/1 -apple-system,BlinkMacSystemFont,Arial,sans-serif;
   box-shadow:0 2px 5px #17101b99;pointer-events:none;
 }
+
+/* Premium original Ludo pegs: glossy resin, realistic depth, and clean outlines.
+   Keep token SVG paint inside each pawn; no tiny numbers obscuring the silhouette. */
+.ludo-experience .ludo-pawn-red{
+ --pawn-dark:#932039;
+ --pawn-mid:#e93a55;
+ --pawn-light:#ffadbb;
+}
+.ludo-experience .ludo-pawn-gold{
+ --pawn-dark:#9c590a;
+ --pawn-mid:#efaa22;
+ --pawn-light:#ffe7a1;
+}
+.ludo-experience .ludo-token-art{
+ display:block;
+ width:100%;
+ height:100%;
+ overflow:visible;
+ filter:drop-shadow(0 2px 1px #20101f9c) drop-shadow(0 0 1px #fffbeb7f);
+}
+.ludo-experience .ludo-cell-pawns .ludo-pawn-stacked svg.ludo-token-art{
+ filter:drop-shadow(0 3px 1.5px #1d1021ba) drop-shadow(0 0 1px #fffae9bb);
+}
+.ludo-experience .ludo-cell-pawns .ludo-pawn-stacked.can-move svg.ludo-token-art{
+ animation:ludo-peg-glow 1.12s ease-in-out infinite alternate;
+}
+@keyframes ludo-peg-glow{
+ from{filter:drop-shadow(0 2px 1px #170e20a8) drop-shadow(0 0 2px #fff4a1)}
+ to{filter:drop-shadow(0 3px 2px #170e20bf) drop-shadow(0 0 9px #fff0a0)}
+}
+.ludo-experience .ludo-moving-pawn svg.ludo-token-art{
+ filter:drop-shadow(0 4px 2px #261026c7) drop-shadow(0 0 4px #fff9f0);
+}
+.ludo-experience .ludo-pick .ludo-token-art{
+ width:100%;
+ height:100%;
+}
+@media(prefers-reduced-motion:reduce){
+ .ludo-experience .ludo-cell-pawns .ludo-pawn-stacked.can-move svg.ludo-token-art{animation:none}
+}
