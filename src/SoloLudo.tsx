@@ -231,7 +231,6 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
         {track!==undefined&&SAFE.has(track)?<span className="ludo-star" aria-hidden="true">★</span>:null}
         {pawns.length?<div className={"ludo-cell-pawns ludo-stack-"+Math.min(5,pawns.length)}>
          {pawns.map((item,i)=>{
-          const offset=stackPosition(pawns.length,i);
           return <button type="button" key={item.seat+"-"+item.pawn} disabled={!item.active}
            onClick={()=>performMove(item.seat,item.pawn)}
            title={"Pion "+(item.pawn+1)+(item.seat===0?" à toi":" à l'ordinateur")}
