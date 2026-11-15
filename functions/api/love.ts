@@ -76,16 +76,22 @@ async function snapshot(db:D1Database,u:Member){
  await ensureMessageActions(db);
  const messages=await db.prepare(
   "SELECT m.id,m.sender_id,m.kind,m.content,m.object_key,m.mime,m.created_at,"+
-  " r.target_id AS reply_to_id,p.kind AS reply_kind,p.content AS reply_content,p.sender_id AS reply_sender_id,COALESCE(ed.edited_at,0) AS edited_at"+
+  " r.target_id AS reply_to_id,p.kind AS reply_kind,p.content AS reply_content,p.sender_id AS reply_sender_id,COALESCE(ed.edited_at,0) AS edited_at,"+
+  " CASE WHEN ot.message_id IS NULL THEN 0 ELSE 1 END AS view_once,COALESCE(ot.opened_at,0) AS once_opened_at"+
   " FROM messages m LEFT JOIN message_replies r ON r.room_id=m.room_id AND r.message_id=m.id"+
   " LEFT JOIN message_edits ed ON ed.room_id=m.room_id AND ed.message_id=m.id"+
   " LEFT JOIN messages p ON p.id=r.target_id AND p.room_id=m.room_id"+
-  " WHERE m.room_id=? AND m.kind IN ('text','image','audio') ORDER BY m.created_at DESC,m.id DESC LIMIT 90"
- ).bind(u.room_id).all();
+  " LEFT JOIN message_one_time ot ON ot.room_id=m.room_id AND ot.message_id=m.id"+
+  " WHERE m.room_id=? AND m.kind IN ('text','image','audio') AND NOT EXISTS"+
+  " (SELECT 1 FROM message_hidden h WHERE h.room_id=m.room_id AND h.message_id=m.id AND h.member_id=?)"+
+  " ORDER BY m.created_at DESC,m.id DESC LIMIT 90"
+ ).bind(u.room_id,u.id).all();
  const reactions=await db.prepare(
   "SELECT message_id,member_id,emoji FROM message_reactions WHERE room_id=? AND message_id IN"+
-  " (SELECT id FROM messages WHERE room_id=? ORDER BY created_at DESC,id DESC LIMIT 90)"
- ).bind(u.room_id,u.room_id).all<{message_id:string;member_id:string;emoji:string}>();
+  " (SELECT id FROM messages WHERE room_id=? AND NOT EXISTS"+
+  " (SELECT 1 FROM message_hidden h WHERE h.room_id=messages.room_id AND h.message_id=messages.id AND h.member_id=?)"+
+  " ORDER BY created_at DESC,id DESC LIMIT 90)"
+ ).bind(u.room_id,u.room_id,u.id).all<{message_id:string;member_id:string;emoji:string}>();
  const reactionsById=new Map<string,{member_id:string;emoji:string}[]>();
  for(const reaction of reactions.results){
   const previous=reactionsById.get(reaction.message_id)||[];
@@ -95,15 +101,17 @@ async function snapshot(db:D1Database,u:Member){
  const recentReaction=await db.prepare(
   "SELECT mr.message_id,mr.member_id,mr.emoji,mr.updated_at,m.kind,m.content"+
   " FROM message_reactions mr JOIN messages m ON m.id=mr.message_id AND m.room_id=mr.room_id"+
-  " WHERE mr.room_id=? ORDER BY mr.updated_at DESC,mr.message_id DESC LIMIT 1"
- ).bind(u.room_id).first<{message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null}>();
+  " WHERE mr.room_id=? AND NOT EXISTS"+
+  " (SELECT 1 FROM message_hidden h WHERE h.room_id=mr.room_id AND h.message_id=mr.message_id AND h.member_id=?)"+
+  " ORDER BY mr.updated_at DESC,mr.message_id DESC LIMIT 1"
+ ).bind(u.room_id,u.id).first<{message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null}>();
  const otherStatus=await db.prepare("SELECT last_read_at,typing_until,recording_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1").bind(u.room_id,u.id).first<{last_read_at:number,typing_until:number,recording_until:number,last_seen_at:number}>();
- const unread=await db.prepare("SELECT COUNT(*) AS n FROM messages WHERE room_id=? AND sender_id<>? AND kind IN ('text','image','audio') AND created_at>COALESCE((SELECT last_read_at FROM chat_presence WHERE room_id=? AND member_id=?),0)")
-  .bind(u.room_id,u.id,u.room_id,u.id).first<{n:number}>();
+ const unread=await db.prepare("SELECT COUNT(*) AS n FROM messages WHERE room_id=? AND sender_id<>? AND kind IN ('text','image','audio') AND created_at>COALESCE((SELECT last_read_at FROM chat_presence WHERE room_id=? AND member_id=?),0) AND NOT EXISTS (SELECT 1 FROM message_hidden h WHERE h.room_id=messages.room_id AND h.message_id=messages.id AND h.member_id=?)")
+  .bind(u.room_id,u.id,u.room_id,u.id,u.id).first<{n:number}>();
 
 
- const unreadReactions=await db.prepare("SELECT COUNT(*) AS n FROM message_reactions WHERE room_id=? AND member_id<>? AND updated_at>COALESCE((SELECT last_reaction_read_at FROM chat_presence WHERE room_id=? AND member_id=?),0)")
-  .bind(u.room_id,u.id,u.room_id,u.id).first<{n:number}>();
+ const unreadReactions=await db.prepare("SELECT COUNT(*) AS n FROM message_reactions WHERE room_id=? AND member_id<>? AND updated_at>COALESCE((SELECT last_reaction_read_at FROM chat_presence WHERE room_id=? AND member_id=?),0) AND NOT EXISTS (SELECT 1 FROM message_hidden h WHERE h.room_id=message_reactions.room_id AND h.message_id=message_reactions.message_id AND h.member_id=?)")
+  .bind(u.room_id,u.id,u.room_id,u.id,u.id).first<{n:number}>();
  return {user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id},code:u.invite,roomId:u.room_id,
   partner:partners.results.find(a=>a.id!==u.id)?.name||null,members:partners.results.length,
   messages:messages.results.reverse().map(row=>({...row,reactions:reactionsById.get(String(row.id))||[]})),recentReaction:recentReaction||null,unreadCount:Number(unread?.n||0)+Number(unreadReactions?.n||0),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerRecordingUntil:otherStatus?.recording_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
@@ -126,12 +134,15 @@ async function snapshot(db:D1Database,u:Member){
      if(!/^[a-f0-9-]{36}$/i.test(id))return fail("Identifiant de message invalide.",400);
      const focus=await session.db.prepare(
       "SELECT m.id,m.sender_id,m.kind,m.content,m.object_key,m.mime,m.created_at,"+
-      " r.target_id AS reply_to_id,p.kind AS reply_kind,p.content AS reply_content,p.sender_id AS reply_sender_id,COALESCE(ed.edited_at,0) AS edited_at"+
+      " r.target_id AS reply_to_id,p.kind AS reply_kind,p.content AS reply_content,p.sender_id AS reply_sender_id,COALESCE(ed.edited_at,0) AS edited_at,"+
+      " CASE WHEN ot.message_id IS NULL THEN 0 ELSE 1 END AS view_once,COALESCE(ot.opened_at,0) AS once_opened_at"+
       " FROM messages m LEFT JOIN message_replies r ON r.room_id=m.room_id AND r.message_id=m.id"+
       " LEFT JOIN message_edits ed ON ed.room_id=m.room_id AND ed.message_id=m.id"+
       " LEFT JOIN messages p ON p.id=r.target_id AND p.room_id=m.room_id"+
-      " WHERE m.room_id=? AND m.id=? AND m.kind IN ('text','image','audio') LIMIT 1"
-     ).bind(session.user.room_id,id).first();
+      " LEFT JOIN message_one_time ot ON ot.room_id=m.room_id AND ot.message_id=m.id"+
+      " WHERE m.room_id=? AND m.id=? AND m.kind IN ('text','image','audio') AND NOT EXISTS"+
+      " (SELECT 1 FROM message_hidden h WHERE h.room_id=m.room_id AND h.message_id=m.id AND h.member_id=?) LIMIT 1"
+     ).bind(session.user.room_id,id,session.user.id).first();
      return ok({...overview,focusMessage:focus||null});
     }
     return ok(overview);
@@ -254,8 +265,8 @@ async function snapshot(db:D1Database,u:Member){
     if(op==="react-message"){
      if(!validMessageId(body.id))return fail("Message invalide.",400);
      if(typeof body.emoji!=="string"||!MESSAGE_REACTIONS.has(body.emoji))return fail("Réaction inconnue.",400);
-     const target=await db.prepare("SELECT kind,content FROM messages WHERE id=? AND room_id=? AND kind IN ('text','image','audio')")
-      .bind(body.id,u.room_id).first<{kind:"text"|"image"|"audio";content:string|null}>();
+     const target=await db.prepare("SELECT kind,content FROM messages WHERE id=? AND room_id=? AND kind IN ('text','image','audio') AND NOT EXISTS (SELECT 1 FROM message_hidden h WHERE h.room_id=messages.room_id AND h.message_id=messages.id AND h.member_id=?)")
+      .bind(body.id,u.room_id,u.id).first<{kind:"text"|"image"|"audio";content:string|null}>();
      if(!target)return fail("Message introuvable.",404);
      await ensureMessageActions(db);
      const existing=await db.prepare("SELECT emoji FROM message_reactions WHERE room_id=? AND message_id=? AND member_id=?")
