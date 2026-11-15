@@ -1071,7 +1071,7 @@ export default function LoveRadar(){
          <span className="lr-reply-arrow" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 10 4 14l5 4"/><path d="M4 14h9a7 7 0 0 0 7-7"/></svg>
          </span>
-         <div className="lr-bubble-stack">
+         <div className={"lr-bubble-stack"+(m.kind==="image"?" lr-image-stack":"")}>
           <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":m.kind==="image"?" lr-bubble-image":"")}>
            {m.reply_to_id?<QuoteCard author={quoteAuthor(m.reply_sender_id,room.user.id,partner)}
             kind={m.reply_kind||"text"} content={m.reply_kind?m.reply_content:"Message supprimé"}
