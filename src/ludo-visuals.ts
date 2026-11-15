@@ -62,3 +62,13 @@ export function stackPosition(count:number,index:number):StackPosition{
  const radius=7+Math.floor(index/4)*3;
  return {x:50+radius*Math.cos(angle),y:50+radius*Math.sin(angle),scale:0.73};
 }
+
+/**
+ * CSS placement is always relative to the CENTRE of the actual 15x15 board cell.
+ * Do not special-case edge rows/columns: doing so shifts pawns across borders
+ * (notably the white squares next to the green and yellow home yards).
+ */
+export function stackCellStyle(count:number,index:number){
+ const {x,y,scale}=stackPosition(count,index);
+ return {left:x+"%",top:y+"%",transform:"translate(-50%, -50%) scale("+scale+")"};
+}
