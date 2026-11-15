@@ -37,6 +37,22 @@ test("invalid images are rejected rather than marked successfully fetched",()=>{
  assert.ok(photo.includes("onImageError?:()=>void"));
  assert.ok(photo.includes("onError={onImageError}"));
  assert.ok(app.includes("onImageError={()=>retryMedia(m)}"));
- assert.ok(media.includes("SELECT object_key,mime FROM messages WHERE room_id=?"));
+ assert.ok(media.includes("FROM messages m LEFT JOIN message_one_time"));
  assert.ok(media.includes('"Content-Type":record.mime'));
+});
+
+test("view once pictures are not prefetched, archived, or revealed by notification previews",()=>{
+ const home=readFileSync("src/HomeDashboard.tsx","utf8");
+ const viewer=readFileSync("src/OneTimeMedia.tsx","utf8");
+ assert.ok(app.includes("if(!token||!item.object_key||item.view_once)return"));
+ assert.ok(app.includes("if(!m||!m.object_key||m.view_once)return"));
+ assert.ok(app.includes('m.kind==="image"&&!m.view_once'));
+ assert.ok(home.includes('m.kind==="image"&&!m.view_once'));
+ assert.ok(app.includes('<OneTimeMedia key={onceTarget.id}'));
+ assert.ok(viewer.includes('res.status===410'));
+ assert.ok(viewer.includes('URL.revokeObjectURL(blobUrl)'));
+ assert.ok(viewer.includes('visibilitychange'));
+ assert.ok(media.includes('UPDATE message_one_time SET opened_at=?'));
+ assert.ok(media.includes('if(!claimed.meta.changes)'));
+ assert.ok(media.includes('message_hidden h'));
 });
