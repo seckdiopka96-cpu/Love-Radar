@@ -972,19 +972,13 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
  .lr-notification-test,.lr-notification-disable{font-size:10px;padding:7px 9px;min-height:34px}
 }
 
-/* On-device privacy switch, home-page thumbnail placeholder and foreground curtain.
-   Not a screenshot-prevention mechanism: iOS snapshots may occur before JS runs. */
+/* Device privacy settings and individually revealed private-photo previews.
+   The global screen curtain was removed: video/fullscreen should not be obscured
+   when YouTube takes focus or the browser switches contexts. */
 .lr-menu .lr-privacy-toggle{border:1px solid #af7196!important;background:#654260!important;color:#fff0f8!important}
 .lr-menu .lr-privacy-menu-note{display:block;color:#e1bbcf;font-size:10px;line-height:1.5;padding:0 5px 5px}
 .lr-home-private-photo{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:7px;min-height:145px;width:100%;border:1px solid #aa7d9d;border-radius:12px;background:linear-gradient(140deg,#60425f,#3a2a45);color:#fff0f6}
 .lr-home-private-photo>span{font-size:31px}
 .lr-home-private-photo strong{font-size:13px}
 .lr-home-private-photo small{font-size:10px;line-height:1.4;text-align:center;color:#dfbfd3;padding:0 8px}
-.lr-private-curtain{position:fixed!important;inset:0!important;z-index:2147483646!important;background:radial-gradient(ellipse at 50% 35%,#62415e,#1c1327 75%)!important;color:#fff1f7!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;text-align:center!important;gap:16px!important;padding:30px 23px!important;box-sizing:border-box!important;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif!important}
-.lr-private-curtain-lock{font-size:59px}
-.lr-private-curtain h2{margin:0;font:600 clamp(26px,6vw,35px)/1.2 Georgia,serif;color:#fff3f8}
-.lr-private-curtain p{max-width:290px;color:#ebcddd;font-size:13px;line-height:1.6;margin:0}
-.lr-private-curtain button{padding:15px 23px;min-height:49px;border:1px solid #f0a8cd;border-radius:15px;background:#ac5f8b;color:#fff;font-size:13px;font-weight:900}
-.lr-private-curtain small{max-width:290px;font-size:10px;line-height:1.5;color:#c9a9c5}
-html.lr-private-background-cover::after{content:"♡  Love Radar  ·  Écran masqué";position:fixed;z-index:2147483647;inset:0;display:flex;align-items:center;justify-content:center;padding:25px;background:#21152b;color:#f8cfde;font:600 21px/1.5 Georgia,serif;text-align:center}
 @media(max-width:700px){.lr-menu{width:min(290px,calc(100vw - 22px))}.lr-home-private-photo{min-height:110px}}
