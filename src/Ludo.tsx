@@ -423,6 +423,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
            <PawnShape index={item.pawn}/>
           </button>;
          })}</div>:null}
+        {pawns.length>1?<span className="ludo-stack-count" aria-hidden="true">×{pawns.length}</span>:null}
        </div>;
       })}
       <div className="ludo-yard ludo-yard-red" aria-hidden="true"/>
