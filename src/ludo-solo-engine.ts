@@ -1,5 +1,6 @@
 import {SAFE} from "./ludo-visuals";
 
+export const SOLO_TURN_MS=15000;
 export type SoloSeat=0|1;
 export type SoloGame={
  positions:[number[],number[]];
@@ -9,6 +10,7 @@ export type SoloGame={
  status:"playing"|"won";
  winner:SoloSeat|null;
  lastAction:string;
+ updatedAt:number;
 };
 export type SoloMove={
  seat:SoloSeat;
@@ -20,7 +22,7 @@ export type SoloMove={
 export const freshSoloGame=():SoloGame=>({
  positions:[[-1,-1,-1,-1],[-1,-1,-1,-1]],
  turn:0,dice:null,streak:0,status:"playing",winner:null,
- lastAction:"À toi de commencer ! Lance le dé."
+ lastAction:"À toi de commencer ! Lance le dé.",updatedAt:Date.now()
 });
 export function isSoloGame(value:unknown):value is SoloGame{
  if(!value||typeof value!=="object")return false;
@@ -31,7 +33,11 @@ export function isSoloGame(value:unknown):value is SoloGame{
   &&Number.isInteger(v.streak)&&Number(v.streak)>=0&&Number(v.streak)<=2
   &&(v.status==="playing"||v.status==="won")
   &&(v.winner===null||v.winner===0||v.winner===1)
-  &&typeof v.lastAction==="string"&&v.lastAction.length<=180;
+  &&typeof v.lastAction==="string"&&v.lastAction.length<=180
+  &&(v.updatedAt===undefined||(Number.isFinite(v.updatedAt)&&Number(v.updatedAt)>0));
+}
+export function shouldAutoPlaySolo(game:SoloGame,now:number):boolean{
+ return game.status==="playing"&&game.turn===0&&now>=game.updatedAt+SOLO_TURN_MS;
 }
 export function canSoloMove(progress:number,die:number|null):boolean{
  return die!==null&&(progress===-1?die===6:progress>=0&&progress<57&&progress+die<=57);
@@ -44,12 +50,13 @@ export function rollSolo(game:SoloGame,face:number):SoloGame{
  const seat=game.turn;
  const who=seat===0?"Tu as":"L’ordinateur a";
  if(face===6&&game.streak===2){
-  return {...game,turn:(1-seat) as SoloSeat,streak:0,dice:null,lastAction:who+" obtenu trois 6 : tour perdu."};
+  return {...game,turn:(1-seat) as SoloSeat,streak:0,dice:null,updatedAt:Date.now(),lastAction:who+" obtenu trois 6 : tour perdu."};
  }
  const streak=face===6?game.streak+1:0;
  const canPlay=game.positions[seat].some(progress=>canSoloMove(progress,face));
- const nextTurn:SoloSeat=canPlay||face===6?seat:(1-seat) as SoloSeat;
- return {...game,dice:canPlay?face:null,turn:nextTurn,streak:nextTurn===seat?streak:0,
+ // An unusable throw immediately passes the turn, including an unusable six.
+ const nextTurn:SoloSeat=canPlay?seat:(1-seat) as SoloSeat;
+ return {...game,dice:canPlay?face:null,turn:nextTurn,streak:nextTurn===seat?streak:0,updatedAt:Date.now(),
   lastAction:who+" lancé un "+face+(canPlay?". Choisis un pion.":" : aucun déplacement possible.")};
 }
 export function moveSolo(game:SoloGame,pawn:number):{game:SoloGame;move:SoloMove}|null{
@@ -81,14 +88,14 @@ export function moveSolo(game:SoloGame,pawn:number):{game:SoloGame;move:SoloMove
   who+" déplacé le pion "+(pawn+1)+(captured.length?" et capturé "+captured.length+" pion"+(captured.length>1?"s":"")+" !":"")+(to===57?" 🏠":"")+".";
  return {
   game:{...game,positions,turn:nextSeat,dice:null,streak:face===6?game.streak:0,
-   status:winner!==null?"won":"playing",winner,lastAction},
+   status:winner!==null?"won":"playing",winner,lastAction,updatedAt:Date.now()},
   move:{seat,pawn,from,to,captured}
  };
 }
 /** The computer prefers winning, captures, safe squares and advancing its pawns. */
 export function chooseSoloBotPawn(game:SoloGame):number|null{
  const seat=game.turn,die=game.dice;
- if(seat!==1||die===null)return null;
+ if(die===null)return null;
  const pawns=availableSoloPawns(game,seat);
  if(!pawns.length)return null;
  const evaluate=(pawn:number)=>{
@@ -97,14 +104,15 @@ export function chooseSoloBotPawn(game:SoloGame):number|null{
   if(to===57)return 10000;
   let score=to>=51?420+to*3:from===-1?175:to*2;
   if(to<=50){
-   const land=(26+to)%52;
+   const land=(seat*26+to)%52;
    if(SAFE.has(land))score+=115;
    else{
-    const targets=game.positions[0].filter(p=>p>=0&&p<=50&&p===land).length;
+    const other=(1-seat) as SoloSeat;
+    const targets=game.positions[other].filter(p=>p>=0&&p<=50&&(other*26+p)%52===land).length;
     score+=targets*560;
     // Do not expose a pawn to an obvious capture if another move is safe.
-    const danger=game.positions[0].some(p=>p>=0&&p<=50&&
-     Array.from({length:6},(_,i)=>(p+i+1)%52).includes(land));
+    const danger=game.positions[other].some(p=>p>=0&&p<=50&&
+     Array.from({length:6},(_,i)=>(other*26+p+i+1)%52).includes(land));
     if(danger)score-=90;
    }
   }
