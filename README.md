@@ -222,36 +222,17 @@ Depuis **Ensemble → Regarder ensemble → TikTok**, chacun peut regarder la m�
 - Lorsqu'un champ reçoit le focus sur iOS, seule la zone formulaire reste visible et elle est contrainte à la hauteur de visualViewport pour éviter que le clavier masque les commandes. Un défilement intérieur au formulaire reste possible uniquement dans le cas extrême d'un clavier/écran trop petit.
 - L'écran d'accueil du couple connecté, les jeux, les notifications, les conversations et les données restent inchangés.
 
-## Ensemble 💗 — « Tu me manques » et Dessiner ensemble 🎨
+## 🧩 Puzzle à deux — remplace Dessiner ensemble et Position
 
-- Nouveau menu « Ensemble » et deux cartes d'accès à l'accueil. L'écran s'adapte à la hauteur d'un iPhone avec deux onglets : « Tu me manques » et « Dessiner ensemble ».
-- Un clic sur « Tu me manques » envoie une pensée privée au partenaire, avec notification Push et lien direct vers **ce cœur précis**. Le destinataire peut répondre « Moi aussi ❤️ », « Je t'embrasse 😘 » ou « Je t'aime 💖 ». Une déclaration est limitée à une par 45 secondes pour éviter les notifications insistantes ; une seule réponse par déclaration. Les vocaux restent accessibles dans la conversation existante.
-- Le tableau commun reçoit les traits (au doigt/stylet), des cœurs, et des petits mots ; chaque trait terminé est enregistré dans D1 puis synchronisé sur l'autre appareil (polling ~1 seconde tant que le tableau est ouvert). Palette de couleurs, largeur du pinceau, annulation du **dernier trait de l'utilisateur** et effacement du tableau avec confirmation.
-- Bouton « Inviter » sur le tableau pour envoyer une notification privée qui ouvre directement le tableau partagé. Maximum une nouvelle invitation par minute. Un lien de notification ne donne aucun accès sans connexion au salon.
-- Les nouvelles tables `affection_signals`, `couple_canvas_events` et `couple_canvas_invites` sont créées automatiquement. Seuls les membres authentifiés du salon peuvent les consulter ou les modifier ; les traits sont bornés en taille et l'historique visuel est limité aux 180 dernières opérations.
-- Il n'y a pas de service Firebase : le stockage et les fonctions restent sur Cloudflare D1/Pages. Les données des jeux, des messages, des souvenirs et des appels restent intactes.
-
-## 📍 Position privée avec demande et consentement explicite
-
-- Dans l'accueil ou le menu Ensemble, chaque partenaire peut demander à voir la position de l'autre. Cette personne reçoit une notification privée « Demande de position », qui ouvre **uniquement** la demande correspondante et permet « Accepter et partager 15 min » ou « Refuser ».
-- Le demandeur n'accède à **aucune coordonnée** avant acceptation et permission GPS du téléphone. Si la permission est refusée ou si le GPS échoue, la demande reste sans localisation.
-- Après acceptation, le téléphone de la personne qui partage envoie volontairement des coordonnées précises pendant **15 minutes au maximum** et **uniquement lorsque la page est ouverte au premier plan**. Le propriétaire peut arrêter immédiatement par un bouton rouge ; le demandeur peut annuler avant acceptation.
-- L'API vérifie l'identité et le rôle de chaque membre avec son token personnel, ne renvoie la position **qu'au demandeur** en partage actif, supprime les coordonnées à l'arrêt ou à l'expiration, et masque les anciennes positions après 85 secondes sans GPS récent.
-- Un seul enregistrement D1 `couple_location_requests` par salon, écrasé lors d'une nouvelle demande, sans collecte de l'historique des trajets. Les demandes expirent au bout de 3 minutes si elles restent sans réponse ; délai anti-harcèlement de 60 secondes avant de renvoyer une demande.
-- Une carte OpenStreetMap est chargée **uniquement après le clic du demandeur** sur « Afficher sur la carte » ; cela transmet les coordonnées au service cartographique tiers (signalé dans l'interface). L'API donne une précision GPS indicative, pas une preuve absolue de présence ou d'identité. Aucun suivi sans autorisation ou lorsque l'app est fermée.
-- Aucune variable Cloudflare supplémentaire : les tables se créent avec la liaison D1 existante et les alertes utilisent l'abonnement Web Push déjà configuré. Le cache PWA passe en v25.
-
-- L'écran de localisation masque les boutons de navigation du bas pendant le partage ; « Accueil » arrête explicitement le partage avant de quitter. Une tentative de révocation est aussi envoyée si la page est démontée. Si le téléphone est fermé brutalement et que l'arrêt ne peut pas être transmis, l'ancienne position devient automatiquement invisible après ~85 secondes.
-
-## Synchronisation renforcée entre les deux téléphones
-
-- Le tableau « Dessiner ensemble » est commun aux deux membres **du même espace privé**, accessible depuis chacun de ses téléphones.
-- Chaque trait en cours peut apparaître progressivement chez le partenaire : l'application envoie un aperçu léger du tracé (environ toutes les 420 ms pendant le geste), récupéré par l'autre appareil toutes les ~650 ms. La version définitive du trait est conservée dans D1 après avoir levé le doigt.
-- Un état de présence indique si le partenaire se trouve actuellement sur le tableau. Quand il ferme le tableau ou met l'application en arrière-plan, sa présence est supprimée; les aperçus transitoires expirent et ne restent pas visibles.
-- La synchronisation survit à la fermeture et à la réouverture du tableau : le serveur renvoie les dessins enregistrés. Les modifications de l'autre utilisateur (dessin, morpion, effacement, annulation) sont récupérées automatiquement.
-- Une protection contre les réponses réseau arrivées dans le désordre empêche un ancien rafraîchissement d'effacer momentanément les traits que vient de créer l'utilisateur.
-- Les demandes et partages GPS utilisent désormais un rafraîchissement toutes les ~1,5 seconde quand la page est ouverte, avec un état d'accès au service. Cela ne change **pas** le consentement obligatoire ni les limites de 15 minutes et 85 secondes de fraîcheur des coordonnées.
-- La présence est éphémère et sans localisation. Aucun nouveau service externe ni configuration n'est nécessaire. Build PWA v26.
+- L'accueil et la section **Ensemble** ont été réorganisés : **Regarder ensemble** reste l'activité principale, puis **Moment** et **Retrouvailles** en raccourcis. Deux activités : « 💗 Tu me manques » et « 🧩 Puzzle à deux ». Il n'existe plus de bouton « Position » ni de tableau « Dessiner ensemble ».
+- **Puzzle** : neuf pièces carrées illustrées, 3×3. Trois images originales incluses dans le dépôt : cœurs, coucher de soleil et fleurs. Un joueur touche une pièce, puis une autre pour les échanger ; sur ordinateur, le glisser-déposer fonctionne aussi.
+- Le plateau et son thème sont communs aux deux partenaires du même espace privé ; une session serveur dans Cloudflare D1 sauvegarde les positions, le nombre d'échanges, le dernier joueur et la victoire. Chaque appareil récupère les changements environ chaque 1,15 seconde. Une protection de version empêche les déplacements simultanés contradictoires.
+- En choisissant une nouvelle image ou en mélangeant le plateau, le serveur réinitialise le **même puzzle** pour les deux joueurs ; une invitation Push peut être envoyée au partenaire si une nouvelle partie est lancée après une pause. L'alerte ouvre directement `/?tab=puzzle`.
+- Une miniature permet de consulter l'image à reconstruire, avec validation des pièces au bon endroit et un message commun lorsque les neuf pièces sont en place.
+- **Tu me manques** reste accessible : une pensée peut toujours être envoyée avec notification, et le partenaire peut répondre « Moi aussi ❤️ », « Je t'embrasse 😘 » ou « Je t'aime 💖 ». Les messages sont toujours dans la table `affection_signals`.
+- Les anciennes interfaces et les API de **dessin** et de **partage de position** sont supprimées. La nouvelle version n'effectue plus de collecte GPS ni d'écriture de coordonnées ; lors de la prochaine ouverture d'une activité « Ensemble » ou « Puzzle », les anciennes demandes de localisation stockées pour le couple sont effacées de D1.
+- Les anciennes tables de dessin ne sont plus utilisées ; les jeux, messages, souvenirs et appels restent indépendants et inchangés.
+- Tests : `npm run test:puzzle` et `npm run build`. Vérifier l'interaction sur deux vrais téléphones après déploiement.
 
 ## 📞 Réduire l'appel et écrire en même temps
 
@@ -266,8 +247,8 @@ Depuis **Ensemble → Regarder ensemble → TikTok**, chacun peut regarder la m�
 
 - La barre inférieure ne contient désormais que « Accueil », « Messages », « Ensemble », « Jeux » et « Souvenirs », tous de taille égale sur iPhone.
 - « Jeux » est un écran de sélection avec Ludo Duo et Memory Love. Le bouton retour de chaque jeu mène à cette sélection.
-- « Ensemble » regroupe le bouton « Tu me manques », le tableau partagé, le « Moment du jour » et « Notre position ». Le retour des pages Moment/Position mène à Ensemble.
-- Les anciens liens directs et notifications vers Ludo, Memory, Moment, Position, cœurs et dessin restent fonctionnels. L'onglet parent est sélectionné dans la barre du bas.
+- « Ensemble » regroupe « Tu me manques », « Puzzle à deux », « Moment du jour », « Retrouvailles » et « Regarder ensemble ». Le retour du puzzle et de Moment mène à Ensemble.
+- Les liens directs et notifications vers Ludo, Memory, Moment, cœurs et Puzzle restent fonctionnels ; les anciens liens Position redirigent vers Ensemble. L'onglet parent est sélectionné dans la barre du bas.
 - La barre latérale sur ordinateur utilise la même organisation en cinq destinations. Aucune donnée de jeu ou de conversation ne change. Cache PWA v28.
 
 ## Afficher le plateau Ludo avant l'arrivée de l'autre joueur
