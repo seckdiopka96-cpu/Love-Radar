@@ -17,4 +17,5 @@ jobs:
       - run: npm run test:privacy
       - run: npm run test:puzzle
       - run: npm run test:call
+      - run: npm run test:reconcile
       - run: npm run build
