@@ -238,6 +238,9 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const seconds=game.status==="playing"&&(solo?game.turn===0&&!assisted:members===2)?
   Math.max(0,Math.ceil((game.updatedAt+TURN_MS+(solo?0:serverOffset)-now)/1000)):null;
  const remaining=game.positions.map(row=>row.filter(p=>p.zone==="finished").length);
+ const invasionChoice=Boolean(chosen?.some(option=>option.action==="enemy"&&game.positions[seat][option.pawn].zone==="track"));
+ const enemyCagePawns=game.positions[enemy].filter(p=>p.zone==="home");
+ const directCapture=Boolean(chosen?.some(option=>option.action==="enemy"&&enemyCagePawns.some(p=>p.depth===option.to.depth)));
  const occupancy=new Map<string,{seat:Seat;pawn:number;active:boolean;zone:Pawn["zone"]}[]>();
  for(const side of [0,1] as Seat[])for(let pawn=0;pawn<4;pawn++){
   const current=game.positions[side][pawn];
@@ -339,11 +342,19 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
     </div>:null}
    </div>
    <div className="ludo-game-footer">
-    {chosen&&chosen.length?<div className="ludo-senegal-choice" role="dialog" aria-label="Choisis ton chemin">
-     <div><strong>🇸🇳 Où veux-tu aller ?</strong><span>Pion {chosen[0].pawn+1} · {game.dice} au dé</span></div>
+    {chosen&&chosen.length?<div className={"ludo-senegal-choice"+(invasionChoice?" is-raid-decision":"")} role="dialog" aria-label={invasionChoice?"Entrer dans la cage adverse ou continuer le tour":"Choisis ton chemin"}>
+     <div><strong>{invasionChoice?"😈 Entrer dans sa cage ou continuer ?":"🇸🇳 Où veux-tu aller ?"}</strong><span>Pion {chosen[0].pawn+1} · dé {game.dice}</span></div>
+     {invasionChoice?<p className="ludo-senegal-cage-hint" role="status">
+      {enemyCagePawns.length===0
+       ?"⚠️ Cage adverse vide : aucun pion à capturer. Tu peux continuer le tour. Si tu entres, il faudra un 6 pour en sortir."
+       :directCapture
+        ?"🎯 Capture possible ! Tu peux entrer pour attraper un pion, ou continuer ton chemin."
+        :"Il y a "+enemyCagePawns.length+" pion(s) adverse(s) dans la cage. À toi de choisir : entrer pour attaquer ou continuer."}
+     </p>:null}
      {chosen.map(option=><button key={option.action+"-"+option.to.gate+"-"+option.to.step}
-      type="button" onClick={()=>void move(option)}>
-      {option.label}
+      type="button" disabled={busy||rolling||Boolean(motion)} onClick={()=>void move(option)}
+      className={invasionChoice&&option.action==="track"?"ludo-senegal-continue":invasionChoice&&option.action==="enemy"?"ludo-senegal-enter":""}>
+      {invasionChoice&&option.action==="track"?"➡️ Continuer le tour":invasionChoice&&option.action==="enemy"?"😈 Entrer dans la cage adverse":option.label}
      </button>)}
      <button type="button" className="ludo-senegal-dismiss" onClick={()=>setChosen(null)}>Annuler</button>
     </div>:null}
