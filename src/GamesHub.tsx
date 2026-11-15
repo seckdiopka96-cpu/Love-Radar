@@ -1,5 +1,5 @@
 import "./games-hub.css";
-type Props={onOpenGame:(game:"ludo"|"ludo-solo"|"memory")=>void;partnerName:string|null};
+type Props={onOpenGame:(game:"ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo"|"memory")=>void;partnerName:string|null};
 export default function GamesHub({onOpenGame,partnerName}:Props){
  return <section className="lr-games-hub" aria-label="Jeux à deux et en solo">
   <header className="lr-games-hero">
@@ -16,11 +16,19 @@ export default function GamesHub({onOpenGame,partnerName}:Props){
     <span className="lr-games-symbol" aria-hidden="true">🤖</span>
     <span className="lr-games-copy"><small>MODE SOLO · AUCUN PARTENAIRE</small><strong>Ludo contre l’ordinateur</strong><span>Un vrai adversaire automatique, à tout moment.</span><b>Jouer en solo →</b></span>
    </button>
+   <button type="button" className="lr-games-choice lr-games-senegal" onClick={()=>onOpenGame("ludo-senegal")}>
+    <span className="lr-games-symbol" aria-hidden="true">🇸🇳</span>
+    <span className="lr-games-copy"><small>RÈGLES SÉNÉGALAISES · À DEUX</small><strong>Ludo Sénégal · Duo</strong><span>Plusieurs tours, attaque dans la cage adverse et demi-tour avec un 6.</span><b>Défier mon partenaire →</b></span>
+   </button>
+   <button type="button" className="lr-games-choice lr-games-senegal-solo" onClick={()=>onOpenGame("ludo-senegal-solo")}>
+    <span className="lr-games-symbol" aria-hidden="true">🇸🇳🤖</span>
+    <span className="lr-games-copy"><small>RÈGLES SÉNÉGALAISES · SOLO</small><strong>Ludo Sénégal · Ordinateur</strong><span>La même stratégie sénégalaise face à l’ordinateur.</span><b>Jouer en solo →</b></span>
+   </button>
    <button type="button" className="lr-games-choice lr-games-memory" onClick={()=>onOpenGame("memory")}>
     <span className="lr-games-symbol" aria-hidden="true">🃏</span>
     <span className="lr-games-copy"><small>JEU DE MÉMOIRE</small><strong>Memory Love</strong><span>Retrouvez les paires et relevez le défi.</span><b>Jouer à Memory →</b></span>
    </button>
   </div>
-  <p className="lr-games-note">Choisis ton jeu : contre l’ordinateur tout de suite, ou à deux avec ton partenaire. 💞</p>
+  <p className="lr-games-note">Choisis Ludo classique ou Sénégal 🇸🇳, contre l’ordinateur ou en duo avec ton partenaire. 💞</p>
  </section>;
 }
