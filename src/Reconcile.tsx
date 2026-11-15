@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useRef,useState,type FormEvent} from "react";
 import {apiFetch} from "./api";
+import {MAX_RECONCILIATION_TEXT,hasReconciliationMessage} from "./reconcile-rules";
 import "./reconcile.css";
 
 type Feelings={pain:string;needs:string;message:string};
@@ -11,7 +12,7 @@ type Session={
 type Reply={ok:boolean;error?:string;session?:Session|null};
 type Props={token:string;myName:string;partnerName:string|null;onExit:()=>void;onOpenChat:()=>void};
 const EMPTY:Feelings={pain:"",needs:"",message:""};
-const LIMIT={pain:16000,needs:5000,message:5000};
+const LIMIT=MAX_RECONCILIATION_TEXT;
 const same=(a:Feelings,b:Feelings)=>a.pain===b.pain&&a.needs===b.needs&&a.message===b.message;
 export default function Reconcile({token,myName,partnerName,onExit,onOpenChat}:Props){
  const [session,setSession]=useState<Session|null>(null);
@@ -34,7 +35,7 @@ export default function Reconcile({token,myName,partnerName,onExit,onOpenChat}:P
  const reinitialize=useRef(false);
  const partner=partnerName||session?.partnerName||"Ton amour";
  const canWrite=Boolean(session&&session.status==="writing"&&!session.mySubmitted);
- const canSubmit=canWrite&&Object.values(draft).some(value=>value.trim().length>0);
+ const canSubmit=canWrite&&hasReconciliationMessage(draft);
 
  const adopt=useCallback((result:Reply)=>{
   if(!live.current||result.session===undefined)return;
@@ -137,7 +138,7 @@ export default function Reconcile({token,myName,partnerName,onExit,onOpenChat}:P
   e.preventDefault();
   const s=sessionRef.current;
   if(!s||s.mySubmitted||s.status!=="writing"||busyRef.current)return;
-  if(!Object.values(draftRef.current).some(value=>value.trim().length>0)){
+  if(!hasReconciliationMessage(draftRef.current)){
    setError("Écris d’abord quelques mots sur ce que tu ressens.");return;
   }
   busyRef.current=true;setBusy(true);setError("");setNotice("");
