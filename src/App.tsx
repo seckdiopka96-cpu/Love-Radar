@@ -36,7 +36,8 @@ type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcil
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number;
  reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null;
  edited_at?:number;reactions?:{member_id:string;emoji:string}[]};
-type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
+type RecentReaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
+type Room = {recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
 type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
 
@@ -568,10 +569,12 @@ export default function LoveRadar(){
  useEffect(()=>{
   if(tab!=="chat"||!token||!room||document.visibilityState!=="visible")return;
   const newest=[...room.messages].reverse().find(m=>m.sender_id!==room.user.id);
-  if(!newest||newest.created_at<=lastReadSent.current)return;
-  lastReadSent.current=newest.created_at;
+  const latestReaction=room.recentReaction?.member_id!==room.user.id?Number(room.recentReaction?.updated_at||0):0;
+  const latestIncoming=Math.max(newest?.created_at||0,latestReaction);
+  if(latestIncoming<=lastReadSent.current)return;
+  lastReadSent.current=latestIncoming;
   void request("read").catch(()=>{lastReadSent.current=0});
- },[tab,room?.messages,room?.user.id,token,request]);
+ },[tab,room?.messages,room?.recentReaction?.updated_at,room?.recentReaction?.member_id,room?.user.id,token,request]);
  useEffect(()=>{
   if(tab!=="chat"&&typingActive.current){
    typingActive.current=false;
