@@ -1,7 +1,7 @@
 import type {D1Database} from "@cloudflare/workers-types";
-import type {PushEnv} from "../lib/push";
+import {notifyPartner,type PushEnv} from "../lib/push";
 
-type Ctx={request:Request;env:PushEnv};
+type Ctx={request:Request;env:PushEnv;waitUntil:(task:Promise<unknown>)=>void};
 type Member={id:string;room_id:string;name:string;seat:number};
 type WatchRow={room_id:string;video_id:string;playing:number;position:number;synced_at:number;updated_at:number;updated_by:string|null;version:number};
 type WatchState={videoId:string;playing:boolean;position:number;syncedAt:number;updatedAt:number;updatedBy:string|null;version:number};
@@ -72,6 +72,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
   if(data.action!=="set-video"&&!positionValid(data.position))return fail("Position de lecture invalide.");
   const now=Date.now();
   const videoId=data.action==="set-video"?String(data.videoId):current.video_id;
+  const wasPaused=current.playing===0;
   const playing=data.action==="set-video"||data.action==="pause"?0:data.action==="play"?1:current.playing;
   const position=data.action==="set-video"?0:Number(data.position);
   // Optimistic version check prevents stale devices from overwriting each other.
@@ -80,6 +81,12 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
   ).bind(videoId,playing,position,now,now,user.name.slice(0,60),user.room_id,current.version).run();
   if(updated.meta.changes!==1)return fail("L'autre appareil vient de modifier la lecture.",409);
   current=await session(db,user.room_id);
+  if(data.action==="play"&&playing===1&&wasPaused){
+   ctx.waitUntil(notifyPartner(ctx.env,user.room_id,user.id,
+    "🎬 "+user.name.slice(0,28)+" t’invite à regarder YouTube",
+    user.name.slice(0,28)+" a lancé une vidéo YouTube ! Appuie pour la rejoindre directement ❤️",
+    "watch"));
+  }
   return ok(await view(db,user,current));
  }catch(error){console.error("Love Radar Watch Together",error);return fail("La salle vidéo est momentanément indisponible.",500);}
 }
