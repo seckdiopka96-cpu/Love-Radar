@@ -448,3 +448,101 @@
 @media(prefers-reduced-motion:reduce){
  .ludo-experience .ludo-cell-pawns .ludo-pawn-stacked.can-move svg{animation:none}
 }
+
+
+/* LUDO DUO — visible movement pass. Motion is a foreground character,
+   not a tiny colour change in the board: each hop lands before the next one. */
+.ludo-experience .ludo-board{
+  isolation:isolate;
+  background:#fffdf2;
+  box-shadow:inset 0 0 18px #a2684938,0 2px 5px #1d0b1740
+}
+.ludo-experience .ludo-board-animating .ludo-cell.ludo-route-current{
+  z-index:6
+}
+.ludo-experience .ludo-board-animating .ludo-route-current::before{
+  background:#ffe5a9;
+  box-shadow:inset 0 0 0 2px #f39d34,0 0 13px 5px #ffcf58af
+}
+.ludo-experience .ludo-moving-pawn{
+  z-index:100;
+  width:clamp(24px,9.5%,41px);
+  height:clamp(32px,12.5%,53px);
+  transform:translate(-50%,-59%);
+  transition:left .375s cubic-bezier(.22,.68,.27,1),top .375s cubic-bezier(.22,.68,.27,1);
+  filter:drop-shadow(0 8px 4px #160819b3) drop-shadow(0 0 6px #fff8dfb0);
+  will-change:left,top;
+  isolation:isolate;
+  --ludo-move-glow:#ff627f
+}
+.ludo-experience .ludo-moving-pawn.ludo-pawn-gold{--ludo-move-glow:#ffcf43}
+.ludo-experience .ludo-motion-aura{
+  position:absolute;
+  z-index:-1;
+  width:155%;
+  height:80%;
+  left:50%;
+  top:67%;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  background:radial-gradient(ellipse at center,#fff9d7db 0 18%,var(--ludo-move-glow) 39%,transparent 73%);
+  box-shadow:0 0 14px 3px var(--ludo-move-glow);
+  opacity:.8;
+  animation:ludo-move-aura .55s ease-in-out infinite alternate
+}
+@keyframes ludo-move-aura{
+  from{opacity:.55;scale:.82}
+  to{opacity:.97;scale:1.12}
+}
+.ludo-experience .ludo-moving-bounce{
+  position:relative;
+  z-index:2;
+  display:block;
+  width:100%;
+  height:100%;
+  animation:ludo-visible-hop .42s cubic-bezier(.25,.1,.26,1) both
+}
+@keyframes ludo-visible-hop{
+  0%{transform:translateY(0) scale(1)}
+  36%{transform:translateY(-20px) scale(1.16)}
+  70%{transform:translateY(-8px) scale(1.1)}
+  100%{transform:translateY(0) scale(1)}
+}
+.ludo-experience .ludo-moving-pawn svg{
+  filter:drop-shadow(0 2px 2px #221021b8) drop-shadow(0 0 2px #fff)
+}
+.ludo-experience .ludo-motion-step{
+  z-index:3;
+  top:-24px;
+  font-size:11px;
+  letter-spacing:.5px;
+  padding:4px 8px;
+  background:linear-gradient(125deg,#3a1e52,#723658);
+  color:#fff8e8;
+  border:1.5px solid #ffde91;
+  box-shadow:0 4px 11px #160b21bd,0 0 7px #ffc75d52
+}
+.ludo-experience .ludo-cell-pawns .ludo-pawn-stacked{
+  width:min(34px,185%);
+  height:min(46px,245%);
+}
+.ludo-experience .ludo-stack-2 .ludo-pawn-stacked,
+.ludo-experience .ludo-stack-3 .ludo-pawn-stacked,
+.ludo-experience .ludo-stack-4 .ludo-pawn-stacked{
+  filter:drop-shadow(0 1px 2px #221021b0)
+}
+@media(max-width:950px){
+ .ludo-experience .ludo-cell-pawns .ludo-pawn-stacked{
+   width:min(34px,185%);
+   height:min(46px,245%)
+ }
+ .ludo-experience .ludo-moving-pawn{
+   width:clamp(23px,9.6%,38px);
+   height:clamp(31px,12.8%,50px)
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .ludo-experience .ludo-moving-pawn{transition:none;will-change:auto}
+ .ludo-experience .ludo-moving-bounce,.ludo-experience .ludo-motion-aura{animation:none}
+}
