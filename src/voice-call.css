@@ -104,3 +104,213 @@
  .lr-call-mini-info strong{font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){.lr-call-mini-pulse{animation:none}}
+
+
+/* FaceTime-inspired AUDIO-ONLY screen, in the existing Love Radar rose/plum/night palette.
+   This deliberately wins over older global call-card styling without touching WebRTC. */
+.lr-call-backdrop{
+ padding:0!important;
+ background:#130c20!important;
+ align-items:stretch!important;justify-content:center!important;
+ overscroll-behavior:contain;
+}
+.lr-call-backdrop .lr-call-sheet.lr-call-facetime{
+ position:relative!important;isolation:isolate!important;
+ display:flex!important;flex-direction:column!important;
+ align-items:stretch!important;justify-content:space-between!important;
+ flex:1 1 auto!important;
+ width:100%!important;max-width:100%!important;
+ height:100dvh!important;min-height:100dvh!important;max-height:100dvh!important;
+ margin:0!important;
+ padding:calc(40px + env(safe-area-inset-top)) max(21px,calc((100vw - 530px)/2)) calc(27px + env(safe-area-inset-bottom))!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ overflow-x:hidden!important;overflow-y:auto!important;scrollbar-width:none;
+ background:
+  radial-gradient(ellipse at 17% 23%,rgba(167,96,154,.27) 0%,transparent 50%),
+  radial-gradient(ellipse at 78% 70%,rgba(92,57,148,.27) 0%,transparent 53%),
+  linear-gradient(158deg,#503356 0%,#312b51 41%,#172445 72%,#111d38 100%)!important;
+ color:#fff!important;
+}
+.lr-call-backdrop .lr-call-sheet.lr-call-facetime::-webkit-scrollbar{display:none}
+.lr-call-backdrop .lr-call-upper{width:100%;min-width:0;display:flex;flex-direction:column;gap:0;flex:0 0 auto}
+.lr-call-backdrop .lr-call-topbar{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;margin-bottom:24px}
+.lr-call-backdrop .lr-call-top-spacer{width:80px;height:40px}
+.lr-call-backdrop .lr-call-minimize{
+ align-self:auto!important;margin:0!important;padding:8px 12px!important;
+ min-height:42px!important;display:flex!important;align-items:center;gap:5px;
+ border:1px solid rgba(255,223,242,.19)!important;border-radius:100px!important;
+ background:rgba(255,255,255,.11)!important;color:#fff1f7!important;
+ font:700 13px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;
+ box-shadow:none!important;
+}
+.lr-call-backdrop .lr-call-minimize span{font-size:13px!important;line-height:1!important}
+.lr-call-backdrop .lr-call-info-button{
+ width:44px;height:44px;display:grid;place-items:center;
+ padding:0;background:transparent!important;border:0!important;
+ color:rgba(255,247,255,.95)!important;cursor:pointer;flex:none;
+}
+.lr-call-backdrop .lr-call-info-button svg{width:30px;height:30px}
+.lr-call-backdrop .lr-call-identity{display:flex;align-items:center;gap:19px;width:100%;min-width:0}
+.lr-call-backdrop .lr-call-initial{
+ flex:0 0 86px;width:86px!important;height:86px!important;min-width:86px!important;
+ border:2px solid rgba(255,213,239,.42)!important;
+ border-radius:50%!important;display:grid;place-items:center;
+ background:linear-gradient(135deg,#a95c8e,#593c75)!important;
+ box-shadow:0 12px 40px #170d2870!important;
+ color:#fff5f9!important;font:800 37px/1 -apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif!important;
+}
+.lr-call-backdrop .lr-call-identification{min-width:0;display:flex;flex-direction:column;align-items:flex-start}
+.lr-call-backdrop .lr-call-brand{
+ margin:0 0 5px!important;font:650 16px/1.2 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;
+ letter-spacing:0!important;text-transform:none!important;color:rgba(255,228,244,.77)!important;
+}
+.lr-call-backdrop .lr-call-duration{
+ margin:0!important;font:650 18px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;
+ font-variant-numeric:tabular-nums!important;letter-spacing:.2px!important;
+ color:rgba(255,228,244,.78)!important;
+}
+.lr-call-backdrop .lr-call-identification h2{
+ margin:9px 0 0!important;padding:0!important;
+ color:#fff!important;font:750 clamp(34px,9vw,52px)/1.07 -apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif!important;
+ text-align:left!important;letter-spacing:-1.5px;overflow-wrap:anywhere;
+}
+.lr-call-backdrop .lr-call-status{
+ min-height:0!important;margin:7px 0 0!important;text-align:left!important;
+ font-size:13px!important;line-height:1.3!important;color:#eed0e6!important;
+}
+.lr-call-backdrop .lr-call-feedback{display:flex;flex-direction:column;align-items:flex-start;gap:7px;width:100%;margin-top:18px}
+.lr-call-backdrop .lr-call-feedback:empty{display:none}
+.lr-call-backdrop .lr-call-feedback .lr-call-error,
+.lr-call-backdrop .lr-call-feedback .lr-call-audio-hint{
+ text-align:left!important;max-width:100%!important;margin:0!important;
+ color:#fff1f8!important;background:rgba(13,20,43,.57)!important;
+ border:1px solid rgba(255,221,237,.17)!important;border-radius:12px!important;
+ padding:9px 11px!important;font-size:12px!important;line-height:1.45!important;
+}
+.lr-call-backdrop .lr-call-sound{margin:0!important;padding:9px 14px!important;border-radius:14px!important;font-weight:700!important}
+.lr-call-backdrop .lr-call-actions{
+ flex:0 0 auto;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ justify-items:center!important;align-items:start!important;justify-content:initial!important;
+ width:100%!important;max-width:480px!important;
+ margin:40px auto 0!important;gap:29px 4px!important;padding:0!important;
+}
+.lr-call-backdrop .lr-call-actions.is-ringing{
+ grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ max-width:350px!important;gap:16px!important;margin-bottom:24px!important;
+}
+.lr-call-backdrop .lr-call-action{
+ display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;
+ gap:11px!important;width:100%!important;height:auto!important;min-width:0!important;
+ padding:0!important;margin:0!important;
+ border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
+ color:#fff!important;cursor:pointer;flex:unset!important;
+ font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;
+}
+.lr-call-backdrop .lr-call-action:disabled{opacity:.45;cursor:not-allowed}
+.lr-call-backdrop .lr-call-action .lr-call-control-icon{
+ display:grid!important;place-items:center!important;position:static!important;
+ transform:none!important;left:auto!important;top:auto!important;
+ width:clamp(67px,22vw,88px)!important;height:clamp(67px,22vw,88px)!important;
+ border:1.5px solid rgba(255,231,247,.44)!important;
+ border-radius:50%!important;background:rgba(229,218,248,.16)!important;
+ color:#fff!important;box-shadow:inset 0 1px 2px rgba(255,255,255,.13)!important;
+ backdrop-filter:blur(15px)!important;transition:background .15s,transform .15s;
+}
+.lr-call-backdrop .lr-call-action .lr-call-control-icon svg{display:block!important;width:33px!important;height:33px!important}
+.lr-call-backdrop .lr-call-action .lr-call-control-label{
+ position:static!important;top:auto!important;left:auto!important;transform:none!important;
+ display:block!important;max-width:100%!important;padding:0!important;margin:0!important;
+ color:#fff7ff!important;font-size:clamp(11px,3.15vw,15px)!important;
+ font-weight:650!important;line-height:1.25!important;white-space:nowrap!important;text-align:center!important;
+}
+.lr-call-backdrop .lr-call-action:active .lr-call-control-icon{transform:scale(.95)!important}
+.lr-call-backdrop .lr-call-action:focus-visible .lr-call-control-icon,
+.lr-call-backdrop .lr-call-info-button:focus-visible{outline:3px solid #ffd2ec!important;outline-offset:4px!important}
+.lr-call-backdrop .lr-call-action.lr-call-speaker.is-selected .lr-call-control-icon,
+.lr-call-backdrop .lr-call-action.lr-call-mute.is-muted .lr-call-control-icon{
+ background:#fff1fc!important;border-color:#fff!important;color:#392347!important;
+}
+.lr-call-backdrop .lr-call-action.lr-call-decline .lr-call-control-icon{
+ background:#df264e!important;border-color:#ff7b94!important;color:#fff!important;
+ box-shadow:0 9px 25px rgba(104,9,34,.3)!important;
+}
+.lr-call-backdrop .lr-call-action.lr-call-answer .lr-call-control-icon{
+ background:#2cbd82!important;border-color:#9de4bd!important;color:#fff!important;
+}
+.lr-call-backdrop .lr-call-panel-backdrop{
+ position:absolute;z-index:6;inset:0;
+ display:flex;align-items:flex-end;justify-content:center;
+ padding:18px max(12px,env(safe-area-inset-left)) calc(15px + env(safe-area-inset-bottom));
+ background:rgba(9,9,25,.72);backdrop-filter:blur(8px);
+ box-sizing:border-box;
+}
+.lr-call-backdrop .lr-call-panel{
+ display:flex;flex-direction:column;gap:15px;width:min(100%,450px);
+ max-height:min(82dvh,750px);overflow-y:auto;
+ padding:19px 17px 22px;
+ border:1px solid #a67caa;border-radius:26px;
+ background:linear-gradient(150deg,#473453,#222944);
+ color:#fff;box-shadow:0 20px 50px #080916aa;
+}
+.lr-call-backdrop .lr-call-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.lr-call-backdrop .lr-call-panel-head strong{font-size:18px;font-weight:780}
+.lr-call-backdrop .lr-call-panel-head button{
+ width:36px;height:36px;border:1px solid #987ba1;border-radius:50%;
+ background:#ffffff20;color:#fff;font-size:25px;cursor:pointer;
+}
+.lr-call-backdrop .lr-call-panel-details{display:flex;flex-direction:column;gap:0}
+.lr-call-backdrop .lr-call-panel-details p{
+ width:100%;min-height:0!important;display:flex;justify-content:space-between;gap:10px;align-items:center;
+ padding:13px 2px;margin:0!important;border-bottom:1px solid #ffffff1c;
+ font-size:13px!important;color:#fae9f6!important;
+}
+.lr-call-backdrop .lr-call-panel-details p strong{text-align:right;font-size:13px;color:white}
+.lr-call-backdrop .lr-call-panel-options{display:flex;flex-direction:column;gap:8px}
+.lr-call-backdrop .lr-call-panel-options button,
+.lr-call-backdrop .lr-call-keypad-clear{
+ min-height:46px;padding:10px 15px;border-radius:13px;border:1px solid #9879a4;
+ background:#ffffff19;color:#fff;font-weight:700;font-size:14px;cursor:pointer;text-align:left;
+}
+.lr-call-backdrop .lr-call-keypad-area{display:flex;flex-direction:column;gap:13px;align-items:center}
+.lr-call-backdrop .lr-call-dialed{
+ min-height:35px;font-size:25px;font-weight:750;font-variant-numeric:tabular-nums;letter-spacing:2px;
+ overflow-wrap:anywhere;max-width:100%;text-align:center;
+}
+.lr-call-backdrop .lr-call-keypad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px 24px}
+.lr-call-backdrop .lr-call-keypad-grid button{
+ display:grid;place-items:center;width:65px;height:65px;border-radius:50%;
+ border:1px solid #ffffff59;background:#ffffff2a;color:#fff;font:650 27px/1 system-ui;cursor:pointer;
+}
+.lr-call-backdrop .lr-call-keypad-clear{width:100%;text-align:center!important;min-height:42px}
+.lr-call-backdrop .lr-call-keypad-clear:disabled{opacity:.4}
+.lr-call-backdrop .lr-call-keypad-area>p{font-size:11px!important;min-height:0!important;line-height:1.5!important;text-align:center;color:#e3cde1!important}
+@media(min-width:750px){
+ .lr-call-backdrop{padding:20px!important;align-items:center!important}
+ .lr-call-backdrop .lr-call-sheet.lr-call-facetime{
+  flex:0 1 530px!important;width:530px!important;max-width:530px!important;
+  height:min(920px,calc(100dvh - 40px))!important;
+  min-height:0!important;max-height:calc(100dvh - 40px)!important;
+  padding:45px 39px 43px!important;border:1px solid #806285!important;
+  border-radius:32px!important;box-shadow:0 30px 95px #0008!important;
+ }
+}
+@media(max-width:375px){
+ .lr-call-backdrop .lr-call-sheet.lr-call-facetime{
+  padding-left:12px!important;padding-right:12px!important;
+ }
+ .lr-call-backdrop .lr-call-identity{gap:13px}
+ .lr-call-backdrop .lr-call-initial{width:72px!important;height:72px!important;min-width:72px!important;flex-basis:72px;font-size:32px!important}
+ .lr-call-backdrop .lr-call-identification h2{font-size:clamp(30px,8.4vw,42px)!important}
+ .lr-call-backdrop .lr-call-action .lr-call-control-label{font-size:10.5px!important}
+ .lr-call-backdrop .lr-call-actions{gap:23px 1px!important}
+}
+@media(max-height:690px){
+ .lr-call-backdrop .lr-call-sheet.lr-call-facetime{padding-top:calc(12px + env(safe-area-inset-top))!important;padding-bottom:calc(12px + env(safe-area-inset-bottom))!important}
+ .lr-call-backdrop .lr-call-topbar{margin-bottom:11px}
+ .lr-call-backdrop .lr-call-actions{gap:15px 4px!important;margin-top:18px!important}
+ .lr-call-backdrop .lr-call-action .lr-call-control-icon{width:62px!important;height:62px!important}
+ .lr-call-backdrop .lr-call-action .lr-call-control-label{font-size:11px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-call-backdrop .lr-call-action .lr-call-control-icon{transition:none!important}
+}
