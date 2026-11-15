@@ -9,14 +9,14 @@ type ResponseState={ok:boolean;error?:string;state?:WatchSnapshot;serverNow?:num
 type Props={
  token:string;myId:string;myName:string;partnerName:string|null;
  messages:TextMessage[];onSendText:(text:string)=>Promise<void>;
- onOpenChat:()=>void;onOpenNetflix:()=>void;onExit:()=>void
+ onOpenChat:()=>void;onOpenTikTok:()=>void;onExit:()=>void
 };
 type WatchAction="set-video"|"play"|"pause"|"seek";
 const MAX_DURATION=86400;
 const safeCurrent=(p:YouTubePlayer|null)=>{try{return p?Math.max(0,Math.min(MAX_DURATION,p.getCurrentTime())):0}catch{return 0}};
 const safeDuration=(p:YouTubePlayer|null)=>{try{return p?Math.max(0,p.getDuration()):0}catch{return 0}};
 
-export default function WatchTogether({token,myId,myName,partnerName,messages,onSendText,onOpenChat,onOpenNetflix,onExit}:Props){
+export default function WatchTogether({token,myId,myName,partnerName,messages,onSendText,onOpenChat,onOpenTikTok,onExit}:Props){
  const [shared,setShared]=useState<WatchSnapshot|null>(null);
  const [members,setMembers]=useState(1);
  const [partnerWatching,setPartnerWatching]=useState(false);
@@ -271,7 +271,7 @@ export default function WatchTogether({token,myId,myName,partnerName,messages,on
   </header>
   <div className="wt-provider-tabs" role="group" aria-label="Choisir la plateforme vidéo">
    <button type="button" className="active" aria-current="page">▶ YouTube</button>
-   <button type="button" onClick={onOpenNetflix}>🎬 Netflix à deux</button>
+   <button type="button" onClick={onOpenTikTok}>♪ TikTok ensemble</button>
   </div>
   <div className="wt-presence" role="status" aria-live="polite">
    <span className={"wt-live-dot"+(partnerWatching?" active":"")}/>
