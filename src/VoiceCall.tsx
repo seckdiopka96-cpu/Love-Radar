@@ -78,11 +78,12 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
   if(sendingCandidates.current||!sessionDescriptionSent.current)return;
   sendingCandidates.current=true;
   try{
-   while(sessionDescriptionSent.current&&queuedCandidates.current.length&&current.current?.id===callId){
-    const candidate=queuedCandidates.current[0];
+   const queue=queuedCandidates.current;
+   while(sessionDescriptionSent.current&&queue.length&&current.current?.id===callId&&queue===queuedCandidates.current){
+    const candidate=queue[0];
     try{
      await api("signal",{id:callId,kind:"candidate",candidate});
-     queuedCandidates.current.shift();
+     if(queue===queuedCandidates.current)queue.shift();
     }catch(error){
      // A transient error will be retried at the next signaling poll.
      console.warn("Trickle ICE delivery retry",error);
@@ -121,7 +122,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
   if(pc.current)return pc.current;
   if(!local.current)throw Error("Le microphone doit être autorisé.");
   if(typeof RTCPeerConnection==="undefined")throw Error("Les appels vocaux ne sont pas compatibles avec cet appareil.");
-  const peer=new RTCPeerConnection({iceServers:iceServers.current});
+  const peer=new RTCPeerConnection({iceServers:iceServers.current,iceCandidatePoolSize:2});
   peer.onicecandidate=event=>{
    if(pc.current!==peer||!event.candidate||!current.current)return;
    queuedCandidates.current.push(event.candidate.toJSON());
@@ -157,7 +158,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
   try{
    const peer=createPeer();
    setPhase("Connexion en cours…");
-   await peer.setLocalDescription(await peer.createOffer({offerToReceiveAudio:true}));
+   if(!peer.localDescription)await peer.setLocalDescription(await peer.createOffer({offerToReceiveAudio:true}));
    if(current.current?.id!==call.id||pc.current!==peer)return;
    // Send the offer immediately; trickle ICE paths over separate messages.
    await api("signal",{id:call.id,kind:"offer",sdp:peer.localDescription?.sdp||""});
@@ -165,7 +166,8 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
    sessionDescriptionSent.current=true;
    void flushCandidates(call.id);
   }catch(err){
-   if(current.current?.id===call.id)setError(err instanceof Error?err.message:"Impossible de connecter l’appel.");
+   offered.current=false;
+    if(current.current?.id===call.id)setError(err instanceof Error?err.message:"Impossible de connecter l’appel.");
   }
  },[api,createPeer,flushCandidates]);
  const receive=useCallback(async(call:Call,signal:Signal)=>{
@@ -175,8 +177,8 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
    answered.current=true;
    try{
     setPhase("Connexion en cours…");
-    await peer.setRemoteDescription({type:"offer",sdp:signal.payload});
-    await peer.setLocalDescription(await peer.createAnswer());
+    if(!peer.remoteDescription)await peer.setRemoteDescription({type:"offer",sdp:signal.payload});
+    if(!peer.localDescription)await peer.setLocalDescription(await peer.createAnswer());
     if(current.current?.id!==call.id||pc.current!==peer)return true;
     await api("signal",{id:call.id,kind:"answer",sdp:peer.localDescription?.sdp||""});
     if(current.current?.id!==call.id||pc.current!==peer)return true;
@@ -222,10 +224,11 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
      if(handled)signalAfter.current=signal.id;
      else break;
     }
+    if(sessionDescriptionSent.current&&queuedCandidates.current.length)void flushCandidates(call.id);
    }
   }catch(err){if(current.current)setError(err instanceof Error?err.message:"Réseau indisponible.")}
   finally{isPolling.current=false}
- },[api,offer,receive,reset,setCurrent]);
+ },[api,offer,receive,reset,setCurrent,flushCandidates]);
  useEffect(()=>{
   if(!hasPartner)return;
   let stopped=false,timer:number|null=null;
