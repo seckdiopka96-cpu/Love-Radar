@@ -132,6 +132,7 @@ export default function LoveRadar(){
  const lastTypingSent=useRef(0);
  const typingActive=useRef(false);
  const recordingActive=useRef(false);
+ const discardRecording=useRef(false);
  useEffect(()=>{
   const viewport=window.visualViewport;
   const sync=()=>{
@@ -538,6 +539,7 @@ export default function LoveRadar(){
    void request("typing",{active:false}).catch(()=>{});
   }
   if(tab!=="chat"&&recordingActive.current){
+   discardRecording.current=true;
    if(recorder.current?.state==="recording")recorder.current.stop();
    recordingActive.current=false;
    void request("recording",{active:false}).catch(()=>{});
@@ -624,7 +626,7 @@ export default function LoveRadar(){
   if(file)await upload(file,"image");
  }
  async function toggleRecording(){
-  if(recording&&recorder.current){recorder.current.stop();setRecording(false);return}
+  if(recording&&recorder.current){if(recorder.current.state==="recording")recorder.current.stop();setRecording(false);return}
   if(busy||!room?.partner)return;
   if(typeof navigator==="undefined"||!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined"){setError("Enregistrement vocal indisponible sur ce navigateur.");return}
   setError("");
@@ -636,6 +638,7 @@ export default function LoveRadar(){
    const chunks:Blob[]=[];
    rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
    rec.onerror=()=>{
+     discardRecording.current=true;
      recordingActive.current=false;
      void request("recording",{active:false}).catch(()=>{});
      setError("Enregistrement interrompu.");
@@ -648,8 +651,10 @@ export default function LoveRadar(){
     const type=rec.mimeType?.split(";")[0]||"audio/mp4";
     const ext=type.includes("webm")?"webm":type.includes("ogg")?"ogg":"m4a";
     const blob=new Blob(chunks,{type});
-    if(blob.size>0){void upload(new File([blob],"vocal."+ext,{type}),"audio")}
+    if(blob.size>0&&!discardRecording.current){void upload(new File([blob],"vocal."+ext,{type}),"audio")}
+    discardRecording.current=false;
    };
+   discardRecording.current=false;
    rec.start(1000);recorder.current=rec;recordingActive.current=true;setRecording(true);
     setTyping(false);
     void request("recording",{active:true}).catch(()=>{});
