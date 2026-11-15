@@ -6,14 +6,14 @@ let presenceReady: Promise<void> | null = null;
 async function ensureChatPresence(db:D1Database){
  if(!presenceReady){
   presenceReady=(async()=>{
-   await db.exec("CREATE TABLE IF NOT EXISTS chat_presence (room_id TEXT NOT NULL, member_id TEXT NOT NULL, last_read_at INTEGER NOT NULL DEFAULT 0, typing_until INTEGER NOT NULL DEFAULT 0, last_seen_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(room_id,member_id))");
+   await db.exec("CREATE TABLE IF NOT EXISTS chat_presence (room_id TEXT NOT NULL, member_id TEXT NOT NULL, last_read_at INTEGER NOT NULL DEFAULT 0, typing_until INTEGER NOT NULL DEFAULT 0, recording_until INTEGER NOT NULL DEFAULT 0, last_seen_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(room_id,member_id))");
    const columns=await db.prepare("PRAGMA table_info(chat_presence)").all<{name:string}>();
-   if(!columns.results.some(col=>col.name==="last_seen_at")){
-    try{await db.exec("ALTER TABLE chat_presence ADD COLUMN last_seen_at INTEGER NOT NULL DEFAULT 0")}
+   for(const field of ["last_seen_at","recording_until"] as const){
+    if(columns.results.some(col=>col.name===field))continue;
+    try{await db.exec("ALTER TABLE chat_presence ADD COLUMN "+field+" INTEGER NOT NULL DEFAULT 0")}
     catch(err){
-     // Another invocation may have migrated the table concurrently.
      const updated=await db.prepare("PRAGMA table_info(chat_presence)").all<{name:string}>();
-     if(!updated.results.some(col=>col.name==="last_seen_at"))throw err;
+     if(!updated.results.some(col=>col.name===field))throw err;
     }
    }
   })().catch(err=>{presenceReady=null;throw err});
@@ -48,14 +48,14 @@ async function auth(request:Request):Promise<{db:D1Database,user:Member}|null>{
 async function snapshot(db:D1Database,u:Member){
  const partners=await db.prepare("SELECT id,name,seat FROM members WHERE room_id=? ORDER BY seat").bind(u.room_id).all<{id:string,name:string,seat:number}>();
  const messages=await db.prepare("SELECT id,sender_id,kind,content,object_key,mime,created_at FROM messages WHERE room_id=? AND kind IN ('text','image','audio') ORDER BY created_at DESC,id DESC LIMIT 90").bind(u.room_id).all();
- const otherStatus=await db.prepare("SELECT last_read_at,typing_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1").bind(u.room_id,u.id).first<{last_read_at:number,typing_until:number,last_seen_at:number}>();
+ const otherStatus=await db.prepare("SELECT last_read_at,typing_until,recording_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1").bind(u.room_id,u.id).first<{last_read_at:number,typing_until:number,recording_until:number,last_seen_at:number}>();
  const unread=await db.prepare("SELECT COUNT(*) AS n FROM messages WHERE room_id=? AND sender_id<>? AND kind IN ('text','image','audio') AND created_at>COALESCE((SELECT last_read_at FROM chat_presence WHERE room_id=? AND member_id=?),0)")
   .bind(u.room_id,u.id,u.room_id,u.id).first<{n:number}>();
 
 
  return {user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id},code:u.invite,roomId:u.room_id,
   partner:partners.results.find(a=>a.id!==u.id)?.name||null,members:partners.results.length,
-  messages:messages.results.reverse(),unreadCount:Number(unread?.n||0),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
+  messages:messages.results.reverse(),unreadCount:Number(unread?.n||0),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerRecordingUntil:otherStatus?.recording_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
 }
 
   const handlers: Record<"GET"|"POST",(args:{request:Request})=>Promise<Response>> = {
@@ -64,6 +64,11 @@ async function snapshot(db:D1Database,u:Member){
     const session=await auth(request);
     if(!session)return fail("Session expirée ou invalide.",401);
     await ensureChatPresence(session.db);
+    if(new URL(request.url).searchParams.get("status")==="1"){
+     const presence=await session.db.prepare("SELECT typing_until,recording_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1")
+      .bind(session.user.room_id,session.user.id).first<{typing_until:number,recording_until:number,last_seen_at:number}>();
+     return ok({partnerTypingUntil:presence?.typing_until??0,partnerRecordingUntil:presence?.recording_until??0,partnerLastSeenAt:presence?.last_seen_at??0});
+    }
     const overview=await snapshot(session.db,session.user);
     const id=new URL(request.url).searchParams.get("messageId");
     if(id){
@@ -115,11 +120,17 @@ async function snapshot(db:D1Database,u:Member){
      await db.prepare("INSERT INTO chat_presence(room_id,member_id,last_seen_at) VALUES(?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET last_seen_at=excluded.last_seen_at").bind(u.room_id,u.id,Date.now()).run();
      return ok({online:true});
     }
-    if(op==="typing"){
-     await ensureChatPresence(db);
-     const until=body.active===true?Date.now()+6500:0;
-     await db.prepare("INSERT INTO chat_presence(room_id,member_id,typing_until) VALUES(?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET typing_until=excluded.typing_until").bind(u.room_id,u.id,until).run();
-     return ok({typing:true});
+    if(op==="typing"||op==="recording"){
+      await ensureChatPresence(db);
+      const now=Date.now(),until=body.active===true?now+8500:0;
+      if(op==="typing"){
+       await db.prepare("INSERT INTO chat_presence(room_id,member_id,typing_until,last_seen_at) VALUES(?,?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET typing_until=excluded.typing_until,last_seen_at=excluded.last_seen_at")
+        .bind(u.room_id,u.id,until,now).run();
+      }else{
+       await db.prepare("INSERT INTO chat_presence(room_id,member_id,recording_until,last_seen_at) VALUES(?,?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET recording_until=excluded.recording_until,last_seen_at=excluded.last_seen_at")
+        .bind(u.room_id,u.id,until,now).run();
+      }
+      return ok({activity:op,until});
     }
     if(op==="read"){
      await ensureChatPresence(db);
