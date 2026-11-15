@@ -34,6 +34,8 @@ test("Together has one prominent watch entry and compact separate shortcuts",()=
  assert.equal((together.match(/className="tg-watch-link"/g)||[]).length,0);
  assert.ok(together.includes('className="tg-moment-link"'));
  assert.ok(together.includes('className="tg-reunion-link"'));
- assert.ok(together.includes('className="tg-location-link"'));
+ assert.ok(together.includes('className="tg-puzzle-open"'));
+ assert.ok(!together.includes('className="tg-location-link"'));
+ assert.ok(!together.includes("Dessiner ensemble"));
  assert.ok(together.includes("tg-feed-empty"));
 });
