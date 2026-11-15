@@ -26,7 +26,7 @@ async function ensureChatPresence(db:D1Database){
 let repliesReady:Promise<void>|null=null;
 async function ensureMessageReplies(db:D1Database){
  if(!repliesReady){
-  repliesReady=db.exec("CREATE TABLE IF NOT EXISTS message_replies (room_id TEXT NOT NULL, message_id TEXT NOT NULL PRIMARY KEY, target_id TEXT NOT NULL, created_at INTEGER NOT NULL)").catch(err=>{repliesReady=null;throw err});
+  repliesReady=db.exec("CREATE TABLE IF NOT EXISTS message_replies (room_id TEXT NOT NULL, message_id TEXT NOT NULL PRIMARY KEY, target_id TEXT NOT NULL, created_at INTEGER NOT NULL)").then(()=>{}).catch(err=>{repliesReady=null;throw err});
  }
  await repliesReady;
 }
