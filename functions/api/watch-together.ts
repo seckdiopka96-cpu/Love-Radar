@@ -72,7 +72,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
   if(data.action!=="set-video"&&!positionValid(data.position))return fail("Position de lecture invalide.");
   const now=Date.now();
   const videoId=data.action==="set-video"?String(data.videoId):current.video_id;
-  const playing=data.action==="set-video"||data.action==="pause"||data.action==="seek"?0:1;
+  const playing=data.action==="set-video"||data.action==="pause"?0:data.action==="play"?1:current.playing;
   const position=data.action==="set-video"?0:Number(data.position);
   // Optimistic version check prevents stale devices from overwriting each other.
   const updated=await db.prepare(
