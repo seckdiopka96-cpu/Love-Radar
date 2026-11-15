@@ -138,16 +138,18 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Sécurité : API authentifiée par membre de l'espace, contrôle de version et validation des IDs YouTube. Les règles CSP permettent exclusivement l'iframe YouTube et son API ; la politique de référent transmet seulement l'origine, pour respecter les nouvelles exigences d'identification de YouTube.
 - Tester : `npm run test:watch`, puis `npm run build`. Le fonctionnement iPhone/Android doit être confirmé sur deux appareils après le déploiement Cloudflare.
 
-### 🍿 Netflix à deux via Teleparty
+### ♪ TikTok ensemble — regarder à deux directement dans Love Radar
 
-Depuis **Ensemble → Regarder ensemble → Netflix**, Love Radar permet de transmettre et retrouver **la même invitation de séance Teleparty** sur les deux téléphones :
-- Les deux personnes installent l'application officielle Teleparty iOS ou Android, et ont chacune un accès Netflix autorisé et le même titre disponible.
-- L'une crée une séance avec un film Netflix dans Teleparty, puis colle le lien **d'invitation** dans Love Radar. Le lien est stocké dans une table D1 dédiée à ce couple, authentifiée avec les mêmes membres que la messagerie.
-- L'autre retrouve automatiquement le lien sous **« Ouvrir la séance synchronisée »** (actualisation ~2,4 secondes) et rejoint la séance dans Teleparty.
-- **Teleparty, et non Love Radar, synchronise effectivement les commandes lecture, pause et position du film Netflix.** Love Radar ne lit, ne rediffuse et ne pilote pas les vidéos Netflix. Il ne reçoit pas les identifiants ni mots de passe Netflix. Les deux utilisateurs peuvent revenir au chat ou à l'appel Love Radar, selon les restrictions de fonctionnement en arrière-plan du système.
-- Les liens sont limités aux domaines HTTPS Teleparty officiels (les simples liens de films Netflix et les domaines imitant Teleparty sont refusés). Les modifications concurrentes du lien sont protégées par une version.
-- L'intégration dépend du service Teleparty et de ses fonctionnalités ou tarifs mobiles. Elle ne remplace pas un accord d'intégration officielle avec Netflix et ne garantit pas que toutes les régions, films et appareils fonctionnent.
-- Tests : `npm run test:watch` et `npm run build`. Un essai réel sur deux téléphones avec des comptes Netflix autorisés est nécessaire après déploiement.
+Depuis **Ensemble → Regarder ensemble → TikTok**, chacun peut regarder la même vidéo TikTok publique dans un lecteur intégré.
+- La fonctionnalité utilise l'**Embed Player officiel de TikTok** : `https://www.tiktok.com/player/v1/{id}`, sans téléchargement ni redistribution des vidéos.
+- Les deux partenaires partagent un lien vidéo `tiktok.com/@…/video/{id}`, un ID numérique valide ou un lien court `vm.tiktok.com` / `vt.tiktok.com` lorsque les redirections TikTok sont accessibles.
+- Lecture, pause et déplacement dans la vidéo sont synchronisés via `postMessage` documenté par TikTok et un état partagé dans Cloudflare D1, propre à chaque couple. La synchronisation est approximative (actualisation ~1,6 seconde), sans garantie d'être à l'image près.
+- Un indicateur montre si l'autre personne regarde ; le chat est accessible dans la salle et l'appel vocal existant reste disponible.
+- L'API vérifie les jetons des membres, refuse les identifiants et URLs invalides, et protège les écritures concurrentes par version. Les événements du lecteur sont acceptés uniquement depuis l'origine TikTok et le bon iframe.
+- La vidéo doit être publique et autorisée à l'intégration. Sur iPhone, la lecture peut nécessiter un appui manuel après le chargement ; les vidéos supprimées, privées ou restreintes ne fonctionneront pas.
+- **Ce n'est pas encore un appel vidéo face à face** : les appels existants sont vocaux. La vidéo TikTok est partagée sur deux écrans avec messagerie.
+- L'ancien mode Netflix/Teleparty a été supprimé du menu et du code ; aucune vidéo Netflix n'est diffusée depuis Love Radar.
+- Tests : `npm run test:watch`, `npm run build`. Vérifier sur deux téléphones après déploiement.
 
 ## Ludo Duo : chrono de 15 secondes et défi cadeau facultatif
 
