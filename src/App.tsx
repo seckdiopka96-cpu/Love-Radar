@@ -137,10 +137,18 @@ export default function LoveRadar(){
    document.documentElement.style.setProperty("--lr-visible-height",Math.round(viewport?.height||window.innerHeight)+"px");
    document.documentElement.style.setProperty("--lr-visible-top",Math.round(viewport?.offsetTop||0)+"px");
   };
-  sync();viewport?.addEventListener("resize",sync);viewport?.addEventListener("scroll",sync);
+  const syncWithChat=()=>{
+   sync();
+   if(document.activeElement?.matches(".lr-chat-form input[type=text]")){
+    window.requestAnimationFrame(()=>window.requestAnimationFrame(()=>{
+     if(chatScroller.current)chatScroller.current.scrollTop=chatScroller.current.scrollHeight;
+    }));
+   }
+  };
+  syncWithChat();viewport?.addEventListener("resize",syncWithChat);viewport?.addEventListener("scroll",syncWithChat);
   window.addEventListener("resize",sync);
   return()=>{
-   viewport?.removeEventListener("resize",sync);viewport?.removeEventListener("scroll",sync);
+   viewport?.removeEventListener("resize",syncWithChat);viewport?.removeEventListener("scroll",syncWithChat);
    window.removeEventListener("resize",sync);
    document.documentElement.style.removeProperty("--lr-visible-height");
    document.documentElement.style.removeProperty("--lr-visible-top");
@@ -541,14 +549,24 @@ export default function LoveRadar(){
   }
  },[room?.messages,token]);
  useEffect(()=>()=>{for(const url of Object.values(mediaCache.current)){if(url.startsWith("blob:"))URL.revokeObjectURL(url)}},[]);
+ const scrollToLatest=useCallback(()=>{
+  const list=chatScroller.current;
+  if(!list)return;
+  if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current);
+  scrollFrame.current=requestAnimationFrame(()=>{
+   scrollFrame.current=null;
+   if(chatScroller.current){chatScroller.current.scrollTop=chatScroller.current.scrollHeight;setChatAtBottom(true)}
+  });
+ },[]);
  useEffect(()=>{
   if(tab!=="chat")return;
   const list=chatScroller.current;
   if(!list)return;
-  const closeToBottom=list.scrollHeight-list.scrollTop-list.clientHeight<210;
-  if(firstPoll.current||closeToBottom)list.scrollTop=list.scrollHeight;
+  const closeToBottom=list.scrollHeight-list.scrollTop-list.clientHeight<155;
+  if(firstPoll.current||chatFocused||closeToBottom)scrollToLatest();
   firstPoll.current=false;
- },[room?.messages,tab,chatFocused]);
+ },[room?.messages.at(-1)?.id,tab,chatFocused,scrollToLatest]);
+ useEffect(()=>()=>{if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current)},[]);
  useEffect(()=>{if(tab!=="chat"&&chatFocused)setChatFocused(false)},[tab,chatFocused]);
 
  async function startRoom(event:FormEvent){
