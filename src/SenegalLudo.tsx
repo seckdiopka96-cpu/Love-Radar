@@ -4,8 +4,8 @@ import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,SAFE,CELL,key,stackPosition,type Point} from "./ludo-visuals";
 import {
- TURN_MS,newSenegalGame,isSenegalGame,movesForPawn,movesForSeat,rollSenegal,
- applySenegalMove,chooseSenegalBotMove,autoplayTurn,pointForPawn,trackIndex,die,
+ TURN_MS,newSenegalGame,isSenegalGame,movesForPawn,rollSenegal,
+ applySenegalMove,chooseSenegalBotMove,pointForPawn,die,
  type SenegalGame,type SenegalMove,type MoveOption,type Seat,type Pawn
 } from "./ludo-senegal-engine";
 import "./ludo.css";
@@ -36,8 +36,6 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const [game,setGame]=useState<SenegalGame>(()=>solo?load(storageKey):newSenegalGame());
  const [online,setOnline]=useState(false);
  const [members,setMembers]=useState(solo?2:0);
- const [gameId,setGameId]=useState("");
- const [version,setVersion]=useState(0);
  const [serverOffset,setServerOffset]=useState(0);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
@@ -58,14 +56,12 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const versionRef=useRef(0);
  const idRef=useRef("");
  const busyRef=useRef(false);
- const gameRef=useRef(game);
  const lastAnimated=useRef("");
- gameRef.current=game;
  const clearTimers=()=>{for(const t of timers.current)window.clearTimeout(t);timers.current=[];};
  const later=(callback:()=>void,delay:number)=>{
   const id=window.setTimeout(callback,delay);timers.current.push(id);
  };
- useEffect(()=>()=>{loaded.current=false;clearTimers();},[]);
+ useEffect(()=>{loaded.current=true;return ()=>{loaded.current=false;clearTimers();};},[]);
  useEffect(()=>{
   if(!solo)return;
   try{localStorage.setItem(storage(storageKey),JSON.stringify(game))}catch{/* Offline play remains available. */}
@@ -120,7 +116,6 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   if(next.id!==oldId){lastAnimated.current="";setMotion(null);clearTimers();setChosen(null);}
   if(next.version<oldVersion&&next.id===oldId)return;
   versionRef.current=next.version;idRef.current=next.id;
-  setVersion(next.version);setGameId(next.id);
   setGame({
    positions:next.positions,turn:next.turn,dice:next.dice,streak:next.streak,
    status:next.status,winner:next.winner,updatedAt:next.updatedAt,lastAction:next.lastAction
@@ -147,11 +142,12 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  },[solo,refresh]);
  // Solo player has 15 seconds for each action. AI takes over if the timer expires.
  useEffect(()=>{
-  if(!solo||game.status!=="playing"||game.turn!==0||assisted||busy||rolling||motion||chosen||confirmReset)return;
+  if(!solo||game.status!=="playing"||game.turn!==0||assisted||busy||rolling||motion||confirmReset)return;
   const id=window.setTimeout(()=>setAssisted(true),Math.max(0,game.updatedAt+TURN_MS-Date.now()));
   return ()=>window.clearTimeout(id);
  },[solo,game,assisted,busy,rolling,motion,chosen,confirmReset]);
  useEffect(()=>{if(game.turn!==0||game.status!=="playing")setAssisted(false);},[game.turn,game.status]);
+ useEffect(()=>{if(assisted)setChosen(null);},[assisted]);
  async function sendAction(payload:Record<string,unknown>){
   busyRef.current=true;setBusy(true);setError("");
   try{
@@ -192,7 +188,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   }
  }
  async function move(option:MoveOption,automatic=false){
-  if(busy||rolling||motion||game.status!=="playing"||game.dice===null||chosen&&automatic||
+  if(busy||rolling||motion||game.status!=="playing"||game.dice===null||
    (!solo&&(!online||members!==2||game.turn!==seat))||
    (solo&&game.turn!==1&&!(game.turn===0&&(automatic||!assisted))))return;
   const legal=movesForPawn(game,game.turn,option.pawn).find(m=>
@@ -207,7 +203,6 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    animate(result.move);
   }else{
    const data=await sendAction({action:"move",pawn:option.pawn,moveKind:option.action,gate:option.to.gate,dest:option.to.step});
-   if(data?.move)animate(data.move);
   }
  }
  function choose(pawn:number){
