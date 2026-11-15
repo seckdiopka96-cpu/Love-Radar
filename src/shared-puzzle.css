@@ -1,0 +1,117 @@
+/* Couple puzzle · a true co-operative 3×3 picture, large tap targets for phones. */
+.cp-page,.cp-page *{box-sizing:border-box}
+.cp-page{display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0;width:100%;max-width:800px;margin:0 auto;color:#fff1f6;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Arial,sans-serif}
+.cp-top{display:flex;justify-content:space-between;align-items:center;gap:9px;flex:none}
+.cp-back{border:1px solid #9c7894;border-radius:11px;background:#6b466a;color:#fff1f5;font-size:12px;font-weight:850;min-height:39px;padding:8px 11px}
+.cp-brand{text-align:center;display:flex;flex-direction:column;gap:3px}
+.cp-brand strong{font:700 clamp(18px,4.2vw,26px)/1.1 Georgia,serif;white-space:nowrap}
+.cp-brand strong span{color:#ff9dc4}
+.cp-brand small{font-size:8px;font-weight:850;letter-spacing:1px;color:#e4c3d5}
+.cp-top-symbol{font-size:21px;border:1px solid #805b7e;border-radius:11px;background:#513552;min-width:39px;min-height:39px;display:grid;place-items:center}
+.cp-online{display:flex;align-items:center;gap:9px;min-height:41px;flex:none;border:1px solid #ac7f9d;border-radius:11px;
+ background:linear-gradient(100deg,#583d5b,#392b47);padding:9px 11px;color:#efd9e8;font-size:11px;font-weight:780;line-height:1.3}
+.cp-online-dot{flex:none;width:9px;height:9px;border-radius:50%;background:#c1a0af}
+.cp-online-dot.on{background:#70ebac;box-shadow:0 0 0 3px #7aecc637,0 0 12px #68e3a7a0}
+.cp-body{flex:1 1 auto;min-height:0;min-width:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:11px;padding-bottom:8px}
+.cp-game-head{display:flex;align-items:end;justify-content:space-between;gap:8px}
+.cp-game-head>div{display:flex;flex-direction:column;gap:3px}
+.cp-game-head>div>small{font-size:9px;color:#e9bcd5;font-weight:950;letter-spacing:1.15px}
+.cp-game-head>div>strong{font:700 clamp(18px,4vw,22px) Georgia,serif;color:#fff3e9}
+.cp-moves{font-size:12px;font-weight:950;background:#613f61;border:1px solid #a2789d;padding:8px 9px;border-radius:9px;white-space:nowrap}
+.cp-moves small{font-size:10px;color:#eac6dc;font-weight:700}
+.cp-grid-row{display:flex;gap:12px;align-items:flex-start;justify-content:center}
+.cp-puzzle-frame{width:min(72%,490px);flex:0 1 490px;aspect-ratio:1;position:relative;border-radius:16px;padding:6px;
+ border:2px solid #efb1d2;background:linear-gradient(130deg,#b05c8d,#49315f);box-shadow:0 8px 24px #170c268c}
+.cp-puzzle-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:3px;
+ width:100%;height:100%;overflow:hidden;border-radius:10px;background:#2d2438}
+.cp-tile{position:relative;border:0;min-width:0;min-height:0;background-repeat:no-repeat;background-color:#9b608d;
+ border-radius:3px;padding:0;cursor:pointer;touch-action:manipulation;outline:1px solid #ffffff34;outline-offset:-1px;
+ transition:filter .12s ease,transform .12s ease;user-select:none;-webkit-user-select:none}
+.cp-tile.correct{outline:1px solid #fbe7d254}
+.cp-tile.selected{z-index:2;outline:4px solid #ffec8a;outline-offset:-4px;filter:saturate(1.3) brightness(1.12);transform:scale(.965)}
+.cp-tile:focus-visible{outline:3px solid #fff2b5;outline-offset:-3px}
+.cp-tile:disabled{cursor:default}
+.cp-correct-mark{position:absolute;top:4px;right:4px;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;
+ background:#246c66ad;border:1px solid #d7ffd0bd;color:#e9ffe6;font-size:11px;font-weight:950;text-shadow:0 1px 2px #215b58}
+.cp-loading{width:100%;height:100%;display:grid;place-items:center;border-radius:9px;background:#4c3a58;color:#efcddf;text-align:center;font-size:13px}
+.cp-solved-overlay{position:absolute;z-index:5;inset:6px;border-radius:11px;display:flex;align-items:center;justify-content:end;flex-direction:column;gap:7px;
+ text-align:center;padding:18px 12px;background:linear-gradient(0deg,#22122eea 1%,#27142700 90%);pointer-events:none}
+.cp-solved-overlay span{font-size:45px;animation:cp-celebrate 1s ease-in-out infinite alternate}
+.cp-solved-overlay strong{font:800 clamp(17px,5vw,25px) Georgia,serif;color:#fff6e0;text-shadow:0 2px 6px #22102e}
+.cp-solved-overlay small{font-size:12px;color:#ffe9f1}
+.cp-solved-overlay button{pointer-events:auto;border:1px solid #ffeacb;border-radius:11px;background:linear-gradient(130deg,#e793a8,#bc598a);padding:12px 18px;color:#fff;font-size:13px;font-weight:900}
+@keyframes cp-celebrate{to{transform:scale(1.17) rotate(5deg)}}
+.cp-side{display:flex;flex:0 1 155px;min-width:0;flex-direction:column;gap:9px}
+.cp-image-preview{display:flex;flex-direction:column;gap:5px;align-items:center;text-align:center;border:1px solid #c094b4;border-radius:12px;background:#483750;padding:7px;min-width:0}
+.cp-image-preview img{width:100%;height:auto;aspect-ratio:1;display:block;object-fit:cover;border-radius:7px}
+.cp-image-preview span{color:#ffedf8;font-size:11px;font-weight:850}
+.cp-game-status{display:flex;flex-direction:column;gap:5px;border:1px solid #956f99;border-radius:11px;background:#46354e;padding:10px}
+.cp-game-status strong{font-size:12px;color:#ffe9db}
+.cp-game-status small{font-size:10px;color:#e7cadd;line-height:1.4;overflow-wrap:anywhere}
+.cp-preview-box{display:flex;gap:10px;align-items:center;border:1px solid #d8a9bd;background:#4d3853;padding:9px;border-radius:12px}
+.cp-preview-box img{width:88px;height:88px;object-fit:cover;border-radius:8px}
+.cp-preview-box button{border:1px solid #e7b7ce;background:#765274;color:#fff;border-radius:9px;padding:9px;font-weight:800;font-size:11px}
+.cp-instructions{display:flex;align-items:flex-start;gap:10px;border:1px solid #ab7e9e;border-radius:13px;
+ background:#493850;padding:11px}
+.cp-instructions>span{font-size:24px}
+.cp-instructions p{font-size:11px;line-height:1.55;color:#f3dce8;margin:0}
+.cp-instructions strong{color:#fff1e1}
+.cp-chooser{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid #9e7393;border-radius:14px;background:#38293f}
+.cp-chooser-header{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.cp-chooser-header strong{font-size:13px;color:#ffebd9}
+.cp-chooser-header span{font-size:10px;color:#dfb6d0}
+.cp-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.cp-choices button{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;padding:6px;border:1px solid #926e8d;
+ background:#493751;border-radius:10px;color:#fbeaf5;font-size:10px;font-weight:800}
+.cp-choices button.active{border:2px solid #ffe3a2;background:#795278}
+.cp-choices button img{width:100%;height:auto;aspect-ratio:1;object-fit:cover;border-radius:6px}
+.cp-choices button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;line-height:1.3}
+.cp-choices button:disabled{opacity:.6}
+.cp-restart{align-self:center;border:1px solid #f0c1d5;background:#745472;color:#fff0f5;border-radius:9px;
+ padding:10px 15px;font-size:11px;font-weight:850}
+.cp-restart:disabled{opacity:.5}
+.cp-alert,.cp-notice{display:flex;justify-content:space-between;align-items:center;gap:8px;border-radius:10px;padding:10px;
+ font-size:11px;line-height:1.4}
+.cp-alert{background:#783749;color:#fff;border:1px solid #ffb2b2}
+.cp-notice{background:#426b60;color:#fff;border:1px solid #a1edca}
+.cp-alert button,.cp-notice button{border:0;background:#ffffff24;color:#fff;border-radius:8px;padding:5px 9px;font-size:12px}
+@media(max-width:950px){
+ html:has(.lr-app.lr-puzzle-mode),body:has(.lr-app.lr-puzzle-mode),#root:has(.lr-app.lr-puzzle-mode){height:100dvh!important;max-height:100dvh!important;overflow:hidden!important}
+ .lr-app.lr-puzzle-mode.lr-app-locked{position:fixed!important;inset:0!important;height:100dvh!important;max-height:100dvh!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+ .lr-app.lr-puzzle-mode.lr-app-locked>.lr-header,.lr-app.lr-puzzle-mode.lr-app-locked>.lr-notification-area,
+ .lr-app.lr-puzzle-mode.lr-app-locked>.lr-bg-decor,.lr-app.lr-puzzle-mode.lr-app-locked .lr-sidebar,
+ .lr-app.lr-puzzle-mode.lr-app-locked .lr-mobile-nav{display:none!important}
+ .lr-app.lr-puzzle-mode.lr-app-locked .lr-shell{display:flex!important;flex:1 1 0!important;min-height:0!important;max-height:100%!important;width:100%!important;margin:0!important;padding:0!important;overflow:hidden!important}
+ .lr-app.lr-puzzle-mode.lr-app-locked .lr-main{display:flex!important;flex:1 1 0!important;min-height:0!important;max-height:100%!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;overflow:hidden!important}
+ .lr-app.lr-puzzle-mode.lr-app-locked .cp-page{flex:1 1 0!important;height:100%!important;min-height:0!important;max-width:none!important;
+ padding:calc(9px + env(safe-area-inset-top)) 9px calc(9px + env(safe-area-inset-bottom));overflow:hidden!important;background:linear-gradient(160deg,#302039,#201a30)}
+ .cp-grid-row{gap:7px}
+ .cp-puzzle-frame{flex:1 1 auto;width:min(74%,500px)}
+ .cp-side{flex:0 0 24%;gap:7px}
+ .cp-image-preview{padding:5px}
+ .cp-image-preview span{font-size:10px}
+ .cp-game-status{padding:7px}
+ .cp-game-status strong{font-size:11px}
+ .cp-game-status small{font-size:10px}
+ .cp-correct-mark{width:15px;height:15px;font-size:10px}
+}
+@media(max-width:395px){
+ .cp-brand strong{font-size:18px}
+ .cp-grid-row{flex-direction:column;align-items:center}
+ .cp-puzzle-frame{width:min(100%,490px);flex:none}
+ .cp-side{flex:none;flex-direction:row;align-items:center;justify-content:center;width:100%}
+ .cp-image-preview{width:105px;flex:none}
+ .cp-image-preview img{display:none}
+ .cp-game-status{flex:1;min-height:36px}
+ .cp-game-head>div>strong{font-size:19px}
+ .cp-moves small{display:none}
+}
+@media(max-height:740px) and (max-width:950px){
+ .cp-top{min-height:35px}
+ .cp-online{min-height:33px;padding:6px 9px}
+ .cp-body{gap:8px}
+ .cp-instructions{padding:8px}
+ .cp-chooser{padding:8px}
+ .cp-choices button img{max-height:77px}
+}
+@media(prefers-reduced-motion:reduce){.cp-solved-overlay span{animation:none}.cp-tile{transition:none}}
