@@ -85,6 +85,7 @@ export default function LoveRadar(){
  function navigate(tab:Tab,feature?:"heart"|"draw"){
   closeNotice();
   setTab(tab);
+  if(tab==="watch"||tab==="watch-tiktok")setWatchInvite(null);
   const url=new URL(window.location.href);
   url.searchParams.set("tab",tab);
   url.searchParams.delete("kind");url.searchParams.delete("id");url.searchParams.delete("mode");
@@ -166,6 +167,7 @@ export default function LoveRadar(){
  const [notificationsOn,setNotificationsOn]=useState(false);
  const [notificationsBusy,setNotificationsBusy]=useState(false);
  const [notificationsHint,setNotificationsHint]=useState("");
+ const [watchInvite,setWatchInvite]=useState<"watch"|"watch-tiktok"|null>(null);
  const [notificationsTesting,setNotificationsTesting]=useState(false);
  const pushOperation=useRef(false),pushDisabled=useRef(false);
  const [canInstall,setCanInstall]=useState(false);
@@ -224,6 +226,7 @@ export default function LoveRadar(){
    const data=event.data;
    if(data?.type==="love-radar-push-received"){
     firstPoll.current=true;
+    if(data.tab==="watch"||data.tab==="watch-tiktok")setWatchInvite(data.tab);
     if(document.visibilityState==="visible"&&["message","photo","audio"].includes(data.kind||""))
      setNotice("💌 Nouveau message reçu. Ouvre Messages pour le lire.");
     return;
@@ -238,7 +241,7 @@ export default function LoveRadar(){
     if(dest){
      window.history.replaceState(null,"",noticeUrl(dest));
      setNoticeTarget(dest);
-     setTab(dest.tab);firstPoll.current=true;
+     setTab(dest.tab);setWatchInvite(null);firstPoll.current=true;
     }
    }else if(["chat","watch","watch-tiktok","games","ludo","ludo-solo","ludo-senegal","ludo-senegal-solo","memory","moment","together","location","reunion","story","home","memories"].includes(data?.tab)){
     const dest=data.tab as Tab;
@@ -596,6 +599,12 @@ export default function LoveRadar(){
     {notificationsOn?<button type="button" className="lr-notification-disable" disabled={notificationsBusy||notificationsTesting} onClick={()=>void disableNotifications()}>Désactiver</button>:null}
    </div>
    {notificationsHint?<div role="status" className="lr-notification-help">{notificationsHint}</div>:null}
+  </div>:null}
+  {watchInvite&&room&&tab!==watchInvite?<div className="lr-watch-invite" role="alert" aria-label="Invitation à regarder ensemble">
+   <span className="lr-watch-invite-icon" aria-hidden="true">🎬</span>
+   <span className="lr-watch-invite-copy"><strong>Ton amour regarde \${watchInvite==="watch"?"YouTube":"TikTok"}</strong><small>Rejoins directement votre vidéo partagée ❤️</small></span>
+   <button type="button" className="lr-watch-invite-join" onClick={()=>navigate(watchInvite)}>Regarder</button>
+   <button type="button" className="lr-watch-invite-dismiss" onClick={()=>setWatchInvite(null)} aria-label="Ignorer l'invitation">×</button>
   </div>:null}
   {notice?<div className="lr-toast" onClick={()=>setNotice("")}>{notice} <span>×</span></div>:null}
   {error?<div className="lr-error" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
