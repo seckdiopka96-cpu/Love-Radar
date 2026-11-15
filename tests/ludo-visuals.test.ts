@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {TRACK,HOME,BASE,CELL,SAFE,key,pointForProgress,movementSteps,stackPosition} from "../src/ludo-visuals";
+import {TRACK,HOME,BASE,CELL,SAFE,key,pointForProgress,movementSteps,stackPosition,stackCellStyle} from "../src/ludo-visuals";
 
 test("authentic 52-square outer path, six-square home, 225-cell board",()=>{
  assert.equal(TRACK.length,52);
@@ -45,4 +45,24 @@ test("pawns form a compact overlapping pile, never a triangle or horizontal row"
  assert.equal(three[1].x,50);
  assert.ok(three.every(p=>p.scale>=0.8));
  assert.throws(()=>stackPosition(3,3));
+});
+
+test("every pawn is centered on its own white square, including all board edges",()=>{
+ const first=stackCellStyle(1,0);
+ assert.equal(first.left,"50%");
+ assert.equal(first.top,"50%");
+ assert.match(first.transform,/translate\(-50%, -50%\)/);
+ // No row or column-dependent translation that could put a pawn into green/yellow.
+ for(const [row,col] of [[0,0],[0,14],[8,0],[8,14],[14,0],[14,14],[9,0]]){
+  const [r,c]=pointForProgress(row===14?1:0,0,-1);
+  assert.ok(r>=0&&r<=14&&c>=0&&c<=14);
+  const placement=stackCellStyle(1,0);
+  assert.deepEqual(placement,first,"edge at "+row+","+col+" must use identical anchoring");
+ }
+ for(let count=2;count<=8;count++)for(let i=0;i<count;i++){
+  const placement=stackCellStyle(count,i);
+  assert.match(placement.transform,/^translate\(-50%, -50%\) scale\(/);
+  assert.ok(parseFloat(placement.left)>25&&parseFloat(placement.left)<75);
+  assert.ok(parseFloat(placement.top)>25&&parseFloat(placement.top)<75);
+ }
 });
