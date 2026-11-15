@@ -32,7 +32,8 @@ import "./message-replies.css";
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story";
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number;
- reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null};
+ reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null;
+ edited_at?:number;reactions?:{member_id:string;emoji:string}[]};
 type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
 type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
@@ -123,8 +124,12 @@ export default function LoveRadar(){
  }
  const [draft,setDraft]=useState("");
  const [replyTarget,setReplyTarget]=useState<Message|null>(null);
+ const [actionMessageId,setActionMessageId]=useState<string|null>(null);
+ const [infoMessageId,setInfoMessageId]=useState<string|null>(null);
+ const [editTarget,setEditTarget]=useState<Message|null>(null);
+ const composerBeforeEdit=useRef<{draft:string;reply:Message|null}|null>(null);
  const chatInput=useRef<HTMLInputElement|null>(null);
- const swipe=useRef<{id:string;x:number;y:number;cancelled:boolean}|null>(null);
+ const swipe=useRef<{id:string;x:number;y:number;cancelled:boolean;held:boolean;timer:number|null}|null>(null);
  const [chatFocused,setChatFocused]=useState(false);
  const [chatAtBottom,setChatAtBottom]=useState(true);
  const chatAtBottomRef=useRef(true);
@@ -143,6 +148,8 @@ export default function LoveRadar(){
   id:entry.id,sender_id:room?.user.id||"",kind:"audio" as const,
   content:null,object_key:entry.id,mime:entry.file.type,created_at:entry.created_at
  })));
+ const actionMessage=chatMessages.find(m=>m.id===actionMessageId)||null;
+ const infoMessage=chatMessages.find(m=>m.id===infoMessageId)||null;
  const [recording,setRecording]=useState(false);
  const recorder=useRef<MediaRecorder|null>(null);
  const recordingStream=useRef<MediaStream|null>(null);
@@ -153,6 +160,7 @@ export default function LoveRadar(){
  const firstPoll=useRef(true);
  const lastReadSent=useRef(0);
  useEffect(()=>{lastReadSent.current=0},[token]);
+ useEffect(()=>()=>{if(swipe.current?.timer!==null&&swipe.current?.timer!==undefined)clearTimeout(swipe.current.timer)},[]);
  const lastTypingSent=useRef(0);
  const typingActive=useRef(false);
  const recordingActive=useRef(false);
@@ -644,6 +652,17 @@ export default function LoveRadar(){
  }
  async function sendMessage(e:FormEvent){
   e.preventDefault();if(!draft.trim()||busy||!room?.partner)return;
+  if(editTarget){
+   const text=draft.trim(),id=editTarget.id;
+   setBusy(true);setError("");
+   try{
+    await request("edit-message",{id,text});
+    cancelEditing();
+    await refresh(undefined,true);
+   }catch(err){setError(err instanceof Error?err.message:"Impossible de modifier ce message.")}
+   finally{setBusy(false)}
+   return;
+  }
   const original=draft,quoted=replyTarget;
   setDraft("");setReplyTarget(null);setTyping(false);setBusy(true);setError("");
   try{
@@ -655,6 +674,49 @@ export default function LoveRadar(){
    setError(e instanceof Error?e.message:"Échec de l’envoi.");
   }finally{setBusy(false)}
  }
+ function cancelEditing(){
+  const previous=composerBeforeEdit.current;
+  setEditTarget(null);
+  setDraft(previous?.draft||"");
+  setReplyTarget(previous?.reply||null);
+  composerBeforeEdit.current=null;
+  setTyping(false);
+ }
+ function beginEditing(message:Message){
+  if(message.kind!=="text"||message.sender_id!==room?.user.id)return;
+  composerBeforeEdit.current={draft,reply:replyTarget};
+  setEditTarget(message);setReplyTarget(null);setDraft(message.content||"");
+  setActionMessageId(null);
+  chatInput.current?.focus();
+ }
+ async function reactToMessage(message:Message,emoji:string){
+  setActionMessageId(null);
+  try{
+   await request("react-message",{id:message.id,emoji});
+   await refresh(undefined,true);
+  }catch(err){setError(err instanceof Error?err.message:"Réaction impossible.")}
+ }
+ async function deleteOwnMessage(message:Message){
+  setActionMessageId(null);
+  if(message.sender_id!==room?.user.id)return;
+  if(!window.confirm("Supprimer ce message pour vous deux ? Cette action est définitive."))return;
+  try{
+   await request("delete-message",{id:message.id});
+   if(replyTarget?.id===message.id)setReplyTarget(null);
+   if(editTarget?.id===message.id)cancelEditing();
+   await refresh(undefined,true);
+  }catch(err){setError(err instanceof Error?err.message:"Suppression impossible.")}
+ }
+ async function copyMessage(message:Message){
+  setActionMessageId(null);
+  if(!message.content||message.kind!=="text")return;
+  try{await navigator.clipboard.writeText(message.content);setNotice("Message copié")}
+  catch{setError("Copie indisponible sur ce téléphone.")}
+ }
+ function openMessageActions(message:Message){
+  chatInput.current?.blur();
+  setActionMessageId(message.id);
+ }
  function chooseReply(message:Message){
   setReplyTarget(message);
   // Focus synchronously from the user's swipe gesture: iOS otherwise often
@@ -662,9 +724,11 @@ export default function LoveRadar(){
   chatInput.current?.focus();
   requestAnimationFrame(scrollToLatest);
  }
- // Swipe a message RIGHT, no long-press, no text selection/context menu.
- // The bubble follows the finger, revealing a reply arrow as in WhatsApp.
+ // A quick swipe right is Reply. Holding in place opens the action menu.
+ // Moving vertically cancels both: chat scrolling never triggers actions.
  function resetSwipe(row?:HTMLDivElement){
+  const gesture=swipe.current;
+  if(gesture?.timer!==null&&gesture?.timer!==undefined)clearTimeout(gesture.timer);
   if(row){
    row.classList.remove("lr-swiping");
    row.style.removeProperty("--lr-reply-shift");
@@ -674,15 +738,28 @@ export default function LoveRadar(){
  }
  function messagePointerDown(e:ReactPointerEvent<HTMLDivElement>,message:Message){
   if(e.pointerType==="mouse"&&e.button!==0)return;
-  // Preserve play/pause, photos, quoted links and voice-seek controls.
   if((e.target as HTMLElement).closest("button,input,a,audio"))return;
-  swipe.current={id:message.id,x:e.clientX,y:e.clientY,cancelled:false};
+  resetSwipe();
+  const row=e.currentTarget;
+  const gesture:{id:string;x:number;y:number;cancelled:boolean;held:boolean;timer:number|null}={
+   id:message.id,x:e.clientX,y:e.clientY,cancelled:false,held:false,timer:null
+  };
+  gesture.timer=window.setTimeout(()=>{
+   if(swipe.current!==gesture||gesture.cancelled)return;
+   gesture.held=true;
+   row.classList.remove("lr-swiping");
+   row.style.removeProperty("--lr-reply-shift");
+   openMessageActions(message);
+   if("vibrate" in navigator)try{navigator.vibrate(12)}catch{/* optional */}
+  },520);
+  swipe.current=gesture;
  }
  function messagePointerMove(e:ReactPointerEvent<HTMLDivElement>){
-  const g=swipe.current;if(!g||g.cancelled)return;
+  const g=swipe.current;if(!g||g.cancelled||g.held)return;
   const dx=e.clientX-g.x,dy=e.clientY-g.y;
-  if(Math.abs(dy)>Math.max(16,Math.abs(dx)*1.2)||dx<-15){g.cancelled=true;resetSwipe(e.currentTarget);return}
+  if(Math.abs(dy)>Math.max(13,Math.abs(dx)*.9)||dx<-12){g.cancelled=true;resetSwipe(e.currentTarget);return}
   if(dx<=8)return;
+  if(g.timer!==null){clearTimeout(g.timer);g.timer=null}
   const distance=Math.min(88,Math.max(0,dx));
   e.currentTarget.classList.add("lr-swiping");
   e.currentTarget.style.setProperty("--lr-reply-shift",distance+"px");
@@ -691,9 +768,10 @@ export default function LoveRadar(){
  function messagePointerUp(e:ReactPointerEvent<HTMLDivElement>,message:Message){
   const g=swipe.current;if(!g||g.id!==message.id)return;
   const dx=e.clientX-g.x,dy=e.clientY-g.y;
+  const wasHeld=g.held,wasCancelled=g.cancelled;
   resetSwipe(e.currentTarget);
-  if(!g.cancelled&&dx>=62&&Math.abs(dy)<34){
-   if("vibrate" in navigator)try{navigator.vibrate(10)}catch{/* optional haptic */}
+  if(!wasHeld&&!wasCancelled&&dx>=62&&Math.abs(dy)<34){
+   if("vibrate" in navigator)try{navigator.vibrate(10)}catch{/* optional */}
    chooseReply(message);
   }
  }
