@@ -1,8 +1,8 @@
 import type {D1Database} from "@cloudflare/workers-types";
-import type {PushEnv} from "../lib/push";
+import {notifyPartner,type PushEnv} from "../lib/push";
 import {parseTikTokId,isTikTokShortLink,TIKTOK_VIDEO_ID,type TikTokSnapshot} from "../../src/tiktok-utils";
 
-type Ctx={request:Request;env:PushEnv};
+type Ctx={request:Request;env:PushEnv;waitUntil:(task:Promise<unknown>)=>void};
 type Member={id:string;room_id:string;name:string;seat:number};
 type WatchRow={room_id:string;video_id:string;playing:number;position:number;synced_at:number;updated_at:number;updated_by:string|null;version:number};
 const ok=(payload:object)=>Response.json({ok:true,...payload},{headers:{"Cache-Control":"private, no-store"}});
@@ -99,6 +99,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
   if(data.action!=="set-video"&&(typeof data.position!=="number"||!Number.isFinite(data.position)||data.position<0||data.position>86400))
    return fail("Position invalide.",400);
   const id=data.action==="set-video"?String(data.videoId):current.video_id;
+  const wasPaused=current.playing===0;
   const playing=data.action==="set-video"||data.action==="pause"?0:data.action==="play"?1:current.playing;
   const position=data.action==="set-video"?0:Number(data.position);
   const stamp=Date.now();
@@ -107,6 +108,12 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
   ).bind(id,playing,position,stamp,stamp,user.name.slice(0,60),user.room_id,current.version).run();
   if(updated.meta.changes!==1)return fail("Ton partenaire vient de changer la vidéo. Réessaie.",409);
   current=await load(db,user.room_id);
+  if(data.action==="play"&&playing===1&&wasPaused){
+   ctx.waitUntil(notifyPartner(ctx.env,user.room_id,user.id,
+    "🎬 "+user.name.slice(0,28)+" t’invite à regarder TikTok",
+    user.name.slice(0,28)+" a lancé un TikTok ! Appuie pour regarder la même vidéo ensemble ❤️",
+    "watch-tiktok"));
+  }
   return ok(await view(db,user,current));
  }catch(error){console.error("TikTok Together API",error);return fail("Impossible de synchroniser TikTok pour le moment.",500)}
 }
