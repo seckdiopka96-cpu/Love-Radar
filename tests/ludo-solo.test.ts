@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {freshSoloGame,rollSolo,moveSolo,canSoloMove,chooseSoloBotPawn,isSoloGame,type SoloGame} from "../src/ludo-solo-engine";
+import {freshSoloGame,rollSolo,moveSolo,canSoloMove,chooseSoloBotPawn,isSoloGame,SOLO_TURN_MS,shouldAutoPlaySolo,type SoloGame} from "../src/ludo-solo-engine";
 
 const position=(my:number[],cpu:number[],turn:0|1=0,dice:number|null=null):SoloGame=>({
  ...freshSoloGame(),positions:[my,cpu],turn,dice
@@ -67,4 +67,28 @@ test("computer prioritizes capture and can move after its own six",()=>{
  assert.equal(moved?.game.turn,1);
  const six=rollSolo(position([-1,-1,-1,-1],[-1,-1,-1,-1],1,null),6);
  assert.equal(chooseSoloBotPawn(six),0);
+});
+
+test("15-second inactivity guard triggers exactly at deadline for a human player",()=>{
+ const game={...freshSoloGame(),updatedAt:1000};
+ assert.equal(SOLO_TURN_MS,15000);
+ assert.equal(shouldAutoPlaySolo(game,15999),false);
+ assert.equal(shouldAutoPlaySolo(game,16000),true);
+ assert.equal(shouldAutoPlaySolo({...game,turn:1},20000),false);
+ assert.equal(shouldAutoPlaySolo({...game,status:"won"},20000),false);
+});
+test("an unusable six passes the turn immediately instead of waiting",()=>{
+ const game=position([55,56,57,57],[-1,-1,-1,-1],0,null);
+ const result=rollSolo(game,6);
+ assert.equal(result.turn,1);
+ assert.equal(result.dice,null);
+ assert.equal(result.streak,0);
+ assert.match(result.lastAction,/aucun déplacement possible/);
+});
+test("computer can choose a legal pawn for the human when the human is idle",()=>{
+ const game=position([5,15,-1,-1],[33,-1,-1,-1],0,2);
+ assert.equal(chooseSoloBotPawn(game),0);
+ const moved=moveSolo(game,0);
+ assert.equal(moved?.game.positions[1][0],-1);
+ assert.equal(moved?.game.turn,0);
 });
