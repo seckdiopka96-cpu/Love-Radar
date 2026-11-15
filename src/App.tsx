@@ -536,6 +536,11 @@ export default function LoveRadar(){
    typingActive.current=false;
    void request("typing",{active:false}).catch(()=>{});
   }
+  if(tab!=="chat"&&recordingActive.current){
+   if(recorder.current?.state==="recording")recorder.current.stop();
+   recordingActive.current=false;
+   void request("recording",{active:false}).catch(()=>{});
+  }
  },[tab,request]);
  useEffect(()=>{
   if(!room||!token)return;
@@ -629,16 +634,24 @@ export default function LoveRadar(){
    const rec=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);
    const chunks:Blob[]=[];
    rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
-   rec.onerror=()=>setError("Enregistrement interrompu.");
+   rec.onerror=()=>{
+     recordingActive.current=false;
+     void request("recording",{active:false}).catch(()=>{});
+     setError("Enregistrement interrompu.");
+    };
    rec.onstop=()=>{
     if(recordingTimer.current)clearTimeout(recordingTimer.current);
     stream.getTracks().forEach(t=>t.stop());recordingStream.current=null;setRecording(false);
+     recordingActive.current=false;
+     void request("recording",{active:false}).catch(()=>{});
     const type=rec.mimeType?.split(";")[0]||"audio/mp4";
     const ext=type.includes("webm")?"webm":type.includes("ogg")?"ogg":"m4a";
     const blob=new Blob(chunks,{type});
     if(blob.size>0){void upload(new File([blob],"vocal."+ext,{type}),"audio")}
    };
-   rec.start(1000);recorder.current=rec;setRecording(true);
+   rec.start(1000);recorder.current=rec;recordingActive.current=true;setRecording(true);
+    setTyping(false);
+    void request("recording",{active:true}).catch(()=>{});
    recordingTimer.current=setTimeout(()=>{if(rec.state==="recording")rec.stop()},45000);
   }catch{setError("Microphone refusé ou non disponible. Autorise le micro dans Safari.")}
  }
@@ -657,8 +670,12 @@ export default function LoveRadar(){
  }
  function logout(){if(token)void stopPushOnExit(token);localStorage.removeItem("love-radar-token");setToken("");setRoom(null);setMenu(false);setNotice("Tu t’es déconnecté(e).")}
  const partner=room?.partner||"Ton amour";
- const partnerTyping=Boolean(room?.partnerTypingUntil&&room.partnerTypingUntil>Date.now());
- const partnerOnline=Boolean(room?.partnerLastSeenAt&&Date.now()-room.partnerLastSeenAt<35000);
+ const typingUntil=partnerActivity?.partnerTypingUntil??room?.partnerTypingUntil??0;
+ const recordingUntil=partnerActivity?.partnerRecordingUntil??room?.partnerRecordingUntil??0;
+ const lastSeen=partnerActivity?.partnerLastSeenAt??room?.partnerLastSeenAt??0;
+ const partnerRecording=Boolean(recordingUntil>Date.now());
+ const partnerTyping=Boolean(!partnerRecording&&typingUntil>Date.now());
+ const partnerOnline=Boolean(lastSeen&&Date.now()-lastSeen<35000);
  const images=room?.messages.filter(m=>m.kind==="image")||[];
  const lastOwnMessage=[...(room?.messages||[])].reverse().find(m=>m.sender_id===room?.user.id);
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
