@@ -17,6 +17,8 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
  const [anchor,setAnchor]=useState<HTMLElement|null>(null);
  const [active,setActive]=useState<Call|null>(null);
  const [minimized,setMinimized]=useState(false);
+ const [callPanel,setCallPanel]=useState<"none"|"info"|"more"|"keypad">("none");
+ const [dialed,setDialed]=useState("");
  const [busy,setBusy]=useState(false);
  const [muted,setMuted]=useState(false);
  const [phase,setPhase]=useState("");
@@ -107,7 +109,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
   const audioSession=(navigator as Navigator & {audioSession?:{type:string}}).audioSession;
   if(audioSession){try{audioSession.type="auto"}catch{/* Browser controls audio routing. */}}
   previousSinkId.current="";
-  setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setSpeakerBusy(false);setMinimized(false);
+  setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setSpeakerBusy(false);setMinimized(false);setCallPanel("none");setDialed("");
  },[]);
  const reset=useCallback(()=>{
   clearAudio();
@@ -117,7 +119,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
  const setCurrent=useCallback((call:Call)=>{
   if(current.current?.id!==call.id){
    if(current.current)clearAudio();
-   setMinimized(false);
+   setMinimized(false);setCallPanel("none");setDialed("");
    setError("");setPhase(call.direction==="incoming"?"Appel vocal entrant…":"Appel en cours…");
   }
   current.current=call;
@@ -384,54 +386,112 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
  function minimizeAndWrite(){
   if(!current.current||current.current.status!=="active")return;
   // Navigation changes the page only; the VoiceCall component and WebRTC peer stay mounted.
-  setMinimized(true);
+  setCallPanel("none");setMinimized(true);
   onOpenChat();
+ }
+ function pressKey(digit:string){
+  setDialed(previous=>(previous+digit).slice(-24));
+  // DTMF is optional for peer-to-peer WebRTC and never dials a phone number.
+  try{
+   const sender=pc.current?.getSenders().find(item=>item.track?.kind==="audio");
+   if(sender?.dtmf?.canInsertDTMF)sender.dtmf.insertDTMF(digit,180);
+  }catch{/* The keypad remains locally usable if DTMF is not available. */}
  }
  const isIncoming=active?.direction==="incoming"&&active.status==="ringing";
  const isOutgoing=active?.direction==="outgoing"&&active.status==="ringing";
  const total=String(Math.floor(duration/60)).padStart(2,"0")+":"+String(duration%60).padStart(2,"0");
  const callStatus=isIncoming?"Appel vocal entrant…":isOutgoing?"Appel en cours…":phase||"Connexion en cours…";
  const display=active&&(!minimized||active.status==="ringing")?createPortal(
-  <div className="lr-call-backdrop" role="dialog" aria-modal="true" aria-label="Appel vocal Love Radar">
-   <div className="lr-call-sheet">
-    {active.status==="active"?<button type="button" className="lr-call-minimize" onClick={minimizeAndWrite} aria-label="Réduire l’appel et écrire des messages">
-     <span aria-hidden="true">⌄</span> Réduire · Écrire
-    </button>:null}
-    <span className="lr-call-brand">APPEL VOCAL</span>
-    <div className="lr-call-initial">{partner.trim().charAt(0).toUpperCase()}</div>
-    <h2>{partner}</h2>
-    <p className="lr-call-status" aria-live="polite">{callStatus}</p>
-    <div className="lr-call-duration" aria-label={"Durée de l'appel : "+total}>{total}</div>
-    {error?<div className="lr-call-error" role="alert">{error}</div>:null}
-    {needsPlay?<button type="button" className="lr-call-sound" onClick={enableAudio}>Activer le son</button>:null}
-    {speakerHelp?<div className="lr-call-audio-hint" role="status">{speakerHelp}</div>:null}
-    {networkHint&&active.status==="active"&&phase!=="Connecté"?<div className="lr-call-audio-hint" role="status">{networkHint}</div>:null}
-    <div className="lr-call-actions">
-     {isIncoming?
-      <>
-       <button type="button" className="lr-call-action lr-call-decline" onClick={hangup} aria-label="Refuser l’appel" disabled={busy}>
-        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 17.5c5.4-4.7 12.6-4.7 18 0"/><path d="M5 17.5V21M19 17.5V21"/></svg><span>Refuser</span>
-       </button>
-       <button type="button" className="lr-call-action lr-call-answer" onClick={accept} aria-label="Décrocher" disabled={busy}>
-        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 6.5c0 7.5 7 14.5 14.5 14.5l3-3.5-5-4-2 2c-2.5-1-4-2.5-5-5l2-2-4-5z"/></svg><span>Décrocher</span>
-       </button>
-      </>:
-      <>
-       <button type="button" className={"lr-call-action lr-call-mute "+(muted?"is-muted":"")} onClick={toggleMute} disabled={!local.current} aria-label={muted?"Réactiver le microphone":"Couper le microphone"} aria-pressed={muted}>
-        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/>{muted?<path d="M3 3 21 21" strokeWidth="2.5"/>:null}</svg>
-        <span>{muted?"Réactiver":"Muet"}</span>
-       </button>
-       <button type="button" className={"lr-call-action lr-call-speaker "+(speakerSelected?"is-selected":"")} onClick={selectSpeaker} disabled={speakerBusy} aria-label={speakerSelected?"Désactiver le haut-parleur":"Activer le haut-parleur"} aria-pressed={speakerSelected}>
-        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9v6h4l5 4V5L7 9H3zM16 9a5 5 0 0 1 0 6M19 5a10 10 0 0 1 0 14"/></svg>
-        <span>{speakerSelected?"Désactiver HP":"Haut-parleur"}</span>
-       </button>
-       <button type="button" className="lr-call-action lr-call-decline" onClick={hangup} aria-label="Raccrocher" disabled={busy}>
-        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 17.5c5.4-4.7 12.6-4.7 18 0"/><path d="M5 17.5V21M19 17.5V21"/></svg>
-        <span>Raccrocher</span>
-       </button>
-      </>}
+  <div className="lr-call-backdrop" role="dialog" aria-modal="true" aria-label="Appel audio Love Radar">
+   <div className="lr-call-sheet lr-call-facetime">
+    <div className="lr-call-upper">
+     <div className="lr-call-topbar">
+      {active.status==="active"?<button type="button" className="lr-call-minimize" onClick={minimizeAndWrite} aria-label="Réduire l’appel et écrire des messages">
+       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg><span>Réduire</span>
+      </button>:<span className="lr-call-top-spacer" aria-hidden="true"/>}
+      <button type="button" className="lr-call-info-button" aria-label="Informations sur l’appel" onClick={()=>setCallPanel("info")}>
+       <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" d="M12 11v6M12 7h.01"/></svg>
+      </button>
+     </div>
+     <div className="lr-call-identity">
+      <div className="lr-call-initial" aria-label={"Avatar de "+partner}>{partner.trim().charAt(0).toUpperCase()||"♡"}</div>
+      <div className="lr-call-identification">
+       <div className="lr-call-brand">Love Radar audio</div>
+       <div className="lr-call-duration" aria-label={"Durée de l’appel : "+total}>{active.status==="active"&&connectedSince.current?total:callStatus}</div>
+       <h2>{partner}</h2>
+       {active.status==="active"&&phase!=="Connecté"?<p className="lr-call-status" aria-live="polite">{phase||"Connexion audio…"}</p>:null}
+      </div>
+     </div>
+     <div className="lr-call-feedback">
+      {error?<div className="lr-call-error" role="alert">{error}</div>:null}
+      {needsPlay?<button type="button" className="lr-call-sound" onClick={enableAudio}>Activer le son</button>:null}
+      {speakerHelp?<div className="lr-call-audio-hint" role="status">{speakerHelp}</div>:null}
+      {networkHint&&active.status==="active"&&phase!=="Connecté"?<div className="lr-call-audio-hint" role="status">{networkHint}</div>:null}
+     </div>
     </div>
-    <small>{relayEnabled?"Connexion sécurisée avec relais audio disponible.":"Appels sécurisés. Garde Love Radar ouvert durant la conversation."}</small>
+    <div className={"lr-call-actions"+(isIncoming?" is-ringing":"")} aria-label="Commandes de l’appel">
+     {isIncoming?<>
+      <button type="button" className="lr-call-action lr-call-decline" onClick={hangup} aria-label="Refuser l’appel" disabled={busy}>
+       <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.7" strokeLinecap="round" aria-hidden="true"><path d="M3 17.5c5.4-4.7 12.6-4.7 18 0M5 17.5V21M19 17.5V21"/></svg></span>
+       <span className="lr-call-control-label">Refuser</span>
+      </button>
+      <button type="button" className="lr-call-action lr-call-answer" onClick={accept} aria-label="Décrocher" disabled={busy}>
+       <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.7" strokeLinecap="round" aria-hidden="true"><path d="M3 6.5c0 7.5 7 14.5 14.5 14.5l3-3.5-5-4-2 2c-2.5-1-4-2.5-5-5l2-2-4-5z"/></svg></span>
+       <span className="lr-call-control-label">Décrocher</span>
+      </button>
+     </>:<>
+      <button type="button" className={"lr-call-action lr-call-speaker "+(speakerSelected?"is-selected":"")} onClick={selectSpeaker} disabled={speakerBusy} aria-label={speakerSelected?"Désactiver le haut-parleur":"Activer le haut-parleur"} aria-pressed={speakerSelected}>
+       <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zM16 9a5 5 0 0 1 0 6M19 5a10 10 0 0 1 0 14"/></svg></span>
+       <span className="lr-call-control-label">Haut-parleur</span>
+      </button>
+      <button type="button" className={"lr-call-action lr-call-mute "+(muted?"is-muted":"")} onClick={toggleMute} disabled={!local.current} aria-label={muted?"Réactiver le microphone":"Couper le microphone"} aria-pressed={muted}>
+       <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/>{muted?<path d="M3 3 21 21" strokeWidth="2.5"/>:null}</svg></span>
+       <span className="lr-call-control-label">{muted?"Réactiver":"Couper le son"}</span>
+      </button>
+      <button type="button" className="lr-call-action lr-call-chat" onClick={minimizeAndWrite} aria-label="Réduire l’appel et ouvrir les messages">
+       <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 11.2a8.3 8.3 0 0 1-8.5 8.3 10 10 0 0 1-3.6-.8L3 21l1.5-4.7a8.4 8.4 0 1 1 15.5-5.1Z"/><path d="M8 11h8M8 14.5h5"/></svg></span>
+       <span className="lr-call-control-label">Messages</span>
+      </button>
+      <button type="button" className="lr-call-action lr-call-more" onClick={()=>setCallPanel("more")} aria-label="Plus d’options">
+       <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></span>
+       <span className="lr-call-control-label">Plus</span>
+      </button>
+      <button type="button" className="lr-call-action lr-call-decline lr-call-hangup" onClick={hangup} aria-label="Raccrocher" disabled={busy}>
+       <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" aria-hidden="true"><path d="M3 17.5c5.4-4.7 12.6-4.7 18 0M5 17.5V21M19 17.5V21"/></svg></span>
+       <span className="lr-call-control-label">Raccrocher</span>
+      </button>
+      <button type="button" className="lr-call-action lr-call-keypad" onClick={()=>setCallPanel("keypad")} aria-label="Ouvrir le clavier d’appel">
+       <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">{[4,10,16].flatMap(y=>[4,10,16].map(x=><circle key={x+"-"+y} cx={x+2} cy={y+1} r="2.15"/>))}</svg></span>
+       <span className="lr-call-control-label">Clavier</span>
+      </button>
+     </>}
+    </div>
+    {callPanel!=="none"?<div className="lr-call-panel-backdrop" onClick={()=>setCallPanel("none")}>
+     <div className="lr-call-panel" role="dialog" aria-modal="true" aria-label={callPanel==="info"?"Informations de l’appel":callPanel==="more"?"Plus d’options":"Clavier d’appel"} onClick={e=>e.stopPropagation()}>
+      <div className="lr-call-panel-head">
+       <strong>{callPanel==="info"?"Informations de l’appel":callPanel==="more"?"Plus d’options":"Clavier d’appel"}</strong>
+       <button type="button" onClick={()=>setCallPanel("none")} aria-label="Fermer les options">×</button>
+      </div>
+      {callPanel==="info"?<div className="lr-call-panel-details">
+       <p><span>Avec</span><strong>{partner}</strong></p>
+       <p><span>Type</span><strong>Appel audio · Love Radar</strong></p>
+       <p><span>État</span><strong>{callStatus}</strong></p>
+       <p><span>Durée</span><strong>{total}</strong></p>
+       <p><span>Relais audio</span><strong>{relayEnabled?"Disponible":"Non confirmé"}</strong></p>
+      </div>:callPanel==="more"?<div className="lr-call-panel-options">
+       <button type="button" onClick={minimizeAndWrite}>Écrire un message pendant l’appel</button>
+       <button type="button" onClick={()=>{setCallPanel("none");void selectSpeaker()}}>Changer la sortie audio</button>
+       <button type="button" onClick={()=>setCallPanel("info")}>Informations de la connexion</button>
+      </div>:<div className="lr-call-keypad-area">
+       <div className="lr-call-dialed" aria-live="polite">{dialed||"· · ·"}</div>
+       <div className="lr-call-keypad-grid">
+        {["1","2","3","4","5","6","7","8","9","*","0","#"].map(key=><button key={key} type="button" onClick={()=>pressKey(key)} aria-label={"Touche "+key}>{key}</button>)}
+       </div>
+       <button type="button" className="lr-call-keypad-clear" onClick={()=>setDialed(v=>v.slice(0,-1))} disabled={!dialed}>Effacer le dernier chiffre</button>
+       <p>Clavier pour les tonalités WebRTC, sans composition de numéro externe.</p>
+      </div>}
+     </div>
+    </div>:null}
    </div>
   </div>,document.body):null;
  const mini=active?.status==="active"&&minimized?createPortal(
