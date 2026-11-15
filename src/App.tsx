@@ -25,13 +25,22 @@ type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
 
 
-const NAV: {id:Tab;label:string;icon:string}[] = [
- {id:"home",label:"Accueil",icon:"⌂"},
- {id:"chat",label:"Messages",icon:"✉"},
- {id:"together",label:"Ensemble",icon:"♡"},
- {id:"games",label:"Jeux",icon:"🎮"},
- {id:"memories",label:"Souvenirs",icon:"✦"},
+const NAV: {id:Tab;label:string}[] = [
+ {id:"home",label:"Accueil"},
+ {id:"chat",label:"Messages"},
+ {id:"together",label:"Nous deux"},
+ {id:"games",label:"Jeux"},
+ {id:"memories",label:"Souvenirs"},
 ];
+function NavGlyph({tab}:{tab:Tab}){
+ return <svg className="lr-nav-glyph" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  {tab==="home"?<><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9 21v-7h6v7"/></>:
+   tab==="chat"?<><path d="M21 11.6a8.6 8.6 0 0 1-8.6 8.6 9.6 9.6 0 0 1-3.7-.8L3 21l1.5-5.2A8.6 8.6 0 1 1 21 11.6Z"/><path d="M8 11h8M8 14.6h5.3"/></>:
+   tab==="together"?<><path d="M20.2 5.8a5.4 5.4 0 0 0-7.7 0l-.5.5-.5-.5a5.4 5.4 0 0 0-7.7 7.7L12 21.2l8.2-7.7a5.4 5.4 0 0 0 0-7.7Z"/></>:
+   tab==="games"?<><rect x="3" y="8" width="18" height="12" rx="5"/><path d="M8 11v6M5 14h6M16.7 12.7h.01M18.5 15.5h.01"/></>:
+   <><rect x="3" y="3.5" width="18" height="17" rx="3"/><path d="m7 15 3.2-3.3 2.3 2.2 2.8-3.3L19 15"/><circle cx="8" cy="8.2" r="1.2"/></>}
+ </svg>;
+}
 function selectedNav(tab:Tab):Tab {
  if(tab==="moment"||tab==="puzzle"||tab==="reconcile"||tab==="reunion"||tab==="watch"||tab==="watch-tiktok")return "together";
  if(tab==="story")return "memories";
@@ -586,7 +595,7 @@ export default function LoveRadar(){
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
  return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
-  <header className="lr-header"><div className="lr-brand"><b>Love Radar</b></div>
+  <header className="lr-header"><div className="lr-brand"><span className="lr-brand-emblem" aria-hidden="true">♥</span><span className="lr-brand-copy"><b>Love <span>Radar</span></b><small>UN MONDE RIEN QU’À DEUX</small></span></div>
    <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>Love Radar · Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span><button type="button" className="lr-privacy-toggle" aria-pressed={privacyEnabled} onClick={()=>updatePrivacy(!privacyEnabled)}>
      {privacyEnabled?"🔐 Mode confidentialité : activé":"🔓 Mode confidentialité : désactivé"}
     </button>
@@ -644,7 +653,7 @@ export default function LoveRadar(){
    </main>:
   <div className="lr-shell">
    <aside className="lr-sidebar"><div className="lr-sidebar-top"><span className="lr-side-label">VOTRE PETIT UNIVERS</span><div className="lr-couple"><Initials name={room.user.name}/><span className="lr-couple-mid">♥</span><Initials name={partner}/></div><h2>{room.user.name}<span> &amp; </span>{partner}</h2><p>{room.partner?"La belle aventure continue…":"En attente de ta moitié."}</p></div>
-    <div className="lr-side-nav">{NAV.map(n=><button key={n.id} className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} onClick={()=>navigate(n.id)}><span aria-hidden="true">{n.icon}</span>{n.label}{n.id==="chat"&&unreadCount>0?<b className="lr-side-unread" aria-hidden="true">{unreadLabel}</b>:null}</button>)}</div>
+    <div className="lr-side-nav">{NAV.map(n=><button key={n.id} className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} onClick={()=>navigate(n.id)}><span className="lr-nav-symbol" aria-hidden="true"><NavGlyph tab={n.id}/></span>{n.label}{n.id==="chat"&&unreadCount>0?<b className="lr-side-unread" aria-hidden="true">{unreadLabel}</b>:null}</button>)}</div>
     <div className="lr-sidebar-bottom"><div className="lr-side-heart">♡</div>Vos messages et vos souvenirs, toujours à portée de main.</div>
    </aside>
    <main className="lr-main">
@@ -733,7 +742,7 @@ export default function LoveRadar(){
      <button type="button" className="lr-push-focus-open-chat" onClick={closeNotice}>Voir la conversation</button>
     </div>
    </div>:null}
-      <nav className="lr-mobile-nav" aria-label="Navigation principale à cinq onglets">{NAV.map(n=><button key={n.id} type="button" className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} aria-label={n.id==="chat"&&unreadCount>0?"Messages, "+unreadCount+" non lus":n.label} onClick={()=>navigate(n.id)}><span aria-hidden="true">{n.icon}</span>{n.id==="chat"&&unreadCount>0?<b className="lr-nav-unread" aria-hidden="true">{unreadLabel}</b>:null}<small>{n.label}</small></button>)}</nav>
+      <nav className="lr-mobile-nav" aria-label="Navigation principale à cinq onglets">{NAV.map(n=><button key={n.id} type="button" className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} aria-label={n.id==="chat"&&unreadCount>0?"Messages, "+unreadCount+" non lus":n.label} onClick={()=>navigate(n.id)}><span className="lr-nav-symbol" aria-hidden="true"><NavGlyph tab={n.id}/></span>{n.id==="chat"&&unreadCount>0?<b className="lr-nav-unread" aria-hidden="true">{unreadLabel}</b>:null}<small>{n.label}</small></button>)}</nav>
   </div>}
  </div>;
 }
