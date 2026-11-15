@@ -51,7 +51,8 @@ function trustedTikTokUrl(value:string):URL|null{
 }
 async function resolveShortLink(value:string):Promise<string|null>{
  if(!isTikTokShortLink(value))return null;
- let url=trustedTikTokUrl(value.trim());if(!url)return null;
+ const urlText=value.match(/https?:\/\/[^\s<>]+/i)?.[0].replace(/[),.!?]+$/,"")||value.trim();
+ let url=trustedTikTokUrl(urlText);if(!url)return null;
  for(let i=0;i<6;i++){
   const found=parseTikTokId(url.href);
   if(found)return found;
