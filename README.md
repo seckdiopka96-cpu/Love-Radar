@@ -1,3 +1,16 @@
+## 🎨 Love Radar 2.0 — refonte visuelle « Midnight & Rose »
+
+La nouvelle interface adopte une identité **bleu nuit, rose corail et champagne** avec une typographie cohérente et des contrastes renforcés ; elle remplace les grandes surfaces violettes précédentes. La refonte est centralisée dans `src/redesign.css` et `src/redesign-features.css`, importés en dernier dans `src/App.tsx` pour conserver les fonctionnalités et permettre un entretien simple.
+
+- **Navigation** : cinq onglets stables avec icônes vectorielles homogènes (Accueil, Messages, Nous deux, Jeux, Souvenirs). Sur téléphone, ils sont regroupés dans une barre flottante arrondie respectant les marges et la zone de sécurité iPhone. L’onglet actif est mis en évidence.
+- **Accueil** : bienvenue personnalisée, portraits du couple, bandeau de statut, trois accès directs Écrire / Regarder / S’écouter ; rubriques identifiées pour l’histoire, le moment du jour, les activités et les échanges.
+- **Messages** : nouveau fond bleu-ardoise, bulles corail pour l’expéditeur, surfaces bleu nuit pour le destinataire, meilleure hiérarchie de la zone de saisie et du statut.
+- **Ensemble, Jeux, Puzzle, YouTube/TikTok, Réconciliation et appels** : surfaces et commandes harmonisées. Les plateaux de jeux et les lecteurs officiels conservent leurs logiques et leurs couleurs fonctionnelles.
+- **iPhone et Android PWA** : l’application reste dans un cadre fixe, avec défilement interne réservé aux zones de contenu lorsque nécessaire. Les lecteurs YouTube et TikTok ne font pas défiler toute la page ; le clavier de la conversation et de la réconciliation reste accessible.
+- **Installation** : le manifeste PWA, la couleur de la barre système et les descriptions ont été mis à jour. Le cache est actualisé en version `love-radar-static-v44` pour propager les changements aux utilisateurs ayant déjà installé Love Radar.
+- La refonte est **visuelle et de navigation uniquement** : aucune migration D1 ni modification des conversations, photos, appels ou abonnements push. Un test sur les vrais iPhone reste nécessaire pour confirmer l’ergonomie finale.
+- Tests : `npm run test:design`, `npm run test:call`, `npm run test:watch`, `npm run build`.
+
 # Love Radar ❤️ — by Diao-Tech.com
 
 Application web **indépendante de Higgsfield** pour couples, en français. Son code et ses données peuvent être hébergés sur votre propre compte GitHub + Cloudflare Pages.
