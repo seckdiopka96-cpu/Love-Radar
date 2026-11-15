@@ -59,6 +59,9 @@ test("typing focuses last message and keyboard remains in safe iPhone viewport",
  assert.ok(chat.includes('onClick={scrollToLatest}'));
  assert.ok(chat.includes('onFocus={()=>{firstPoll.current=true;setChatFocused(true);scrollToLatest()}'));
  assert.ok(chat.includes("syncWithChat"));
+ assert.ok(chat.includes("discardRecording.current=true"));
+ assert.ok(chat.includes("!discardRecording.current"));
+ assert.ok(chat.includes('recorder.current.state==="recording"'));
  assert.ok(css.includes("lr-keyboard-open .lr-chat-head"));
  assert.ok(css.includes("padding:max(55px, env(safe-area-inset-top))"));
  assert.ok(css.includes("overflow-y:auto!important"));
