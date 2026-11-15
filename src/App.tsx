@@ -602,7 +602,7 @@ export default function LoveRadar(){
   </div>:null}
   {watchInvite&&room&&tab!==watchInvite?<div className="lr-watch-invite" role="alert" aria-label="Invitation à regarder ensemble">
    <span className="lr-watch-invite-icon" aria-hidden="true">🎬</span>
-   <span className="lr-watch-invite-copy"><strong>Ton amour regarde \${watchInvite==="watch"?"YouTube":"TikTok"}</strong><small>Rejoins directement votre vidéo partagée ❤️</small></span>
+   <span className="lr-watch-invite-copy"><strong>Ton amour regarde {watchInvite==="watch"?"YouTube":"TikTok"}</strong><small>Rejoins directement votre vidéo partagée ❤️</small></span>
    <button type="button" className="lr-watch-invite-join" onClick={()=>navigate(watchInvite)}>Regarder</button>
    <button type="button" className="lr-watch-invite-dismiss" onClick={()=>setWatchInvite(null)} aria-label="Ignorer l'invitation">×</button>
   </div>:null}
