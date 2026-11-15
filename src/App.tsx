@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useRef, useState, type ChangeEvent, t
 import "./love-radar.css";
 import VoiceCall from "./VoiceCall";
 import Ludo from "./Ludo";
+import SoloLudo from "./SoloLudo";
 import MemoryLove from "./MemoryLove";
 import DailyMoment from "./DailyMoment";
 import Together from "./Together";
@@ -14,7 +15,7 @@ import CoupleStory from "./CoupleStory";
 import PrivatePhoto from "./PrivatePhoto";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
-type Tab = "home" | "together" | "location" | "moment" | "reunion" | "games" | "ludo" | "memory" | "chat" | "memories" | "story";
+type Tab = "home" | "together" | "location" | "moment" | "reunion" | "games" | "ludo" | "ludo-solo" | "memory" | "chat" | "memories" | "story";
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number};
 type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
@@ -30,7 +31,7 @@ const NAV: {id:Tab;label:string;icon:string}[] = [
 function selectedNav(tab:Tab):Tab {
  if(tab==="moment"||tab==="location"||tab==="reunion")return "together";
  if(tab==="story")return "memories";
- if(tab==="ludo"||tab==="memory")return "games";
+ if(tab==="ludo"||tab==="ludo-solo"||tab==="memory")return "games";
  return tab;
 }
 const HEARTS = ["♡","♥","✦","♡","♥"];
@@ -41,7 +42,7 @@ const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","m
 function parseNotice(search:string):NoticeTarget|null{
  const q=new URLSearchParams(search);
  const tab=q.get("tab");
- if(tab!=="home"&&tab!=="moment"&&tab!=="together"&&tab!=="location"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo"&&tab!=="memory"&&tab!=="memories")return null;
+ if(tab!=="home"&&tab!=="moment"&&tab!=="together"&&tab!=="location"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="memory"&&tab!=="memories")return null;
  const kind=q.get("kind"),id=q.get("id");
  if(!kind||!NOTICE_KINDS.has(kind)||!id||!(/^[0-9a-f-]{36}$/i.test(id)||(kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(id))))return {tab,kind:null,id:null};
  return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":kind==="daily-question"?"moment":kind==="love-signal"||kind==="draw-invite"?"together":kind==="location-request"?"location":"chat",kind:kind as NoticeKind,id};
@@ -261,7 +262,7 @@ export default function LoveRadar(){
      setNoticeTarget(dest);
      setTab(dest.tab);firstPoll.current=true;
     }
-   }else if(["chat","games","ludo","memory","moment","together","location","reunion","story","home","memories"].includes(data?.tab)){
+   }else if(["chat","games","ludo","ludo-solo","memory","moment","together","location","reunion","story","home","memories"].includes(data?.tab)){
     const dest=data.tab as Tab;
     setTab(dest);setNoticeTarget({tab:dest,kind:null,id:null});firstPoll.current=true;
    }
@@ -598,7 +599,7 @@ export default function LoveRadar(){
  const lastOwnMessage=[...(room?.messages||[])].reverse().find(m=>m.sender_id===room?.user.id);
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
- return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+(tab==="ludo"&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+(tab==="location"&&room?"lr-location-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
+ return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo"||tab==="ludo-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+(tab==="location"&&room?"lr-location-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-brand"><b>Love Radar</b></div>
    <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>Love Radar · Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span><button type="button" className="lr-privacy-toggle" aria-pressed={privacyEnabled} onClick={()=>updatePrivacy(!privacyEnabled)}>
@@ -657,6 +658,7 @@ export default function LoveRadar(){
     {tab==="location"?<LocationShare token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusId={noticeTarget?.kind==="location-request"?noticeTarget.id:null}/>:null}
     {tab==="games"?<GamesHub onOpenGame={game=>navigate(game)} partnerName={room.partner}/>:null}
     {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}/>:null}
+     {tab==="ludo-solo"?<SoloLudo myName={room.user.name} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("games")}/>:null}
     {tab==="memory"?<MemoryLove token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} challengeId={noticeTarget?.kind==="memory-challenge"?noticeTarget.id:null}/>:null}
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">
