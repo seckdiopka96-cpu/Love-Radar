@@ -132,3 +132,49 @@
 .wt-provider-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px;border:1px solid #8d6688;border-radius:12px;background:#2b2036;flex:none}
 .wt-provider-tabs button{border:0;border-radius:9px;background:transparent;padding:9px;color:#e9c7d9;font-size:12px;font-weight:900}
 .wt-provider-tabs button.active{color:#fff;background:linear-gradient(110deg,#ba6390,#854877);box-shadow:0 3px 10px #11082080}
+
+/* Consistent with TikTok: co-watch screens never scroll the page on iPhone.
+   The actual message history can scroll independently when expanded. */
+@media(max-width:700px){
+ .lr-app.lr-watch-mode.lr-app-locked .wt-page{gap:6px!important}
+ .wt-header{min-height:37px}
+ .wt-provider-tabs{padding:3px;gap:4px}
+ .wt-provider-tabs button{padding:7px 6px;min-height:32px}
+ .wt-presence{min-height:32px;padding:7px 9px}
+ .wt-body{display:flex!important;flex-direction:column!important;flex:1 1 0!important;
+  min-height:0!important;overflow:hidden!important;overscroll-behavior:none!important;
+  gap:6px!important;padding:0!important}
+ .wt-screen-panel{display:flex!important;flex-direction:column!important;
+  flex:1 1 0!important;min-height:0!important;overflow:hidden!important;gap:5px!important}
+ .wt-screen{flex:1 1 0!important;min-height:95px!important;max-height:100%!important;
+  aspect-ratio:auto!important;overflow:hidden!important}
+ .wt-video-tools{flex:0 0 auto!important;gap:5px!important;padding:6px 8px!important;border-radius:11px}
+ .wt-player-actions button{min-height:33px!important;padding:5px 4px!important;font-size:11px}
+ .wt-activate{min-height:31px!important;padding:5px 7px!important}
+ .wt-video-status{font-size:10px}
+ .wt-progress{gap:5px}
+ .wt-link-form{flex:0 0 auto!important;gap:5px!important;padding:8px!important;border-radius:11px}
+ .wt-link-form label{font-size:11px}
+ .wt-link-line input{height:37px!important;padding:7px 10px!important;font-size:16px!important}
+ .wt-link-line button{height:37px!important;padding:0 11px!important;font-size:11px}
+ .wt-link-form small{display:none!important}
+ .wt-conversation{flex:0 0 auto!important;max-height:32dvh!important;min-height:0!important}
+ .wt-conversation-head{padding:7px 9px!important}
+ .wt-conversation-head strong{font-size:11px}
+ .wt-conversation-head small{display:none}
+ .wt-conversation-head>button{font-size:10px;padding:7px 8px}
+ .wt-conversation.is-open{max-height:min(23dvh,160px)!important;overflow:hidden!important}
+ .wt-message-list{flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow-y:auto!important}
+ .wt-chat-compose{padding:6px!important}
+ .wt-chat-compose input{height:35px!important;font-size:16px!important}
+ .wt-chat-compose button{height:35px;width:35px}
+ .wt-footnote{display:none!important}
+ .wt-page:has(.wt-link-line input:focus,.wt-chat-compose input:focus) .wt-screen{min-height:0!important;flex:0 0 0!important;
+  height:0!important;opacity:0;pointer-events:none}
+ .wt-page:has(.wt-link-line input:focus,.wt-chat-compose input:focus) .wt-screen-panel{flex:0 0 auto!important}
+}
+@media(max-height:650px) and (max-width:700px){
+ .wt-screen{min-height:60px!important}
+ .wt-link-form label{display:none}
+ .wt-video-status>span:last-child{display:none}
+}
