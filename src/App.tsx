@@ -767,11 +767,11 @@ export default function LoveRadar(){
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">
       <div className="lr-chat-partner"><Initials name={partner} size="small"/>
-       <div><h2>{partner}</h2><span className={"lr-chat-status "+(partnerTyping?"typing":partnerOnline?"online":"offline")} aria-live="polite">{partnerTyping?"En train d’écrire…":!room.partner?"En attente de votre partenaire…":partnerOnline?"En ligne":"Hors ligne"}</span></div>
+       <div><h2>{partner}</h2><span className={"lr-chat-status "+(partnerRecording?"recording":partnerTyping?"typing":partnerOnline?"online":"offline")} aria-live="polite">{partnerRecording?"Enregistre un vocal…":partnerTyping?"En train d’écrire…":!room.partner?"En attente de votre partenaire…":partnerOnline?"En ligne":"Hors ligne"}</span></div>
       </div>
       <div id="lr-voice-button-slot"/>
      </div>
-     <div className="lr-chat-messages" ref={chatScroller} role="log" aria-label="Messages" aria-live="off">
+     <div className="lr-chat-messages" ref={chatScroller} onScroll={e=>{const list=e.currentTarget;setChatAtBottom(list.scrollHeight-list.scrollTop-list.clientHeight<120)}} role="log" aria-label="Messages" aria-live="off">
       {room.messages.length===0?<div className="lr-chat-empty"><span>♡</span><h3>Votre conversation</h3><p>Écris ton premier message pour commencer.</p></div>:
       room.messages.map((m,idx)=>{
        const mine=m.sender_id===room.user.id;
@@ -797,15 +797,20 @@ export default function LoveRadar(){
         </div>
        </Fragment>
       })}
-      {partnerTyping?<div className="lr-typing" role="status"><span>{partner} écrit</span><div className="lr-typing-dots" aria-label="En train d’écrire"><i/><i/><i/></div></div>:null}
+      {partnerTyping||partnerRecording?<div className="lr-typing" role="status">
+       <span>{partnerRecording?partner+" enregistre un vocal":partner+" écrit"}</span>
+       {partnerRecording?<span className="lr-voice-wave" aria-label="Enregistrement vocal"><i/><i/><i/><i/></span>:
+        <div className="lr-typing-dots" aria-label="En train d’écrire"><i/><i/><i/></div>}
+      </div>:null}
       <div ref={tail}/>
      </div>
+     {!chatAtBottom&&!chatFocused?<button type="button" className="lr-chat-jump" onClick={scrollToLatest}>↓ Derniers messages</button>:null}
      <div className="lr-chat-compose">
       {recording?<div className="lr-recording"><span className="lr-record-dot"/> Enregistrement en cours…</div>:null}
       <form className={"lr-chat-form "+(chatFocused||draft.trim()?"is-writing ":"")+(recording?"is-recording":"")} onSubmit={sendMessage}>
        <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={onImageChange}/>
        <button className="lr-attach" type="button" title="Envoyer une photo" aria-label="Ajouter une photo" onClick={()=>fileInput.current?.click()} disabled={!room.partner||busy}><span aria-hidden="true">+</span></button>
-       <input aria-label="Écrire un message" type="text" enterKeyHint="send" autoComplete="off" value={draft} onFocus={()=>setChatFocused(true)} onBlur={()=>{setChatFocused(false);setTyping(false)}} onChange={e=>{setDraft(e.target.value);setTyping(e.target.value.trim().length>0)}} placeholder={room.partner?"Message…":"En attente de ton partenaire…"} disabled={!room.partner} maxLength={1600}/>
+       <input aria-label="Écrire un message" type="text" enterKeyHint="send" autoComplete="off" value={draft} onFocus={()=>{firstPoll.current=true;setChatFocused(true);scrollToLatest()}} onBlur={()=>{setChatFocused(false);setTyping(false)}} onChange={e=>{setDraft(e.target.value);setTyping(e.target.value.trim().length>0)}} placeholder={room.partner?"Message…":"En attente de ton partenaire…"} disabled={!room.partner} maxLength={1600}/>
        <button className={"lr-mic "+(recording?"recording":"")} type="button" title={recording?"Arrêter le vocal":"Enregistrer un vocal"} aria-label={recording?"Arrêter le message vocal":"Enregistrer un message vocal"} onClick={toggleRecording} disabled={!room.partner||busy}>
         {recording?<span aria-hidden="true">■</span>:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8 21h8"/></svg>}
        </button>
