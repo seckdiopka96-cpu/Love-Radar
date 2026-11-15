@@ -257,7 +257,7 @@ export default function TikTokTogether({token,myId,myName,partnerName,messages,o
  const syncTime=snapshot?watchTikTokTime(snapshot,now+offset):0;
  const shownTime=ready?localPos:syncTime;
  const directLink=id?"https://www.tiktok.com/player/v1/"+id:"";
- return <section className="tk-page" aria-label="Regarder TikTok ensemble">
+ return <section className={"tk-page"+(id?" tk-has-video":" tk-no-video")} aria-label="Regarder TikTok ensemble">
   <header className="tk-header">
    <button type="button" className="tk-back" onClick={onExit}>‹ Ensemble</button>
    <div className="tk-title"><strong>TikTok <span>♥</span> à deux</strong><small>LOVE RADAR · REGARDER ENSEMBLE</small></div>
@@ -276,7 +276,7 @@ export default function TikTokTogether({token,myId,myName,partnerName,messages,o
    <small>DUO PRIVÉ</small>
   </div>
   <div className="tk-body">
-   <div className="tk-video-area">
+   <div className={"tk-video-area"+(id?" has-video":" is-empty")}>
     <div className="tk-video-container">
      {id?<iframe ref={frame} className="tk-video-embed" key={id}
       src={canonicalTikTokVideo(id)}
@@ -337,6 +337,6 @@ export default function TikTokTogether({token,myId,myName,partnerName,messages,o
   </div>
   {error?<div className="tk-alert" role="alert">{error}<button type="button" onClick={()=>setError("")} aria-label="Fermer">✕</button></div>:null}
   {notice?<div className="tk-notice" role="status">{notice}<button type="button" onClick={()=>setNotice("")} aria-label="Fermer">✕</button></div>:null}
-  <p className="tk-footnote">TikTok conserve son lecteur officiel. Certaines vidéos privées ou restreintes ne s'affichent pas. Sur iPhone, chacun peut devoir lancer la vidéo une première fois. La synchronisation dépend du réseau.</p>
+  <p className="tk-footnote">Vidéos publiques uniquement · Un appui peut être nécessaire sur iPhone.</p>
  </section>;
 }
