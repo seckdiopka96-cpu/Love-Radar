@@ -14,7 +14,9 @@ test("composing activity is a tiny three-dot bubble without visual words",()=>{
  assert.match(markup,/lr-activity-bubble lr-activity-typing/);
  assert.match(markup,/role="status"/);
  assert.match(markup,/aria-label="Ton partenaire est en train d’écrire"/);
- assert.match(markup,/<span class="lr-activity-dots" aria-hidden="true"><i><\/i><i><\/i><i><\/i><\/span>/);
+ assert.match(markup,/class="lr-activity-dots"/);
+ assert.equal((markup.match(/<i(?:\s[^>]*)?><\/i>/g)||[]).length,3);
+ assert.match(markup,/data-activity-frame="0"/);
  assert.doesNotMatch(markup,/>.*en train d’écrire/i);
 });
 test("voice recording activity is microphone plus animated waveform, no label text",()=>{
@@ -23,7 +25,7 @@ test("voice recording activity is microphone plus animated waveform, no label te
  assert.match(markup,/aria-label="Ton partenaire enregistre un message vocal"/);
  assert.match(markup,/class="lr-activity-recording-icon"/);
  assert.match(markup,/class="lr-activity-wave"/);
- assert.equal((markup.match(/<i><\/i>/g)||[]).length,4);
+ assert.equal((markup.match(/<i(?:\s[^>]*)?><\/i>/g)||[]).length,4);
  assert.doesNotMatch(markup,/>.*enregistre un vocal/i);
 });
 test("header keeps presence online or offline while activity stays in latest messages",()=>{
@@ -72,4 +74,18 @@ test("typing and microphone show unmistakable staggered motion on mobile",()=>{
  assert.ok(immersive.includes(".lr-activity-wave i:nth-child(4)"));
  assert.ok(immersive.includes("will-change:transform,opacity"));
  assert.ok(immersive.includes("prefers-reduced-motion:reduce"));
+});
+
+test("real iPhone status animation advances through JS frames, not CSS keyframes alone",()=>{
+ const source=readFileSync("src/ChatActivity.tsx","utf8");
+ const overrides=readFileSync("src/message-actions.css","utf8");
+ assert.ok(source.includes("useState(0)"));
+ assert.ok(source.includes("window.setInterval(()=>setFrame"));
+ assert.ok(source.includes("data-activity-frame={frame}"));
+ assert.ok(source.includes('"--lr-js-transform"'));
+ assert.ok(source.includes('"--lr-js-height"'));
+ assert.ok(overrides.includes("animation:none!important"));
+ assert.ok(overrides.includes("var(--lr-js-transform"));
+ assert.ok(overrides.includes("var(--lr-js-height"));
+ assert.ok(overrides.includes("@media(prefers-reduced-motion:reduce)"));
 });
