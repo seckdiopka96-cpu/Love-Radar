@@ -38,7 +38,7 @@ function sniff(bytes:Uint8Array,mime:string){
     const record=await db.prepare("SELECT object_key,mime FROM messages WHERE room_id=? AND object_key=?").bind(u.room_id,key).first<{object_key:string,mime:string}>();
     if(!record)return no("Média introuvable.",404);
     const asset=await bucket.get(record.object_key);if(!asset)return no("Média supprimé.",404);
-    return new Response(await asset.arrayBuffer(),{headers:{"Content-Type":record.mime,"Cache-Control":"private, no-store, max-age=0","X-Content-Type-Options":"nosniff","Cross-Origin-Resource-Policy":"same-origin","Referrer-Policy":"no-referrer","Content-Disposition":"inline"}});
+    return new Response(asset.body,{headers:{"Content-Type":record.mime,"Cache-Control":"private, no-store, max-age=0","X-Content-Type-Options":"nosniff","Cross-Origin-Resource-Policy":"same-origin","Referrer-Policy":"no-referrer","Content-Disposition":"inline"}});
    }catch(e){console.error("media get",e);return no("Erreur de lecture.",500)}
   },
   POST:async({request})=>{
@@ -56,12 +56,37 @@ function sniff(bytes:Uint8Array,mime:string){
     if(file.size===0||file.size>size)return no("Fichier trop volumineux.",413);
     const bytes=new Uint8Array(await file.arrayBuffer());
     if(!sniff(bytes,mime))return no("Fichier non reconnu.");
-    const id=crypto.randomUUID(),now=Date.now();
+    // The client may preassign a v4 UUID to show the voice message before
+    // the upload finishes. Retrying the same UUID must not create duplicates.
+    const requestedId=form.get("messageId");
+    if(requestedId!==null&&(typeof requestedId!=="string"||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(requestedId)))return no("Identifiant de message invalide.",400);
+    const id=typeof requestedId==="string"?requestedId:crypto.randomUUID();
+    const existing=await db.prepare("SELECT id,room_id,sender_id,kind,mime,created_at FROM messages WHERE id=?").bind(id).first<{id:string;room_id:string;sender_id:string;kind:string;mime:string;created_at:number}>();
+    if(existing){
+     if(existing.room_id!==u.room_id||existing.sender_id!==u.id||existing.kind!==kind||existing.mime!==mime)
+      return no("Identifiant déjà utilisé.",409);
+     return Response.json({ok:true,id,created_at:existing.created_at,duplicate:true},{headers:{"Cache-Control":"no-store"}});
+    }
+    const now=Date.now();
     await bucket.put(id,bytes,{httpMetadata:{contentType:mime}});
-    try{await db.prepare("INSERT INTO messages(id,room_id,sender_id,kind,object_key,mime,created_at) VALUES(?,?,?,?,?,?,?)").bind(id,u.room_id,u.id,kind,id,mime,now).run()}
-    catch(e){await bucket.delete(id);throw e}
+    try{
+     const inserted=await db.prepare("INSERT OR IGNORE INTO messages(id,room_id,sender_id,kind,object_key,mime,created_at) VALUES(?,?,?,?,?,?,?)")
+      .bind(id,u.room_id,u.id,kind,id,mime,now).run();
+     if(!inserted.meta.changes){
+      const same=await db.prepare("SELECT room_id,sender_id,kind,mime,created_at FROM messages WHERE id=?")
+       .bind(id).first<{room_id:string;sender_id:string;kind:string;mime:string;created_at:number}>();
+      if(same&&same.room_id===u.room_id&&same.sender_id===u.id&&same.kind===kind&&same.mime===mime)
+       return Response.json({ok:true,id,created_at:same.created_at,duplicate:true},{headers:{"Cache-Control":"no-store"}});
+      return no("Identifiant déjà utilisé.",409);
+     }
+    }catch(e){
+     // Only delete an orphan if no concurrent retry has already committed it.
+     const committed=await db.prepare("SELECT id FROM messages WHERE id=?").bind(id).first();
+     if(!committed)await bucket.delete(id);
+     throw e;
+    }
     waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",kind==="image"?"Ton partenaire t’a envoyé une photo.":"Ton partenaire t’a envoyé un message vocal.","chat",{kind:kind==="image"?"photo":"audio",id}));
-    return Response.json({ok:true,id},{headers:{"Cache-Control":"no-store"}});
+    return Response.json({ok:true,id,created_at:now},{headers:{"Cache-Control":"no-store"}});
    }catch(e){console.error("media upload",e);return no("Envoi impossible. Réessaie.",500)}
   }
 
