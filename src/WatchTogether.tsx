@@ -286,7 +286,7 @@ export default function WatchTogether({token,myId,myName,partnerName,messages,on
     </div>
     {videoId?<div className="wt-video-tools">
      <div className="wt-video-status">
-      <span>{shared?.playing?"<span>▶</span> Lecture synchronisée":"⏸ En pause pour vous deux"}</span>
+      <span>{shared?.playing?"▶ Lecture synchronisée":"⏸ En pause pour vous deux"}</span>
       <span>{shared?.updatedBy?"Action : "+shared.updatedBy:"Synchronisation activée"}</span>
      </div>
      {needsTap&&ready&&shared?.playing?<button type="button" className="wt-activate" onClick={beginPlayback}>▶ Activer la vidéo sur mon téléphone</button>:null}
