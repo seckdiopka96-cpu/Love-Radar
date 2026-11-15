@@ -106,11 +106,15 @@ async function run(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    return fail("Écris d’abord ce que tu ressens, avec tes propres mots.");
   // One participant never has database access to another participant's drafts.
   // Save cannot overwrite a final submitted text, even during concurrent requests.
+  // Atomic room/session gate: a late draft-save may NEVER revive entries after
+  // another partner closes and permanently wipes the reconciliation session.
   const result=await db.prepare(
-   "INSERT INTO couple_reconciliation_entries(session_id,member_id,pain,needs,message,submitted,updated_at,submitted_at) VALUES(?,?,?,?,?,?,?,?)"+
-   " ON CONFLICT(session_id,member_id) DO UPDATE SET pain=excluded.pain,needs=excluded.needs,message=excluded.message,submitted=excluded.submitted,updated_at=excluded.updated_at,submitted_at=excluded.submitted_at WHERE couple_reconciliation_entries.submitted=0"
+   "INSERT INTO couple_reconciliation_entries(session_id,member_id,pain,needs,message,submitted,updated_at,submitted_at)"+
+   " SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM couple_reconciliations WHERE room_id=? AND id=? AND status='writing')"+
+   " ON CONFLICT(session_id,member_id) DO UPDATE SET pain=excluded.pain,needs=excluded.needs,message=excluded.message,submitted=excluded.submitted,updated_at=excluded.updated_at,submitted_at=excluded.submitted_at"+
+   " WHERE couple_reconciliation_entries.submitted=0 AND EXISTS(SELECT 1 FROM couple_reconciliations WHERE room_id=? AND id=? AND status='writing')"
   ).bind(session.id,member.id,texts.pain,texts.needs,texts.message,action==="submit"?1:0,
-   now,action==="submit"?now:null).run();
+   now,action==="submit"?now:null,member.room_id,session.id,member.room_id,session.id).run();
   if(result.meta.changes!==1)return fail("Ton texte est déjà envoyé. Tu ne peux plus le modifier.",409);
   if(action==="submit"){
    const entries=await db.prepare(
