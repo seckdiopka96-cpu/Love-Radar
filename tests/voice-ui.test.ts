@@ -51,3 +51,21 @@ test("outgoing and incoming audio remain in existing conversation order with no 
  assert.ok(app.includes('mine={mine} time={time}'));
  assert.ok(app.includes('chatMessages.map((m,idx)=>'));
 });
+
+test("every playable vocal exposes reactions and message actions without hijacking playback",()=>{
+ const player=readFileSync("src/VoiceMessage.tsx","utf8");
+ const app=readFileSync("src/App.tsx","utf8");
+ const css=readFileSync("src/voice-message.css","utf8");
+ const api=readFileSync("functions/api/love.ts","utf8");
+ assert.ok(player.includes("onOpenActions?:()=>void"));
+ assert.ok(player.includes('className="lr-voice-note-actions"'));
+ assert.ok(player.includes('onClick={e=>{e.stopPropagation();onOpenActions()}}'));
+ assert.ok(player.includes('onPointerDown={e=>e.stopPropagation()}'));
+ assert.ok(app.includes("onOpenActions={()=>openMessageActions(m)}"));
+ assert.ok(app.includes('onPointerDown={e=>messagePointerDown(e,m)}'));
+ assert.ok(app.includes('onPointerUp={e=>messagePointerUp(e,m)}'));
+ assert.ok(app.includes('CHAT_REACTIONS.map(emoji=>'));
+ assert.ok(app.includes('onClick={()=>void deleteOwnMessage(actionMessage)}'));
+ assert.ok(api.includes("kind IN ('text','image','audio')"));
+ assert.ok(css.includes(".lr-voice-note-actions"));
+});
