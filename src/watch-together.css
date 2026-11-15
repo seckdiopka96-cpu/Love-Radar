@@ -27,7 +27,7 @@
 .wt-presence-tag{white-space:nowrap;font-size:9px;letter-spacing:.45px;color:#edc4db}
 .wt-body{display:flex;flex-direction:column;min-height:0;min-width:0;gap:9px;flex:1 1 auto;overflow:auto;padding-bottom:5px;overscroll-behavior:contain}
 .wt-screen-panel{display:flex;flex-direction:column;gap:9px;min-width:0;flex:none}
-.wt-screen{position:relative;aspect-ratio:16/9;width:100%;min-height:185px;max-height:55vh;
+.wt-screen{position:relative;aspect-ratio:16/9;width:100%;min-height:210px;max-height:55vh;
  border-radius:16px;overflow:hidden;background:linear-gradient(145deg,#1b1225,#0b0c17);
  border:2px solid #a4778b;box-shadow:0 10px 30px #14081e9c,inset 0 0 0 1px #f8c9ca40;
  isolation:isolate}
@@ -120,7 +120,7 @@
  .wt-back{padding:7px 9px}
  .wt-presence{font-size:11px}
  .wt-presence-tag{font-size:8px}
- .wt-screen{min-height:175px}
+ .wt-screen{min-height:210px}
  .wt-body{flex:1 1 auto;overflow-y:auto}
  .wt-message-list{max-height:155px}
 }
