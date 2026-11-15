@@ -2,7 +2,7 @@ import {useCallback,useEffect,useRef,useState} from "react";
 import DiceFace from "./DiceFace";
 import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
-import {TRACK,HOME,SAFE,CELL,key,stackPosition,type Point} from "./ludo-visuals";
+import {TRACK,HOME,SAFE,CELL,key,stackCellStyle,type Point} from "./ludo-visuals";
 import {
  TURN_MS,newSenegalGame,isSenegalGame,movesForPawn,rollSenegal,
  applySenegalMove,chooseSenegalBotMove,pointForPawn,die,
@@ -305,9 +305,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
            onClick={()=>choose(item.pawn)}
            title={"Pion "+(item.pawn+1)+(item.zone==="enemy"?" · cage adverse":"")}
            aria-label={"Pion "+(item.pawn+1)+(item.zone==="enemy"?" dans la cage adverse":"")}
-           style={{left:off.x+"%",top:off.y+"%",zIndex:5+i,
-            transform:"translate("+(c===0?"-5%":c===14?"-95%":"-50%")+","+
-             (r===0?"-5%":r===14?"-95%":"-50%")+") scale("+off.scale+")"}}>
+           style={{...stackCellStyle(pawns.length,i),zIndex:5+i}}>
             <PawnShape index={item.pawn}/>
            </button>;
          })}
