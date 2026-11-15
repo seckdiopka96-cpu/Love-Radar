@@ -49,5 +49,5 @@ test("outgoing and incoming audio remain in existing conversation order with no 
  assert.ok(app.includes('!groupedAfter&&m.kind!=="audio"'));
  assert.ok(app.includes('mine&&m.kind!=="audio"&&m.id===lastOwnMessage?.id'));
  assert.ok(app.includes('mine={mine} time={time}'));
- assert.ok(app.includes('room.messages.map((m,idx)=>'));
+ assert.ok(app.includes('chatMessages.map((m,idx)=>'));
 });
