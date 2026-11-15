@@ -19,6 +19,7 @@
     "test:design": "tsx --test tests/redesign.test.ts",
     "test:chat": "tsx --test tests/chat-stability.test.ts",
     "test:activity": "tsx --test tests/activity-icons.test.ts",
+    "test:replies": "tsx --test tests/message-replies.test.ts",
     "test:voice-ui": "tsx --test tests/voice-ui.test.ts",
     "test:voice-outbox": "tsx --test tests/voice-outbox.test.ts"
   },
