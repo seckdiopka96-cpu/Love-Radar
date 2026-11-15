@@ -1,0 +1,125 @@
+/* Love Radar: immersive phone messenger. Only the conversation remains onscreen.
+   Explicitly supersedes earlier mobile navigation and keyboard rules. */
+.lr-chat-back{display:none}
+@media(max-width:700px){
+ .lr-app.lr-app-locked.lr-chat-mode > .lr-header,
+ .lr-app.lr-app-locked.lr-chat-mode > .lr-notification-area,
+ .lr-app.lr-app-locked.lr-chat-mode .lr-mobile-nav{
+  display:none!important;visibility:hidden!important
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-shell{
+  padding:0!important;margin:0!important;
+  flex:1 1 0!important;min-height:0!important;max-height:100%!important
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-main{
+  padding:0!important;margin:0!important;
+  display:flex!important;flex:1 1 0!important;min-height:0!important;overflow:hidden!important
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat{
+  display:flex!important;flex-direction:column!important;
+  height:100%!important;max-height:100%!important;min-height:0!important;
+  width:100%!important;margin:0!important;border:0!important;
+  border-radius:0!important;overflow:hidden!important
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-head{
+  flex:0 0 auto!important;display:flex!important;gap:9px!important;
+  padding:calc(env(safe-area-inset-top) + 12px) 12px 12px!important;
+  min-height:80px!important;background:#152635!important;
+  border-bottom:1px solid #3d5260!important
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-back{
+  display:grid!important;place-items:center!important;
+  width:39px;height:39px;min-width:39px;flex:0 0 39px;
+  border-radius:50%!important;
+  border:1px solid #45616e!important;
+  background:#203646!important;color:#ffe4e6!important;
+  padding:8px!important;margin:0!important
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-back svg{width:22px;height:22px;display:block}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-partner{
+  min-width:0!important;flex:1 1 auto!important;gap:9px!important
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-partner>div:last-child{
+  min-width:0!important;overflow:hidden!important
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-head h2{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;font-size:16px!important
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-messages{
+  flex:1 1 0!important;min-height:0!important;
+  overflow-y:auto!important;overscroll-behavior:contain!important;
+  scroll-behavior:auto!important;touch-action:pan-y!important;
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-compose{
+  flex:0 0 auto!important;
+  padding:9px 10px max(11px,env(safe-area-inset-bottom))!important;
+ }
+ /* Keyboard: the user sees the same header, bubbles and composer. Only the
+    history list resizes with visualViewport; no second bottom navigation. */
+ .lr-app.lr-app-locked.lr-chat-mode.lr-keyboard-open .lr-chat{
+  height:var(--lr-visible-height,100dvh)!important;
+  max-height:var(--lr-visible-height,100dvh)!important;
+  top:var(--lr-visible-top,0px)!important
+ }
+ .lr-app.lr-app-locked.lr-chat-mode.lr-keyboard-open .lr-chat-head{
+  min-height:0!important;
+  padding:max(55px,env(safe-area-inset-top)) 12px 9px!important
+ }
+ .lr-app.lr-app-locked.lr-chat-mode.lr-keyboard-open .lr-chat-compose{
+  padding:8px 9px 7px!important
+ }
+}
+
+/* Smooth, clearly visible typing progression. Three dots take turns rising,
+   instead of sitting as a still three-dot picture. */
+.lr-chat .lr-activity-bubble.lr-activity-typing .lr-activity-dots{
+ display:inline-flex!important;align-items:center!important;gap:5px!important;
+ height:24px!important
+}
+.lr-chat .lr-activity-bubble.lr-activity-typing .lr-activity-dots i{
+ display:block!important;flex:none!important;width:7px!important;height:7px!important;
+ border-radius:50%!important;background:#e3ebef!important;
+ opacity:.35;transform:translateY(2px) scale(.83);
+ animation:lr-whats-typing 1.05s ease-in-out infinite!important;
+ will-change:transform,opacity
+}
+.lr-chat .lr-activity-bubble.lr-activity-typing .lr-activity-dots i:nth-child(1){animation-delay:-.70s!important}
+.lr-chat .lr-activity-bubble.lr-activity-typing .lr-activity-dots i:nth-child(2){animation-delay:-.35s!important}
+.lr-chat .lr-activity-bubble.lr-activity-typing .lr-activity-dots i:nth-child(3){animation-delay:0s!important}
+@keyframes lr-whats-typing{
+ 0%,65%,100%{opacity:.35;transform:translateY(2px) scale(.83)}
+ 27%,38%{opacity:1;transform:translateY(-4px) scale(1.22)}
+}
+
+/* Microphone is shown only during the partner's recording; sound bars move
+   at staggered phases so their animation is unmistakable on a real device. */
+.lr-chat .lr-activity-bubble.lr-activity-recording .lr-activity-recording-icon svg{
+ stroke:#ffadc0!important;
+ animation:lr-whats-mic 1.3s ease-in-out infinite!important
+}
+.lr-chat .lr-activity-bubble.lr-activity-recording .lr-activity-wave i{
+ width:3px!important;height:7px!important;background:#ffc0cb!important;
+ animation:lr-whats-voice .82s ease-in-out infinite alternate!important;
+ will-change:transform,opacity
+}
+.lr-chat .lr-activity-bubble.lr-activity-recording .lr-activity-wave i:nth-child(1){animation-delay:-.55s!important}
+.lr-chat .lr-activity-bubble.lr-activity-recording .lr-activity-wave i:nth-child(2){animation-delay:-.35s!important}
+.lr-chat .lr-activity-bubble.lr-activity-recording .lr-activity-wave i:nth-child(3){animation-delay:-.16s!important}
+.lr-chat .lr-activity-bubble.lr-activity-recording .lr-activity-wave i:nth-child(4){animation-delay:0s!important}
+@keyframes lr-whats-voice{
+ from{transform:scaleY(.58);opacity:.5}
+ to{transform:scaleY(2.45);opacity:1}
+}
+@keyframes lr-whats-mic{0%,100%{opacity:.65}50%{opacity:1}}
+/* Honor reduced motion with subtle opacity-only feedback. */
+@media(prefers-reduced-motion:reduce){
+ .lr-chat .lr-activity-bubble.lr-activity-typing .lr-activity-dots i{
+  animation:lr-whats-soft 1.6s ease-in-out infinite!important;transform:none!important
+ }
+ .lr-chat .lr-activity-bubble.lr-activity-recording .lr-activity-recording-icon svg,
+ .lr-chat .lr-activity-bubble.lr-activity-recording .lr-activity-wave i{
+  animation:lr-whats-soft 1.6s ease-in-out infinite!important;transform:none!important
+ }
+ @keyframes lr-whats-soft{0%,100%{opacity:.5}50%{opacity:1}}
+}
