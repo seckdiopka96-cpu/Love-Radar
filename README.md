@@ -127,6 +127,15 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Animation de confettis lors de la victoire, dés carrés conservés. Les animations sont réduites si l'option système « réduire les animations » est activée.
 - Une nouvelle version du cache PWA est utilisée pour fournir le design à jour ; les parties et messages ne sont pas réinitialisés.
 
+### 🔔 Invitation automatique au lancement d'une vidéo
+
+- Dans YouTube ou TikTok, le serveur envoie une notification push au **partenaire de l'autre membre** quand le bouton lecture passe d'une vidéo en pause à la lecture. Un changement de vidéo, un déplacement dans la timeline, le polling et une lecture déjà active ne déclenchent pas de nouvelle invitation.
+- La notification dit « [prénom] t'invite à regarder YouTube/TikTok » ; toucher l'alerte ouvre directement l'onglet `/?tab=watch` ou `/?tab=watch-tiktok`, qui récupère automatiquement la vidéo et la position partagées depuis la salle du couple.
+- Lorsque Love Radar est ouvert, un petit bandeau propose aussi **Regarder** pour rejoindre directement la bonne séance.
+- L'envoi est exécuté en arrière-plan Cloudflare (`ctx.waitUntil`) après la sauvegarde réussie du début de lecture ; il ne bloque pas la vidéo. Il repose sur les abonnements Web Push et la configuration VAPID déjà existants. Sur iPhone, il faut installer la PWA et **activer les notifications** ; une notification acceptée par le service ne garantit pas son affichage final.
+- L'écran « Nous deux » donne maintenant la priorité à **Regarder ensemble**, regroupe Moment/Retrouvailles/Position sous trois boutons et évite le grand panneau vide des petits mots.
+- Tests : `npm run test:watch`, `npm run build` ; faire une vérification de réception et d'ouverture de notification sur deux téléphones après déploiement.
+
 ## 🎬 Regarder ensemble — cinéma synchronisé à deux
 
 - Accessible dans **Ensemble → Regarder ensemble**, même à distance : chacun ouvre son propre lecteur YouTube intégré dans Love Radar.
