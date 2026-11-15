@@ -1,14 +1,13 @@
 import type {D1Database} from "@cloudflare/workers-types";
 import {notifyPartner,type PushEnv} from "../lib/push";
+import {readReconciliationTexts,hasReconciliationMessage,canRevealReconciliation} from "../../src/reconcile-rules";
 
 type Ctx={request:Request;env:PushEnv;waitUntil:(promise:Promise<unknown>)=>void};
 type Member={id:string;room_id:string;name:string;seat:number};
 type SessionRow={id:string;room_id:string;initiated_by:string;status:string;created_at:number;updated_at:number};
 type EntryRow={member_id:string;pain:string;needs:string;message:string;submitted:number;updated_at:number;submitted_at:number|null};
-type Texts={pain:string;needs:string;message:string};
 const ok=(data:Record<string,unknown>)=>Response.json({ok:true,...data},{headers:{"Cache-Control":"private, no-store"}});
 const fail=(error:string,status=400)=>Response.json({ok:false,error},{status,headers:{"Cache-Control":"private, no-store"}});
-const LIMIT={pain:16000,needs:5000,message:5000};
 let tables:Promise<void>|null=null;
 function ensure(db:D1Database):Promise<void>{
  if(!tables)tables=db.exec(
@@ -32,11 +31,6 @@ async function getEntry(db:D1Database,session:string,id:string):Promise<EntryRow
  return db.prepare("SELECT member_id,pain,needs,message,submitted,updated_at,submitted_at FROM couple_reconciliation_entries WHERE session_id=? AND member_id=?")
   .bind(session,id).first<EntryRow>();
 }
-function validatedTexts(data:Record<string,unknown>):Texts|null{
- if(typeof data.pain!=="string"||typeof data.needs!=="string"||typeof data.message!=="string")return null;
- if(data.pain.length>LIMIT.pain||data.needs.length>LIMIT.needs||data.message.length>LIMIT.message)return null;
- return {pain:data.pain,needs:data.needs,message:data.message};
-}
 async function view(db:D1Database,user:Member,session:SessionRow|null){
  if(!session||session.status==="closed")return {session:null};
  const people=await db.prepare("SELECT id,name FROM members WHERE room_id=? ORDER BY seat ASC").bind(user.room_id)
@@ -47,7 +41,7 @@ async function view(db:D1Database,user:Member,session:SessionRow|null){
   db.prepare("SELECT e.member_id,e.pain,e.needs,e.message,e.submitted,e.updated_at,e.submitted_at FROM couple_reconciliation_entries e JOIN members m ON m.id=e.member_id WHERE e.session_id=? AND m.room_id=? AND e.member_id<>? LIMIT 1")
    .bind(session.id,user.room_id,user.id).first<EntryRow>()
  ]);
- const ready=Boolean(session.status==="revealed"&&myEntry?.submitted&&otherEntry?.submitted);
+ const ready=canRevealReconciliation(session.status,myEntry?.submitted===1,otherEntry?.submitted===1);
  return {
   session:{
    id:session.id,status:session.status,createdAt:session.created_at,
@@ -106,9 +100,9 @@ async function run(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   }
   if(action!=="save"&&action!=="submit")return fail("Action inconnue.");
   if(session.status!=="writing")return fail("Les textes ont déjà été dévoilés. Termine cette démarche pour en ouvrir une autre.",409);
-  const texts=validatedTexts(data);
+  const texts=readReconciliationTexts(data);
   if(!texts)return fail("Chaque texte doit respecter la limite de taille.",400);
-  if(action==="submit"&&!texts.pain.trim()&&!texts.needs.trim()&&!texts.message.trim())
+  if(action==="submit"&&!hasReconciliationMessage(texts))
    return fail("Écris d’abord ce que tu ressens, avec tes propres mots.");
   // One participant never has database access to another participant's drafts.
   // Save cannot overwrite a final submitted text, even during concurrent requests.
