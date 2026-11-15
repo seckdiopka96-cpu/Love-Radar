@@ -123,10 +123,8 @@ export default function LoveRadar(){
  }
  const [draft,setDraft]=useState("");
  const [replyTarget,setReplyTarget]=useState<Message|null>(null);
- const [selectedMessageId,setSelectedMessageId]=useState<string|null>(null);
  const chatInput=useRef<HTMLInputElement|null>(null);
- const gesture=useRef<{id:string;x:number;y:number;timer:number|null;selected:boolean}|null>(null);
- const suppressMessageClick=useRef(false);
+ const swipe=useRef<{id:string;x:number;y:number;cancelled:boolean}|null>(null);
  const [chatFocused,setChatFocused]=useState(false);
  const [chatAtBottom,setChatAtBottom]=useState(true);
  const chatAtBottomRef=useRef(true);
@@ -145,7 +143,6 @@ export default function LoveRadar(){
   id:entry.id,sender_id:room?.user.id||"",kind:"audio" as const,
   content:null,object_key:entry.id,mime:entry.file.type,created_at:entry.created_at
  })));
- const selectedMessage=chatMessages.find(m=>m.id===selectedMessageId)||null;
  const [recording,setRecording]=useState(false);
  const recorder=useRef<MediaRecorder|null>(null);
  const recordingStream=useRef<MediaStream|null>(null);
@@ -156,9 +153,6 @@ export default function LoveRadar(){
  const firstPoll=useRef(true);
  const lastReadSent=useRef(0);
  useEffect(()=>{lastReadSent.current=0},[token]);
- useEffect(()=>()=>{
-  if(gesture.current?.timer!==null&&gesture.current?.timer!==undefined)clearTimeout(gesture.current.timer);
- },[]);
  const lastTypingSent=useRef(0);
  const typingActive=useRef(false);
  const recordingActive=useRef(false);
@@ -662,40 +656,43 @@ export default function LoveRadar(){
   }finally{setBusy(false)}
  }
  function chooseReply(message:Message){
-  setReplyTarget(message);setSelectedMessageId(null);
+  setReplyTarget(message);
   requestAnimationFrame(()=>{chatInput.current?.focus();scrollToLatest()});
  }
- function stopGesture(){
-  if(gesture.current?.timer!==null&&gesture.current?.timer!==undefined)clearTimeout(gesture.current.timer);
-  gesture.current=null;
+ // Swipe a message RIGHT, no long-press, no text selection/context menu.
+ // The bubble follows the finger, revealing a reply arrow as in WhatsApp.
+ function resetSwipe(row?:HTMLDivElement){
+  if(row){
+   row.classList.remove("lr-swiping");
+   row.style.removeProperty("--lr-reply-shift");
+   row.style.removeProperty("--lr-reply-progress");
+  }
+  swipe.current=null;
  }
  function messagePointerDown(e:ReactPointerEvent<HTMLDivElement>,message:Message){
-  if(e.button!==0)return;
-  stopGesture();
-  const data:{id:string;x:number;y:number;timer:number|null;selected:boolean}={
-   id:message.id,x:e.clientX,y:e.clientY,timer:null,selected:false
-  };
-  data.timer=window.setTimeout(()=>{
-   if(gesture.current?.id!==message.id)return;
-   data.selected=true;suppressMessageClick.current=true;
-   setSelectedMessageId(message.id);
-   if("vibrate" in navigator)try{navigator.vibrate(12)}catch{/* optional */}
-  },480);
-  gesture.current=data;
+  if(e.pointerType==="mouse"&&e.button!==0)return;
+  // Preserve play/pause, photos, quoted links and voice-seek controls.
+  if((e.target as HTMLElement).closest("button,input,a,audio"))return;
+  swipe.current={id:message.id,x:e.clientX,y:e.clientY,cancelled:false};
  }
  function messagePointerMove(e:ReactPointerEvent<HTMLDivElement>){
-  const g=gesture.current;if(!g)return;
-  if(Math.abs(e.clientX-g.x)>12||Math.abs(e.clientY-g.y)>12){
-   if(g.timer!==null){clearTimeout(g.timer);g.timer=null}
-  }
+  const g=swipe.current;if(!g||g.cancelled)return;
+  const dx=e.clientX-g.x,dy=e.clientY-g.y;
+  if(Math.abs(dy)>Math.max(16,Math.abs(dx)*1.2)||dx<-15){g.cancelled=true;resetSwipe(e.currentTarget);return}
+  if(dx<=8)return;
+  const distance=Math.min(88,Math.max(0,dx));
+  e.currentTarget.classList.add("lr-swiping");
+  e.currentTarget.style.setProperty("--lr-reply-shift",distance+"px");
+  e.currentTarget.style.setProperty("--lr-reply-progress",String(Math.min(1,distance/64)));
  }
  function messagePointerUp(e:ReactPointerEvent<HTMLDivElement>,message:Message){
-  const g=gesture.current;if(!g||g.id!==message.id)return;
-  const horizontal=e.clientX-g.x,vertical=e.clientY-g.y;
-  if(horizontal>65&&Math.abs(vertical)<32){
-   suppressMessageClick.current=true;chooseReply(message);
+  const g=swipe.current;if(!g||g.id!==message.id)return;
+  const dx=e.clientX-g.x,dy=e.clientY-g.y;
+  resetSwipe(e.currentTarget);
+  if(!g.cancelled&&dx>=62&&Math.abs(dy)<34){
+   if("vibrate" in navigator)try{navigator.vibrate(10)}catch{/* optional haptic */}
+   chooseReply(message);
   }
-  stopGesture();
  }
  function jumpToQuote(id:string){
   const target=document.getElementById("lr-chat-message-"+id);
