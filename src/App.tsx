@@ -28,6 +28,7 @@ import "./chat-stability.css";
 import "./voice-message.css";
 import "./immersive-chat.css";
 import "./message-replies.css";
+import "./message-actions.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story";
