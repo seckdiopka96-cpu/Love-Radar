@@ -431,3 +431,20 @@
  .ludo-moving-pawn,.ludo-captured-pawn{transition:none;will-change:auto}
  .ludo-moving-bounce,.ludo-player-reaction,.ludo-floating-emoji,.ludo-route-current::before,.ludo-landed::before{animation:none}
 }
+
+/* The old breathing keyframe animated transform on the actual pawn button.
+   That overrode the new absolute cluster coordinates and made selectable stacks
+   jump back to the center. Glow the SVG instead, never move the button. */
+.ludo-experience .ludo-cell-pawns .ludo-pawn-stacked.can-move{
+ animation:none!important;
+}
+.ludo-experience .ludo-cell-pawns .ludo-pawn-stacked.can-move svg{
+ animation:ludo-premium-select-glow 1.15s ease-in-out infinite alternate;
+}
+@keyframes ludo-premium-select-glow{
+ 0%{filter:drop-shadow(0 0 3px #fff6ac) drop-shadow(0 2px 3px #1a0d19b0)}
+ 100%{filter:drop-shadow(0 0 11px #ffeb54) drop-shadow(0 2px 5px #1a0d19c9)}
+}
+@media(prefers-reduced-motion:reduce){
+ .ludo-experience .ludo-cell-pawns .ludo-pawn-stacked.can-move svg{animation:none}
+}
