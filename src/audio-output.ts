@@ -8,6 +8,6 @@ export function findBuiltInSpeaker(devices:readonly {kind:string;label:string;de
 }
 export function audioRouteHelp(isIOS:boolean):string{
  return isIOS
-  ?"Ce navigateur iPhone ne donne pas accès à un changement fiable de sortie audio. Choisis la sortie via le Centre de contrôle iOS (AirPlay), ou utilise la version native avec gestion audio."
+  ?"Ce navigateur iPhone ne donne pas accès à un changement fiable de sortie audio. Choisis la sortie via le Centre de contrôle iOS (AirPlay)."
   :"La sortie audio n'est pas sélectionnable dans ce navigateur. Vérifie les paramètres audio du téléphone.";
 }
