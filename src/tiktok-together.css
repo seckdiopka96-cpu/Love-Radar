@@ -97,7 +97,7 @@
  width:100%!important;max-width:none!important;overflow:hidden!important;padding:calc(7px + env(safe-area-inset-top)) 9px
  calc(7px + env(safe-area-inset-bottom));background:linear-gradient(170deg,#2b1c37,#19172b)}
  .tk-video-area{flex-direction:column;align-items:center;gap:6px}
- .tk-video-container{height:min(51dvh,480px);min-height:325px;min-width:0;width:min(100%,330px);flex:none;max-width:330px}
+ .tk-video-container{height:578px;min-height:0;min-width:0;width:min(100%,325px);flex:none;max-width:325px}
  .tk-controls{width:100%;max-width:570px;flex:none;padding:9px}
  .tk-share,.tk-chat{width:100%}
  .tk-control-caption strong{font-size:11px}
