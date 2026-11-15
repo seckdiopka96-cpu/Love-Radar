@@ -127,3 +127,8 @@
 @media(prefers-reduced-motion:reduce){
  .wt-live-dot{box-shadow:none}
 }
+
+/* Switch between YouTube (built-in player) and Netflix (Teleparty external player). */
+.wt-provider-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px;border:1px solid #8d6688;border-radius:12px;background:#2b2036;flex:none}
+.wt-provider-tabs button{border:0;border-radius:9px;background:transparent;padding:9px;color:#e9c7d9;font-size:12px;font-weight:900}
+.wt-provider-tabs button.active{color:#fff;background:linear-gradient(110deg,#ba6390,#854877);box-shadow:0 3px 10px #11082080}
