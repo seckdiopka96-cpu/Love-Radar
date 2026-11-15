@@ -138,6 +138,17 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - Sécurité : API authentifiée par membre de l'espace, contrôle de version et validation des IDs YouTube. Les règles CSP permettent exclusivement l'iframe YouTube et son API ; la politique de référent transmet seulement l'origine, pour respecter les nouvelles exigences d'identification de YouTube.
 - Tester : `npm run test:watch`, puis `npm run build`. Le fonctionnement iPhone/Android doit être confirmé sur deux appareils après le déploiement Cloudflare.
 
+### 🍿 Netflix à deux via Teleparty
+
+Depuis **Ensemble → Regarder ensemble → Netflix**, Love Radar permet de transmettre et retrouver **la même invitation de séance Teleparty** sur les deux téléphones :
+- Les deux personnes installent l'application officielle Teleparty iOS ou Android, et ont chacune un accès Netflix autorisé et le même titre disponible.
+- L'une crée une séance avec un film Netflix dans Teleparty, puis colle le lien **d'invitation** dans Love Radar. Le lien est stocké dans une table D1 dédiée à ce couple, authentifiée avec les mêmes membres que la messagerie.
+- L'autre retrouve automatiquement le lien sous **« Ouvrir la séance synchronisée »** (actualisation ~2,4 secondes) et rejoint la séance dans Teleparty.
+- **Teleparty, et non Love Radar, synchronise effectivement les commandes lecture, pause et position du film Netflix.** Love Radar ne lit, ne rediffuse et ne pilote pas les vidéos Netflix. Il ne reçoit pas les identifiants ni mots de passe Netflix. Les deux utilisateurs peuvent revenir au chat ou à l'appel Love Radar, selon les restrictions de fonctionnement en arrière-plan du système.
+- Les liens sont limités aux domaines HTTPS Teleparty officiels (les simples liens de films Netflix et les domaines imitant Teleparty sont refusés). Les modifications concurrentes du lien sont protégées par une version.
+- L'intégration dépend du service Teleparty et de ses fonctionnalités ou tarifs mobiles. Elle ne remplace pas un accord d'intégration officielle avec Netflix et ne garantit pas que toutes les régions, films et appareils fonctionnent.
+- Tests : `npm run test:watch` et `npm run build`. Un essai réel sur deux téléphones avec des comptes Netflix autorisés est nécessaire après déploiement.
+
 ## Ludo Duo : chrono de 15 secondes et défi cadeau facultatif
 
 - Chaque joueur dispose de 15 secondes pour agir (lancer le dé ou déplacer son pion). Le délai est calculé et contrôlé sur le serveur avec l'horodatage enregistré dans D1.
