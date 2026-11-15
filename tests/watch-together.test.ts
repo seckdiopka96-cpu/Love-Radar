@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {parseYouTubeId,expectedPlaybackSeconds,formatWatchTime,type WatchSnapshot} from "../src/watch-utils";
-import {parseTelepartyInvite} from "../src/netflix-party-utils";
+import {parseTikTokId,isTikTokShortLink,watchTikTokTime,canonicalTikTokVideo,formatTikTokTime,type TikTokSnapshot} from "../src/tiktok-utils";
 
 const ID="M7lc1UVf-VE";
 test("YouTube watch, shorts, live, embed and youtu.be links are accepted",()=>{
@@ -50,27 +50,43 @@ test("human-readable timeline does not overflow time formatting",()=>{
  assert.equal(formatWatchTime(-12),"0:00");
 });
 
-test("Only legitimate HTTPS Teleparty invitations can be shared inside Love Radar",()=>{
- const allowed=[
-  "https://www.teleparty.com/join/abc123",
-  "https://teleparty.com/watch?party=abc123",
-  "https://www.netflixparty.com/party/abc123",
-  "https://redirect.teleparty.org/join?code=test",
-  "https://www.teleparty.com/#party-abc123"
+
+test("Official public TikTok video links and numeric posts are accepted",()=>{
+ const id="6718335390845095173";
+ const links=[
+  "https://www.tiktok.com/@scout2015/video/"+id,
+  "https://m.tiktok.com/@scout2015/video/"+id+"?is_from_webapp=1",
+  "https://www.tiktok.com/player/v1/"+id,
+  "https://www.tiktok.com/video/"+id,
+  id,
+  "Check this TikTok! https://www.tiktok.com/@scout2015/video/"+id
  ];
- for(const url of allowed)assert.equal(parseTelepartyInvite(url),url,url);
- const blocked=[
-  "https://teleparty.com",
-  "https://teleparty.com/",
-  "https://teleparty.com.evil.net/join/fake",
-  "https://fake-teleparty.com/join/abc",
-  "https://netflix.com/watch/123456789",
-  "https://evil.org/party",
-  "http://www.teleparty.com/join/test",
-  "javascript:alert(1)",
-  "https://user:pass@teleparty.com/party",
-  "https://teleparty.com:8080/join/123",
-  "not a URL"
- ];
- for(const url of blocked)assert.equal(parseTelepartyInvite(url),null,url);
+ for(const link of links)assert.equal(parseTikTokId(link),id,link);
+ assert.equal(canonicalTikTokVideo(id),"https://www.tiktok.com/player/v1/"+id+"?autoplay=0&loop=0&controls=1&description=0&music_info=0");
+});
+test("TikTok link restrictions prevent fake hosts, insecure URLs and profiles",()=>{
+ for(const value of [
+  "https://tiktok.com.evil.net/@abc/video/6718335390845095173",
+  "https://www.evil.com/@abc/video/6718335390845095173",
+  "http://www.tiktok.com/@abc/video/6718335390845095173",
+  "https://www.tiktok.com/@abc",
+  "https://www.tiktok.com/@abc/video/not-valid",
+  "https://www.tiktok.com/@abc/video/6718335390845095173/extra",
+  "https://user:pass@www.tiktok.com/@abc/video/6718335390845095173",
+  "https://www.tiktok.com:8443/@abc/video/6718335390845095173",
+  "ftp://www.tiktok.com/@abc/video/6718335390845095173"
+ ])assert.equal(parseTikTokId(value),null,value);
+ assert.equal(isTikTokShortLink("https://vm.tiktok.com/ZMqABC12/"),true);
+ assert.equal(isTikTokShortLink("See this https://vt.tiktok.com/ZSqABCD12/"),true);
+ assert.equal(isTikTokShortLink("https://vm.tiktok.com.evil.net/abc"),false);
+ assert.equal(isTikTokShortLink("https://vm.tiktok.com/"),false);
+});
+test("TikTok co-watch timeline follows shared play and pause",()=>{
+ const state:TikTokSnapshot={videoId:"6718335390845095173",playing:true,position:5.5,
+  syncedAt:10000,updatedAt:10000,updatedBy:"Test",version:2};
+ assert.equal(watchTikTokTime(state,12500),8);
+ assert.equal(watchTikTokTime({...state,playing:false},12500),5.5);
+ assert.equal(watchTikTokTime({...state,videoId:""},12500),0);
+ assert.equal(formatTikTokTime(0),"0:00");
+ assert.equal(formatTikTokTime(65),"1:05");
 });
