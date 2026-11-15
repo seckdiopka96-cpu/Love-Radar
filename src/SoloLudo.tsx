@@ -1,0 +1,275 @@
+import {useEffect,useRef,useState} from "react";
+import DiceFace from "./DiceFace";
+import PawnShape from "./LudoPawn";
+import {useLudoSounds} from "./ludo-sounds";
+import {TRACK,HOME,SAFE,CELL,key,pointForProgress,movementSteps,stackPosition,type Point} from "./ludo-visuals";
+import {freshSoloGame,isSoloGame,rollSolo,moveSolo,chooseSoloBotPawn,canSoloMove,soloDie,
+ type SoloGame,type SoloSeat,type SoloMove} from "./ludo-solo-engine";
+import "./ludo.css";
+import "./ludo-immersive.css";
+import "./ludo-solo.css";
+
+type Props={myName:string;storageKey:string;onExit:()=>void};
+type Motion={seat:SoloSeat;pawn:number;from:number;to:number;progress:number};
+const trackAt=new Map(TRACK.map((point,i)=>[key(point[0],point[1]),i]));
+const homeAt=HOME.map(lane=>new Set(lane.map(point=>key(point[0],point[1]))));
+const storeKey=(scope:string)=>"love-radar-ludo-solo-v1:"+scope;
+function loadSaved(scope:string):SoloGame{
+ try{
+  const raw=localStorage.getItem(storeKey(scope));
+  if(raw){
+   const saved=JSON.parse(raw) as unknown;
+   if(isSoloGame(saved))return saved;
+  }
+ }catch{/* Private mode may reject storage; solo still works. */}
+ return freshSoloGame();
+}
+function haptic(){try{navigator.vibrate?.(16)}catch{/* Unsupported. */}}
+export default function SoloLudo({myName,storageKey,onExit}:Props){
+ const [game,setGame]=useState<SoloGame>(()=>loadSaved(storageKey));
+ const [motion,setMotion]=useState<Motion|null>(null);
+ const [rolling,setRolling]=useState(false);
+ const [face,setFace]=useState(1);
+ const [boardSize,setBoardSize]=useState(0);
+ const [landing,setLanding]=useState<Point|null>(null);
+ const [reaction,setReaction]=useState("");
+ const [confirmRestart,setConfirmRestart]=useState(false);
+ const {enabled:soundOn,unlock:unlockSound,play:playSound,toggle:toggleSound}=useLudoSounds();
+ const stage=useRef<HTMLDivElement|null>(null);
+ const timers=useRef<number[]>([]);
+ const clearTimers=()=>{
+  timers.current.forEach(id=>window.clearTimeout(id));
+  timers.current=[];
+ };
+ const later=(callback:()=>void,ms:number)=>{
+  const id=window.setTimeout(callback,ms);
+  timers.current.push(id);
+ };
+ useEffect(()=>()=>{
+  clearTimers();
+ },[]);
+ useEffect(()=>{
+  try{localStorage.setItem(storeKey(storageKey),JSON.stringify(game))}catch{/* Still playable without storage. */}
+ },[game,storageKey]);
+ useEffect(()=>{
+  const node=stage.current;
+  if(!node)return;
+  const observer=new ResizeObserver(()=>{
+   const available=Math.floor(Math.min(node.clientWidth-8,node.clientHeight-8));
+   if(available>0)setBoardSize(available);
+  });
+  observer.observe(node);
+  return ()=>observer.disconnect();
+ },[]);
+ useEffect(()=>{
+  if(!rolling)return;
+  const id=window.setInterval(()=>setFace(1+Math.floor(Math.random()*6)),85);
+  return ()=>window.clearInterval(id);
+ },[rolling]);
+ function performRoll(seat:SoloSeat){
+  if(game.turn!==seat||game.dice!==null||game.status!=="playing"||rolling||motion)return;
+  if(seat===0)unlockSound();
+  playSound("roll");
+  const outcome=soloDie();
+  setRolling(true);
+  later(()=>{
+   setFace(outcome);
+   setGame(prev=>prev.turn===seat&&prev.dice===null?rollSolo(prev,outcome):prev);
+   setRolling(false);
+  },620);
+ }
+ function performMove(seat:SoloSeat,pawn:number){
+  if(game.turn!==seat||game.status!=="playing"||game.dice===null||rolling||motion)return;
+  const result=moveSolo(game,pawn);
+  if(!result)return;
+  const {move}=result;
+  const route=movementSteps(move.from,move.to);
+  setGame(result.game);
+  setLanding(null);
+  if(route.length){
+   setMotion({...move,progress:move.from});
+   const stepDuration=400,initialDelay=260;
+   route.forEach((progress,i)=>{
+    later(()=>{
+     setMotion({...move,progress});
+     playSound("step");
+     if(i===route.length-1)haptic();
+    },initialDelay+i*stepDuration);
+   });
+   later(()=>{
+    setMotion(null);
+    setLanding(pointForProgress(move.seat,move.pawn,move.to));
+    playMoveEffects(move,result.game.winner);
+   },initialDelay+route.length*stepDuration+100);
+  }else playMoveEffects(move,result.game.winner);
+ }
+ function playMoveEffects(move:SoloMove,winner:SoloSeat|null){
+  if(move.captured.length){
+   playSound("capture");
+   setReaction(move.seat===0?"🎯":"😱");
+  }else if(winner!==null){
+   playSound("win");
+   setReaction(winner===0?"🏆":"🤖");
+  }else if(move.to===57)setReaction("🏠");
+  if(move.captured.length||winner!==null||move.to===57){
+   later(()=>setReaction(""),1600);
+  }
+  later(()=>setLanding(null),850);
+ }
+ // Only local solo turns are automated; the partner's shared online game is untouched.
+ useEffect(()=>{
+  if(game.status!=="playing"||game.turn!==1||rolling||motion)return;
+  const id=window.setTimeout(()=>{
+   if(game.dice===null)performRoll(1);
+   else{
+    const pawn=chooseSoloBotPawn(game);
+    if(pawn!==null)performMove(1,pawn);
+   }
+  },game.dice===null?900:720);
+  return ()=>window.clearTimeout(id);
+ },[game,rolling,motion]);
+ const isHumanTurn=game.status==="playing"&&game.turn===0;
+ const canRoll=isHumanTurn&&game.dice===null&&!rolling&&!motion;
+ const canPick=isHumanTurn&&game.dice!==null&&!rolling&&!motion;
+ const counts=game.positions.map(row=>row.filter(progress=>progress===57).length);
+ const pawnCells=new Map<string,{seat:SoloSeat;pawn:number;active:boolean}[]>();
+ for(const seat of [0,1] as SoloSeat[])for(let pawn=0;pawn<4;pawn++){
+  const progress=game.positions[seat][pawn];
+  if(progress===57||(motion?.seat===seat&&motion.pawn===pawn))continue;
+  const [r,c]=pointForProgress(seat,pawn,progress);
+  const k=key(r,c);
+  const list=pawnCells.get(k)||[];
+  list.push({seat,pawn,active:seat===0&&canPick&&canSoloMove(progress,game.dice)});
+  pawnCells.set(k,list);
+ }
+ const light=new Map<string,"current"|"passed"|"upcoming"|"finish">();
+ if(motion){
+  for(const step of movementSteps(motion.from,motion.to)){
+   const [r,c]=pointForProgress(motion.seat,motion.pawn,step);
+   light.set(key(r,c),step===motion.progress?"current":step<motion.progress?"passed":step===motion.to?"finish":"upcoming");
+  }
+ }
+ const movingPoint=motion?pointForProgress(motion.seat,motion.pawn,motion.progress):null;
+ const movingStyle=movingPoint?{left:((movingPoint[1]+.5)/15*100)+"%",top:((movingPoint[0]+.5)/15*100)+"%"}:undefined;
+ const message=game.status==="won"?(game.winner===0?"🏆 Victoire !":"🤖 L'ordinateur gagne"):
+  motion?"Le pion avance…":rolling?(game.turn===1?"L'ordinateur lance le dé…":"Le dé roule…"):
+  game.turn===1?(game.dice===null?"L'ordinateur réfléchit…":"L'ordinateur choisit un pion…"):
+  game.dice===null?"À toi de jouer : lance le dé !":"Choisis un pion qui brille";
+ function reset(){
+  clearTimers();
+  setGame(freshSoloGame());
+  setMotion(null);setRolling(false);setLanding(null);setReaction("");
+  setConfirmRestart(false);
+ }
+ return <section className="ludo-experience ludo-solo" aria-label="Ludo solo contre l'ordinateur">
+  <header className="ludo-topbar">
+   <button type="button" className="ludo-leave" onClick={onExit}><span aria-hidden="true">‹</span> Jeux</button>
+   <div className="ludo-brand"><strong>LUDO <span>★</span> SOLO</strong><small>TOI CONTRE L’ORDINATEUR</small></div>
+   <div className="ludo-top-actions">
+    <button type="button" className="ludo-sound" onClick={toggleSound} aria-label={soundOn?"Désactiver le son":"Activer le son"} aria-pressed={soundOn}>{soundOn?"🔊":"🔇"}</button>
+    <button type="button" className="ludo-solo-restart" onClick={()=>setConfirmRestart(true)} aria-label="Nouvelle partie">↻</button>
+   </div>
+  </header>
+  <div className="ludo-players">
+   <div className={"ludo-player ludo-player-red"+(game.turn===0&&game.status==="playing"?" is-active":"")}>
+    <span className="ludo-player-avatar">{myName.trim().charAt(0).toUpperCase()||"☺"}</span>
+    <div className="ludo-player-info"><strong>{myName||"Moi"} · Moi</strong><span>{counts[0]} / 4 pions arrivés</span></div>
+    {game.turn===0&&game.status==="playing"?<span className="ludo-player-turn">●</span>:null}
+   </div>
+   <div className={"ludo-player ludo-player-gold"+(game.turn===1&&game.status==="playing"?" is-active":"")}>
+    <span className="ludo-player-avatar">🤖</span>
+    <div className="ludo-player-info"><strong>Ordinateur</strong><span>{counts[1]} / 4 pions arrivés</span></div>
+    {game.turn===1&&game.status==="playing"?<span className="ludo-player-turn">●</span>:null}
+   </div>
+  </div>
+  <div className={"ludo-turn-banner"+(isHumanTurn?" its-mine":"")} role="status" aria-live="polite">
+   <span className="ludo-turn-icon">{isHumanTurn?"✦":"🎲"}</span><strong>{message}</strong>
+   <span className="ludo-solo-mode-tag">SOLO</span>
+  </div>
+  <div className="ludo-play-area">
+   <div className="ludo-stage" ref={stage}>
+    <div className="ludo-board-wrap ludo-board-wrap-immersive" style={boardSize?{width:boardSize,height:boardSize}:undefined}>
+     <div className={"ludo-board"+(motion?" ludo-board-animating":"")} role="group" aria-label="Plateau Ludo contre l'ordinateur">
+      {CELL.map(([r,c])=>{
+       const k=key(r,c),track=trackAt.get(k),pawns=pawnCells.get(k)||[];
+       const redBase=r<6&&c<6,goldBase=r>8&&c>8,blueBase=r<6&&c>8,greenBase=r>8&&c<6;
+       const redLane=homeAt[0].has(k),goldLane=homeAt[1].has(k);
+       const blueLane=c===7&&r>=1&&r<=5,greenLane=c===7&&r>=9&&r<=13;
+       const center=r>=6&&r<=8&&c>=6&&c<=8;
+       const cls="ludo-cell"+(redBase?" ludo-red-base":goldBase?" ludo-gold-base":blueBase?" ludo-blue-base":greenBase?" ludo-green-base":"")
+        +(track!==undefined?" ludo-path":"")+(redLane?" ludo-red-lane":"")+(goldLane?" ludo-gold-lane":"")
+        +(blueLane?" ludo-blue-lane":"")+(greenLane?" ludo-green-lane":"")+(center?" ludo-center":"")
+        +(track===0?" ludo-red-start":"")+(track===26?" ludo-gold-start":"");
+       const highlight=light.get(k);
+       return <div key={k} className={cls+(pawns.length?" has-pawns":"")+(highlight?" ludo-route-"+highlight:"")+(landing&&landing[0]===r&&landing[1]===c?" ludo-landed":"")}>
+        {track!==undefined&&SAFE.has(track)?<span className="ludo-star" aria-hidden="true">★</span>:null}
+        {pawns.length?<div className={"ludo-cell-pawns ludo-stack-"+Math.min(5,pawns.length)}>
+         {pawns.map((item,i)=>{
+          const offset=stackPosition(pawns.length,i);
+          return <button type="button" key={item.seat+"-"+item.pawn} disabled={!item.active}
+           onClick={()=>performMove(item.seat,item.pawn)}
+           title={"Pion "+(item.pawn+1)+(item.seat===0?" à toi":" à l'ordinateur")}
+           aria-label={"Pion "+(item.pawn+1)+(item.seat===0?" à toi":" à l'ordinateur")}
+           className={"ludo-pawn ludo-pawn-stacked ludo-pawn-"+(item.seat===0?"red":"gold")+(item.active?" can-move":"")}
+           style={{left:offset.x+"%",top:offset.y+"%",zIndex:5+i,
+            transform:"translate("+(c===0?"-5%":c===14?"-95%":"-50%")+","+(r===0?"-5%":r===14?"-95%":"-50%")+") scale("+offset.scale+")"}}>
+           <PawnShape index={item.pawn}/>
+          </button>;
+         })}
+        </div>:null}
+        {pawns.length>1?<span className="ludo-stack-count" aria-hidden="true">×{pawns.length}</span>:null}
+       </div>;
+      })}
+      <div className="ludo-yard ludo-yard-red" aria-hidden="true"/>
+      <div className="ludo-yard ludo-yard-upper" aria-hidden="true"/>
+      <div className="ludo-yard ludo-yard-lower" aria-hidden="true"/>
+      <div className="ludo-yard ludo-yard-gold" aria-hidden="true"/>
+      <div className="ludo-board-center" aria-hidden="true"><span>★</span></div>
+      {motion&&movingStyle?<div className={"ludo-moving-pawn ludo-pawn-"+(motion.seat===0?"red":"gold")} style={movingStyle} aria-hidden="true">
+       <i className="ludo-motion-aura"/>
+       <span key={motion.progress} className="ludo-moving-bounce"><PawnShape index={motion.pawn}/></span>
+      </div>:null}
+     </div>
+    </div>
+    {reaction?<div className="ludo-solo-reaction" role="status" aria-label="Réaction">{reaction}</div>:null}
+    {game.status==="won"&&!motion?<div className="ludo-victory ludo-solo-win" role="dialog" aria-label="Partie terminée">
+     <div className="ludo-celebrate">{game.winner===0?"🏆":"🤖"}</div>
+     <strong>{game.winner===0?"Tu as gagné !":"L'ordinateur a gagné"}</strong>
+     <p>{game.winner===0?"Bravo, les quatre pions sont arrivés !":"Rejoue pour prendre ta revanche !"}</p>
+     <button type="button" onClick={reset}>Nouvelle partie</button>
+     <button type="button" className="ludo-secondary" onClick={onExit}>Retour aux jeux</button>
+    </div>:null}
+   </div>
+   <div className="ludo-game-footer">
+    <div className="ludo-bottom-actions">
+     <button type="button" className={"ludo-die-holder"+(rolling?" is-rolling":"")} disabled={!canRoll}
+      onClick={()=>performRoll(0)} aria-label="Lancer le dé"><DiceFace value={face} variant={game.turn===1?"gold":"pink"} size="large"/></button>
+     <button type="button" className="ludo-main-action" disabled={!canRoll} onClick={()=>performRoll(0)}>
+      {rolling?"LE DÉ ROULE…":motion?"DÉPLACEMENT…":game.turn===1?"🤖 L’ORDINATEUR JOUE":game.dice!==null?"CHOISIS UN PION":"🎲 LANCER LE DÉ"}
+     </button>
+    </div>
+    <div className="ludo-pick-row" aria-label="Tes quatre pions">
+     <span className="ludo-pick-label">MES PIONS</span>
+     {game.positions[0].map((progress,pawn)=>{
+      const active=canPick&&canSoloMove(progress,game.dice);
+      return <button type="button" key={pawn} disabled={!active} onClick={()=>performMove(0,pawn)}
+       className={"ludo-pick ludo-pawn-red"+(active?" can-play":"")}
+       aria-label={"Déplacer le pion "+(pawn+1)} title={progress===57?"Pion arrivé":progress===-1?"Pion en base":"Pion "+(pawn+1)}>
+       <PawnShape index={pawn}/>
+      </button>;
+     })}
+    </div>
+    <div className="ludo-last-move" role="status" aria-live="polite">{game.lastAction}</div>
+   </div>
+  </div>
+  {confirmRestart?<div className="ludo-modal-backdrop" role="dialog" aria-modal="true" aria-label="Recommencer la partie">
+   <div className="ludo-modal">
+    <span className="ludo-modal-symbol">🎲</span>
+    <h2>Nouvelle partie ?</h2>
+    <p>Ta partie actuelle sera remplacée. L'ordinateur repartira de zéro.</p>
+    <button className="ludo-modal-primary" onClick={reset}>Oui, recommencer</button>
+    <button className="ludo-modal-text" onClick={()=>setConfirmRestart(false)}>Continuer la partie</button>
+   </div>
+  </div>:null}
+ </section>;
+}
