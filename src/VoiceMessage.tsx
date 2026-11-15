@@ -2,11 +2,11 @@ import {useEffect,useMemo,useRef,useState} from "react";
 import {audioDuration,formatVoiceTime,voiceBars} from "./voice-waveform";
 import "./voice-message.css";
 
-type Props={src:string;id:string;mine:boolean;time:string;delivery?:"read"|"sent"};
+type Props={src:string;id:string;mine:boolean;time:string;delivery?:"read"|"sent";onOpenActions?:()=>void};
 type PlayEvent=CustomEvent<string>;
 
 /** Functional audio note: actual playback, scrub, duration and one-at-a-time listening. */
-export default function VoiceMessage({src,id,mine,time,delivery}:Props){
+export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:Props){
  const audio=useRef<HTMLAudioElement|null>(null);
  const [playing,setPlaying]=useState(false);
  const [duration,setDuration]=useState(0);
@@ -99,6 +99,11 @@ export default function VoiceMessage({src,id,mine,time,delivery}:Props){
      <span className="lr-voice-note-time">{time}{mine&&delivery?<span className="lr-voice-note-check" aria-label={delivery==="read"?"Lu":"Envoyé"}> {delivery==="read"?"✓✓":"✓"}</span>:null}</span>
     </div>
    </div>
+   {onOpenActions?<button type="button" className="lr-voice-note-actions" aria-label="Réagir ou afficher les options du message vocal"
+    title="Réactions et options du vocal" onPointerDown={e=>e.stopPropagation()} onContextMenu={e=>e.preventDefault()}
+    onClick={e=>{e.stopPropagation();onOpenActions()}}>
+    <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+   </button>:null}
   </div>
   {error?<div className="lr-voice-note-error" role="alert">{error}</div>:null}
   {fallback?<audio className="lr-voice-note-fallback" src={src} controls preload="metadata" aria-label="Lecteur vocal classique"/>:null}
