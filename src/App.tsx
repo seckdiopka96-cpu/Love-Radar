@@ -657,7 +657,10 @@ export default function LoveRadar(){
  }
  function chooseReply(message:Message){
   setReplyTarget(message);
-  requestAnimationFrame(()=>{chatInput.current?.focus();scrollToLatest()});
+  // Focus synchronously from the user's swipe gesture: iOS otherwise often
+  // refuses to open the keyboard after an animation-frame delay.
+  chatInput.current?.focus();
+  requestAnimationFrame(scrollToLatest);
  }
  // Swipe a message RIGHT, no long-press, no text selection/context menu.
  // The bubble follows the finger, revealing a reply arrow as in WhatsApp.
