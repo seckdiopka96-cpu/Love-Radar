@@ -404,12 +404,62 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
         {track!==undefined&&SAFE.has(track)?<span className="ludo-star" aria-hidden="true">★</span>:null}
         {pawns.length?<div className={"ludo-cell-pawns ludo-stack-"+Math.min(pawns.length,5)}>
          {pawns.map((item,index)=>{
-          const offset=stackPosition(pawns.length,index);
           return <button type="button" key={item.seat+"-"+item.pawn}
            disabled={!item.active} onClick={()=>void act("move",item.pawn)}
            title={"Pion "+(item.pawn+1)+" de "+displayName(item.seat)}
            aria-label={"Pion "+(item.pawn+1)+" de "+displayName(item.seat)+(item.active?" : déplacer":"")}
-           style={{...stackCellStyle(pawns.length,index),zIndex:5+index}}>{!game?"ACTUALISER":game.dice!==null?"DÉPLACE UN PION":myTurn?rolling?"LANCEMENT…":"LANCER LE DÉ":"ATTENDRE…"}</button>
+           style={{...stackCellStyle(pawns.length,index),zIndex:5+index}}
+           className={"ludo-pawn ludo-pawn-stacked ludo-pawn-"+(item.seat===0?"red":"gold")+(item.active?" can-move":"")}>
+           <PawnShape index={item.pawn}/>
+          </button>;
+         })}</div>:null}
+        {pawns.length>1?<span className="ludo-stack-count" aria-hidden="true">×{pawns.length}</span>:null}
+       </div>;
+      })}
+      <div className="ludo-yard ludo-yard-red" aria-hidden="true"/>
+      <div className="ludo-yard ludo-yard-upper" aria-hidden="true"/>
+      <div className="ludo-yard ludo-yard-lower" aria-hidden="true"/>
+      <div className="ludo-yard ludo-yard-gold" aria-hidden="true"/>
+      <div className="ludo-board-center" aria-hidden="true"><span>♥</span></div>
+      {capturedMotions.map(item=>{
+       const point=item.returning?BASE[item.seat][item.pawn]:pointForProgress(item.seat,item.pawn,item.from);
+       return <div key={"captured-"+item.seat+"-"+item.pawn} className={"ludo-captured-pawn ludo-pawn-"+(item.seat===0?"red":"gold")+(item.returning?" is-returning":"")}
+        style={{left:((point[1]+.5)/15*100)+"%",top:((point[0]+.5)/15*100)+"%"}} aria-hidden="true">
+        <PawnShape index={item.pawn}/>
+       </div>;
+      })}
+      {motion&&movingStyle?<div className={"ludo-moving-pawn ludo-pawn-"+(motion.seat===0?"red":"gold")+movingEdge} style={movingStyle} aria-hidden="true">
+       <i className="ludo-motion-aura"/>
+       <span key={motion.progress} className="ludo-moving-bounce"><PawnShape index={motion.pawn}/></span>
+       <b className="ludo-motion-step">{Math.max(0,motion.progress-motion.from)} / {motionStepCount}</b>
+      </div>:null}
+     </div>
+    </div>
+   {error?<div className="ludo-alert-pop" role="alert">{error}</div>:null}
+   {shownReaction?<div className={"ludo-floating-emoji"+(shownReaction.seat===mySeat?" mine":" theirs")} key={shownReaction.id||shownReaction.at} role="status" aria-label={"Réaction de "+displayName(shownReaction.seat)+": "+shownReaction.emoji}>
+    <strong>{shownReaction.emoji}</strong><small>{displayName(shownReaction.seat)}</small>
+   </div>:null}
+   {game?.status==="won"&&!motion?<div className="ludo-victory" role="dialog" aria-label="Partie terminée">
+    <div className="ludo-confetti-layer" aria-hidden="true">{Array.from({length:20},(_,i)=><i key={i} style={{left:((i*37+9)%97)+"%",animationDelay:((i*71)%900)+"ms",backgroundColor:["#ffc757","#fa8db9","#5ed3ba","#b995ff"][i%4]}}/>)}</div>
+    <div className="ludo-celebrate" aria-hidden="true">🏆</div>
+    <strong>{game.winner===mySeat?"Victoire !":displayName(game.winner??0)+" gagne !"}</strong>
+    <p>{game.lastAction.includes("abandonné")?"Un joueur a abandonné la partie.":"Les quatre pions ont atteint le centre !"}</p>
+    {giftAgreed?<div className="ludo-victory-gift">
+      {gift?.choice?<span>🎁 {giftLabel(gift.choice)} {gift.given?"· Offert ✓":""}</span>:<span>🎁 Le gagnant choisit son cadeau</span>}
+      {game.winner===mySeat?<button type="button" className="ludo-gift-victory-button" onClick={()=>setGiftOpen(true)}>{gift?.choice?"Modifier mon choix":"Choisir mon cadeau"}</button>:gift?.choice?<button type="button" className="ludo-gift-victory-button" onClick={()=>setGiftOpen(true)}>Voir le cadeau</button>:null}
+    </div>:null}
+    <button type="button" onClick={()=>void act("restart")} disabled={busy}>↻ Nouvelle partie</button>
+    <button type="button" className="ludo-secondary" onClick={onExit}>Retour à l’accueil</button>
+   </div>:null}
+  </div>
+
+  <footer className="ludo-game-footer">
+   <div className="ludo-bottom-actions">
+    <button type="button" className={"ludo-die-holder"+(rolling?" is-rolling":"")} disabled={!myTurn||busy||rolling||animationBusy||!game||game.status==="won"||game.dice!==null} onClick={()=>void act("roll")} aria-label="Lancer le dé">
+     <DiceFace value={dice||0} size="large" variant={red?"pink":"gold"}/>
+    </button>
+    <button type="button" className="ludo-main-action" disabled={busy||animationBusy||Boolean(game&&(!myTurn||rolling||game.status==="won"||game.dice!==null))}
+     onClick={()=>{if(game)void act("roll");else void load()}}>{!game?"ACTUALISER":game.dice!==null?"DÉPLACE UN PION":myTurn?rolling?"LANCEMENT…":"LANCER LE DÉ":"ATTENDRE…"}</button>
     <button type="button" className={"ludo-emoji-button"+(emotes?" is-open":"")} onClick={()=>setEmotes(!emotes)} aria-label="Envoyer une réaction" aria-expanded={emotes} disabled={members<2}>😂</button>
    </div>
    <div className="ludo-pick-row" aria-label="Choisir un de tes quatre pions">
