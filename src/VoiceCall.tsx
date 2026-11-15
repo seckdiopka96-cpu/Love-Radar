@@ -1,4 +1,5 @@
 import {apiFetch} from "./api";
+import {findBuiltInSpeaker,audioRouteHelp} from "./audio-output";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
 import "./voice-call.css";
@@ -23,6 +24,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
  const [needsPlay,setNeedsPlay]=useState(false);
  const [speakerHelp,setSpeakerHelp]=useState("");
  const [speakerSelected,setSpeakerSelected]=useState(false);
+ const [speakerBusy,setSpeakerBusy]=useState(false);
  const [relayEnabled,setRelayEnabled]=useState(false);
  const [networkHint,setNetworkHint]=useState("");
  const [duration,setDuration]=useState(0);
@@ -42,6 +44,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
  const sendingCandidates=useRef(false);
  const sessionDescriptionSent=useRef(false);
  const networkWarmup=useRef<Promise<void>|null>(null);
+ const previousSinkId=useRef<string>("");
 
  useEffect(()=>setAnchor(showButton?document.getElementById("lr-voice-button-slot"):null),[showButton]);
  const api=useCallback(async(action?:string,extra:Record<string,unknown>={},after=0):Promise<Result>=>{
@@ -101,7 +104,10 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
   offered.current=false;answered.current=false;connectedSince.current=0;
   signalAfter.current=0;
   queuedCandidates.current=[];sessionDescriptionSent.current=false;sendingCandidates.current=false;
-  setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setMinimized(false);
+  const audioSession=(navigator as Navigator & {audioSession?:{type:string}}).audioSession;
+  if(audioSession){try{audioSession.type="auto"}catch{/* Browser controls audio routing. */}}
+  previousSinkId.current="";
+  setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setSpeakerBusy(false);setMinimized(false);
  },[]);
  const reset=useCallback(()=>{
   clearAudio();
@@ -270,6 +276,8 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
   if(!navigator.mediaDevices?.getUserMedia)throw Error("Ouvre Love Radar en HTTPS et autorise l’accès au microphone.");
   const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:false});
   local.current=stream;
+  const audioSession=(navigator as Navigator & {audioSession?:{type:string}}).audioSession;
+  if(audioSession){try{audioSession.type="play-and-record"}catch{/* Unsupported session type. */}}
  }
  async function start(){
   if(busy||current.current||!hasPartner)return;
@@ -322,30 +330,56 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
   if(!remote.current)return;
   try{remote.current.muted=false;await remote.current.play();setNeedsPlay(false)}catch{setError("Vérifie le volume du téléphone et réessaie.")}
  }
- // Audio routing is only changeable where the browser exposes the audio-output devices.
- // On iPhone, device routing may remain under iOS control; do not pretend otherwise.
+ // Choose a real audio output when the browser offers Speaker Selection API.
+ // On iPhone PWA, Safari's available devices vary by iOS version: never fake
+ // a selected state when hardware routing cannot be confirmed.
  async function selectSpeaker(){
   const audio=remote.current;
-  if(!audio)return;
+  if(!audio||speakerBusy)return;
+  const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const output=audio as HTMLAudioElement & {setSinkId?:(id:string)=>Promise<void>;sinkId?:string};
+  setSpeakerBusy(true);setSpeakerHelp("");
   try{
-   audio.muted=false;
-   audio.volume=1;
-   if(audio.srcObject)await enableAudio();
-   const method=(audio as HTMLAudioElement & {setSinkId?:(id:string)=>Promise<void>}).setSinkId;
-   const devices=await navigator.mediaDevices?.enumerateDevices?.();
-   const device=devices?.find(d=>d.kind==="audiooutput"&&/speaker|haut.parleur|built.in/i.test(d.label));
-   if(typeof method==="function"&&device?.deviceId){
-    await method.call(audio,device.deviceId);
-    setSpeakerSelected(true);
-    setSpeakerHelp("Sortie audio sélectionnée. Si le son ne change pas, utilise le contrôle audio du téléphone.");
-   }else{
-    setSpeakerSelected(false);
-    setSpeakerHelp("Sur cet appareil, le haut-parleur est contrôlé par iOS ou Android. Utilise les commandes audio de ton téléphone.");
+   if(typeof output.setSinkId!=="function"){
+    setSpeakerSelected(false);setSpeakerHelp(audioRouteHelp(isIOS));return;
    }
-  }catch{
+   if(speakerSelected){
+    // Restore the device used before the user activated speaker mode.
+    await output.setSinkId(previousSinkId.current);
+    setSpeakerSelected(false);
+    setSpeakerHelp("Retour à la sortie audio précédente. Si iOS utilise toujours le haut-parleur, choisis la sortie dans le Centre de contrôle.");
+    return;
+   }
+   const devices=await navigator.mediaDevices?.enumerateDevices?.()||[];
+   let speakerId=findBuiltInSpeaker(devices);
+   const picker=navigator.mediaDevices as MediaDevices & {selectAudioOutput?:()=>Promise<MediaDeviceInfo>};
+   // Safari 26+ may expose a default system speaker instead of a labeled one.
+   // If a native output picker exists, let the user explicitly choose it.
+   if(!speakerId&&typeof picker?.selectAudioOutput==="function"){
+    try{speakerId=(await picker.selectAudioOutput()).deviceId}
+    catch{
+     setSpeakerHelp("Sélection annulée. Le son reste sur sa sortie actuelle.");return;
+    }
+   }
+   if(!speakerId){
+    // A default speaker can be exposed as deviceId=default; only request it
+    // if the browser enumerated that audio output.
+    speakerId=devices.find(d=>d.kind==="audiooutput"&&d.deviceId==="default")?.deviceId||null;
+   }
+   if(!speakerId){setSpeakerSelected(false);setSpeakerHelp(audioRouteHelp(isIOS));return}
+   previousSinkId.current=output.sinkId||"";
+   await output.setSinkId(speakerId);
+   audio.muted=false;audio.volume=1;
+   if(audio.srcObject){
+    try{await audio.play();setNeedsPlay(false)}
+    catch{setNeedsPlay(true)}
+   }
+   setSpeakerSelected(true);
+   setSpeakerHelp(isIOS?"Haut-parleur sélectionné dans Love Radar. Si le son ne change pas, iOS peut imposer une autre sortie : vérifie le Centre de contrôle.":"Haut-parleur sélectionné. Appuie de nouveau pour revenir à la sortie précédente.");
+  }catch(error){
    setSpeakerSelected(false);
-   setSpeakerHelp("Ce navigateur ne permet pas de choisir le haut-parleur. Utilise les commandes audio du téléphone.");
-  }
+   setSpeakerHelp("Impossible de changer la sortie audio : "+(error instanceof Error?error.message:"choisis une sortie depuis les réglages du téléphone."));
+  }finally{setSpeakerBusy(false)}
  }
  function minimizeAndWrite(){
   if(!current.current||current.current.status!=="active")return;
@@ -387,9 +421,9 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/>{muted?<path d="M3 3 21 21" strokeWidth="2.5"/>:null}</svg>
         <span>{muted?"Réactiver":"Muet"}</span>
        </button>
-       <button type="button" className={"lr-call-action lr-call-speaker "+(speakerSelected?"is-selected":"")} onClick={selectSpeaker} aria-label="Haut-parleur" aria-pressed={speakerSelected}>
+       <button type="button" className={"lr-call-action lr-call-speaker "+(speakerSelected?"is-selected":"")} onClick={selectSpeaker} disabled={speakerBusy} aria-label={speakerSelected?"Désactiver le haut-parleur":"Activer le haut-parleur"} aria-pressed={speakerSelected}>
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9v6h4l5 4V5L7 9H3zM16 9a5 5 0 0 1 0 6M19 5a10 10 0 0 1 0 14"/></svg>
-        <span>Haut-parleur</span>
+        <span>{speakerSelected?"Désactiver HP":"Haut-parleur"}</span>
        </button>
        <button type="button" className="lr-call-action lr-call-decline" onClick={hangup} aria-label="Raccrocher" disabled={busy}>
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 17.5c5.4-4.7 12.6-4.7 18 0"/><path d="M5 17.5V21M19 17.5V21"/></svg>
@@ -409,6 +443,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
    </button>
    <div className="lr-call-mini-actions">
     {needsPlay?<button type="button" onClick={enableAudio} className="lr-call-mini-sound" aria-label="Activer le son">🔊</button>:null}
+    <button type="button" className={"lr-call-mini-speaker "+(speakerSelected?"active":"")} onClick={selectSpeaker} disabled={speakerBusy} aria-pressed={speakerSelected} aria-label={speakerSelected?"Désactiver le haut-parleur":"Activer le haut-parleur"}>◖))</button>
     <button type="button" className={"lr-call-mini-mute "+(muted?"active":"")} onClick={toggleMute} disabled={!local.current} aria-label={muted?"Réactiver le micro":"Couper le micro"} aria-pressed={muted}>{muted?"🔇":"🎙️"}</button>
     <button type="button" className="lr-call-mini-end" onClick={hangup} disabled={busy} aria-label="Raccrocher">✕</button>
    </div>
