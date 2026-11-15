@@ -114,3 +114,16 @@
   animation:none!important;
  }
 }
+
+/* Long-press opens our own actions instead of iOS native text-selection popup.
+   Copy remains available in the message action sheet. */
+.lr-chat .lr-reply-gesture,
+.lr-chat .lr-reply-gesture .lr-bubble,
+.lr-chat .lr-reply-gesture .lr-bubble p{
+ -webkit-touch-callout:none!important;
+ -webkit-user-select:none!important;
+ user-select:none!important;
+}
+.lr-chat .lr-reply-gesture:focus-visible{
+ outline:2px solid #ffb2c3;outline-offset:2px;border-radius:12px
+}
