@@ -29,6 +29,7 @@ import "./voice-message.css";
 import "./immersive-chat.css";
 import "./message-replies.css";
 import "./message-actions.css";
+import "./photo-reliability.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story";
@@ -145,6 +146,9 @@ export default function LoveRadar(){
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
  const [media,setMedia]=useState<Record<string,string>>({});
+ const [mediaErrors,setMediaErrors]=useState<Record<string,string>>({});
+ const mediaRetries=useRef<Record<string,number>>({});
+ const mediaFailures=useRef<Record<string,number>>({});
  const [voiceOutbox,setVoiceOutbox]=useState<LocalVoice[]>([]);
  const sendingVoiceIds=useRef(new Set<string>());
  const chatMessages=mergeOptimisticMessages(room?.messages||[],voiceOutbox.map(entry=>({
@@ -1022,13 +1026,17 @@ export default function LoveRadar(){
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 10 4 14l5 4"/><path d="M4 14h9a7 7 0 0 0 7-7"/></svg>
          </span>
          <div className="lr-bubble-stack">
-          <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":"")}>
+          <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":m.kind==="image"?" lr-bubble-image":"")}>
            {m.reply_to_id?<QuoteCard author={quoteAuthor(m.reply_sender_id,room.user.id,partner)}
             kind={m.reply_kind||"text"} content={m.reply_kind?m.reply_content:"Message supprimé"}
             onJump={chatMessages.some(item=>item.id===m.reply_to_id)?()=>jumpToQuote(m.reply_to_id!):undefined}/>:null}
            {m.kind==="text"?<p>{m.content}</p>:m.kind==="image"?
-          media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} enabled={privacyEnabled} viewer={room.user.name} variant="chat"/>:
-          <div className="lr-media-loading">Chargement de la photo…</div>:
+          media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} enabled={privacyEnabled} viewer={room.user.name} variant="chat" onImageError={()=>retryMedia(m)}/>:
+          <div className="lr-photo-loading" role="status">
+           <span aria-hidden="true">▧</span>
+           <span>{mediaErrors[m.id]||"Chargement de la photo…"}</span>
+           {mediaErrors[m.id]?<button type="button" onClick={()=>retryMedia(m)}>Réessayer</button>:null}
+          </div>:
           media[m.id]?<VoiceMessage id={m.id} src={media[m.id]} mine={mine} time={time} delivery={mine&&m.id===lastOwnMessage?.id?((room.partnerReadAt||0)>=m.created_at?"read":"sent"):undefined}/>:
           <div className="lr-media-loading">Chargement du vocal…</div>}
            {voiceOutbox.some(v=>v.id===m.id&&v.status!=="sent")?
