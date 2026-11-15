@@ -132,6 +132,7 @@ export default function LoveRadar(){
  const composerBeforeEdit=useRef<{draft:string;reply:Message|null}|null>(null);
  const chatInput=useRef<HTMLInputElement|null>(null);
  const swipe=useRef<{id:string;x:number;y:number;cancelled:boolean;held:boolean;timer:number|null}|null>(null);
+ const suppressHeldClickUntil=useRef(0);
  const [chatFocused,setChatFocused]=useState(false);
  const [chatAtBottom,setChatAtBottom]=useState(true);
  const chatAtBottomRef=useRef(true);
@@ -740,7 +741,7 @@ export default function LoveRadar(){
  }
  function messagePointerDown(e:ReactPointerEvent<HTMLDivElement>,message:Message){
   if(e.pointerType==="mouse"&&e.button!==0)return;
-  if((e.target as HTMLElement).closest("button,input,a,audio"))return;
+  if((e.target as HTMLElement).closest("input[type=range],a,audio"))return;
   resetSwipe();
   const row=e.currentTarget;
   const gesture:{id:string;x:number;y:number;cancelled:boolean;held:boolean;timer:number|null}={
@@ -749,6 +750,7 @@ export default function LoveRadar(){
   gesture.timer=window.setTimeout(()=>{
    if(swipe.current!==gesture||gesture.cancelled)return;
    gesture.held=true;
+   suppressHeldClickUntil.current=Date.now()+900;
    row.classList.remove("lr-swiping");
    row.style.removeProperty("--lr-reply-shift");
    openMessageActions(message);
@@ -1012,6 +1014,9 @@ export default function LoveRadar(){
           onPointerUp={e=>messagePointerUp(e,m)}
           onPointerCancel={e=>resetSwipe(e.currentTarget)}
           onContextMenu={e=>{e.preventDefault();resetSwipe(e.currentTarget);openMessageActions(m)}}
+          onClickCapture={e=>{if(Date.now()<suppressHeldClickUntil.current){e.preventDefault();e.stopPropagation();suppressHeldClickUntil.current=0}}}
+          onKeyDown={e=>{if(e.key==="Enter"||e.key==="ContextMenu"){e.preventDefault();openMessageActions(m)}}}
+          tabIndex={0} role="group"
           aria-label={"Message de "+(mine?"vous":partner)+". Glisser pour répondre, maintenir pour les actions."}>
          <span className="lr-reply-arrow" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 10 4 14l5 4"/><path d="M4 14h9a7 7 0 0 0 7-7"/></svg>
