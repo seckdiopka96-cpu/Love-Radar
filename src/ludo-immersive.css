@@ -610,3 +610,24 @@
 @media(prefers-reduced-motion:reduce){
  .ludo-experience .ludo-cell-pawns .ludo-pawn-stacked.can-move svg.ludo-token-art{animation:none}
 }
+
+/* Precise board-cell anchoring — every piece occupies its OWN square.
+   Previous edge-specific transforms placed c=0 and c=14 pieces across the
+   adjacent home yard boundary (the yellow pawn looked inside the green yard).
+   Size relative to the actual square, not the viewport, on narrow phones. */
+.ludo-experience .ludo-cell-pawns .ludo-pawn-stacked{
+ width:min(33px,78%);
+ height:min(42px,92%);
+ transform-origin:center center;
+}
+.ludo-experience .ludo-cell-pawns .ludo-pawn-stacked .ludo-token-art{
+ width:100%;
+ height:100%;
+ max-width:100%;
+ max-height:100%;
+}
+/* Keep motion graphics just as readable and inside their destination cell. */
+.ludo-experience .ludo-moving-pawn{
+ width:clamp(17px,5vw,33px);
+ height:clamp(22px,6.2vw,42px);
+}
