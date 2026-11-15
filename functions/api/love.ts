@@ -31,6 +31,19 @@ async function ensureMessageReplies(db:D1Database){
  await repliesReady;
 }
 
+/* Action metadata lives in separate tables so existing messages need no schema
+   rewrite. Every lookup and mutation is scoped to the authenticated room. */
+let actionsReady:Promise<void>|null=null;
+async function ensureMessageActions(db:D1Database){
+ if(!actionsReady)actionsReady=(async()=>{
+  await db.exec("CREATE TABLE IF NOT EXISTS message_edits (room_id TEXT NOT NULL, message_id TEXT PRIMARY KEY, edited_at INTEGER NOT NULL)");
+  await db.exec("CREATE TABLE IF NOT EXISTS message_reactions (room_id TEXT NOT NULL, message_id TEXT NOT NULL, member_id TEXT NOT NULL, emoji TEXT NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY(room_id,message_id,member_id))");
+ })().catch(err=>{actionsReady=null;throw err});
+ await actionsReady;
+}
+const MESSAGE_REACTIONS=new Set(["👍","❤️","😂","😮","😢","🙏","👏"]);
+const validMessageId=(id:unknown):id is string=>typeof id==="string"&&/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(id);
+
 
 type Env = PushEnv & {STORAGE?: R2Bucket};
 type Context = { request: Request; env: Env; waitUntil:(task:Promise<unknown>)=>void };
@@ -58,13 +71,25 @@ async function auth(request:Request):Promise<{db:D1Database,user:Member}|null>{
 async function snapshot(db:D1Database,u:Member){
  const partners=await db.prepare("SELECT id,name,seat FROM members WHERE room_id=? ORDER BY seat").bind(u.room_id).all<{id:string,name:string,seat:number}>();
  await ensureMessageReplies(db);
+ await ensureMessageActions(db);
  const messages=await db.prepare(
   "SELECT m.id,m.sender_id,m.kind,m.content,m.object_key,m.mime,m.created_at,"+
-  " r.target_id AS reply_to_id,p.kind AS reply_kind,p.content AS reply_content,p.sender_id AS reply_sender_id"+
+  " r.target_id AS reply_to_id,p.kind AS reply_kind,p.content AS reply_content,p.sender_id AS reply_sender_id,COALESCE(ed.edited_at,0) AS edited_at"+
   " FROM messages m LEFT JOIN message_replies r ON r.room_id=m.room_id AND r.message_id=m.id"+
+  " LEFT JOIN message_edits ed ON ed.room_id=m.room_id AND ed.message_id=m.id"+
   " LEFT JOIN messages p ON p.id=r.target_id AND p.room_id=m.room_id"+
   " WHERE m.room_id=? AND m.kind IN ('text','image','audio') ORDER BY m.created_at DESC,m.id DESC LIMIT 90"
  ).bind(u.room_id).all();
+ const reactions=await db.prepare(
+  "SELECT message_id,member_id,emoji FROM message_reactions WHERE room_id=? AND message_id IN"+
+  " (SELECT id FROM messages WHERE room_id=? ORDER BY created_at DESC,id DESC LIMIT 90)"
+ ).bind(u.room_id,u.room_id).all<{message_id:string;member_id:string;emoji:string}>();
+ const reactionsById=new Map<string,{member_id:string;emoji:string}[]>();
+ for(const reaction of reactions.results){
+  const previous=reactionsById.get(reaction.message_id)||[];
+  previous.push({member_id:reaction.member_id,emoji:reaction.emoji});
+  reactionsById.set(reaction.message_id,previous);
+ }
  const otherStatus=await db.prepare("SELECT last_read_at,typing_until,recording_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1").bind(u.room_id,u.id).first<{last_read_at:number,typing_until:number,recording_until:number,last_seen_at:number}>();
  const unread=await db.prepare("SELECT COUNT(*) AS n FROM messages WHERE room_id=? AND sender_id<>? AND kind IN ('text','image','audio') AND created_at>COALESCE((SELECT last_read_at FROM chat_presence WHERE room_id=? AND member_id=?),0)")
   .bind(u.room_id,u.id,u.room_id,u.id).first<{n:number}>();
@@ -72,7 +97,7 @@ async function snapshot(db:D1Database,u:Member){
 
  return {user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id},code:u.invite,roomId:u.room_id,
   partner:partners.results.find(a=>a.id!==u.id)?.name||null,members:partners.results.length,
-  messages:messages.results.reverse(),unreadCount:Number(unread?.n||0),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerRecordingUntil:otherStatus?.recording_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
+  messages:messages.results.reverse().map(row=>({...row,reactions:reactionsById.get(String(row.id))||[]})),unreadCount:Number(unread?.n||0),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerRecordingUntil:otherStatus?.recording_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
 }
 
   const handlers: Record<"GET"|"POST",(args:{request:Request})=>Promise<Response>> = {
@@ -92,8 +117,9 @@ async function snapshot(db:D1Database,u:Member){
      if(!/^[a-f0-9-]{36}$/i.test(id))return fail("Identifiant de message invalide.",400);
      const focus=await session.db.prepare(
       "SELECT m.id,m.sender_id,m.kind,m.content,m.object_key,m.mime,m.created_at,"+
-      " r.target_id AS reply_to_id,p.kind AS reply_kind,p.content AS reply_content,p.sender_id AS reply_sender_id"+
+      " r.target_id AS reply_to_id,p.kind AS reply_kind,p.content AS reply_content,p.sender_id AS reply_sender_id,COALESCE(ed.edited_at,0) AS edited_at"+
       " FROM messages m LEFT JOIN message_replies r ON r.room_id=m.room_id AND r.message_id=m.id"+
+      " LEFT JOIN message_edits ed ON ed.room_id=m.room_id AND ed.message_id=m.id"+
       " LEFT JOIN messages p ON p.id=r.target_id AND p.room_id=m.room_id"+
       " WHERE m.room_id=? AND m.id=? AND m.kind IN ('text','image','audio') LIMIT 1"
      ).bind(session.user.room_id,id).first();
@@ -193,6 +219,62 @@ async function snapshot(db:D1Database,u:Member){
      waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",u.name+" t’a envoyé un message.","chat",{kind:"message",id:messageId}));
      return ok({sent:true});
     }
+    if(op==="edit-message"){
+     if(!validMessageId(body.id))return fail("Message invalide.",400);
+     if(typeof body.text!=="string")return fail("Écris un texte valide.",400);
+     const updated=body.text.trim();
+     if(!updated||updated.length>1600)return fail("Le texte doit contenir entre 1 et 1 600 caractères.",400);
+     const own=await db.prepare("SELECT content FROM messages WHERE id=? AND room_id=? AND sender_id=? AND kind='text'")
+      .bind(body.id,u.room_id,u.id).first<{content:string|null}>();
+     if(!own)return fail("Tu peux modifier uniquement tes propres textes.",403);
+     if(own.content===updated)return ok({edited:true,unchanged:true});
+     await ensureMessageActions(db);
+     const now=Date.now();
+     await db.batch([
+      db.prepare("UPDATE messages SET content=? WHERE id=? AND room_id=? AND sender_id=? AND kind='text'")
+       .bind(updated,body.id,u.room_id,u.id),
+      db.prepare("INSERT INTO message_edits(room_id,message_id,edited_at) VALUES(?,?,?) ON CONFLICT(message_id) DO UPDATE SET edited_at=excluded.edited_at WHERE message_edits.room_id=excluded.room_id")
+       .bind(u.room_id,body.id,now)
+     ]);
+     return ok({edited:true,edited_at:now});
+    }
+    if(op==="react-message"){
+     if(!validMessageId(body.id))return fail("Message invalide.",400);
+     if(typeof body.emoji!=="string"||!MESSAGE_REACTIONS.has(body.emoji))return fail("Réaction inconnue.",400);
+     const target=await db.prepare("SELECT id FROM messages WHERE id=? AND room_id=? AND kind IN ('text','image','audio')")
+      .bind(body.id,u.room_id).first();
+     if(!target)return fail("Message introuvable.",404);
+     await ensureMessageActions(db);
+     const existing=await db.prepare("SELECT emoji FROM message_reactions WHERE room_id=? AND message_id=? AND member_id=?")
+      .bind(u.room_id,body.id,u.id).first<{emoji:string}>();
+     if(existing?.emoji===body.emoji){
+      await db.prepare("DELETE FROM message_reactions WHERE room_id=? AND message_id=? AND member_id=?")
+       .bind(u.room_id,body.id,u.id).run();
+      return ok({reaction:null});
+     }
+     await db.prepare("INSERT INTO message_reactions(room_id,message_id,member_id,emoji,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(room_id,message_id,member_id) DO UPDATE SET emoji=excluded.emoji,updated_at=excluded.updated_at")
+      .bind(u.room_id,body.id,u.id,body.emoji,Date.now()).run();
+     return ok({reaction:body.emoji});
+    }
+    if(op==="delete-message"){
+     if(!validMessageId(body.id))return fail("Message invalide.",400);
+     const mine=await db.prepare("SELECT object_key FROM messages WHERE id=? AND room_id=? AND sender_id=? AND kind IN ('text','image','audio')")
+      .bind(body.id,u.room_id,u.id).first<{object_key:string|null}>();
+     if(!mine)return fail("Tu peux supprimer uniquement tes propres messages.",403);
+     await ensureMessageActions(db);
+     await ensureMessageReplies(db);
+     await db.batch([
+      db.prepare("DELETE FROM message_reactions WHERE room_id=? AND message_id=?").bind(u.room_id,body.id),
+      db.prepare("DELETE FROM message_edits WHERE room_id=? AND message_id=?").bind(u.room_id,body.id),
+      db.prepare("DELETE FROM message_replies WHERE room_id=? AND message_id=?").bind(u.room_id,body.id),
+      db.prepare("DELETE FROM messages WHERE id=? AND room_id=? AND sender_id=?").bind(body.id,u.room_id,u.id)
+     ]);
+     // The quoted preview is deliberately unavailable once the author deletes
+     // the original. A deletion never grants access across rooms.
+     if(mine.object_key&&bindings().STORAGE)try{await bindings().STORAGE!.delete(mine.object_key)}
+     catch(err){console.error("Orphaned media cleanup",err)}
+     return ok({deletedMessage:true});
+    }
     if(op==="delete"){
      if(u.owner_id!==u.id)return fail("Seul le créateur de l’espace peut le supprimer.",403);
      const objects=await db.prepare("SELECT object_key FROM messages WHERE room_id=? AND object_key IS NOT NULL").bind(u.room_id).all<{object_key:string}>();
@@ -250,6 +332,9 @@ async function snapshot(db:D1Database,u:Member){
      catch(err){console.error("Optional Ludo cleanup",err)}
      await ensureMessageReplies(db);
      await db.prepare("DELETE FROM message_replies WHERE room_id=?").bind(u.room_id).run();
+     await ensureMessageActions(db);
+     await db.prepare("DELETE FROM message_reactions WHERE room_id=?").bind(u.room_id).run();
+     await db.prepare("DELETE FROM message_edits WHERE room_id=?").bind(u.room_id).run();
      await db.batch([
       db.prepare("DELETE FROM messages WHERE room_id=?").bind(u.room_id),
       db.prepare("DELETE FROM members WHERE room_id=?").bind(u.room_id),
