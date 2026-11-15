@@ -117,6 +117,7 @@ export default function WatchTogether({token,myId,myName,partnerName,messages,on
    if(!response.ok||!data.ok)throw new Error(data.error||"Action impossible.");
    accept(data);
    if(action==="set-video"){setUrl("");setToast("🎬 Vidéo partagée avec ton partenaire.");}
+   if(action==="play")setToast("🔔 Ton partenaire sera invité si ses notifications sont activées.");
   }catch(e){
    setError(e instanceof Error?e.message:"Synchronisation impossible.");
    void refresh();
@@ -220,7 +221,7 @@ export default function WatchTogether({token,myId,myName,partnerName,messages,on
   if(Math.abs(safeCurrent(p)-position)>1.5)p.seekTo(position,true);
   p.playVideo(); // Called synchronously from a user tap for iOS autoplay rules.
   setNeedsTap(false);setPlayerError("");
-  if(!current.playing)void post("play",safeCurrent(p));
+  if(!current.playing)void post("play",position);
  }
  function pausePlayback(){
   const p=playerRef.current;
