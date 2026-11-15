@@ -42,8 +42,16 @@ test("upload is asynchronous with immediate playable local blob and safe retry",
  assert.ok(app.includes('tab==="chat"?850:4500'));
  assert.ok(app.includes('onClick={()=>{const entry=voiceOutbox.find(v=>v.id===m.id);if(entry)void sendQueuedVoice(entry)}'));
  assert.ok(api.includes('form.get("messageId")'));
- assert.ok(api.includes('INSERT OR IGNORE INTO messages'));
+ assert.ok(api.includes('"INSERT OR IGNORE"+" INTO messages"'));
  assert.ok(api.includes('duplicate:true'));
  assert.ok(api.includes('new Response(asset.body'));
  assert.ok(css.includes(".lr-audio-send-state.failed"));
+});
+
+test("view-once voice drafts are never exposed through playable optimistic blobs",()=>{
+ const app=readFileSync("src/App.tsx","utf8");
+ assert.ok(app.includes("if(!once){"));
+ assert.ok(app.includes("view_once:once"));
+ assert.ok(app.includes('form.append("viewOnce",String(entry.view_once))'));
+ assert.ok(app.includes("if(item.object_key&&!item.view_once"));
 });
