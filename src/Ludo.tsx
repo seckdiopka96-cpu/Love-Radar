@@ -4,51 +4,36 @@ import "./ludo.css";
 import "./ludo-immersive.css";
 import DiceFace from "./DiceFace";
 import {useLudoSounds} from "./ludo-sounds";
+import {TRACK,HOME,BASE,SAFE,CELL,key,pointForProgress,movementSteps,stackPosition,type Point} from "./ludo-visuals";
 
-type Point=[number,number];
 type Game={id:string;version:number;turn:number;dice:number|null;positions:number[][];status:"playing"|"won";winner:number|null;lastAction:string;updatedAt:number;deadlineAt:number|null};
 type Gift={consents:[boolean,boolean];choice:"credit"|"internet"|"wave2000"|null;chosenBy:number|null;given:boolean};
 type Agreement={signed:[boolean,boolean];names:[string|null,string|null];giftChoices:[boolean|null,boolean|null];signedAt:[number|null,number|null];startedAt:number|null};
 type GiftChoice="credit"|"internet"|"wave2000";
 const GIFT_OPTIONS:{id:GiftChoice;label:string;detail:string}[]=[{id:"credit",label:"📱 Crédit téléphonique",detail:"Recharge à offrir"},{id:"internet",label:"🌐 Connexion Internet",detail:"Forfait Internet à offrir"},{id:"wave2000",label:"💸 Wave 2 000 F CFA",detail:"Cadeau à envoyer séparément"}];
 const giftLabel=(choice:GiftChoice|null|undefined)=>GIFT_OPTIONS.find(item=>item.id===choice)?.label||"Cadeau à choisir";
-type Reaction={seat:number;emoji:string;at:number};
-type PawnMotion={seat:number;pawn:number;progress:number};
+type Reaction={id?:string;seat:number;emoji:string;at:number};
+type CapturedPawn={seat:number;pawn:number;from:number};
+type MoveEvent={gameId:string;version:number;seat:number;pawn:number;from:number;to:number;captures:CapturedPawn[];at:number};
+type PawnMotion={seat:number;pawn:number;progress:number;from:number;to:number};
+type CapturedMotion=CapturedPawn&{returning:boolean};
 type Challenge={gameId:string;fromId:string;fromName:string;fromSeat:number;sentAt:number};
-type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;gift?:Gift|null;agreement?:Agreement|null;challenge?:Challenge|null;notificationRequested?:boolean;serverNow?:number};
+type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;reactions?:Reaction[];moveEvent?:MoveEvent|null;gift?:Gift|null;agreement?:Agreement|null;challenge?:Challenge|null;notificationRequested?:boolean;serverNow?:number};
 type Props={token:string;mySeat:number;myName:string;partnerName:string|null;onExit:()=>void;challengeId?:string|null};
-const key=(r:number,c:number)=>r+"-"+c;
-const TRACK:Point[]=[
- ...[1,2,3,4,5].map(c=>[6,c] as Point),
- ...[5,4,3,2,1,0].map(r=>[r,6] as Point),
- [0,7],
- ...[0,1,2,3,4,5].map(r=>[r,8] as Point),
- ...[9,10,11,12,13,14].map(c=>[6,c] as Point),
- [7,14],
- ...[14,13,12,11,10,9].map(c=>[8,c] as Point),
- ...[9,10,11,12,13,14].map(r=>[r,8] as Point),
- [14,7],
- ...[14,13,12,11,10,9].map(r=>[r,6] as Point),
- ...[5,4,3,2,1,0].map(c=>[8,c] as Point),
- [7,0],[6,0],
-];
-const HOME:Point[][]=[
- [1,2,3,4,5,6].map(c=>[7,c] as Point),
- [13,12,11,10,9,8].map(c=>[7,c] as Point),
-];
-const BASE:Point[][]=[
- [[1,1],[1,4],[4,1],[4,4]],
- [[10,10],[10,13],[13,10],[13,13]],
-];
-const trackAt=new Map(TRACK.map((p,i)=>[key(p[0],p[1]),i]));
-const homeAt=HOME.map(list=>new Set(list.map(p=>key(p[0],p[1]))));
-const SAFE=new Set([0,8,13,21,26,34,39,47]);
-const CELL=Array.from({length:225},(_,i)=>[Math.floor(i/15),i%15] as Point);
 function allowed(progress:number,dice:number|null){return dice!==null&&(progress===-1?dice===6:progress>=0&&progress<57&&progress+dice<=57)}
 function labelPosition(progress:number){return progress===-1?"Dans la base":progress===57?"Arrivé !":progress>=51?"Couloir final":"Sur le plateau"}
+const trackAt=new Map(TRACK.map((p,i)=>[key(p[0],p[1]),i]));
+const homeAt=HOME.map(list=>new Set(list.map(p=>key(p[0],p[1]))));
+function haptic(duration:number|number[]=12){try{if("vibrate" in navigator)navigator.vibrate(duration)}catch{/* unsupported on iOS */}}
 
 
-const EMOJIS=["❤️","😂","🔥","👏","😍","💋"];
+const REACTIONS=[
+ {emoji:"😂",label:"Mort de rire"},{emoji:"😱",label:"Choqué"},{emoji:"😮",label:"Surpris"},
+ {emoji:"🤯",label:"Incroyable"},{emoji:"😍",label:"Amoureux"},{emoji:"😘",label:"Bisou"},
+ {emoji:"😤",label:"Contrarié"},{emoji:"😭",label:"Triste"},{emoji:"😎",label:"Trop fort"},
+ {emoji:"👏",label:"Bravo"},{emoji:"❤️",label:"Cœur"},{emoji:"🔥",label:"En feu"},
+ {emoji:"🥹",label:"Ému"},{emoji:"😡",label:"Fâché"},{emoji:"💋",label:"Baiser"}
+];
 function PawnShape({index}:{index:number}){
  return <svg viewBox="0 0 34 45" focusable="false" aria-hidden="true">
   <ellipse className="ludo-pawn-shadow" cx="17" cy="41" rx="12" ry="3"/>
@@ -63,7 +48,7 @@ function PawnShape({index}:{index:number}){
 export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId}:Props){
  const [game,setGame]=useState<Game|null>(null);
  const [members,setMembers]=useState(0);
- const [reaction,setReaction]=useState<Reaction|null>(null);
+ const [reactions,setReactions]=useState<Reaction[]>([]);
  const [gift,setGift]=useState<Gift|null>(null);
  const [agreement,setAgreement]=useState<Agreement|null>(null);
  const [challenge,setChallenge]=useState<Challenge|null>(null);
@@ -93,7 +78,10 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const [effect,setEffect]=useState("");
  const [boardSize,setBoardSize]=useState(0);
  const [motion,setMotion]=useState<PawnMotion|null>(null);
+ const [capturedMotions,setCapturedMotions]=useState<CapturedMotion[]>([]);
+ const [landing,setLanding]=useState<Point|null>(null);
  const [captureFlash,setCaptureFlash]=useState(false);
+ const [reactionBusy,setReactionBusy]=useState(false);
  const {enabled:soundOn,unlock:unlockSound,play:playSound,toggle:toggleSound}=useLudoSounds();
  const boardStage=useRef<HTMLDivElement|null>(null);
  const prior=useRef<Game|null>(null);
@@ -108,59 +96,72 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   if(captureTimer.current!==null){window.clearTimeout(captureTimer.current);captureTimer.current=null}
  },[]);
 
- const onGame=useCallback((latest:Game)=>{
+ const onGame=useCallback((latest:Game,moveEvent?:MoveEvent|null)=>{
   const prev=prior.current;
-  // Concurrent polls must not roll the client back to an older version.
   if(prev&&prev.id===latest.id&&latest.version<prev.version)return;
   if(prev&&prev.id===latest.id&&latest.version===prev.version){
-   prior.current=latest;
-   setGame(latest);
-   return;
+   prior.current=latest;setGame(latest);return;
   }
-  if(prev?.id!==latest.id){clearMotionTimers();setMotion(null);setCaptureFlash(false)}
+  if(prev?.id!==latest.id){
+   clearMotionTimers();setMotion(null);setCapturedMotions([]);setLanding(null);setCaptureFlash(false);
+  }
   if(prev&&prev.id===latest.id&&latest.version>prev.version){
-   const captured=latest.positions.some((positions,side)=>positions.some((p,i)=>p===-1&&prev.positions[side][i]>=0));
-   const moved=latest.positions.flatMap((positions,side)=>positions.map((progress,pawn)=>({
-    seat:side,pawn,from:prev.positions[side][pawn],to:progress
+   const inferred=latest.positions.flatMap((positions,seat)=>positions.map((to,pawn)=>({
+    seat,pawn,from:prev.positions[seat][pawn],to
    }))).find(item=>item.to>item.from&&item.to>=0&&item.to<=57);
+   const event=moveEvent&&moveEvent.gameId===latest.id&&moveEvent.version>prev.version&&moveEvent.version<=latest.version?moveEvent:null;
+   const moved=event||inferred;
+   const captured:CapturedPawn[]=event?.captures||latest.positions.flatMap((positions,seat)=>positions.flatMap((p,pawn)=>{
+    const before=prev.positions[seat][pawn];
+    return p===-1&&before>=0&&before<=50?[{seat,pawn,from:before}]:[];
+   }));
    const celebration=latest.status==="won"&&prev.status!=="won";
-   const canAnimate=Boolean(moved&&moved.to-moved.from<=6&&document.visibilityState==="visible"&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-   if(moved||captured||celebration){
-    setEffect(celebration?"win":captured?"capture":"move");
+   const route=moved?movementSteps(moved.from,moved.to):[];
+   const canAnimate=Boolean(moved&&route.length&&document.visibilityState==="visible"
+    &&!window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+   if(moved||captured.length||celebration){
+    setEffect(celebration?"win":captured.length?"capture":"move");
     if(effectTimeout.current!==null)window.clearTimeout(effectTimeout.current);
-    effectTimeout.current=window.setTimeout(()=>{if(isActive.current){setEffect("");setCaptureFlash(false)}},1400);
-   }
-   clearMotionTimers();
-   if(moved){
-    if(canAnimate){
-     const route:number[]=[];
-     for(let step=moved.from+1;step<=moved.to;step++)route.push(step);
-     // Display animation only: D1 remains authoritative for game state.
-     setMotion({seat:moved.seat,pawn:moved.pawn,progress:moved.from});
+    effectTimeout.current=window.setTimeout(()=>{if(isActive.current){setEffect("");setCaptureFlash(false)}},3500);
+    clearMotionTimers();setLanding(null);
+    if(canAnimate&&moved){
+     const STEP_MS=235,START_MS=220;
+     setCapturedMotions(captured.map(p=>({...p,returning:false})));
+     setMotion({seat:moved.seat,pawn:moved.pawn,from:moved.from,to:moved.to,progress:moved.from});
      route.forEach((progress,index)=>{
       movementTimers.current.push(window.setTimeout(()=>{
        if(!isActive.current)return;
-       setMotion({seat:moved.seat,pawn:moved.pawn,progress});
+       setMotion({seat:moved.seat,pawn:moved.pawn,from:moved.from,to:moved.to,progress});
        playSound("step");
-      },index*125+55));
+       if(index===route.length-1)haptic(18);
+      },START_MS+index*STEP_MS));
      });
-     const ending=route.length*125+90;
-     movementTimers.current.push(window.setTimeout(()=>{if(isActive.current)setMotion(null)},ending));
-     if(captured)captureTimer.current=window.setTimeout(()=>{
-      if(isActive.current){setCaptureFlash(true);playSound("capture")}
-     },ending);
-     if(celebration)captureTimer.current=window.setTimeout(()=>{if(isActive.current)playSound("win")},ending);
+     const finish=START_MS+route.length*STEP_MS+160;
+     movementTimers.current.push(window.setTimeout(()=>{
+      if(!isActive.current)return;
+      setMotion(null);
+      setLanding(pointForProgress(moved.seat,moved.pawn,moved.to));
+      if(captured.length){
+       setCaptureFlash(true);playSound("capture");haptic([35,40,45]);
+       movementTimers.current.push(window.setTimeout(()=>{
+        if(isActive.current)setCapturedMotions(rows=>rows.map(row=>({...row,returning:true})));
+       },120));
+       movementTimers.current.push(window.setTimeout(()=>{
+        if(isActive.current)setCapturedMotions([]);
+       },910));
+      }
+      if(celebration){playSound("win");haptic([55,70,65])}
+     },finish));
+     movementTimers.current.push(window.setTimeout(()=>{if(isActive.current)setLanding(null)},finish+1100));
     }else{
-     setMotion(null);
-     playSound("step");
-     if(captured){setCaptureFlash(true);playSound("capture")}
+     setMotion(null);setCapturedMotions([]);
+     if(moved){setLanding(pointForProgress(moved.seat,moved.pawn,moved.to));playSound("step");haptic(14)}
+     if(captured.length){setCaptureFlash(true);playSound("capture");haptic(40)}
      if(celebration)playSound("win");
+     movementTimers.current.push(window.setTimeout(()=>{if(isActive.current)setLanding(null)},1050));
     }
-   }else{
-    setMotion(null);
-    if(captured){setCaptureFlash(true);playSound("capture")}
-    if(celebration)playSound("win");
    }
+   // A dice roll with no position changes must not cancel an ongoing pawn hop.
   }
   prior.current=latest;
   setGame(latest);
