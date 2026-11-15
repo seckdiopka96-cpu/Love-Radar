@@ -7,7 +7,7 @@ type Message={id:string;sender_id:string;kind:"text"|"image"|"audio";content:str
 type Game={turn:number;status:"playing"|"won";winner:number|null;version:number;dice:number|null};
 type DailyOverview={ok:boolean;question:string;mine:{text:string}|null;partnerAnswered:boolean;revealed:boolean};
 type Room={user:{id:string;name:string;seat:number};partner:string|null;code:string;partnerLastSeenAt?:number;messages:Message[]};
-type Props={room:Room;token:string;media:Record<string,string>;privacyEnabled:boolean;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"puzzle"|"story"|"reunion")=>void};
+type Props={room:Room;token:string;media:Record<string,string>;privacyEnabled:boolean;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"watch"|"reconcile"|"puzzle"|"story"|"reunion")=>void};
 export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,onNavigate}:Props){
  const [game,setGame]=useState<Game|null>(null);
  const [daily,setDaily]=useState<DailyOverview|null>(null);
@@ -68,7 +68,10 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
  const gameHeadline=game?.status==="won"?"Une partie terminée !":game?"Reprendre notre partie":"Jouons ensemble ?";
  const gameSub=game?.status==="won"?"Une nouvelle partie vous attend.":game?(game.turn===room.user.seat?"C’est à toi de jouer !":"C’est au tour de "+room.partner):"Un défi privé, juste vous deux.";
  return <div className="lr-home">
-  <div className="lr-home-kicker">♡ VOTRE ESPACE À DEUX</div>
+  <div className="lr-home-welcome">
+   <div><span className="lr-home-kicker">LOVE RADAR · VOTRE UNIVERS</span><h2>Bienvenue, <em>{room.user.name}.</em> <span>♡</span></h2><p>Votre petite bulle de bonheur, chaque jour.</p></div>
+   <div className="lr-home-welcome-date">{new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",month:"long"}).format(new Date())}</div>
+  </div>
   <section className="lr-home-couple" aria-label="Votre couple">
    <div className="lr-home-avatar">{room.user.name.trim().charAt(0).toUpperCase()}</div>
    <div className="lr-home-heart" aria-hidden="true">♥</div>
@@ -76,7 +79,13 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
    <h1>{room.user.name} <span>&</span> {room.partner||"ton amour"}</h1>
    <p><span className={"lr-home-online"+(online?" is-online":"")}/>{!room.partner?"En attente de ton partenaire":online?"Ton amour est en ligne":"Votre espace privé, toujours connecté"}</p>
   </section>
+  <div className="lr-home-quick" aria-label="Accès rapides">
+   <button type="button" onClick={()=>onNavigate("chat")}><span className="lr-home-quick-icon" aria-hidden="true">✉</span><span><strong>Écrire</strong><small>Un petit mot</small></span><b>↗</b></button>
+   <button type="button" onClick={()=>onNavigate("watch")}><span className="lr-home-quick-icon" aria-hidden="true">▶</span><span><strong>Regarder</strong><small>À deux</small></span><b>↗</b></button>
+   <button type="button" onClick={()=>onNavigate("reconcile")}><span className="lr-home-quick-icon" aria-hidden="true">🕊</span><span><strong>S’écouter</strong><small>Se comprendre</small></span><b>↗</b></button>
+  </div>
   {!room.partner?<section className="lr-home-invite"><div><strong>Invite ton amour 💌</strong><p>Partage ce code pour vous retrouver ici.</p></div><code>{room.code}</code><button type="button" onClick={onInvite}>Partager l’invitation</button></section>:null}
+  <div className="lr-home-section-heading"><span>VOTRE HISTOIRE</span><small>Les instants qui comptent</small></div>
   <div className="lr-home-our-story">
    <button type="button" onClick={()=>onNavigate("story")}>
     <span className="lr-home-our-symbol" aria-hidden="true">💑</span>
@@ -89,6 +98,7 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
     <b aria-hidden="true">↗</b>
    </button>
   </div>
+  <div className="lr-home-section-heading"><span>UN MOMENT POUR VOUS</span><small>Un rendez-vous quotidien</small></div>
   <button type="button" className="lr-home-daily" onClick={()=>onNavigate("moment")}>
    <span className="lr-home-daily-kicker">✦ NOTRE RENDEZ-VOUS QUOTIDIEN</span>
    <span className="lr-home-daily-line">
@@ -102,6 +112,7 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
    {daily?.question?<span className="lr-home-daily-question">« {daily.question} »</span>:null}
    <span className="lr-home-daily-cta">{daily?.revealed?"Découvrir nos réponses":daily?.mine?"Voir notre moment":"Découvrir la question"} →</span>
   </button>
+  <div className="lr-home-section-heading"><span>VIVRE ENSEMBLE</span><small>Des attentions et des jeux</small></div>
   <div className="lr-home-together">
    <button type="button" onClick={()=>onNavigate("together")} className="lr-together-miss-card">
     <span className="lr-together-icon">💗</span><strong>Tu me manques</strong><small>Un cœur pour ton amour, où qu’il soit.</small><b>Envoyer un cœur →</b>
@@ -118,6 +129,7 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
    <span className="lr-home-memory-icons" aria-hidden="true">🃏 ♡ 🌹 💌</span>
    <span className="lr-home-memory-copy"><small>NOUVEAU · À DEUX EN LIGNE</small><strong>Memory Love 💞</strong><span>Retrouve les paires avec ton amour, même à distance. 30 s par tour.</span><b>Jouer à Memory Love →</b></span>
   </button>
+  <div className="lr-home-section-heading"><span>RESTER CONNECTÉS</span><small>Vos échanges privés</small></div>
   <div className="lr-home-tiles">
    <button type="button" className="lr-home-tile" onClick={()=>onNavigate("chat")}>
     <div className="lr-home-tile-top"><span className="lr-home-tile-icon">✉</span><span>MESSAGE</span></div>
