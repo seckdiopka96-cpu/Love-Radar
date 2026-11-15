@@ -118,7 +118,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
    });
    later(()=>{
     setMotion(null);
-    if(result.game.turn===0&&!automatic)setGame(prev=>({...prev,updatedAt:Date.now()}));
+    if(result.game.turn===0&&result.game.status==="playing"&&!assisted)setGame(prev=>({...prev,updatedAt:Date.now()}));
     setLanding(pointForProgress(move.seat,move.pawn,move.to));
     playMoveEffects(move,result.game.winner);
    },initialDelay+route.length*stepDuration+100);
@@ -154,7 +154,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  const isHumanTurn=game.status==="playing"&&game.turn===0;
  const canRoll=isHumanTurn&&!assisted&&game.dice===null&&!rolling&&!motion;
  const canPick=isHumanTurn&&!assisted&&game.dice!==null&&!rolling&&!motion;
- const secondsLeft=isHumanTurn&&!assisted?Math.max(0,Math.ceil((game.updatedAt+SOLO_TURN_MS-now)/1000)):null;
+ const secondsLeft=isHumanTurn&&!assisted&&!rolling&&!motion?Math.max(0,Math.ceil((game.updatedAt+SOLO_TURN_MS-now)/1000)):null;
  const counts=game.positions.map(row=>row.filter(progress=>progress===57).length);
  const pawnCells=new Map<string,{seat:SoloSeat;pawn:number;active:boolean}[]>();
  for(const seat of [0,1] as SoloSeat[])for(let pawn=0;pawn<4;pawn++){
