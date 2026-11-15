@@ -23,7 +23,7 @@ import "./redesign-features.css";
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story";
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number};
-type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerLastSeenAt?:number};
+type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
 
 
@@ -108,7 +108,12 @@ export default function LoveRadar(){
  }
  const [draft,setDraft]=useState("");
  const [chatFocused,setChatFocused]=useState(false);
+ const [chatAtBottom,setChatAtBottom]=useState(true);
+ const [partnerActivity,setPartnerActivity]=useState<{partnerTypingUntil:number;partnerRecordingUntil:number;partnerLastSeenAt:number}|null>(null);
  const chatScroller=useRef<HTMLDivElement|null>(null);
+ const snapshotStarted=useRef(0);
+ const snapshotApplied=useRef(0);
+ const scrollFrame=useRef<number|null>(null);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
@@ -125,6 +130,7 @@ export default function LoveRadar(){
  useEffect(()=>{lastReadSent.current=0},[token]);
  const lastTypingSent=useRef(0);
  const typingActive=useRef(false);
+ const recordingActive=useRef(false);
  useEffect(()=>{
   const viewport=window.visualViewport;
   const sync=()=>{
@@ -428,18 +434,27 @@ export default function LoveRadar(){
   if(!data.ok)throw new Error(data.error||"Une erreur est survenue.");
   return data;
  },[token]);
- const refresh=useCallback(async(key?:string)=>{
+ const refresh=useCallback(async(key?:string,silent=false)=>{
   const t=key||token;
   if(!t)return;
+  const sequence=++snapshotStarted.current;
   try{
    const res=await apiFetch("/api/love",{headers:{Authorization:"Bearer "+t},cache:"no-store"});
    if(res.status===401){
-    localStorage.removeItem("love-radar-token");setToken("");setRoom(null);setError("Ton accès a expiré. Rejoins un espace.");return;
+    if(sequence>=snapshotApplied.current){
+     snapshotApplied.current=sequence;
+     localStorage.removeItem("love-radar-token");setToken("");setRoom(null);setError("Ton accès a expiré. Rejoins un espace.");
+    }
+    return;
    }
    const data=await res.json() as Result;
-   if(!data.ok)throw new Error(data.error||"Actualisation impossible.");
+   if(!res.ok||!data.ok)throw Error(data.error||"Actualisation impossible.");
+   // Overlapping network requests may complete out of order. Never replace
+   // a newer conversation with an older response.
+   if(sequence<snapshotApplied.current)return;
+   snapshotApplied.current=sequence;
    setRoom(data as unknown as Room);
-  }catch(e){setError(e instanceof Error?e.message:"Connexion impossible.")}
+  }catch(e){if(!silent)setError(e instanceof Error?e.message:"Connexion impossible.")}
  },[token]);
  useEffect(()=>{
   const saved=localStorage.getItem("love-radar-token")||"";
@@ -461,11 +476,46 @@ export default function LoveRadar(){
  },[token,request]);
  useEffect(()=>{
   if(!token)return;
-  const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh()},tab==="chat"?1900:4500);
-  const onFocus=()=>{void refresh()};
+  const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh(undefined,true)},tab==="chat"?1800:4500);
+  const onFocus=()=>{void refresh(undefined,true)};
   window.addEventListener("focus",onFocus);
   return()=>{clearInterval(interval);window.removeEventListener("focus",onFocus)};
  },[token,refresh,tab]);
+ // Lightweight status-only fetch avoids reloading 90 messages just to see
+ // the typing or voice-recording indicator on the partner's iPhone.
+ useEffect(()=>{
+  if(tab!=="chat"||!token||!room?.partner){setPartnerActivity(null);return}
+  let stopped=false,controller:AbortController|null=null,timer:number|null=null;
+  const poll=async()=>{
+   if(stopped)return;
+   if(document.visibilityState==="visible"){
+    controller=new AbortController();
+    try{
+     const res=await apiFetch("/api/love?status=1",{headers:{Authorization:"Bearer "+token},cache:"no-store",signal:controller.signal});
+     const data=await res.json() as Result;
+     if(!stopped&&res.ok&&data.ok)setPartnerActivity({
+      partnerTypingUntil:Number(data.partnerTypingUntil||0),
+      partnerRecordingUntil:Number(data.partnerRecordingUntil||0),
+      partnerLastSeenAt:Number(data.partnerLastSeenAt||0)
+     });
+    }catch{/* The previous activity will expire naturally. */}
+   }
+   if(!stopped)timer=window.setTimeout(poll,1050);
+  };
+  void poll();
+  return()=>{stopped=true;controller?.abort();if(timer!==null)clearTimeout(timer)};
+ },[tab,token,room?.roomId,room?.partner]);
+ // Keep activity online even if the person pauses while composing a message.
+ useEffect(()=>{
+  if(tab!=="chat"||!token)return;
+  const heartbeat=()=>{
+   if(document.visibilityState!=="visible")return;
+   if(typingActive.current)void request("typing",{active:true}).catch(()=>{});
+   if(recordingActive.current)void request("recording",{active:true}).catch(()=>{});
+  };
+  const timer=window.setInterval(heartbeat,2800);
+  return()=>window.clearInterval(timer);
+ },[tab,token,request]);
  useEffect(()=>{
   if(tab!=="chat"||!token||!room||document.visibilityState!=="visible")return;
   const newest=[...room.messages].reverse().find(m=>m.sender_id!==room.user.id);
