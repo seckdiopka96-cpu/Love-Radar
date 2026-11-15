@@ -8,7 +8,7 @@ async function ensureChatPresence(db:D1Database){
   presenceReady=(async()=>{
    await db.exec("CREATE TABLE IF NOT EXISTS chat_presence (room_id TEXT NOT NULL, member_id TEXT NOT NULL, last_read_at INTEGER NOT NULL DEFAULT 0, typing_until INTEGER NOT NULL DEFAULT 0, recording_until INTEGER NOT NULL DEFAULT 0, last_seen_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(room_id,member_id))");
    const columns=await db.prepare("PRAGMA table_info(chat_presence)").all<{name:string}>();
-   for(const field of ["last_seen_at","recording_until"] as const){
+   for(const field of ["last_seen_at","recording_until","last_reaction_read_at"] as const){
     if(columns.results.some(col=>col.name===field))continue;
     try{await db.exec("ALTER TABLE chat_presence ADD COLUMN "+field+" INTEGER NOT NULL DEFAULT 0")}
     catch(err){
@@ -90,14 +90,21 @@ async function snapshot(db:D1Database,u:Member){
   previous.push({member_id:reaction.member_id,emoji:reaction.emoji});
   reactionsById.set(reaction.message_id,previous);
  }
+ const recentReaction=await db.prepare(
+  "SELECT mr.message_id,mr.member_id,mr.emoji,mr.updated_at,m.kind,m.content"+
+  " FROM message_reactions mr JOIN messages m ON m.id=mr.message_id AND m.room_id=mr.room_id"+
+  " WHERE mr.room_id=? ORDER BY mr.updated_at DESC,mr.message_id DESC LIMIT 1"
+ ).bind(u.room_id).first<{message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null}>();
  const otherStatus=await db.prepare("SELECT last_read_at,typing_until,recording_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1").bind(u.room_id,u.id).first<{last_read_at:number,typing_until:number,recording_until:number,last_seen_at:number}>();
  const unread=await db.prepare("SELECT COUNT(*) AS n FROM messages WHERE room_id=? AND sender_id<>? AND kind IN ('text','image','audio') AND created_at>COALESCE((SELECT last_read_at FROM chat_presence WHERE room_id=? AND member_id=?),0)")
   .bind(u.room_id,u.id,u.room_id,u.id).first<{n:number}>();
 
 
+ const unreadReactions=await db.prepare("SELECT COUNT(*) AS n FROM message_reactions WHERE room_id=? AND member_id<>? AND updated_at>COALESCE((SELECT last_reaction_read_at FROM chat_presence WHERE room_id=? AND member_id=?),0)")
+  .bind(u.room_id,u.id,u.room_id,u.id).first<{n:number}>();
  return {user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id},code:u.invite,roomId:u.room_id,
   partner:partners.results.find(a=>a.id!==u.id)?.name||null,members:partners.results.length,
-  messages:messages.results.reverse().map(row=>({...row,reactions:reactionsById.get(String(row.id))||[]})),unreadCount:Number(unread?.n||0),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerRecordingUntil:otherStatus?.recording_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
+  messages:messages.results.reverse().map(row=>({...row,reactions:reactionsById.get(String(row.id))||[]})),recentReaction:recentReaction||null,unreadCount:Number(unread?.n||0)+Number(unreadReactions?.n||0),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerRecordingUntil:otherStatus?.recording_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
 }
 
   const handlers: Record<"GET"|"POST",(args:{request:Request})=>Promise<Response>> = {
@@ -184,8 +191,12 @@ async function snapshot(db:D1Database,u:Member){
     if(op==="read"){
      await ensureChatPresence(db);
      const last=await db.prepare("SELECT MAX(created_at) AS stamp FROM messages WHERE room_id=? AND sender_id<>? AND kind IN ('text','image','audio')").bind(u.room_id,u.id).first<{stamp:number|null}>();
-     if(last?.stamp){
-      await db.prepare("INSERT INTO chat_presence(room_id,member_id,last_read_at) VALUES(?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET last_read_at=MAX(last_read_at,excluded.last_read_at)").bind(u.room_id,u.id,last.stamp).run();
+     await ensureMessageActions(db);
+     const lastReaction=await db.prepare("SELECT MAX(updated_at) AS stamp FROM message_reactions WHERE room_id=? AND member_id<>?")
+      .bind(u.room_id,u.id).first<{stamp:number|null}>();
+     if(last?.stamp||lastReaction?.stamp){
+      await db.prepare("INSERT INTO chat_presence(room_id,member_id,last_read_at,last_reaction_read_at) VALUES(?,?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET last_read_at=MAX(last_read_at,excluded.last_read_at),last_reaction_read_at=MAX(last_reaction_read_at,excluded.last_reaction_read_at)")
+       .bind(u.room_id,u.id,last?.stamp||0,lastReaction?.stamp||0).run();
      }
      return ok({read:true});
     }
@@ -241,8 +252,8 @@ async function snapshot(db:D1Database,u:Member){
     if(op==="react-message"){
      if(!validMessageId(body.id))return fail("Message invalide.",400);
      if(typeof body.emoji!=="string"||!MESSAGE_REACTIONS.has(body.emoji))return fail("Réaction inconnue.",400);
-     const target=await db.prepare("SELECT id FROM messages WHERE id=? AND room_id=? AND kind IN ('text','image','audio')")
-      .bind(body.id,u.room_id).first();
+     const target=await db.prepare("SELECT kind,content FROM messages WHERE id=? AND room_id=? AND kind IN ('text','image','audio')")
+      .bind(body.id,u.room_id).first<{kind:"text"|"image"|"audio";content:string|null}>();
      if(!target)return fail("Message introuvable.",404);
      await ensureMessageActions(db);
      const existing=await db.prepare("SELECT emoji FROM message_reactions WHERE room_id=? AND message_id=? AND member_id=?")
@@ -252,8 +263,12 @@ async function snapshot(db:D1Database,u:Member){
        .bind(u.room_id,body.id,u.id).run();
       return ok({reaction:null});
      }
+     const now=Date.now();
      await db.prepare("INSERT INTO message_reactions(room_id,message_id,member_id,emoji,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(room_id,message_id,member_id) DO UPDATE SET emoji=excluded.emoji,updated_at=excluded.updated_at")
-      .bind(u.room_id,body.id,u.id,body.emoji,Date.now()).run();
+      .bind(u.room_id,body.id,u.id,body.emoji,now).run();
+     const raw=target.kind==="image"?"une photo":target.kind==="audio"?"un message vocal":(target.content||"").replace(/\s+/g," ").trim();
+     const excerpt=raw.length>65?raw.slice(0,64).trimEnd()+"…":raw||"un message";
+     waitUntil(notifyPartner(env,u.room_id,u.id,"Réaction à ton message ❤️",u.name+" a réagi "+body.emoji+" à «"+excerpt+"»","chat",{kind:"message",id:body.id}));
      return ok({reaction:body.emoji});
     }
     if(op==="delete-message"){
