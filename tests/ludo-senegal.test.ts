@@ -72,3 +72,29 @@ test("bot picks a legal strategic option and cannot alter classic game state",()
  const result=autoplayTurn({...newSenegalGame(),turn:1});
  assert.equal(result.game.turn,0);
 });
+
+test("players are always offered both continue and invade when crossing an EMPTY enemy cage",()=>{
+ for(const seat of [0,1] as const){
+  const game=newSenegalGame();
+  game.turn=seat;
+  game.dice=5;
+  game.positions[seat][0]=pawn("track",74);
+  // The other player has all pieces in its base, not in its home lane.
+  const options=movesForPawn(game,seat,0);
+  assert.ok(options.some(o=>o.action==="enemy"),"a human must still be allowed to take the risk");
+  assert.ok(options.some(o=>o.action==="track"),"a human must be able to continue instead");
+  const onward=chooseSenegalBotMove(game);
+  assert.equal(onward?.action,"track","AI must not invade an empty cage for seat "+seat);
+  const continued=applySenegalMove(game,onward!);
+  assert.equal(continued?.game.positions[seat][0].zone,"track");
+  assert.equal(continued?.game.positions[seat][0].step,79);
+ }
+});
+test("AI may raid the cage when an opposing pawn is there to capture",()=>{
+ const game=withTurn(pawn("track",74),pawn("home",77,3,51),5);
+ const selected=chooseSenegalBotMove(game);
+ assert.equal(selected?.action,"enemy");
+ const result=applySenegalMove(game,selected!);
+ assert.equal(result?.move.captures.length,1);
+ assert.equal(result?.game.positions[1][0].zone,"base");
+});
