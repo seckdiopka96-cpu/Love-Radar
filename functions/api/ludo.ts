@@ -17,7 +17,7 @@ type Challenge={gameId:string;fromId:string;fromName:string;fromSeat:number;sent
 type CapturedPawn={seat:number;pawn:number;from:number};
 type MoveEvent={gameId:string;version:number;seat:number;pawn:number;from:number;to:number;captures:CapturedPawn[];at:number};
 type MoveRow={game_id:string;version:number;seat:number;pawn:number;from_progress:number;to_progress:number;captures_json:string;updated_at:number};
-const TURN_MS=30000;
+const TURN_MS=15000;
 const GIFTS=new Set(["credit","internet","wave2000"]);
 const initial=():Board=>[[-1,-1,-1,-1],[-1,-1,-1,-1]];
 const SAFE=new Set([0,8,13,21,26,34,39,47]);
@@ -164,7 +164,7 @@ function botTurn(g:Game,name:string){
    g.streak=rolled===6?g.streak+1:0;
    last="Dé : "+rolled+".";
    if(g.positions[seat].some(p=>movable(p,rolled)))g.dice=rolled;
-   else{g.dice=null;if(rolled!==6)g.turn=1-seat;continue}
+   else{g.dice=null;g.turn=1-seat;g.streak=0;break}
   }
   if(g.dice===null)continue;
   const rolled=g.dice;
@@ -192,7 +192,7 @@ function botTurn(g:Game,name:string){
   if(!(rolled===6||captured>0||next===57))g.turn=1-seat;
  }
  if(g.status==="playing"&&g.turn===seat){g.turn=1-seat;g.dice=null;g.streak=0}
- g.last_action="🤖 Après 30 s, l'ordinateur a joué pour "+name+". "+last;
+ g.last_action="🤖 Après 15 s sans action, l'ordinateur a joué pour "+name+". "+last;
 }
 async function autoIfLate(db:D1Database,g:Game,a:Agreement):Promise<Game>{
  if(g.status!=="playing"||!a.startedAt||Date.now()<Math.max(g.updated_at,a.startedAt)+TURN_MS)return g;
@@ -332,7 +332,9 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
       g.last_action=name+" a lancé un "+roll+".";
      }else{
       g.dice=null;
-      if(roll!==6)g.turn=1-player.seat;
+      // Aucun pion jouable : le tour passe immédiatement.
+      g.turn=1-player.seat;
+      g.streak=0;
       g.last_action=name+" a lancé un "+roll+" : aucun déplacement possible.";
      }
     }
