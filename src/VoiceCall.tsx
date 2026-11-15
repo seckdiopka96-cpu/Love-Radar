@@ -177,10 +177,11 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
     setPhase("Connexion en cours…");
     await peer.setRemoteDescription({type:"offer",sdp:signal.payload});
     await peer.setLocalDescription(await peer.createAnswer());
-    await iceReady(peer);
     if(current.current?.id!==call.id||pc.current!==peer)return true;
-    if(!peer.localDescription?.sdp?.includes("a=candidate:"))throw Error("Impossible d’établir un lien audio sur ce réseau. Change de Wi-Fi ou de réseau mobile.");
-    await api("signal",{id:call.id,kind:"answer",sdp:peer.localDescription.sdp});
+    await api("signal",{id:call.id,kind:"answer",sdp:peer.localDescription?.sdp||""});
+    if(current.current?.id!==call.id||pc.current!==peer)return true;
+    sessionDescriptionSent.current=true;
+    void flushCandidates(call.id);
     return true;
    }catch(err){answered.current=false;setError(err instanceof Error?err.message:"Réponse impossible.");return false}
   }
@@ -188,8 +189,18 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
    try{await peer.setRemoteDescription({type:"answer",sdp:signal.payload});return true}
    catch(err){setError(err instanceof Error?err.message:"Connexion impossible.");return false}
   }
+  if(signal.kind==="candidate"){
+   if(!peer.remoteDescription)return false;
+   try{
+    await peer.addIceCandidate(JSON.parse(signal.payload) as RTCIceCandidateInit);
+   }catch(err){
+    // An invalid individual candidate must not block valid later paths.
+    console.warn("ICE candidate ignored",err);
+   }
+   return true;
+  }
   return false;
- },[api,createPeer]);
+ },[api,createPeer,flushCandidates]);
  const sync=useCallback(async()=>{
   if(isPolling.current||starting.current||document.visibilityState==="hidden")return;
   isPolling.current=true;
@@ -217,13 +228,22 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
  },[api,offer,receive,reset,setCurrent]);
  useEffect(()=>{
   if(!hasPartner)return;
-  void sync();
-  const interval=setInterval(()=>{void sync()},2000);
+  let stopped=false,timer:number|null=null;
+  const tick=async()=>{
+   await sync();
+   if(!stopped)timer=window.setTimeout(tick,current.current?650:1100);
+  };
+  void tick();
   const visible=()=>{if(document.visibilityState==="visible")void sync()};
   const focus=()=>{void sync()};
   document.addEventListener("visibilitychange",visible);
   window.addEventListener("focus",focus);
-  return()=>{clearInterval(interval);document.removeEventListener("visibilitychange",visible);window.removeEventListener("focus",focus)};
+  return()=>{
+   stopped=true;
+   if(timer!==null)window.clearTimeout(timer);
+   document.removeEventListener("visibilitychange",visible);
+   window.removeEventListener("focus",focus);
+  };
  },[sync,hasPartner]);
  useEffect(()=>{
   if(!active||active.status!=="active")return;
@@ -253,8 +273,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
   setBusy(true);starting.current=true;setError("");
   try{
    await microphone(); // Called immediately after the tap, for iOS permission.
-   await loadNetwork();
-   const result=await api("start");
+   const [result]=await Promise.all([api("start"),warmNetwork()]);
    if(!result.call)throw Error("Appel non créé.");
    if(result.call.direction==="incoming"){
     local.current?.getTracks().forEach(track=>track.stop());
@@ -271,11 +290,12 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
   setBusy(true);setError("");
   try{
    await microphone();
-   await loadNetwork();
+   await warmNetwork();
    createPeer();
    await api("accept",{id:c.id});
    const updated={...c,status:"active" as const};
    current.current=updated;setActive(updated);setPhase("Connexion en cours…");
+   void sync();
   }catch(err){
    clearAudio();
    setError(err instanceof Error?err.message:"Impossible de décrocher.");
