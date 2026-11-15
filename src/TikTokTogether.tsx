@@ -227,9 +227,11 @@ export default function TikTokTogether({token,myId,myName,partnerName,messages,o
   const current=snapshotRef.current;
   if(!current?.videoId)return;
   suppressRef.current=Date.now()+1800;
-  command("seekTo",watchTikTokTime(current,Date.now()+offsetRef.current));
+  const resumeAt=watchTikTokTime(current,Date.now()+offsetRef.current);
+  posRef.current=resumeAt;setLocalPos(resumeAt);
+  command("seekTo",resumeAt);
   command("play");setNeedsTap(false);setPlayerError("");
-  if(!current.playing)void post("play",posRef.current);
+  if(!current.playing)void post("play",resumeAt);
  }
  function pause(){
   const current=snapshotRef.current;
