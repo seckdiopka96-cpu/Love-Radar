@@ -552,3 +552,21 @@
  .ludo-experience .ludo-moving-pawn{transition:none;will-change:auto}
  .ludo-experience .ludo-moving-bounce,.ludo-experience .ludo-motion-aura{animation:none}
 }
+
+/* Superimposed pawns, not a side-by-side line. Later buttons sit in front,
+   while the slight stagger keeps every pawn silhouette visibly present. */
+.ludo-experience .ludo-stack-2 .ludo-pawn-stacked,
+.ludo-experience .ludo-stack-3 .ludo-pawn-stacked,
+.ludo-experience .ludo-stack-4 .ludo-pawn-stacked,
+.ludo-experience .ludo-stack-5 .ludo-pawn-stacked{
+  transform-origin:center center;
+  filter:drop-shadow(0 2px 2px #12081aca) drop-shadow(0 0 1px #fff9e2b0);
+}
+.ludo-experience .ludo-stack-count{
+  position:absolute;top:-4px;right:-6px;z-index:65;
+  display:flex;align-items:center;justify-content:center;
+  width:17px;height:17px;min-width:17px;border-radius:100px;
+  border:1px solid #fff5e0;background:#3a254c;color:#fff8dd;
+  font:900 10px/1 -apple-system,BlinkMacSystemFont,Arial,sans-serif;
+  box-shadow:0 2px 5px #17101b99;pointer-events:none;
+}
