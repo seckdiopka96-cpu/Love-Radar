@@ -381,7 +381,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   <div className={"ludo-turn-banner"+(myTurn?" its-mine":"")} role="status" aria-live="polite">
    <span className="ludo-turn-icon" aria-hidden="true">{status}</span>
    <strong>{message}</strong>
-   {remaining!==null?<span className={"ludo-countdown"+(remaining<=10?" urgent":"")} aria-label={"Temps restant : "+remaining+" secondes"}><span className="ludo-time-ring">{remaining}</span><small>s</small></span>:null}
+   {remaining!==null?<span className={"ludo-countdown"+(remaining<=5?" urgent":"")} aria-label={"Temps restant : "+remaining+" secondes"}><span className="ludo-time-ring">{remaining}</span><small>s</small></span>:null}
   </div>
 
   <div className="ludo-play-area">
@@ -497,7 +497,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
       <h3>🎲 Règles du Ludo Duo</h3>
       <p>Vous jouez à deux, chacun avec quatre pions. Il faut faire un 6 pour sortir un pion. Le premier à amener ses quatre pions au centre gagne.</p>
       <p>Un 6, une capture ou une arrivée au centre donne un tour supplémentaire. Trois 6 consécutifs font perdre le tour. Les étoiles ★ sont protégées et il faut le nombre exact pour terminer.</p>
-      <p><strong>⏱️ Chronomètre :</strong> chacun a 30 secondes pour agir. Après ce délai, l’ordinateur joue automatiquement à sa place dès qu’un appareil connecté interroge le serveur.</p>
+      <p><strong>⏱️ Chronomètre :</strong> chacun a 15 secondes pour agir. Après ce délai, l’ordinateur joue automatiquement à sa place dès qu’un appareil connecté interroge le serveur.</p>
       <h3>🎁 Défi cadeau facultatif</h3>
       <p>Si vous acceptez tous les deux le défi, <strong>le perdant propose d’offrir le cadeau choisi par le gagnant</strong> : crédit téléphonique, forfait Internet ou <strong>2 000 F CFA via Wave</strong>.</p>
       <p>Ce défi est un engagement amical, pas un contrat légal ni un paiement automatique. Vous pouvez jouer sans cadeau si l’un de vous refuse. Aucun achat ou transfert Wave n’est effectué dans Love Radar.</p>
