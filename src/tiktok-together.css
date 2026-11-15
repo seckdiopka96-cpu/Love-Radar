@@ -104,3 +104,72 @@
  .tk-title small{font-size:7px}
 }
 @media(max-width:365px){.tk-presence small{display:none}.tk-title strong{font-size:17px}.tk-video-container{height:min(48dvh,420px)}}
+
+/* Fixed, truly non-scrolling TikTok room for iPhone / mobile. A flexible
+   video area absorbs the available height while link + chat stay reachable. */
+@media(max-width:700px){
+ .lr-app.lr-watch-mode.lr-app-locked .tk-page{gap:6px!important}
+ .tk-header{min-height:37px;gap:5px}
+ .tk-providers{padding:3px;gap:4px}
+ .tk-providers button{padding:7px 6px;min-height:32px}
+ .tk-presence{min-height:31px;padding:7px 9px}
+ .tk-body{flex:1 1 0!important;min-height:0!important;min-width:0!important;
+  overflow:hidden!important;overscroll-behavior:none!important;padding:0!important;gap:6px!important}
+ .tk-video-area{display:flex!important;flex:1 1 0!important;min-height:0!important;min-width:0!important;
+  flex-direction:column!important;flex-wrap:nowrap!important;align-items:center!important;
+  justify-content:flex-start!important;gap:5px!important;overflow:hidden!important}
+ .tk-video-area.has-video .tk-video-container{
+  flex:1 1 0!important;min-width:0!important;min-height:90px!important;
+  height:0!important;max-height:100%!important;
+  width:min(100%,290px)!important;max-width:290px!important;
+  aspect-ratio:9/16;align-self:center;
+ }
+ .tk-video-area.is-empty{justify-content:center!important}
+ .tk-video-area.is-empty .tk-video-container{
+  flex:0 1 auto!important;width:100%!important;max-width:100%!important;
+  height:clamp(110px,21dvh,180px)!important;min-height:0!important;
+  max-height:100%!important;aspect-ratio:auto!important
+ }
+ .tk-video-empty{padding:10px!important;gap:4px!important}
+ .tk-video-empty>span{font-size:39px!important;line-height:1.1}
+ .tk-video-empty strong{font-size:17px!important}
+ .tk-video-empty p{font-size:11px!important;max-width:280px;line-height:1.3}
+ .tk-controls{width:100%!important;max-width:none!important;flex:0 0 auto!important;
+  padding:6px 8px!important;gap:5px!important;border-radius:11px}
+ .tk-control-caption strong{font-size:10px!important}
+ .tk-control-caption span{font-size:9px}
+ .tk-playback button{min-height:33px!important;padding:5px 4px!important;font-size:11px}
+ .tk-timebar{gap:5px}
+ .tk-loading,.tk-player-error{font-size:10px!important;line-height:1.2!important;margin:0}
+ .tk-open-tiktok{font-size:9px}
+ .tk-unblock{min-height:31px;padding:6px;font-size:11px}
+ .tk-share{flex:0 0 auto!important;gap:5px!important;padding:8px!important;border-radius:11px}
+ .tk-share label{font-size:11px}
+ .tk-share input{height:37px!important;padding:8px 10px!important;font-size:16px!important}
+ .tk-share button{height:37px!important;padding:0 11px!important;font-size:11px}
+ .tk-share small{display:none!important}
+ .tk-chat{flex:0 0 auto!important;min-height:0!important}
+ .tk-chat-head{padding:7px 9px!important}
+ .tk-chat-head strong{font-size:11px}
+ .tk-chat-head small{display:none}
+ .tk-chat-head>button{padding:7px 8px;font-size:10px}
+ .tk-chat.open{max-height:min(23dvh,160px);overflow:hidden}
+ .tk-chat-list{flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow-y:auto}
+ .tk-chat-send{padding:6px!important}
+ .tk-chat-send input{height:35px!important;font-size:16px!important}
+ .tk-chat-send button{height:35px;width:35px}
+ .tk-footnote{display:none!important}
+ /* iOS keyboard: lift the editor into view instead of scrolling the page. */
+ .tk-page:has(.tk-share input:focus,.tk-chat-send input:focus) .tk-video-area{
+  flex:0 0 0!important;height:0!important;min-height:0!important;opacity:0;pointer-events:none}
+ .tk-page:has(.tk-share input:focus,.tk-chat-send input:focus) .tk-body{
+  justify-content:flex-start!important}
+}
+@media(max-height:650px) and (max-width:700px){
+ .tk-page .tk-header{min-height:32px}
+ .tk-video-area.has-video .tk-video-container{min-height:45px!important}
+ .tk-video-empty>span{font-size:28px!important}
+ .tk-video-area.is-empty .tk-video-container{height:110px!important}
+ .tk-page .tk-share label{display:none}
+ .tk-chat.open{max-height:110px}
+}
