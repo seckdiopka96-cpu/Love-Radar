@@ -299,7 +299,6 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
         {track!==undefined&&SAFE.has(track)?<span className="ludo-star" aria-hidden="true">★</span>:null}
         {pawns.length?<div className={"ludo-cell-pawns ludo-stack-"+Math.min(pawns.length,5)}>
          {pawns.map((item,i)=>{
-          const off=stackPosition(pawns.length,i);
           return <button type="button" key={item.seat+"-"+item.pawn} disabled={!item.active}
            className={"ludo-pawn ludo-pawn-stacked ludo-pawn-"+(item.seat===0?"red":"gold")+(item.active?" can-move":"")+(item.zone==="enemy"?" is-invading":"")}
            onClick={()=>choose(item.pawn)}
