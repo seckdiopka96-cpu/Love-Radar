@@ -922,9 +922,22 @@ export default function LoveRadar(){
        const date=new Date(m.created_at).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"long"});
        return <Fragment key={m.id}>
         {newDay?<div className="lr-chat-day">{date}</div>:null}
-        <div className={"lr-bubble-row "+(mine?"mine ":"other ")+(groupedBefore?"lr-grouped ":"")+(groupedAfter?"lr-group-next":"")}>
+        <div id={"lr-chat-message-"+m.id}
+          className={"lr-bubble-row lr-reply-gesture "+(mine?"mine ":"other ")+(groupedBefore?"lr-grouped ":"")+(groupedAfter?"lr-group-next":"")}
+          onPointerDown={e=>messagePointerDown(e,m)}
+          onPointerMove={messagePointerMove}
+          onPointerUp={e=>messagePointerUp(e,m)}
+          onPointerCancel={e=>resetSwipe(e.currentTarget)}
+          aria-label={"Message de "+(mine?"vous":partner)+". Glisser vers la droite pour répondre."}>
+         <span className="lr-reply-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 10 4 14l5 4"/><path d="M4 14h9a7 7 0 0 0 7-7"/></svg>
+         </span>
          <div className="lr-bubble-stack">
-          <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":"")}>{m.kind==="text"?<p>{m.content}</p>:m.kind==="image"?
+          <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":"")}>
+           {m.reply_to_id?<QuoteCard author={quoteAuthor(m.reply_sender_id,room.user.id,partner)}
+            kind={m.reply_kind||"text"} content={m.reply_content}
+            onJump={chatMessages.some(item=>item.id===m.reply_to_id)?()=>jumpToQuote(m.reply_to_id!):undefined}/>:null}
+           {m.kind==="text"?<p>{m.content}</p>:m.kind==="image"?
           media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} enabled={privacyEnabled} viewer={room.user.name} variant="chat"/>:
           <div className="lr-media-loading">Chargement de la photo…</div>:
           media[m.id]?<VoiceMessage id={m.id} src={media[m.id]} mine={mine} time={time} delivery={mine&&m.id===lastOwnMessage?.id?((room.partnerReadAt||0)>=m.created_at?"read":"sent"):undefined}/>:
@@ -948,11 +961,16 @@ export default function LoveRadar(){
      </div>
      {!chatAtBottom&&!chatFocused?<button type="button" className="lr-chat-jump" onClick={scrollToLatest}>↓ Derniers messages</button>:null}
      <div className="lr-chat-compose">
+      {replyTarget?<div className="lr-reply-compose" role="status" aria-label="Réponse au message sélectionné">
+       <QuoteCard variant="composer" author={quoteAuthor(replyTarget.sender_id,room.user.id,partner)}
+        kind={replyTarget.kind} content={replyTarget.content}/>
+       <button type="button" className="lr-reply-compose-close" aria-label="Annuler la réponse" onClick={()=>setReplyTarget(null)}>×</button>
+      </div>:null}
       {recording?<div className="lr-recording"><span className="lr-record-dot"/> Enregistrement en cours…</div>:null}
       <form className={"lr-chat-form "+(chatFocused||draft.trim()?"is-writing ":"")+(recording?"is-recording":"")} onSubmit={sendMessage}>
        <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={onImageChange}/>
        <button className="lr-attach" type="button" title="Envoyer une photo" aria-label="Ajouter une photo" onClick={()=>fileInput.current?.click()} disabled={!room.partner||busy}><span aria-hidden="true">+</span></button>
-       <input aria-label="Écrire un message" type="text" enterKeyHint="send" autoComplete="off" value={draft} onFocus={()=>{firstPoll.current=true;setChatFocused(true);scrollToLatest()}} onBlur={()=>{setChatFocused(false);setTyping(false)}} onChange={e=>{setDraft(e.target.value);setTyping(e.target.value.trim().length>0)}} placeholder={room.partner?"Message…":"En attente de ton partenaire…"} disabled={!room.partner} maxLength={1600}/>
+       <input ref={chatInput} aria-label="Écrire un message" type="text" enterKeyHint="send" autoComplete="off" value={draft} onFocus={()=>{firstPoll.current=true;setChatFocused(true);scrollToLatest()}} onBlur={()=>{setChatFocused(false);setTyping(false)}} onChange={e=>{setDraft(e.target.value);setTyping(e.target.value.trim().length>0)}} placeholder={room.partner?"Message…":"En attente de ton partenaire…"} disabled={!room.partner} maxLength={1600}/>
        <button className={"lr-mic "+(recording?"recording":"")} type="button" title={recording?"Arrêter le vocal":"Enregistrer un vocal"} aria-label={recording?"Arrêter le message vocal":"Enregistrer un message vocal"} onClick={toggleRecording} disabled={!room.partner||busy}>
         {recording?<span aria-hidden="true">■</span>:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8 21h8"/></svg>}
        </button>
