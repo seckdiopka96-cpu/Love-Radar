@@ -1,0 +1,70 @@
+/* Original Senegalese Ludo variant — separate from classic Ludo Duo. */
+.ludo-senegal{background:
+ radial-gradient(ellipse 70% 38% at 52% 32%,#8362524d,transparent 76%),
+ linear-gradient(165deg,#302238,#181a27 65%,#302038);
+ border-color:#c8a478}
+.ludo-senegal .ludo-brand strong{font-size:clamp(14px,4vw,20px);letter-spacing:.3px}
+.ludo-senegal .ludo-brand strong>span{display:inline-block;vertical-align:0;font-size:.92em}
+.ludo-senegal .ludo-brand small{letter-spacing:.7px;color:#f0d8a5}
+.ludo-senegal .ludo-turn-banner{border-color:#d4a96c70}
+.ludo-senegal .ludo-turn-icon{font-size:20px}
+.ludo-senegal .ludo-pawn-stacked.is-invading svg{
+ filter:drop-shadow(0 0 4px #ffb03c) drop-shadow(0 4px 3px #290c24bc)
+}
+.ludo-senegal .ludo-game-footer{border-color:#bd906e;background:linear-gradient(150deg,#463344,#272133)}
+.ludo-senegal .ludo-main-action:not(:disabled){
+ background:linear-gradient(120deg,#28a869,#bfa247 48%,#e48749);
+ color:#fff;text-shadow:0 1px 2px #261a16a6
+}
+.ludo-senegal .ludo-board-center>span{
+ display:grid;place-items:center;font-size:clamp(12px,3.5vw,28px);
+ filter:drop-shadow(0 2px 1px #2f1a1bbb)
+}
+.ludo-senegal-step{
+ position:absolute;z-index:3;top:-20px;left:50%;
+ transform:translateX(-50%);
+ color:#fff5da;background:#493144ed;border:1px solid #eac17e;
+ border-radius:7px;white-space:nowrap;font-weight:900;font-size:10px;
+ padding:2px 5px
+}
+.ludo-senegal-choice{
+ position:absolute;z-index:35;left:4px;right:4px;bottom:calc(100% + 6px);
+ max-height:min(53dvh,310px);overflow:auto;display:grid;gap:5px;
+ padding:11px;border-radius:15px;
+ background:linear-gradient(150deg,#332638ef,#50314cf5);
+ box-shadow:0 10px 35px #150c20e0,0 0 0 1px #e3b875;
+ backdrop-filter:blur(14px)
+}
+.ludo-senegal-choice>div{display:flex;align-items:center;justify-content:space-between;gap:7px;margin-bottom:3px}
+.ludo-senegal-choice>div strong{color:#fff3d2;font-size:13px}
+.ludo-senegal-choice>div span{color:#d9b59d;font-size:11px}
+.ludo-senegal-choice>button{
+ border:1px solid #d8bc9870;border-radius:10px;padding:9px 12px;
+ color:#fff8f3;background:linear-gradient(130deg,#71536b,#4d3556);
+ text-align:left;font-weight:850;font-size:12px;min-height:37px;
+ touch-action:manipulation
+}
+.ludo-senegal-choice>button:active{background:#a37572;transform:scale(.99)}
+.ludo-senegal-choice>button.ludo-senegal-dismiss{
+ text-align:center;border-color:#8869796b;background:#362b3b;color:#d9c0cc
+}
+.ludo-senegal-error{
+ margin:3px 7px;padding:5px 8px;border:1px solid #ffc9a6;
+ border-radius:8px;background:#7d3447dd;color:#fff5f0;font-size:11px
+}
+.ludo-senegal-wait{
+ position:absolute;z-index:17;left:50%;top:45%;transform:translate(-50%,-50%);
+ display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
+ width:min(86%,310px);padding:20px 13px;border-radius:16px;
+ border:1px solid #dfbb86;background:#32233cf5;
+ box-shadow:0 6px 18px #140e1cc2;color:#ffe5c0;pointer-events:none
+}
+.ludo-senegal-wait>span{font-size:32px}
+.ludo-senegal-wait>strong{font-size:15px}
+.ludo-senegal-wait>small{font-size:12px;line-height:1.4;color:#e6cfdd}
+@media(max-width:700px){
+ .ludo-senegal .ludo-brand strong{font-size:15px}
+ .ludo-senegal .ludo-brand small{font-size:7px}
+ .ludo-senegal .ludo-turn-banner strong{font-size:clamp(10px,2.8vw,12px)}
+ .ludo-senegal-choice{bottom:calc(100% + 5px);max-height:min(48dvh,285px)}
+}
