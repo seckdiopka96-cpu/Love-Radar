@@ -310,7 +310,7 @@ export default function TikTokTogether({token,myId,myName,partnerName,messages,o
    </div>
    <form className="tk-share" onSubmit={event=>void selectVideo(event)}>
     <label htmlFor="tk-shared-link">🎬 Choisir le TikTok suivant</label>
-    <div><input id="tk-shared-link" type="url" inputMode="url" autoComplete="off"
+    <div><input id="tk-shared-link" type="text" inputMode="url" autoComplete="off"
      placeholder="Colle le lien TikTok partagé" value={input} onChange={event=>setInput(event.target.value)} maxLength={400}/>
      <button type="submit" disabled={!input.trim()||busy||loading}>{busy?"…":"Partager"}</button></div>
     <small>Fonctionne avec les vidéos publiques, les liens tiktok.com et les liens courts vm.tiktok.com / vt.tiktok.com lorsque TikTok permet de les résoudre.</small>
