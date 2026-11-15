@@ -7,7 +7,7 @@ type Message={id:string;sender_id:string;kind:"text"|"image"|"audio";content:str
 type Game={turn:number;status:"playing"|"won";winner:number|null;version:number;dice:number|null};
 type DailyOverview={ok:boolean;question:string;mine:{text:string}|null;partnerAnswered:boolean;revealed:boolean};
 type Room={user:{id:string;name:string;seat:number};partner:string|null;code:string;partnerLastSeenAt?:number;messages:Message[]};
-type Props={room:Room;token:string;media:Record<string,string>;privacyEnabled:boolean;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"location"|"story"|"reunion",feature?:"heart"|"draw")=>void};
+type Props={room:Room;token:string;media:Record<string,string>;privacyEnabled:boolean;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"puzzle"|"story"|"reunion")=>void};
 export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,onNavigate}:Props){
  const [game,setGame]=useState<Game|null>(null);
  const [daily,setDaily]=useState<DailyOverview|null>(null);
@@ -102,16 +102,12 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
    {daily?.question?<span className="lr-home-daily-question">« {daily.question} »</span>:null}
    <span className="lr-home-daily-cta">{daily?.revealed?"Découvrir nos réponses":daily?.mine?"Voir notre moment":"Découvrir la question"} →</span>
   </button>
-  <button type="button" className="lr-home-location" onClick={()=>onNavigate("location")}>
-   <span className="lr-home-location-icon" aria-hidden="true">📍</span>
-   <span><strong>Notre position</strong><small>Demander la position de ton amour — avec son accord, pendant 15 min seulement.</small><b>Demander sa position →</b></span>
-  </button>
   <div className="lr-home-together">
-   <button type="button" onClick={()=>onNavigate("together","heart")} className="lr-together-miss-card">
+   <button type="button" onClick={()=>onNavigate("together")} className="lr-together-miss-card">
     <span className="lr-together-icon">💗</span><strong>Tu me manques</strong><small>Un cœur pour ton amour, où qu’il soit.</small><b>Envoyer un cœur →</b>
    </button>
-   <button type="button" onClick={()=>onNavigate("together","draw")} className="lr-together-draw-card">
-    <span className="lr-together-icon">🎨</span><strong>Dessin à deux</strong><small>Un tableau commun pour dessiner ensemble.</small><b>Dessiner ensemble →</b>
+   <button type="button" onClick={()=>onNavigate("puzzle")} className="lr-together-puzzle-card">
+    <span className="lr-together-icon">🧩</span><strong>Puzzle à deux</strong><small>Reconstituez une image de 9 pièces ensemble.</small><b>Jouer au puzzle →</b>
    </button>
   </div>
   <button type="button" className="lr-home-game" onClick={()=>onNavigate("ludo")}>
