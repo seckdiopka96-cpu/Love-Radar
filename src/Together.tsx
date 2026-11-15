@@ -198,12 +198,20 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
    <div className="tg-brand"><strong>Nous deux <span>♡</span></strong><small>LOVE RADAR · TOUJOURS ENSEMBLE</small></div>
    <span className="tg-top-heart">♥</span>
   </header>
-  <div className="tg-shortcuts">
-   <button type="button" className="tg-moment-link" onClick={onOpenMoment}>💌 Moment</button>
-   <button type="button" className="tg-reunion-link" onClick={onOpenReunion}>📅 Retrouvailles</button>
-   <button type="button" className="tg-location-link" onClick={onOpenLocation}>📍 Position</button>
-   <button type="button" className="tg-watch-link" onClick={onOpenWatch}>🎬 Regarder ensemble</button>
+  <div className="tg-activities">
+   <div className="tg-section-label"><strong>NOS ACTIVITÉS À DEUX</strong><small>Un moment ensemble, même à distance</small></div>
+   <button type="button" className="tg-watch-feature" onClick={onOpenWatch} aria-label="Regarder YouTube ou TikTok ensemble">
+    <span className="tg-watch-symbol" aria-hidden="true">▶</span>
+    <span className="tg-watch-copy"><small>NOTRE CINÉMA · EN DIRECT</small><strong>Regarder ensemble</strong><span>YouTube & TikTok · Lance une vidéo et invite ton amour</span></span>
+    <span className="tg-watch-arrow" aria-hidden="true">›</span>
+   </button>
+   <div className="tg-shortcuts" aria-label="Autres moments à deux">
+    <button type="button" className="tg-moment-link" onClick={onOpenMoment}><span aria-hidden="true">💌</span><strong>Moment</strong></button>
+    <button type="button" className="tg-reunion-link" onClick={onOpenReunion}><span aria-hidden="true">📅</span><strong>Retrouvailles</strong></button>
+    <button type="button" className="tg-location-link" onClick={onOpenLocation}><span aria-hidden="true">📍</span><strong>Position</strong></button>
+   </div>
   </div>
+  <div className="tg-section-label tg-between-label"><strong>RIEN QUE NOUS DEUX</strong><small>Des attentions qui rapprochent</small></div>
   <div className="tg-modes" role="tablist" aria-label="Choisir notre activité">
    <button role="tab" type="button" aria-selected={mode==="heart"} className={mode==="heart"?"selected":""} onClick={()=>{setMode("heart");setOnlyFocused(false)}}>💗 Tu me manques</button>
    <button role="tab" type="button" aria-selected={mode==="draw"} className={mode==="draw"?"selected":""} onClick={()=>{setMode("draw");setOnlyFocused(false)}}>🎨 Dessiner ensemble</button>
@@ -221,7 +229,7 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
    <div className="tg-heart-feed">
     <div className="tg-heart-feed-title"><strong>{selected?"Ce cœur reçu":"Nos petits mots"}</strong><span>♡</span></div>
     {loading&&!signals.length?<p>Chargement des cœurs…</p>:
-     (selected?[selected]:signals.slice(-9).reverse()).length===0?<p>Votre premier petit cœur vous attend. 💞</p>:
+     (selected?[selected]:signals.slice(-9).reverse()).length===0?<div className="tg-feed-empty"><span aria-hidden="true">💌</span><strong>Votre première attention vous attend</strong><p>Un petit mot, un cœur… vos moments partagés apparaîtront ici.</p></div>:
      (selected?[selected]:signals.slice(-9).reverse()).map(signal=><article key={signal.id} className={"tg-signal"+(signal.seat===mySeat?" sent":" received")}>
       <span className="tg-signal-avatar">{signal.seat===mySeat?myName.slice(0,1).toUpperCase():partner.slice(0,1).toUpperCase()}</span>
       <div className="tg-signal-content"><small>{signal.seat===mySeat?"Toi":partner} · {new Date(signal.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</small>
