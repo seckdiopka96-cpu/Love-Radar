@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {parseYouTubeId,expectedPlaybackSeconds,formatWatchTime,type WatchSnapshot} from "../src/watch-utils";
+import {parseTelepartyInvite} from "../src/netflix-party-utils";
 
 const ID="M7lc1UVf-VE";
 test("YouTube watch, shorts, live, embed and youtu.be links are accepted",()=>{
@@ -47,4 +48,29 @@ test("human-readable timeline does not overflow time formatting",()=>{
  assert.equal(formatWatchTime(69.8),"1:09");
  assert.equal(formatWatchTime(3661),"1:01:01");
  assert.equal(formatWatchTime(-12),"0:00");
+});
+
+test("Only legitimate HTTPS Teleparty invitations can be shared inside Love Radar",()=>{
+ const allowed=[
+  "https://www.teleparty.com/join/abc123",
+  "https://teleparty.com/watch?party=abc123",
+  "https://www.netflixparty.com/party/abc123",
+  "https://redirect.teleparty.org/join?code=test",
+  "https://www.teleparty.com/#party-abc123"
+ ];
+ for(const url of allowed)assert.equal(parseTelepartyInvite(url),url,url);
+ const blocked=[
+  "https://teleparty.com",
+  "https://teleparty.com/",
+  "https://teleparty.com.evil.net/join/fake",
+  "https://fake-teleparty.com/join/abc",
+  "https://netflix.com/watch/123456789",
+  "https://evil.org/party",
+  "http://www.teleparty.com/join/test",
+  "javascript:alert(1)",
+  "https://user:pass@teleparty.com/party",
+  "https://teleparty.com:8080/join/123",
+  "not a URL"
+ ];
+ for(const url of blocked)assert.equal(parseTelepartyInvite(url),null,url);
 });
