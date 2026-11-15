@@ -103,3 +103,16 @@ test("D1 edits/deletions are restricted to author and room, reactions to the sam
  assert.ok(api.includes('COALESCE(ed.edited_at,0) AS edited_at'));
  assert.ok(api.includes('reactions:reactionsById.get(String(row.id))'));
 });
+
+test("reactions appear as latest activity, send push alerts and count as unread",()=>{
+ const home=readFileSync("src/HomeDashboard.tsx","utf8");
+ assert.ok(api.includes("recentReaction:recentReaction||null"));
+ assert.ok(api.includes("last_reaction_read_at"));
+ assert.ok(api.includes("unreadReactions"));
+ assert.ok(api.includes('Réaction à ton message ❤️'));
+ assert.ok(api.includes('notifyPartner(env,u.room_id,u.id'));
+ assert.ok(api.includes('kind:"message",id:body.id'));
+ assert.ok(home.includes('Vous avez réagi par '));
+ assert.ok(home.includes('reaction.updated_at>=last.created_at'));
+ assert.ok(app.includes('room.recentReaction?.updated_at'));
+});
