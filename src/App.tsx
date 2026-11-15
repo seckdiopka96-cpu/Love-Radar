@@ -18,6 +18,7 @@ import GamesHub from "./GamesHub";
 import CoupleStory from "./CoupleStory";
 import PrivatePhoto from "./PrivatePhoto";
 import VoiceMessage from "./VoiceMessage";
+import OneTimeMedia from "./OneTimeMedia";
 import ChatActivity from "./ChatActivity";
 import QuoteCard from "./QuoteCard";
 import {quoteAuthor,type QuoteKind} from "./message-quote";
@@ -35,11 +36,11 @@ type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story";
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number;
  reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null;
- edited_at?:number;reactions?:{member_id:string;emoji:string}[]};
+ edited_at?:number;reactions?:{member_id:string;emoji:string}[];view_once?:number|boolean;once_opened_at?:number};
 type RecentReaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
 type Room = {recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
-type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
+type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;view_once:boolean;error?:string};
 
 
 const NAV: {id:Tab;label:string}[] = [
@@ -117,6 +118,7 @@ export default function LoveRadar(){
  function navigate(tab:Tab){
   if(tab==="chat"&&currentTab.current!=="chat")chatReturnTab.current=currentTab.current;
   closeNotice();
+  setOnceTarget(null);
   setTab(tab);
   if(tab==="watch"||tab==="watch-tiktok")setWatchInvite(null);
   if(tab==="reconcile")setReconcileInvite(false);
@@ -127,6 +129,9 @@ export default function LoveRadar(){
   firstPoll.current=true;
  }
  const [draft,setDraft]=useState("");
+ const [viewOnce,setViewOnce]=useState(false);
+ const [onceTarget,setOnceTarget]=useState<Message|null>(null);
+ const viewOnceRecording=useRef(false);
  const [replyTarget,setReplyTarget]=useState<Message|null>(null);
  const [actionMessageId,setActionMessageId]=useState<string|null>(null);
  const [infoMessageId,setInfoMessageId]=useState<string|null>(null);
@@ -154,7 +159,7 @@ export default function LoveRadar(){
  const sendingVoiceIds=useRef(new Set<string>());
  const chatMessages=mergeOptimisticMessages(room?.messages||[],voiceOutbox.map(entry=>({
   id:entry.id,sender_id:room?.user.id||"",kind:"audio" as const,
-  content:null,object_key:entry.id,mime:entry.file.type,created_at:entry.created_at
+  content:null,object_key:entry.id,mime:entry.file.type,created_at:entry.created_at,view_once:entry.view_once?1:0
  })));
  const actionMessage=chatMessages.find(m=>m.id===actionMessageId)||null;
  const infoMessage=chatMessages.find(m=>m.id===infoMessageId)||null;
@@ -351,7 +356,7 @@ export default function LoveRadar(){
  },[token,room?.roomId,noticeTarget?.id,noticeTarget?.kind]);
  useEffect(()=>{
   const m=focusMessage;
-  if(!m||!m.object_key)return;
+  if(!m||!m.object_key||m.view_once)return;
   const controller=new AbortController();
   let cancelled=false;
   if(focusAsset.current){URL.revokeObjectURL(focusAsset.current);focusAsset.current="";}
@@ -590,7 +595,7 @@ export default function LoveRadar(){
  // Verify that a media response actually contains decodable image bytes. A
  // failed photo used to disappear silently, leaving an empty narrow rectangle.
  async function fetchMedia(item:Message,force=false){
-  if(!token||!item.object_key)return;
+  if(!token||!item.object_key||item.view_once)return;
   const id=item.id;
   if(mediaCache.current[id])return;
   if(!force&&Date.now()<(mediaRetries.current[id]||0))return;
@@ -641,7 +646,7 @@ export default function LoveRadar(){
  useEffect(()=>{
   if(!room||!token)return;
   for(const item of room.messages){
-   if(item.object_key&&!mediaCache.current[item.id])void fetchMedia(item);
+   if(item.object_key&&!item.view_once&&!mediaCache.current[item.id])void fetchMedia(item);
   }
  },[room?.messages,token]);
  // Retire the local item only once the matching server row is visible.
@@ -842,10 +847,11 @@ export default function LoveRadar(){
   if(file.size>limit){setError("Fichier trop lourd : "+(kind==="image"?"6 Mo":"5 Mo")+" maximum.");return}
   setBusy(true);setError("");
   try{
-   const form=new FormData();form.append("file",file);form.append("kind",kind);
+   const form=new FormData();form.append("file",file);form.append("kind",kind);form.append("viewOnce",String(viewOnce));
    const res=await apiFetch("/api/media",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
    const data=await res.json() as {ok:boolean;error?:string};
    if(!data.ok)throw new Error(data.error||"Envoi impossible.");
+   setViewOnce(false);
    await refresh();
    requestAnimationFrame(()=>{if(chatScroller.current)chatScroller.current.scrollTop=chatScroller.current.scrollHeight});
   }catch(e){setError(e instanceof Error?e.message:"Envoi impossible.")}
@@ -861,6 +867,7 @@ export default function LoveRadar(){
    form.append("file",entry.file);
    form.append("kind","audio");
    form.append("messageId",entry.id);
+   form.append("viewOnce",String(entry.view_once));
    const response=await apiFetch("/api/media",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
    const result=await response.json() as {ok:boolean;error?:string;id?:string;created_at?:number};
    if(!response.ok||!result.ok||result.id!==entry.id)throw Error(result.error||"Envoi vocal impossible.");
@@ -871,14 +878,17 @@ export default function LoveRadar(){
    setVoiceOutbox(items=>items.map(v=>v.id===entry.id?{...v,status:"failed",error:message}:v));
   }finally{sendingVoiceIds.current.delete(entry.id)}
  }
- function enqueueVoice(file:File){
+ function enqueueVoice(file:File,once=viewOnceRecording.current){
   if(!room?.partner||!token)return;
   if(file.size===0){setError("Aucun son enregistré. Réessaie.");return}
   if(file.size>5_000_000){setError("Ce vocal dépasse 5 Mo. Réessaie avec un enregistrement plus court.");return}
-  const entry:LocalVoice={id:crypto.randomUUID(),created_at:Date.now(),file,status:"uploading"};
-  const url=URL.createObjectURL(file);
-  mediaCache.current[entry.id]=url;
-  setMedia(prev=>({...prev,[entry.id]:url}));
+  const entry:LocalVoice={id:crypto.randomUUID(),created_at:Date.now(),file,status:"uploading",view_once:once};
+  if(!once){
+   const url=URL.createObjectURL(file);
+   mediaCache.current[entry.id]=url;
+   setMedia(prev=>({...prev,[entry.id]:url}));
+  }
+  setViewOnce(false);
   setVoiceOutbox(prev=>[...prev,entry]);
   scrollToLatest();
   void sendQueuedVoice(entry);
@@ -893,6 +903,7 @@ export default function LoveRadar(){
   if(typeof navigator==="undefined"||!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined"){setError("Enregistrement vocal indisponible sur ce navigateur.");return}
   setError("");
   try{
+   viewOnceRecording.current=viewOnce;
    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
    recordingStream.current=stream;
    const mime=["audio/mp4","audio/webm;codecs=opus","audio/webm","audio/ogg"].find(type=>MediaRecorder.isTypeSupported(type));
