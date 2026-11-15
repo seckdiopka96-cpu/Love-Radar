@@ -1,6 +1,6 @@
 import {apiFetch,isNativeApp,publicInviteUrl} from "./api";
 import {setNativePrivacy} from "./native-privacy";
-import { Fragment, useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import "./love-radar.css";
 import VoiceCall from "./VoiceCall";
 import Ludo from "./Ludo";
@@ -19,16 +19,20 @@ import CoupleStory from "./CoupleStory";
 import PrivatePhoto from "./PrivatePhoto";
 import VoiceMessage from "./VoiceMessage";
 import ChatActivity from "./ChatActivity";
+import QuoteCard from "./QuoteCard";
+import {quoteAuthor,type QuoteKind} from "./message-quote";
 import {mergeOptimisticMessages,shouldKeepVoiceDraft,type AudioOutboxStatus} from "./voice-outbox";
 import "./redesign.css";
 import "./redesign-features.css";
 import "./chat-stability.css";
 import "./voice-message.css";
 import "./immersive-chat.css";
+import "./message-replies.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story";
-type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number};
+type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number;
+ reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null};
 type Room = {user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
 type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
@@ -118,6 +122,11 @@ export default function LoveRadar(){
   firstPoll.current=true;
  }
  const [draft,setDraft]=useState("");
+ const [replyTarget,setReplyTarget]=useState<Message|null>(null);
+ const [selectedMessageId,setSelectedMessageId]=useState<string|null>(null);
+ const chatInput=useRef<HTMLInputElement|null>(null);
+ const gesture=useRef<{id:string;x:number;y:number;timer:number|null;selected:boolean}|null>(null);
+ const suppressMessageClick=useRef(false);
  const [chatFocused,setChatFocused]=useState(false);
  const [chatAtBottom,setChatAtBottom]=useState(true);
  const chatAtBottomRef=useRef(true);
@@ -136,6 +145,7 @@ export default function LoveRadar(){
   id:entry.id,sender_id:room?.user.id||"",kind:"audio" as const,
   content:null,object_key:entry.id,mime:entry.file.type,created_at:entry.created_at
  })));
+ const selectedMessage=chatMessages.find(m=>m.id===selectedMessageId)||null;
  const [recording,setRecording]=useState(false);
  const recorder=useRef<MediaRecorder|null>(null);
  const recordingStream=useRef<MediaStream|null>(null);
@@ -146,6 +156,9 @@ export default function LoveRadar(){
  const firstPoll=useRef(true);
  const lastReadSent=useRef(0);
  useEffect(()=>{lastReadSent.current=0},[token]);
+ useEffect(()=>()=>{
+  if(gesture.current?.timer!==null&&gesture.current?.timer!==undefined)clearTimeout(gesture.current.timer);
+ },[]);
  const lastTypingSent=useRef(0);
  const typingActive=useRef(false);
  const recordingActive=useRef(false);
@@ -637,10 +650,56 @@ export default function LoveRadar(){
  }
  async function sendMessage(e:FormEvent){
   e.preventDefault();if(!draft.trim()||busy||!room?.partner)return;
-  const original=draft;setDraft("");setTyping(false);setBusy(true);setError("");
-  try{await request("message",{text:original});await refresh();requestAnimationFrame(()=>{if(chatScroller.current)chatScroller.current.scrollTop=chatScroller.current.scrollHeight})}
-  catch(e){setDraft(original);setError(e instanceof Error?e.message:"Échec de l’envoi.")}
-  finally{setBusy(false)}
+  const original=draft,quoted=replyTarget;
+  setDraft("");setReplyTarget(null);setTyping(false);setBusy(true);setError("");
+  try{
+   await request("message",{text:original,...(quoted?{replyTo:quoted.id}:{})});
+   await refresh(undefined,true);
+   scrollToLatest();
+  }catch(e){
+   setDraft(original);if(quoted)setReplyTarget(quoted);
+   setError(e instanceof Error?e.message:"Échec de l’envoi.");
+  }finally{setBusy(false)}
+ }
+ function chooseReply(message:Message){
+  setReplyTarget(message);setSelectedMessageId(null);
+  requestAnimationFrame(()=>{chatInput.current?.focus();scrollToLatest()});
+ }
+ function stopGesture(){
+  if(gesture.current?.timer!==null&&gesture.current?.timer!==undefined)clearTimeout(gesture.current.timer);
+  gesture.current=null;
+ }
+ function messagePointerDown(e:ReactPointerEvent<HTMLDivElement>,message:Message){
+  if(e.button!==0)return;
+  stopGesture();
+  const data:{id:string;x:number;y:number;timer:number|null;selected:boolean}={
+   id:message.id,x:e.clientX,y:e.clientY,timer:null,selected:false
+  };
+  data.timer=window.setTimeout(()=>{
+   if(gesture.current?.id!==message.id)return;
+   data.selected=true;suppressMessageClick.current=true;
+   setSelectedMessageId(message.id);
+   if("vibrate" in navigator)try{navigator.vibrate(12)}catch{/* optional */}
+  },480);
+  gesture.current=data;
+ }
+ function messagePointerMove(e:ReactPointerEvent<HTMLDivElement>){
+  const g=gesture.current;if(!g)return;
+  if(Math.abs(e.clientX-g.x)>12||Math.abs(e.clientY-g.y)>12){
+   if(g.timer!==null){clearTimeout(g.timer);g.timer=null}
+  }
+ }
+ function messagePointerUp(e:ReactPointerEvent<HTMLDivElement>,message:Message){
+  const g=gesture.current;if(!g||g.id!==message.id)return;
+  const horizontal=e.clientX-g.x,vertical=e.clientY-g.y;
+  if(horizontal>65&&Math.abs(vertical)<32){
+   suppressMessageClick.current=true;chooseReply(message);
+  }
+  stopGesture();
+ }
+ function jumpToQuote(id:string){
+  const target=document.getElementById("lr-chat-message-"+id);
+  if(target)target.scrollIntoView({behavior:"smooth",block:"center"});
  }
  async function upload(file:File,kind:"image"|"audio"){
   if(!token||!room?.partner){setError("Ton partenaire doit d’abord rejoindre l’espace.");return}
