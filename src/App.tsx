@@ -17,9 +17,11 @@ import HomeDashboard from "./HomeDashboard";
 import GamesHub from "./GamesHub";
 import CoupleStory from "./CoupleStory";
 import PrivatePhoto from "./PrivatePhoto";
+import VoiceMessage from "./VoiceMessage";
 import "./redesign.css";
 import "./redesign-features.css";
 import "./chat-stability.css";
+import "./voice-message.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story";
@@ -792,13 +794,13 @@ export default function LoveRadar(){
         {newDay?<div className="lr-chat-day">{date}</div>:null}
         <div className={"lr-bubble-row "+(mine?"mine ":"other ")+(groupedBefore?"lr-grouped ":"")+(groupedAfter?"lr-group-next":"")}>
          <div className="lr-bubble-stack">
-          <div className="lr-bubble">{m.kind==="text"?<p>{m.content}</p>:m.kind==="image"?
+          <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":"")}>{m.kind==="text"?<p>{m.content}</p>:m.kind==="image"?
           media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} enabled={privacyEnabled} viewer={room.user.name} variant="chat"/>:
           <div className="lr-media-loading">Chargement de la photo…</div>:
-          media[m.id]?<div className="lr-voice"><span>Message vocal</span><audio controls preload="metadata" src={media[m.id]}/></div>:
+          media[m.id]?<VoiceMessage id={m.id} src={media[m.id]} mine={mine} time={time} delivery={mine&&m.id===lastOwnMessage?.id?((room.partnerReadAt||0)>=m.created_at?"read":"sent"):undefined}/>:
           <div className="lr-media-loading">Chargement du vocal…</div>}</div>
-          {!groupedAfter?<time className="lr-message-time" dateTime={new Date(m.created_at).toISOString()}>{time}</time>:null}
-          {mine&&m.id===lastOwnMessage?.id?<span className={"lr-read-receipt "+((room.partnerReadAt||0)>=m.created_at?"is-read":"")} aria-label="Statut du dernier message">{(room.partnerReadAt||0)>=m.created_at?"✓✓ Vu":"✓ Envoyé"}</span>:null}
+          {!groupedAfter&&m.kind!=="audio"?<time className="lr-message-time" dateTime={new Date(m.created_at).toISOString()}>{time}</time>:null}
+          {mine&&m.kind!=="audio"&&m.id===lastOwnMessage?.id?<span className={"lr-read-receipt "+((room.partnerReadAt||0)>=m.created_at?"is-read":"")} aria-label="Statut du dernier message">{(room.partnerReadAt||0)>=m.created_at?"✓✓ Vu":"✓ Envoyé"}</span>:null}
          </div>
         </div>
        </Fragment>
