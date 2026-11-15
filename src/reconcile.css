@@ -135,3 +135,33 @@
  .rc-intro h1{font-size:24px}
 }
 @media(prefers-reduced-motion:reduce){.rc-page *{scroll-behavior:auto}}
+
+/* Mobile full-height reconciliation journal: fixed header, freely scrollable
+   journal and textareas, with no overlap from Love Radar's bottom navigation. */
+@media(max-width:700px){
+ html:has(.lr-app.lr-reconcile-mode),body:has(.lr-app.lr-reconcile-mode),#root:has(.lr-app.lr-reconcile-mode){
+  height:100dvh!important;max-height:100dvh!important;overflow:hidden!important
+ }
+ .lr-app.lr-reconcile-mode.lr-app-locked{
+  position:fixed!important;inset:0!important;height:100dvh!important;max-height:100dvh!important;
+  display:flex!important;flex-direction:column!important;overflow:hidden!important
+ }
+ .lr-app.lr-reconcile-mode.lr-app-locked>.lr-header,
+ .lr-app.lr-reconcile-mode.lr-app-locked>.lr-bg-decor,
+ .lr-app.lr-reconcile-mode.lr-app-locked>.lr-notification-area,
+ .lr-app.lr-reconcile-mode.lr-app-locked .lr-sidebar,
+ .lr-app.lr-reconcile-mode.lr-app-locked .lr-mobile-nav{display:none!important}
+ .lr-app.lr-reconcile-mode.lr-app-locked .lr-shell{
+  display:flex!important;flex:1 1 0!important;min-height:0!important;max-height:100%!important;
+  width:100%!important;padding:0!important;margin:0!important;overflow:hidden!important
+ }
+ .lr-app.lr-reconcile-mode.lr-app-locked .lr-main{
+  display:flex!important;flex:1 1 0!important;min-height:0!important;max-height:100%!important;
+  width:100%!important;max-width:none!important;padding:0!important;margin:0!important;overflow:hidden!important
+ }
+ .lr-app.lr-reconcile-mode.lr-app-locked .rc-page{
+  flex:1 1 0!important;height:100%!important;min-height:0!important;max-width:none!important;
+  overflow:hidden!important;background:linear-gradient(160deg,#30213a,#201a30)
+ }
+ .lr-app.lr-reconcile-mode.lr-app-locked .rc-body{flex:1 1 0!important;min-height:0!important;overflow-y:auto!important}
+}
