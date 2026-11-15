@@ -2,7 +2,7 @@ import {useEffect,useRef,useState} from "react";
 import DiceFace from "./DiceFace";
 import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
-import {TRACK,HOME,SAFE,CELL,key,pointForProgress,movementSteps,stackPosition,type Point} from "./ludo-visuals";
+import {TRACK,HOME,SAFE,CELL,key,pointForProgress,movementSteps,stackCellStyle,type Point} from "./ludo-visuals";
 import {freshSoloGame,isSoloGame,rollSolo,moveSolo,chooseSoloBotPawn,canSoloMove,soloDie,SOLO_TURN_MS,shouldAutoPlaySolo,
  type SoloGame,type SoloSeat,type SoloMove} from "./ludo-solo-engine";
 import "./ludo.css";
@@ -237,8 +237,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
            title={"Pion "+(item.pawn+1)+(item.seat===0?" à toi":" à l'ordinateur")}
            aria-label={"Pion "+(item.pawn+1)+(item.seat===0?" à toi":" à l'ordinateur")}
            className={"ludo-pawn ludo-pawn-stacked ludo-pawn-"+(item.seat===0?"red":"gold")+(item.active?" can-move":"")}
-           style={{left:offset.x+"%",top:offset.y+"%",zIndex:5+i,
-            transform:"translate("+(c===0?"-5%":c===14?"-95%":"-50%")+","+(r===0?"-5%":r===14?"-95%":"-50%")+") scale("+offset.scale+")"}}>
+           style={{...stackCellStyle(pawns.length,i),zIndex:5+i}}>
            <PawnShape index={item.pawn}/>
           </button>;
          })}
