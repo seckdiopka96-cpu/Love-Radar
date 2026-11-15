@@ -62,6 +62,7 @@ function selectedNav(tab:Tab):Tab {
  return tab;
 }
 const HEARTS = ["♡","♥","✦","♡","♥"];
+const CHAT_REACTIONS=["👍","❤️","😂","😮","😢","🙏","👏"];
 
 type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"daily-question"|"love-signal";
 type NoticeTarget={tab:Tab;kind:NoticeKind|null;id:string|null};
@@ -1009,14 +1010,15 @@ export default function LoveRadar(){
           onPointerMove={messagePointerMove}
           onPointerUp={e=>messagePointerUp(e,m)}
           onPointerCancel={e=>resetSwipe(e.currentTarget)}
-          aria-label={"Message de "+(mine?"vous":partner)+". Glisser vers la droite pour répondre."}>
+          onContextMenu={e=>{e.preventDefault();resetSwipe(e.currentTarget);openMessageActions(m)}}
+          aria-label={"Message de "+(mine?"vous":partner)+". Glisser pour répondre, maintenir pour les actions."}>
          <span className="lr-reply-arrow" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 10 4 14l5 4"/><path d="M4 14h9a7 7 0 0 0 7-7"/></svg>
          </span>
          <div className="lr-bubble-stack">
           <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":"")}>
            {m.reply_to_id?<QuoteCard author={quoteAuthor(m.reply_sender_id,room.user.id,partner)}
-            kind={m.reply_kind||"text"} content={m.reply_content}
+            kind={m.reply_kind||"text"} content={m.reply_kind?m.reply_content:"Message supprimé"}
             onJump={chatMessages.some(item=>item.id===m.reply_to_id)?()=>jumpToQuote(m.reply_to_id!):undefined}/>:null}
            {m.kind==="text"?<p>{m.content}</p>:m.kind==="image"?
           media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} enabled={privacyEnabled} viewer={room.user.name} variant="chat"/>:
@@ -1031,7 +1033,12 @@ export default function LoveRadar(){
              </>:<span>◌ Envoi en cours…</span>}
             </div>:null}
            </div>
-          {!groupedAfter&&m.kind!=="audio"?<time className="lr-message-time" dateTime={new Date(m.created_at).toISOString()}>{time}</time>:null}
+          {m.reactions?.length?<div className="lr-message-reactions" aria-label="Réactions au message">
+           {m.reactions.map(reaction=><button type="button" key={reaction.member_id}
+            aria-label={"Réaction "+reaction.emoji+" de "+quoteAuthor(reaction.member_id,room.user.id,partner)}
+            onClick={()=>void reactToMessage(m,reaction.emoji)}>{reaction.emoji}</button>)}
+          </div>:null}
+          {!groupedAfter&&m.kind!=="audio"?<time className="lr-message-time" dateTime={new Date(m.created_at).toISOString()}>{time}{m.edited_at?<span className="lr-edited-label"> · modifié</span>:null}</time>:null}
           {mine&&m.kind!=="audio"&&m.id===lastOwnMessage?.id?<span className={"lr-read-receipt "+((room.partnerReadAt||0)>=m.created_at?"is-read":"")} aria-label="Statut du dernier message">{(room.partnerReadAt||0)>=m.created_at?"✓✓ Vu":"✓ Envoyé"}</span>:null}
          </div>
         </div>
@@ -1040,9 +1047,37 @@ export default function LoveRadar(){
       {partnerActivityKind?<ChatActivity kind={partnerActivityKind}/>:null}
       <div ref={tail}/>
      </div>
+     {actionMessage?<div className="lr-message-action-backdrop" onClick={()=>setActionMessageId(null)}>
+      <div className="lr-message-action-sheet" role="dialog" aria-modal="true" aria-label="Actions sur le message" onClick={e=>e.stopPropagation()}>
+       <div className="lr-message-action-heading">Message · {actionMessage.kind==="text"?"Texte":actionMessage.kind==="image"?"Photo":"Vocal"}</div>
+       <div className="lr-message-reaction-picker" role="group" aria-label="Réagir au message">
+        {CHAT_REACTIONS.map(emoji=><button key={emoji} type="button" aria-label={"Réagir "+emoji} onClick={()=>void reactToMessage(actionMessage,emoji)}>{emoji}</button>)}
+       </div>
+       <button type="button" className="lr-message-action-row" onClick={()=>{chooseReply(actionMessage);setActionMessageId(null)}}><span aria-hidden="true">↩</span> Répondre</button>
+       {actionMessage.kind==="text"&&actionMessage.content?<button type="button" className="lr-message-action-row" onClick={()=>void copyMessage(actionMessage)}><span aria-hidden="true">⧉</span> Copier</button>:null}
+       {actionMessage.sender_id===room.user.id&&actionMessage.kind==="text"?<button type="button" className="lr-message-action-row" onClick={()=>beginEditing(actionMessage)}><span aria-hidden="true">✎</span> Modifier le texte</button>:null}
+       <button type="button" className="lr-message-action-row" onClick={()=>{setInfoMessageId(actionMessage.id);setActionMessageId(null)}}><span aria-hidden="true">ⓘ</span> Infos du message</button>
+       {actionMessage.sender_id===room.user.id?<button type="button" className="lr-message-action-row is-danger" onClick={()=>void deleteOwnMessage(actionMessage)}><span aria-hidden="true">⌫</span> Supprimer pour tous</button>:null}
+       <button type="button" className="lr-message-action-close" onClick={()=>setActionMessageId(null)}>Annuler</button>
+      </div>
+     </div>:null}
+     {infoMessage?<div className="lr-message-action-backdrop" onClick={()=>setInfoMessageId(null)}>
+      <div className="lr-message-action-sheet" role="dialog" aria-modal="true" aria-label="Informations du message" onClick={e=>e.stopPropagation()}>
+       <strong>Informations du message</strong>
+       <p>Envoyé par {quoteAuthor(infoMessage.sender_id,room.user.id,partner)}</p>
+       <p>Le {new Date(infoMessage.created_at).toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"})}</p>
+       {infoMessage.edited_at?<p>Modifié le {new Date(infoMessage.edited_at).toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"})}</p>:null}
+       {infoMessage.sender_id===room.user.id?<p>{(room.partnerReadAt||0)>=infoMessage.created_at?"✓✓ Vu par ton partenaire":"✓ Envoyé"}</p>:null}
+       <button type="button" className="lr-message-action-close" onClick={()=>setInfoMessageId(null)}>Fermer</button>
+      </div>
+     </div>:null}
      {!chatAtBottom&&!chatFocused?<button type="button" className="lr-chat-jump" onClick={scrollToLatest}>↓ Derniers messages</button>:null}
      <div className="lr-chat-compose">
-      {replyTarget?<div className="lr-reply-compose" role="status" aria-label="Réponse au message sélectionné">
+      {editTarget?<div className="lr-reply-compose lr-edit-compose" role="status" aria-label="Modification du message">
+       <span className="lr-edit-compose-label"><strong>✎ Modifier mon message</strong><small>{editTarget.content}</small></span>
+       <button type="button" className="lr-reply-compose-close" aria-label="Annuler la modification" onClick={cancelEditing}>×</button>
+      </div>:null}
+      {!editTarget&&replyTarget?<div className="lr-reply-compose" role="status" aria-label="Réponse au message sélectionné">
        <QuoteCard variant="composer" author={quoteAuthor(replyTarget.sender_id,room.user.id,partner)}
         kind={replyTarget.kind} content={replyTarget.content}/>
        <button type="button" className="lr-reply-compose-close" aria-label="Annuler la réponse" onClick={()=>setReplyTarget(null)}>×</button>
@@ -1055,7 +1090,7 @@ export default function LoveRadar(){
        <button className={"lr-mic "+(recording?"recording":"")} type="button" title={recording?"Arrêter le vocal":"Enregistrer un vocal"} aria-label={recording?"Arrêter le message vocal":"Enregistrer un message vocal"} onClick={toggleRecording} disabled={!room.partner||busy}>
         {recording?<span aria-hidden="true">■</span>:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8 21h8"/></svg>}
        </button>
-       <button className="lr-send" type="submit" aria-label="Envoyer" onPointerDown={e=>e.preventDefault()} disabled={!room.partner||!draft.trim()||busy}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg></button>
+       <button className="lr-send" type="submit" aria-label={editTarget?"Enregistrer la modification":"Envoyer"} onPointerDown={e=>e.preventDefault()} disabled={!room.partner||!draft.trim()||busy}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg></button>
       </form>
      </div>
     </section>:null}
