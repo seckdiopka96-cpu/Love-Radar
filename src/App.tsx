@@ -88,6 +88,7 @@ export default function LoveRadar(){
   closeNotice();
   setTab(tab);
   if(tab==="watch"||tab==="watch-tiktok")setWatchInvite(null);
+  if(tab==="reconcile")setReconcileInvite(false);
   const url=new URL(window.location.href);
   url.searchParams.set("tab",tab);
   url.searchParams.delete("kind");url.searchParams.delete("id");url.searchParams.delete("mode");
@@ -169,6 +170,7 @@ export default function LoveRadar(){
  const [notificationsBusy,setNotificationsBusy]=useState(false);
  const [notificationsHint,setNotificationsHint]=useState("");
  const [watchInvite,setWatchInvite]=useState<"watch"|"watch-tiktok"|null>(null);
+ const [reconcileInvite,setReconcileInvite]=useState(false);
  const [notificationsTesting,setNotificationsTesting]=useState(false);
  const pushOperation=useRef(false),pushDisabled=useRef(false);
  const [canInstall,setCanInstall]=useState(false);
@@ -228,6 +230,7 @@ export default function LoveRadar(){
    if(data?.type==="love-radar-push-received"){
     firstPoll.current=true;
     if(data.tab==="watch"||data.tab==="watch-tiktok")setWatchInvite(data.tab);
+    if(data.tab==="reconcile")setReconcileInvite(true);
     if(document.visibilityState==="visible"&&["message","photo","audio"].includes(data.kind||""))
      setNotice("💌 Nouveau message reçu. Ouvre Messages pour le lire.");
     return;
@@ -242,11 +245,11 @@ export default function LoveRadar(){
     if(dest){
      window.history.replaceState(null,"",noticeUrl(dest));
      setNoticeTarget(dest);
-     setTab(dest.tab);setWatchInvite(null);firstPoll.current=true;
+     setTab(dest.tab);setWatchInvite(null);setReconcileInvite(false);firstPoll.current=true;
     }
    }else if(["chat","watch","watch-tiktok","games","ludo","ludo-solo","ludo-senegal","ludo-senegal-solo","memory" ,"moment","together","puzzle","reconcile","reunion","story","home","memories"].includes(data?.tab)){
     const dest=data.tab as Tab;
-    setTab(dest);setNoticeTarget({tab:dest,kind:null,id:null});firstPoll.current=true;
+    setTab(dest);setNoticeTarget({tab:dest,kind:null,id:null});if(dest==="reconcile")setReconcileInvite(false);firstPoll.current=true;
    }
   };
   const onRoute=()=>{
@@ -606,6 +609,12 @@ export default function LoveRadar(){
    <span className="lr-watch-invite-copy"><strong>Ton amour regarde {watchInvite==="watch"?"YouTube":"TikTok"}</strong><small>Rejoins directement votre vidéo partagée ❤️</small></span>
    <button type="button" className="lr-watch-invite-join" onClick={()=>navigate(watchInvite)}>Regarder</button>
    <button type="button" className="lr-watch-invite-dismiss" onClick={()=>setWatchInvite(null)} aria-label="Ignorer l'invitation">×</button>
+  </div>:null}
+  {reconcileInvite&&room&&tab!=="reconcile"?<div className="lr-watch-invite" role="alert" aria-label="Invitation privée à se comprendre">
+   <span className="lr-watch-invite-icon" aria-hidden="true">🕊️</span>
+   <span className="lr-watch-invite-copy"><strong>Une invitation de ton amour ❤️</strong><small>Un espace privé pour mieux vous comprendre, sans pression.</small></span>
+   <button type="button" className="lr-watch-invite-join" onClick={()=>navigate("reconcile")}>Découvrir</button>
+   <button type="button" className="lr-watch-invite-dismiss" onClick={()=>setReconcileInvite(false)} aria-label="Ignorer l'invitation">×</button>
   </div>:null}
   {notice?<div className="lr-toast" onClick={()=>setNotice("")}>{notice} <span>×</span></div>:null}
   {error?<div className="lr-error" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
