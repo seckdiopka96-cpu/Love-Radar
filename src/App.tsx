@@ -1086,7 +1086,7 @@ export default function LoveRadar(){
            <span>{mediaErrors[m.id]||"Chargement de la photo…"}</span>
            {mediaErrors[m.id]?<button type="button" onClick={()=>retryMedia(m)}>Réessayer</button>:null}
           </div>:
-          media[m.id]?<VoiceMessage id={m.id} src={media[m.id]} mine={mine} time={time} delivery={mine&&m.id===lastOwnMessage?.id?((room.partnerReadAt||0)>=m.created_at?"read":"sent"):undefined}/>:
+          media[m.id]?<VoiceMessage id={m.id} src={media[m.id]} mine={mine} time={time} delivery={mine&&m.id===lastOwnMessage?.id?((room.partnerReadAt||0)>=m.created_at?"read":"sent"):undefined} onOpenActions={()=>openMessageActions(m)}/>:
           <div className="lr-media-loading">Chargement du vocal…</div>}
            {voiceOutbox.some(v=>v.id===m.id&&v.status!=="sent")?
             <div className={"lr-audio-send-state "+(voiceOutbox.find(v=>v.id===m.id)?.status==="failed"?"failed":"uploading")} role="status">
