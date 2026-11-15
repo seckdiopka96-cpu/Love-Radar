@@ -7,6 +7,7 @@ import ChatActivity from "../src/ChatActivity";
 
 const app=readFileSync("src/App.tsx","utf8");
 const css=readFileSync("src/chat-stability.css","utf8");
+const immersive=readFileSync("src/immersive-chat.css","utf8");
 
 test("composing activity is a tiny three-dot bubble without visual words",()=>{
  const markup=renderToStaticMarkup(createElement(ChatActivity,{kind:"typing"}));
@@ -44,4 +45,31 @@ test("iPhone keyboard keeps recent messages in view but never snaps a scrolled-u
  assert.ok(css.includes("lr-activity-dots"));
  assert.ok(css.includes("lr-activity-wave"));
  assert.ok(css.includes("prefers-reduced-motion"));
+});
+
+test("all application chrome disappears inside phone Messages, not just when keyboard is open",()=>{
+ assert.ok(app.includes('className="lr-chat-back"'));
+ assert.ok(app.includes('onClick={()=>navigate(chatReturnTab.current)}'));
+ assert.ok(app.includes('if(tab==="chat"&&currentTab.current!=="chat")chatReturnTab.current=currentTab.current'));
+ assert.ok(app.includes('import "./immersive-chat.css";'));
+ assert.ok(immersive.includes(".lr-app.lr-app-locked.lr-chat-mode > .lr-header"));
+ assert.ok(immersive.includes(".lr-app.lr-app-locked.lr-chat-mode > .lr-notification-area"));
+ assert.ok(immersive.includes(".lr-app.lr-app-locked.lr-chat-mode .lr-mobile-nav"));
+ assert.ok(immersive.includes("display:none!important;visibility:hidden!important"));
+ assert.ok(immersive.includes(".lr-app.lr-app-locked.lr-chat-mode .lr-shell"));
+ assert.ok(immersive.includes("padding:0!important"));
+ assert.ok(immersive.includes(".lr-app.lr-app-locked.lr-chat-mode .lr-chat-back"));
+ assert.ok(immersive.includes(".lr-app.lr-app-locked.lr-chat-mode .lr-chat-compose"));
+ assert.ok(immersive.includes("env(safe-area-inset-bottom)"));
+});
+test("typing and microphone show unmistakable staggered motion on mobile",()=>{
+ assert.ok(immersive.includes("@keyframes lr-whats-typing"));
+ assert.ok(immersive.includes("@keyframes lr-whats-voice"));
+ assert.ok(immersive.includes("@keyframes lr-whats-mic"));
+ assert.ok(immersive.includes(".lr-activity-dots i:nth-child(1)"));
+ assert.ok(immersive.includes(".lr-activity-dots i:nth-child(2)"));
+ assert.ok(immersive.includes(".lr-activity-dots i:nth-child(3)"));
+ assert.ok(immersive.includes(".lr-activity-wave i:nth-child(4)"));
+ assert.ok(immersive.includes("will-change:transform,opacity"));
+ assert.ok(immersive.includes("prefers-reduced-motion:reduce"));
 });
