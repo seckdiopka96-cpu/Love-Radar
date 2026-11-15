@@ -16,7 +16,8 @@
     "test:puzzle": "tsx --test tests/puzzle.test.ts",
     "test:call": "tsx --test tests/voice-call.test.ts",
     "test:reconcile": "tsx --test tests/reconcile.test.ts",
-    "test:design": "tsx --test tests/redesign.test.ts"
+    "test:design": "tsx --test tests/redesign.test.ts",
+    "test:chat": "tsx --test tests/chat-stability.test.ts"
   },
   "dependencies": {
     "react": "^19.2.0",
