@@ -20,6 +20,7 @@ jobs:
       - run: npm run test:reconcile
       - run: npm run test:design
       - run: npm run test:chat
+      - run: npm run test:activity
       - run: npm run test:voice-ui
       - run: npm run test:voice-outbox
       - run: npm run build
