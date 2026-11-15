@@ -58,6 +58,6 @@ test("puzzle is server-authoritative and room-isolated; removed location/drawing
  assert.ok(!together.includes("Dessiner ensemble"));
  assert.ok(!affection.includes("canvasState"));
  assert.ok(!affection.includes("invite_draw"));
- assert.ok(!app.includes('tab==="location"'));
+ assert.ok(app.includes('if(tab==="location")return {tab:"together",kind:null,id:null}'),"old location bookmarks should redirect safely");
  assert.ok(!app.includes("LocationShare"));
 });
