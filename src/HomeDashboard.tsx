@@ -1,12 +1,14 @@
 import {apiFetch} from "./api";
 import {useEffect,useState} from "react";
 import DiceFace from "./DiceFace";
+import {quotePreview} from "./message-quote";
 import {daysTo,type StoryData} from "./story-dates";
 import "./home-dashboard.css";
 type Message={id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;created_at:number};
 type Game={turn:number;status:"playing"|"won";winner:number|null;version:number;dice:number|null};
 type DailyOverview={ok:boolean;question:string;mine:{text:string}|null;partnerAnswered:boolean;revealed:boolean};
-type Room={user:{id:string;name:string;seat:number};partner:string|null;code:string;partnerLastSeenAt?:number;messages:Message[]};
+type Reaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
+type Room={user:{id:string;name:string;seat:number};partner:string|null;code:string;partnerLastSeenAt?:number;messages:Message[];recentReaction?:Reaction|null};
 type Props={room:Room;token:string;media:Record<string,string>;privacyEnabled:boolean;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"watch"|"reconcile"|"puzzle"|"story"|"reunion")=>void};
 export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,onNavigate}:Props){
  const [game,setGame]=useState<Game|null>(null);
@@ -62,8 +64,12 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
  },[token,room.partner]);
  const last=room.messages[room.messages.length-1];
  const photo=[...room.messages].reverse().find(m=>m.kind==="image");
- const latest=last?.kind==="text"?(last.content||""):last?.kind==="audio"?"🎤 Message vocal":last?.kind==="image"?"📸 Photo partagée":"Votre premier message vous attend";
- const from=last?(last.sender_id===room.user.id?"Toi":room.partner||"Ton partenaire"):"Votre conversation";
+ const reaction=room.recentReaction;
+ const reactionIsLatest=Boolean(reaction&&(!last||reaction.updated_at>=last.created_at));
+ const reactionAuthor=reaction?.member_id===room.user.id?"Vous":room.partner||"Ton partenaire";
+ const reactionPreview=reaction?(reaction?.member_id===room.user.id?"Vous avez réagi par ":reactionAuthor+" a réagi par ")+reaction.emoji+" à «"+quotePreview(reaction.kind,reaction.content,65)+"»":"";
+ const latest=reactionIsLatest?reactionPreview:last?.kind==="text"?(last.content||""):last?.kind==="audio"?"🎤 Message vocal":last?.kind==="image"?"📸 Photo partagée":"Votre premier message vous attend";
+ const from=reactionIsLatest?(reaction?.member_id===room.user.id?"Toi":room.partner||"Ton partenaire"):last?(last.sender_id===room.user.id?"Toi":room.partner||"Ton partenaire"):"Votre conversation";
  const online=Boolean(room.partner&&room.partnerLastSeenAt&&Date.now()-room.partnerLastSeenAt<35000);
  const gameHeadline=game?.status==="won"?"Une partie terminée !":game?"Reprendre notre partie":"Jouons ensemble ?";
  const gameSub=game?.status==="won"?"Une nouvelle partie vous attend.":game?(game.turn===room.user.seat?"C’est à toi de jouer !":"C’est au tour de "+room.partner):"Un défi privé, juste vous deux.";
