@@ -12,7 +12,8 @@
     "mobile:ios": "npm run build && npx cap sync ios && npx cap open ios",
     "test:ludo": "tsx --test tests/ludo-visuals.test.ts tests/ludo-solo.test.ts tests/ludo-senegal.test.ts",
     "test:watch": "tsx --test tests/watch-together.test.ts tests/watch-notify.test.ts",
-    "test:privacy": "tsx --test tests/privacy-overlay.test.ts"
+    "test:privacy": "tsx --test tests/privacy-overlay.test.ts",
+    "test:puzzle": "tsx --test tests/puzzle.test.ts"
   },
   "dependencies": {
     "react": "^19.2.0",
