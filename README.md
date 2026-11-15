@@ -136,6 +136,19 @@ Le transport Web Push utilise `@block65/webcrypto-web-push` (Web Crypto, aes128g
 - L'écran « Nous deux » donne maintenant la priorité à **Regarder ensemble**, regroupe Moment/Retrouvailles/Position sous trois boutons et évite le grand panneau vide des petits mots.
 - Tests : `npm run test:watch`, `npm run build` ; faire une vérification de réception et d'ouverture de notification sur deux téléphones après déploiement.
 
+## 🕊️ Mode Réconciliation — « On se comprend »
+
+L'espace **Nous deux → On se comprend** permet à chaque partenaire d'exprimer librement ce qui lui fait mal, à son rythme et sans devoir répondre à un questionnaire fermé.
+
+- Trois espaces d'écriture non obligatoires, dont **« Tout ce qui me fait mal » (16 000 caractères)**, « Ce dont j’ai besoin » et « Ce que j’aimerais te dire » (5 000 caractères chacun).
+- Les brouillons se sauvegardent automatiquement après environ 1,5 seconde d'inactivité et peuvent être sauvegardés manuellement. Les textes restent visibles pendant la saisie et sont stockés sur le serveur D1 ; **ils ne sont pas chiffrés de bout en bout**.
+- **Double consentement :** un partenaire peut terminer son texte et l'envoyer, mais personne ne peut lire le texte de l'autre avant que **les deux** aient explicitement appuyé sur **« J'ai tout dit »**. L'API D1 retourne uniquement le brouillon de l'utilisateur authentifié avant cela ; l'accès aux textes de l'autre est conditionné à l'état `revealed` et à deux soumissions.
+- Une fois tous les deux prêts, Love Radar affiche les deux témoignages séparément, sans les juger ni choisir qui a raison. Les deux peuvent ensuite s'écrire ou utiliser l'appel vocal, et voir quelques phrases pour ouvrir la conversation calmement.
+- Inviter l'autre et dévoiler les deux textes peut déclencher des notifications Web Push ne contenant **aucune confidence**. La fonctionnalité fonctionne même si l'autre n'est pas connecté au moment de l'invitation.
+- Un bouton « Fermer cette démarche et effacer les textes » permet de mettre fin à l'espace commun et de supprimer les deux textes enregistrés. Le processus ne doit jamais être utilisé pour obliger l'autre à se réconcilier.
+- Limite de sécurité : il s'agit d'un outil de conversation privée, pas d'une thérapie ni d'un service d'urgence. L'accès dépend de la confidentialité des appareils et des identifiants Love Radar.
+- Tests : `npm run test:reconcile`, puis `npm run build`. Les notifications et les échanges réels à deux restent à tester après déploiement.
+
 ## 🎬 Regarder ensemble — cinéma synchronisé à deux
 
 - Accessible dans **Ensemble → Regarder ensemble**, même à distance : chacun ouvre son propre lecteur YouTube intégré dans Love Radar.
