@@ -143,3 +143,20 @@ test("Nous deux page has a single heart action and four coherent activities",()=
  assert.ok(styles.includes('display:flex!important'),"Bottom navigation is visible");
  assert.ok(styles.includes('env(safe-area-inset-bottom)'),"Dock-safe page padding");
 });
+
+test("readable spacious couple tiles after stale mobile CSS",()=>{
+ const legacy=readFileSync("src/together.css","utf8");
+ const together=readFileSync("src/Together.tsx","utf8");
+ const sw=readFileSync("public/sw.js","utf8");
+ assert.ok(together.includes('import "./together-premium.css";'),"Premium styling ships with the component");
+ assert.ok(legacy.includes('overflow-y:auto!important'),"Mobile page can scroll instead of clipping");
+ assert.ok(legacy.includes('background:#0c1c29!important'),"Mobile screen is midnight blue");
+ assert.ok(!legacy.includes('background:linear-gradient(160deg,#302039,#24182e)'),"Old purple background removed");
+ assert.ok(!legacy.includes('.lr-sidebar,.lr-app.lr-together-mode.lr-app-locked .lr-mobile-nav{display:none!important}'),"Mobile dock is never hidden by legacy rules");
+ assert.ok(legacy.includes('min-height:119px!important'),"Tiles have enough height for stacked text");
+ assert.ok(legacy.includes('flex-direction:column!important'),"Title and subtitle stack vertically");
+ assert.ok(legacy.includes('gap:14px!important'),"Readable gap between activity tiles");
+ assert.ok(legacy.includes('.tg-affection-heading h2'),"Love section retains legible typography");
+ assert.ok(legacy.includes('min-width:105px!important'),"Send heart action stays compact");
+ assert.ok(sw.includes('love-radar-static-v56'),"Installed iPhones refresh the updated shell cache");
+});
