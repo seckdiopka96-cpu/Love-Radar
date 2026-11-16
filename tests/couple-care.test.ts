@@ -152,7 +152,7 @@ test("prayer timings validate timezone, due windows and method; no silent geoloc
  const settings=readFileSync("src/SettingsPage.tsx","utf8");
  assert.ok(settings.includes("updatePeriodPreference(event.target.checked)"));
  assert.ok(settings.includes("set-period-preference"));
- assert.ok(settings.includes("Cette fonction"),"profile explains the optional preference");
+ assert.ok(settings.includes("La fonction « J’ai mes règles » me concerne"),"profile explains the optional preference");
  const api=readFileSync("functions/api/care.ts","utf8");
  assert.ok(api.includes('body.confirmed!==true'));
  assert.ok(api.includes('expires_at>?'));
