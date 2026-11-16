@@ -242,7 +242,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
   let stopped=false,timer:number|null=null;
   const tick=async()=>{
    await sync();
-   if(!stopped)timer=window.setTimeout(tick,current.current?650:1100);
+   if(!stopped)timer=window.setTimeout(tick,current.current?340:650);
   };
   void tick();
   const visible=()=>{if(document.visibilityState==="visible")void sync()};
@@ -275,7 +275,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
  useEffect(()=>()=>{const c=current.current;if(c)void api("end",{id:c.id}).catch(()=>{});clearAudio()},[api,clearAudio]);
 
  async function microphone(){
-  if(!navigator.mediaDevices?.getUserMedia)throw Error("Ouvre Love Radar en HTTPS et autorise l’accès au microphone.");
+  if(!navigator.mediaDevices?.getUserMedia)throw Error("Ouvre l’application en HTTPS et autorise l’accès au microphone.");
   const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:false});
   local.current=stream;
   const audioSession=(navigator as Navigator & {audioSession?:{type:string}}).audioSession;
@@ -284,9 +284,13 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
  async function start(){
   if(busy||current.current||!hasPartner)return;
   setBusy(true);starting.current=true;setError("");
+  // iOS getUserMedia begins in the user gesture; signaling starts in parallel
+  // rather than waiting for the microphone permission/initialization.
+  const micTask=microphone();
+  const callTask=api("start");
+  void warmNetwork(); // Prewarmed earlier; TURN lookup must not delay ringing.
   try{
-   await microphone(); // Called immediately after the tap, for iOS permission.
-   const [result]=await Promise.all([api("start"),warmNetwork()]);
+   const [result]=await Promise.all([callTask,micTask]);
    if(!result.call)throw Error("Appel non créé.");
    if(result.call.direction==="incoming"){
     local.current?.getTracks().forEach(track=>track.stop());
@@ -294,16 +298,22 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
    }
    setCurrent(result.call);
    if(result.call.status==="active"&&result.call.direction==="outgoing")void offer(result.call);
-  }catch(err){reset();setError(err instanceof Error?err.message:"Impossible d’appeler.");}
-  finally{starting.current=false;setBusy(false)}
+  }catch(err){
+   const [created]=await Promise.all([callTask.catch(()=>null),micTask.catch(()=>{})]);
+   // A denied microphone must not leave the partner ringing indefinitely.
+   if(created?.call?.direction==="outgoing"&&created.call.status==="ringing"){
+    suppressed.current=created.call.id;
+    void api("end",{id:created.call.id}).catch(()=>{});
+   }
+   reset();setError(err instanceof Error?err.message:"Impossible d’appeler.");
+  }finally{starting.current=false;setBusy(false)}
  }
  async function accept(){
   const c=current.current;
   if(!c||c.direction!=="incoming"||busy)return;
   setBusy(true);setError("");
   try{
-   await microphone();
-   await warmNetwork();
+   await Promise.all([microphone(),warmNetwork()]);
    createPeer();
    await api("accept",{id:c.id});
    const updated={...c,status:"active" as const};
@@ -377,7 +387,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
     catch{setNeedsPlay(true)}
    }
    setSpeakerSelected(true);
-   setSpeakerHelp(isIOS?"Haut-parleur sélectionné dans Love Radar. Si le son ne change pas, iOS peut imposer une autre sortie : vérifie le Centre de contrôle.":"Haut-parleur sélectionné. Appuie de nouveau pour revenir à la sortie précédente.");
+   setSpeakerHelp(isIOS?"Haut-parleur sélectionné. Si le son ne change pas, iOS peut imposer une autre sortie : vérifie le Centre de contrôle.":"Haut-parleur sélectionné. Appuie de nouveau pour revenir à la sortie précédente.");
   }catch(error){
    setSpeakerSelected(false);
    setSpeakerHelp("Impossible de changer la sortie audio : "+(error instanceof Error?error.message:"choisis une sortie depuis les réglages du téléphone."));
@@ -402,7 +412,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
  const total=String(Math.floor(duration/60)).padStart(2,"0")+":"+String(duration%60).padStart(2,"0");
  const callStatus=isIncoming?"Appel vocal entrant…":isOutgoing?"Appel en cours…":phase||"Connexion en cours…";
  const display=active&&(!minimized||active.status==="ringing")?createPortal(
-  <div className="lr-call-backdrop" role="dialog" aria-modal="true" aria-label="Appel audio Love Radar">
+  <div className="lr-call-backdrop" role="dialog" aria-modal="true" aria-label="Appel audio">
    <div className="lr-call-sheet lr-call-facetime">
     <div className="lr-call-upper">
      <div className="lr-call-topbar">
@@ -416,7 +426,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
      <div className="lr-call-identity">
       <div className="lr-call-initial" aria-label={"Avatar de "+partner}>{partner.trim().charAt(0).toUpperCase()||"♡"}</div>
       <div className="lr-call-identification">
-       <div className="lr-call-brand">Love Radar audio</div>
+       <div className="lr-call-brand">Appel audio</div>
        <div className="lr-call-duration" aria-label={"Durée de l’appel : "+total}>{active.status==="active"&&connectedSince.current?total:callStatus}</div>
        <h2>{partner}</h2>
        {active.status==="active"&&phase!=="Connecté"?<p className="lr-call-status" aria-live="polite">{phase||"Connexion audio…"}</p>:null}
@@ -474,7 +484,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
       </div>
       {callPanel==="info"?<div className="lr-call-panel-details">
        <p><span>Avec</span><strong>{partner}</strong></p>
-       <p><span>Type</span><strong>Appel audio · Love Radar</strong></p>
+       <p><span>Type</span><strong>Appel audio</strong></p>
        <p><span>État</span><strong>{callStatus}</strong></p>
        <p><span>Durée</span><strong>{total}</strong></p>
        <p><span>Relais audio</span><strong>{relayEnabled?"Disponible":"Non confirmé"}</strong></p>
