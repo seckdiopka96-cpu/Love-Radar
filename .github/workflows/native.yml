@@ -95,21 +95,6 @@ jobs:
           sips -g pixelWidth -g pixelHeight ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
           test "$(sips -g pixelWidth ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png | awk '/pixelWidth/{print $2}')" = '1024'
           test "$(sips -g pixelHeight ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png | awk '/pixelHeight/{print $2}')" = '1024'
-      - name: Compiler le simulateur iOS sans signature
-        run: |
-          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/love-radar-derived CODE_SIGNING_ALLOWED=NO build
-      - name: Archiver le simulateur
-        run: |
-          cd /tmp/love-radar-derived/Build/Products/Debug-iphonesimulator
-          ditto -c -k --sequesterRsrc --keepParent App.app "$GITHUB_WORKSPACE/love-radar-ios-simulator.zip"
-      - name: Joindre l'application iOS
-        uses: actions/upload-artifact@v4
-        with:
-          name: love-radar-ios-simulator
-          path: love-radar-ios-simulator.zip
-          if-no-files-found: error
-          retention-days: 7
-
       # Device compilation is ARM64 for real iPhones, unlike the simulator.
       # This build is intentionally unsigned: it CANNOT be installed or
       # submitted to TestFlight without Apple Developer signing and a profile.
@@ -130,7 +115,7 @@ jobs:
           test -d "$APP_PATH"
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")
           test "$BUNDLE_ID" = "com.diaotech.loveradar"
-          xcrun lipo -verify_arch arm64 "$APP_PATH/App"
+          xcrun lipo "$APP_PATH/App" -verify_arch arm64
           mkdir -p "$RUNNER_TEMP/lr-device-payload/Payload"
           ditto "$APP_PATH" "$RUNNER_TEMP/lr-device-payload/Payload/App.app"
           cd "$RUNNER_TEMP/lr-device-payload"
@@ -144,3 +129,19 @@ jobs:
           path: Love-Radar-iPhone-UNSIGNED.ipa
           if-no-files-found: error
           retention-days: 7
+
+      - name: Compiler le simulateur iOS sans signature
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/love-radar-derived CODE_SIGNING_ALLOWED=NO build
+      - name: Archiver le simulateur
+        run: |
+          cd /tmp/love-radar-derived/Build/Products/Debug-iphonesimulator
+          ditto -c -k --sequesterRsrc --keepParent App.app "$GITHUB_WORKSPACE/love-radar-ios-simulator.zip"
+      - name: Joindre l'application iOS
+        uses: actions/upload-artifact@v4
+        with:
+          name: love-radar-ios-simulator
+          path: love-radar-ios-simulator.zip
+          if-no-files-found: error
+          retention-days: 7
+
