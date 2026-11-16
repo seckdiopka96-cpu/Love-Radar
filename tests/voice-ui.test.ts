@@ -69,3 +69,20 @@ test("every playable vocal exposes reactions and message actions without hijacki
  assert.ok(api.includes("kind IN ('text','image','audio')"));
  assert.ok(css.includes(".lr-voice-note-actions"));
 });
+
+test("voice notes use live member profile photos, clickable profile and in-place playback speed",()=>{
+ const app=readFileSync("src/App.tsx","utf8");
+ const player=readFileSync("src/VoiceMessage.tsx","utf8");
+ const css=readFileSync("src/voice-message.css","utf8");
+ assert.ok(app.includes("avatarSrc={mine?avatars.mine:avatars.partner}"),"uses private room avatar URLs");
+ assert.ok(app.includes("avatarName={mine?room.user.name:partner}"),"uses the message sender's identity");
+ assert.ok(app.includes('onOpenProfile={mine?()=>navigate("settings"):()=>setPartnerPhotoOpen(true)}'),"opens the appropriate member profile");
+ assert.ok(player.includes("{avatarSrc?<img src={avatarSrc}"),"renders actual photo when available");
+ assert.ok(player.includes("lr-voice-note-avatar-initial"),"falls back to initials without a profile photo");
+ assert.ok(player.includes("{mine?avatarControl:null}"),"sender photo sits to left of waveform");
+ assert.ok(player.includes("{!mine?avatarControl:null}"),"receiver photo sits to right of waveform");
+ assert.ok(player.includes('playing?<button type="button" className="lr-voice-note-speed"'),"playback replaces photo slot with speed selector");
+ assert.ok(player.includes("changeSpeed()"),"speed control changes actual playback rate");
+ assert.ok(css.includes(".lr-chat .lr-voice-note-identity"),"voice avatar has its own stable flex cell");
+ assert.ok(css.includes(".lr-chat .lr-voice-note-mic"),"microphone badge is attached to the member photo");
+});
