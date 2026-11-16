@@ -24,7 +24,8 @@ test("media errors never leave indefinitely blank images",()=>{
  assert.ok(app.includes('mediaErrors[m.id]||"Chargement de la photo…"'));
  assert.ok(app.includes('onClick={()=>retryMedia(m)}'));
  assert.ok(app.includes("mediaRetries.current[id]"));
- assert.ok(app.includes("Math.min(30000,2500*2**"));
+ assert.ok(app.includes("mediaRetryDelay(attempts)"));
+ assert.ok(readFileSync("src/reliability-rules.ts","utf8").includes("MEDIA_AUTO_RETRY_LIMIT=4"));
  assert.ok(app.includes('cache:"no-store"'));
  assert.ok(css.includes(".lr-photo-loading"));
  assert.ok(css.includes(".lr-photo-loading button"));
