@@ -51,7 +51,7 @@ test("redesigned home provides quick access to core couple activities",()=>{
 });
 test("design colors are consistent and have no self-referential CSS vars",()=>{
  assert.ok(design.includes("--lr-night:#091520;"));
- assert.ok(design.includes("--lr-rose:#ff7292;"));
+ assert.ok(design.includes("--lr-rose:#bd2763;"));
  assert.ok(design.includes("--lr-sunset:#ffc6a1;"));
  assert.ok(design.includes(".lr-chat-messages"));
  assert.ok(feature.includes(".lr-call-sheet"));
@@ -123,7 +123,7 @@ test("single-surface premium dock has no doubled outlines or active tab capsule"
  assert.ok(dock.includes('.lr-mobile-nav button.active{'));
  assert.ok(dock.includes('.lr-mobile-nav button.active .lr-nav-symbol{'));
  assert.ok(dock.includes('background:transparent!important;'),"Outer tab stays transparent");
- assert.ok(dock.includes('background:linear-gradient(145deg,#dc86ab,#b75a86)!important;'),"Only active icon receives pink highlight");
+ assert.ok(dock.includes('background:linear-gradient(145deg,#bd2763,#a82358)!important;'),"Only active icon receives pink highlight");
  assert.ok(dock.includes('padding-bottom:calc(88px + env(safe-area-inset-bottom))'),"Content reserves room for dock");
  assert.ok(dock.includes('@media (max-width:365px)'),"Fits narrow phones");
  assert.ok(dock.includes('@media (prefers-reduced-motion:reduce)'),"Respects reduced motion");
@@ -169,5 +169,19 @@ test("readable spacious couple tiles after stale mobile CSS",()=>{
  assert.ok(legacy.includes('gap:14px!important'),"Readable gap between activity tiles");
  assert.ok(legacy.includes('.tg-affection-heading h2'),"Love section retains legible typography");
  assert.ok(legacy.includes('min-width:105px!important'),"Send heart action stays compact");
- assert.ok(sw.includes('love-radar-static-v58'),"Installed iPhones refresh the updated shell cache");
+ assert.ok(sw.includes('love-radar-static-v59'),"Installed iPhones refresh the updated shell cache");
+});
+
+
+test("the same deep rose is shared by outgoing text and voice notes without sacrificing contrast",()=>{
+ const theme=readFileSync("src/deep-rose-finish.css","utf8");
+ const voice=readFileSync("src/voice-message.css","utf8");
+ assert.ok(app.includes('import "./deep-rose-finish.css";'));
+ assert.ok(design.includes('--lr-rose:#bd2763;'));
+ assert.ok(theme.includes('--lr-deep-rose:#bd2763;'));
+ assert.ok(theme.includes('.lr-bubble-row.mine .lr-bubble.lr-bubble-audio'));
+ assert.ok(theme.includes('background:#bd2763!important;'));
+ assert.ok(theme.includes('background:rgba(255,255,255,.50)!important;'),"waveform stays visible against deep rose");
+ assert.ok(theme.includes('.lr-auth-form input:not([type=checkbox])'),"dark inputs retain readable text");
+ assert.ok(voice.includes('background:#bd2763!important;'),"original voice-note color is preserved");
 });
