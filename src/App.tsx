@@ -38,7 +38,7 @@ type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:s
  edited_at?:number;reactions?:{member_id:string;emoji:string}[];view_once?:number|boolean};
 type RecentReaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
 type Room = {recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
-type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
+type Result = {ok:boolean;error?:string;token?:string;code?:string;id?:string}&Partial<Room>;
 type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
 type LocalText={id:string;created_at:number;text:string;replyToId?:string;replyKind?:QuoteKind|null;replyContent?:string|null;replySenderId?:string|null;status:"sending"|"failed"|"sent";error?:string};
 
@@ -729,15 +729,15 @@ export default function LoveRadar(){
  async function sendQueuedText(entry:LocalText){
   if(sendingTextIds.current.has(entry.id))return;
   sendingTextIds.current.add(entry.id);
-  setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"sending",error:undefined}:item));
+  setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"sending" as const,error:undefined}:item));
   try{
    const result=await request("message",{text:entry.text,messageId:entry.id,...(entry.replyToId?{replyTo:entry.replyToId}:{})});
    if(result.id!==entry.id)throw Error("Confirmation d'envoi incorrecte.");
-   setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"sent"}:item));
+   setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"sent" as const}:item));
    void refresh(undefined,true);
   }catch(err){
    const message=err instanceof Error?err.message:"Échec de l’envoi.";
-   setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"failed",error:message}:item));
+   setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"failed" as const,error:message}:item));
   }finally{sendingTextIds.current.delete(entry.id)}
  }
  async function sendMessage(e:FormEvent){
