@@ -17,6 +17,7 @@ jobs:
       - run: npm run test:privacy
       - run: npm run test:puzzle
       - run: npm run test:call
+      - run: npm run test:care
       - run: npm run test:background-call
       - run: npm run test:e2ee
       - run: npm run test:server
