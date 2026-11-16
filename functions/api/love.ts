@@ -12,9 +12,9 @@ let presenceReady: Promise<void> | null = null;
 async function ensureChatPresence(db:D1Database){
  if(!presenceReady){
   presenceReady=(async()=>{
-   await db.exec("CREATE TABLE IF NOT EXISTS chat_presence (room_id TEXT NOT NULL, member_id TEXT NOT NULL, last_read_at INTEGER NOT NULL DEFAULT 0, typing_until INTEGER NOT NULL DEFAULT 0, recording_until INTEGER NOT NULL DEFAULT 0, last_seen_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(room_id,member_id))");
+   await db.exec("CREATE TABLE IF NOT EXISTS chat_presence (room_id TEXT NOT NULL, member_id TEXT NOT NULL, last_read_at INTEGER NOT NULL DEFAULT 0, last_delivered_at INTEGER NOT NULL DEFAULT 0, typing_until INTEGER NOT NULL DEFAULT 0, recording_until INTEGER NOT NULL DEFAULT 0, last_seen_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(room_id,member_id))");
    const columns=await db.prepare("PRAGMA table_info(chat_presence)").all<{name:string}>();
-   for(const field of ["last_seen_at","recording_until","last_reaction_read_at"] as const){
+   for(const field of ["last_seen_at","recording_until","last_reaction_read_at","last_delivered_at"] as const){
     if(columns.results.some(col=>col.name===field))continue;
     try{await db.exec("ALTER TABLE chat_presence ADD COLUMN "+field+" INTEGER NOT NULL DEFAULT 0")}
     catch(err){
@@ -117,7 +117,7 @@ async function snapshot(db:D1Database,u:Member){
   " ORDER BY mr.updated_at DESC,mr.message_id DESC LIMIT 1"
  ).bind(u.room_id,u.id).first<{message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null}>();
  const revision=await roomRevision(db,u.room_id);
- const otherStatus=await db.prepare("SELECT last_read_at,typing_until,recording_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1").bind(u.room_id,u.id).first<{last_read_at:number,typing_until:number,recording_until:number,last_seen_at:number}>();
+ const otherStatus=await db.prepare("SELECT last_read_at,last_delivered_at,typing_until,recording_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1").bind(u.room_id,u.id).first<{last_read_at:number,last_delivered_at:number,typing_until:number,recording_until:number,last_seen_at:number}>();
  const publicKeys=await roomPublicKeys(db,u.room_id);
  const ownPublicKey=publicKeys.find(k=>k.member_id===u.id)?.public_key||null;
  const partnerPublicKey=partnerMember?publicKeys.find(k=>k.member_id===partnerMember.id)?.public_key||null:null;
@@ -130,7 +130,7 @@ async function snapshot(db:D1Database,u:Member){
  return {revision,user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id,avatarVersion:avatarMap.get(u.id)||0},code:u.invite,roomId:u.room_id,
   partner:partnerMember?.name||null,partnerId:partnerMember?.id||null,partnerAvatarVersion:partnerMember?avatarMap.get(partnerMember.id)||0:0,members:partners.results.length,
   e2ee:{mine:ownPublicKey,partner:partnerPublicKey,required:Boolean(ownPublicKey&&partnerPublicKey)},
-  messages:messages.results.reverse().map(row=>({...row,reactions:reactionsById.get(String(row.id))||[]})),recentReaction:recentReaction||null,unreadCount:Number(unread?.n||0)+Number(unreadReactions?.n||0),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerRecordingUntil:otherStatus?.recording_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
+  messages:messages.results.reverse().map(row=>({...row,reactions:reactionsById.get(String(row.id))||[]})),recentReaction:recentReaction||null,unreadCount:Number(unread?.n||0)+Number(unreadReactions?.n||0),partnerReadAt:otherStatus?.last_read_at??0,partnerDeliveredAt:otherStatus?.last_delivered_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerRecordingUntil:otherStatus?.recording_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
 }
 
   const handlers: Record<"GET"|"POST",(args:{request:Request})=>Promise<Response>> = {
@@ -280,6 +280,26 @@ async function snapshot(db:D1Database,u:Member){
       }
       return ok({activity:op,until});
     }
+    if(op==="delivered"){
+     // An acknowledged message has actually reached the partner's foreground app.
+     // The server looks up the UUID; clients cannot forge arbitrary delivery times.
+     await ensureChatPresence(db);
+     if(!validMessageId(body.messageId))return fail("Message invalide.",400);
+     const received=await db.prepare(
+      "SELECT created_at FROM messages WHERE room_id=? AND id=? AND sender_id<>? AND kind IN ('text','image','audio') LIMIT 1"
+     ).bind(u.room_id,body.messageId,u.id).first<{created_at:number}>();
+     if(!received)return fail("Message introuvable.",404);
+     const previous=await db.prepare("SELECT last_delivered_at FROM chat_presence WHERE room_id=? AND member_id=?")
+      .bind(u.room_id,u.id).first<{last_delivered_at:number}>();
+     if(received.created_at>Number(previous?.last_delivered_at||0)){
+      await db.prepare(
+       "INSERT INTO chat_presence(room_id,member_id,last_delivered_at) VALUES(?,?,?)"+
+       " ON CONFLICT(room_id,member_id) DO UPDATE SET last_delivered_at=MAX(last_delivered_at,excluded.last_delivered_at)"
+      ).bind(u.room_id,u.id,received.created_at).run();
+      await markRoomChanged(db,u.room_id);
+     }
+     return ok({delivered:true});
+    }
     if(op==="read"){
      await ensureChatPresence(db);
      const last=await db.prepare("SELECT MAX(created_at) AS stamp FROM messages WHERE room_id=? AND sender_id<>? AND kind IN ('text','image','audio')").bind(u.room_id,u.id).first<{stamp:number|null}>();
@@ -291,8 +311,8 @@ async function snapshot(db:D1Database,u:Member){
        .bind(u.room_id,u.id).first<{last_read_at:number;last_reaction_read_at:number}>();
       const isNew=Number(last?.stamp||0)>Number(previous?.last_read_at||0)||Number(lastReaction?.stamp||0)>Number(previous?.last_reaction_read_at||0);
       if(isNew){
-       await db.prepare("INSERT INTO chat_presence(room_id,member_id,last_read_at,last_reaction_read_at) VALUES(?,?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET last_read_at=MAX(last_read_at,excluded.last_read_at),last_reaction_read_at=MAX(last_reaction_read_at,excluded.last_reaction_read_at)")
-        .bind(u.room_id,u.id,last?.stamp||0,lastReaction?.stamp||0).run();
+       await db.prepare("INSERT INTO chat_presence(room_id,member_id,last_read_at,last_delivered_at,last_reaction_read_at) VALUES(?,?,?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET last_read_at=MAX(last_read_at,excluded.last_read_at),last_delivered_at=MAX(last_delivered_at,excluded.last_delivered_at),last_reaction_read_at=MAX(last_reaction_read_at,excluded.last_reaction_read_at)")
+        .bind(u.room_id,u.id,last?.stamp||0,last?.stamp||0,lastReaction?.stamp||0).run();
        await markRoomChanged(db,u.room_id);
       }
      }
