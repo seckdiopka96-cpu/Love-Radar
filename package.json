@@ -16,6 +16,7 @@
     "test:privacy": "tsx --test tests/privacy-overlay.test.ts",
     "test:puzzle": "tsx --test tests/puzzle.test.ts",
     "test:call": "tsx --test tests/voice-call.test.ts",
+    "test:background-call": "tsx --test tests/native-background-call.test.ts",
     "test:reconcile": "tsx --test tests/reconcile.test.ts",
     "test:design": "tsx --test tests/redesign.test.ts",
     "test:chat": "tsx --test tests/chat-stability.test.ts tests/multi-couple.test.ts",
