@@ -108,7 +108,7 @@ export async function onRequestPost({request,env,waitUntil}:Ctx):Promise<Respons
     timezone:body.timezone,method:body.method,enabled:1,updated_at:now};
    const date=localClock(now,settings.timezone).day;
    // Never turn notifications on without validated timings.
-   const timings=await loadDayTimings(db,settings,date);
+   const timings=await loadDayTimings(db,settings,date,true);
    if(!timings)return fail("Horaires non disponibles ou fuseau différent. Réessaie avec une zone correcte.",503);
    await db.prepare("INSERT INTO care_prayer_settings"+
     "(member_id,room_id,latitude,longitude,timezone,method,enabled,updated_at)"+
