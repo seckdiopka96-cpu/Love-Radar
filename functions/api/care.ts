@@ -18,6 +18,8 @@ async function member(req:Request,db:D1Database):Promise<Member|null>{
   .bind(hash).first<Member>();
 }
 async function getState(db:D1Database,u:Member){
+ const period=await db.prepare("SELECT enabled FROM care_period_preferences WHERE room_id=? AND member_id=?")
+  .bind(u.room_id,u.id).first<{enabled:number}>();
  const me=await db.prepare("SELECT latitude,longitude,timezone,method,enabled FROM care_prayer_settings"+
   " WHERE room_id=? AND member_id=?").bind(u.room_id,u.id)
   .first<{latitude:number;longitude:number;timezone:string;method:number;enabled:number}>();
@@ -30,7 +32,7 @@ async function getState(db:D1Database,u:Member){
  const ownPeriod=await db.prepare("SELECT id FROM care_notices WHERE room_id=? AND sender_id=?"+
   " AND kind='period' AND expires_at>? ORDER BY created_at DESC LIMIT 1")
   .bind(u.room_id,u.id,Date.now()).first<{id:string}>();
- return {prayer:me?{enabled:Boolean(me.enabled),latitude:me.latitude,longitude:me.longitude,
+ return {periodEnabled:period?.enabled===1,prayer:me?{enabled:Boolean(me.enabled),latitude:me.latitude,longitude:me.longitude,
   timezone:me.timezone,method:me.method}:null,partnerPrayerEnabled:Boolean(partner?.enabled),
   notices:inbox.results||[],ownPeriodId:ownPeriod?.id||null};
 }
@@ -58,10 +60,27 @@ export async function onRequestPost({request,env,waitUntil}:Ctx):Promise<Respons
   await db.prepare("DELETE FROM care_notices WHERE expires_at<?").bind(Date.now()).run();
   const action=body.action;
   const now=Date.now();
+  if(action==="set-period-preference"){
+   if(typeof body.enabled!=="boolean")return fail("Choix invalide.");
+   await db.prepare("INSERT INTO care_period_preferences(member_id,room_id,enabled,updated_at)"+
+    " VALUES(?,?,?,?) ON CONFLICT(member_id) DO UPDATE SET"+
+    " room_id=excluded.room_id,enabled=excluded.enabled,updated_at=excluded.updated_at")
+    .bind(u.id,u.room_id,body.enabled?1:0,now).run();
+   if(!body.enabled){
+    // Disabling the feature revokes notices from this member, but never
+    // conceals support requests received from the partner.
+    await db.prepare("DELETE FROM care_notices WHERE room_id=? AND sender_id=? AND kind='period'")
+     .bind(u.room_id,u.id).run();
+   }
+   return send({saved:true,...await getState(db,u)});
+  }
   if(action==="period"){
    // Never infer or automatically disclose menstruation. Only the user's
    // explicit POST creates this short-lived, revocable private notice.
    if(body.confirmed!==true)return fail("Confirme explicitement le partage.",400);
+   const optIn=await db.prepare("SELECT enabled FROM care_period_preferences"+
+    " WHERE room_id=? AND member_id=?").bind(u.room_id,u.id).first<{enabled:number}>();
+   if(optIn?.enabled!==1)return fail("Active d'abord cette fonction dans Paramètres → Mon profil.",403);
    const others=await db.prepare("SELECT id FROM members WHERE room_id=? AND id<>? LIMIT 1")
     .bind(u.room_id,u.id).first<{id:string}>();
    if(!others)return fail("Ton partenaire doit d'abord rejoindre votre espace.",409);
