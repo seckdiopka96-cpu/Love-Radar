@@ -32,7 +32,8 @@ test("32 original animated stickers are valid shareable first-party sticker toke
  assert.ok(css.includes(".lr-sticker-art.lr-motion-heartbeat"));
  assert.ok(css.includes(".lr-sticker-art.lr-motion-shake"));
  assert.ok(css.includes(".lr-sticker-art.lr-motion-kiss"));
- assert.ok(css.includes("(prefers-reduced-motion:reduce)"));
+ assert.ok(css.includes("html.lr-animations-on"),"native and PWA sticker motion enabled by default");
+ assert.ok(css.includes("html.lr-animations-off"),"user can pause motion");
 });
 
 test("Emoji messages animate on both sides without changing the transported text",()=>{
@@ -45,8 +46,15 @@ test("Emoji messages animate on both sides without changing the transported text
  assert.ok(renderer.includes("emojiMotionClass(part)"),"attach animation classes");
  assert.ok(css.includes("@keyframes lr-emoji-heartbeat"));
  assert.ok(css.includes("@keyframes lr-emoji-shake"));
- assert.ok(css.includes("(prefers-reduced-motion:reduce)"),"respect motion accessibility preference");
+ assert.ok(css.includes("html.lr-animations-on"),"emoji animation enabled even in iOS PWA");
+ assert.ok(css.includes("html.lr-animations-off"),"user can pause emoji animation");
  assert.ok(picker.includes("emojiMotionClass(emoji)"),"emoji picker visibly animates");
+ assert.ok(picker.includes("toggleMotion"),"user can toggle motion directly in the picker");
+ const motion=readFileSync("src/motion-mode.ts","utf8");
+ const main=readFileSync("src/main.tsx","utf8");
+ assert.ok(motion.includes("lr-animations-on"));
+ assert.ok(motion.includes("lr-animations-off"));
+ assert.ok(main.includes("initializeMotionMode()"));
  assert.ok(app.includes("emojiOnlyText(m.content)"),"solo emoji gets a larger chat bubble");
  assert.ok(app.includes('<AnimatedEmojiText content={m.content||""}/>'),"both sender and receiver use the same component");
 });
