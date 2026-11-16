@@ -26,7 +26,8 @@ public class LoveRadarNativeCall: CAPPlugin, CAPBridgedPlugin {
             do {
                 let session = AVAudioSession.sharedInstance()
                 try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth])
-                try session.setActive(true)
+                // When CallKit is controlling an incoming call, it activates AVAudioSession itself.
+                if !LoveRadarVoipManager.shared.isManaging(id) { try session.setActive(true) }
                 if self.activeCallId != id || self.activeToken != token {
                     self.stopTimer()
                     self.activeCallId = id
@@ -85,10 +86,13 @@ public class LoveRadarNativeCall: CAPPlugin, CAPBridgedPlugin {
 
     private func finishCall() {
         stopTimer()
+        let previous = activeCallId
         activeCallId = nil
         activeToken = nil
-        try? AVAudioSession.sharedInstance().setActive(
-            false, options: [.notifyOthersOnDeactivation])
+        if previous == nil || !LoveRadarVoipManager.shared.isManaging(previous!) {
+            try? AVAudioSession.sharedInstance().setActive(
+                false, options: [.notifyOthersOnDeactivation])
+        }
     }
 
     deinit { heartbeatTimer?.cancel() }
@@ -98,6 +102,7 @@ class LoveRadarBridgeViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         super.capacitorDidLoad()
         bridge?.registerPluginInstance(LoveRadarNativeCall())
+        bridge?.registerPluginInstance(LoveRadarVoipPlugin())
     }
 }
 // END LOVE RADAR NATIVE CALL
