@@ -4,8 +4,8 @@
  --universe-surface:var(--lr-panel,#142432);
  --universe-raised:var(--lr-panel-raised,#1b2d3c);
  --universe-line:var(--lr-line,#344957);
- --universe-rose:var(--lr-rose,#ff7292);
- --universe-soft-rose:var(--lr-rose-light,#ffadc0);
+ --universe-rose:var(--lr-rose,#bd2763);
+ --universe-soft-rose:var(--lr-rose-light,#bd2763);
  --universe-text:var(--lr-text,#fcf6f2);
  --universe-muted:var(--lr-text-muted,#b8c4cd);
 }
@@ -72,7 +72,7 @@
  box-shadow:0 3px 14px #0002!important;
 }
 .lr-home-essentials .lr-home-daily:hover{transform:none!important}
-.lr-home-unread{display:grid;place-items:center;min-width:24px;height:24px;padding:0 5px;border-radius:12px;background:#d7729d;color:white;font-size:12px}
+.lr-home-unread{display:grid;place-items:center;min-width:24px;height:24px;padding:0 5px;border-radius:12px;background:#bd2763;color:white;font-size:12px}
 .lr-home-compact-footer{
  margin:1px 4px 0!important;text-align:center;
  font-size:11px;line-height:1.6;color:var(--universe-muted)
@@ -98,12 +98,12 @@
  box-shadow:inset 0 1px 0 #ffffff09!important;
 }
 .lr-app.lr-app-locked .tg-watch-feature{
- background:linear-gradient(115deg,#b65e84,#cc7a99)!important;
- border:1px solid #efb5cb!important;
+ background:linear-gradient(115deg,#a82358,#a82358)!important;
+ border:1px solid #bc396c!important;
  color:#fff!important;
 }
 .lr-app.lr-app-locked .tg-heart-center{
- background:radial-gradient(ellipse at 50% 8%,#b65f8660,transparent 52%),linear-gradient(150deg,var(--universe-raised),var(--universe-surface))!important;
+ background:radial-gradient(ellipse at 50% 8%,#a8235860,transparent 52%),linear-gradient(150deg,var(--universe-raised),var(--universe-surface))!important;
  border:1px solid var(--universe-line)!important;
 }
 .lr-app.lr-app-locked .tg-heart-center p,.lr-app.lr-app-locked .tg-reconcile-copy small,
@@ -111,7 +111,7 @@
  color:var(--universe-muted)!important;
 }
 .lr-app.lr-app-locked .tg-modes button.selected{
- background:linear-gradient(130deg,#d6769e,#af547f)!important;border-radius:10px!important;
+ background:linear-gradient(130deg,#bd2763,#a82358)!important;border-radius:10px!important;
 }
 .lr-app.lr-app-locked .tg-modes button{color:var(--universe-text)}
 .lr-app.lr-app-locked .tg-signal.received{background:#2c3d4c!important;border-color:#557085!important}
@@ -120,7 +120,7 @@
  background:var(--universe-raised)!important;border:1px solid var(--universe-line)!important;color:var(--universe-text)!important;
 }
 .lr-app.lr-app-locked .tg-draw-tools button.active{
- background:#91516f!important;border-color:#e6adc7!important;
+ background:#91516f!important;border-color:#bc396c!important;
 }
 .lr-app.lr-app-locked .tg-section-label strong{color:var(--universe-soft-rose)!important}
 /* Shared surface defaults for all entry screens, without changing game mechanics. */
