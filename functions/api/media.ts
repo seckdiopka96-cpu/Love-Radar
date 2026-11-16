@@ -72,7 +72,7 @@ function sniff(bytes:Uint8Array,mime:string){
     const len=Number(request.headers.get("content-length")||0);if(len>8_000_000)return no("Fichier trop lourd.",413);
     const form=await request.formData(),file=form.get("file"),kind=form.get("kind");
     // Old app instances must not silently send a regular file when one-time mode was selected.
-    if(form.get("viewOnce")==="true")return no("La vue unique a été retirée. Actualise Love Radar avant d’envoyer ce média.",400);
+    if(form.get("viewOnce")==="true")return no("La vue unique a été retirée. Actualise l’application avant d’envoyer ce média.",400);
     await ensurePrivateMedia(db);
     if(!(file instanceof File)||!["image","audio"].includes(String(kind)))return no("Fichier invalide.");
     const mime=file.type.split(";")[0].toLowerCase();
@@ -112,7 +112,7 @@ function sniff(bytes:Uint8Array,mime:string){
      if(!committed)await bucket.delete(id);
      throw e;
     }
-    waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",kind==="image"?"Ton partenaire t’a envoyé une photo.":"Ton partenaire t’a envoyé un message vocal.","chat",{kind:kind==="image"?"photo":"audio",id}));
+    waitUntil(notifyPartner(env,u.room_id,u.id,"Nouveau média 💌",kind==="image"?"Ton partenaire t’a envoyé une photo.":"Ton partenaire t’a envoyé un message vocal.","chat",{kind:kind==="image"?"photo":"audio",id}));
     return Response.json({ok:true,id,created_at:now},{headers:{"Cache-Control":"no-store"}});
    }catch(e){console.error("media upload",e);return no("Envoi impossible. Réessaie.",500)}
   }
