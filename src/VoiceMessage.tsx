@@ -2,10 +2,11 @@ import {useEffect,useMemo,useRef,useState} from "react";
 import {audioDuration,formatVoiceTime,voiceBars} from "./voice-waveform";
 import {claimMessagePlayback,hasExclusiveAudioCapture,type AudioInterrupt} from "./audio-focus";
 import {nextVoiceSpeed,type VoiceSpeed} from "./voice-sequence";
+import {receiptGlyph,receiptAccessibleLabel,type DeliveryReceipt} from "./message-delivery";
 import "./voice-message.css";
 
 type Props={
- src:string;id:string;mine:boolean;time:string;delivery?:"read"|"sent";
+ src:string;id:string;mine:boolean;time:string;delivery?:DeliveryReceipt;
  avatarSrc?:string;avatarName:string;onOpenProfile?:()=>void;
  speed:VoiceSpeed;onSpeedChange:(speed:VoiceSpeed)=>void;
  autoPlay?:boolean;onFinished?:()=>void;onManualPlay?:()=>void;onAutoPlayConsumed?:()=>void
@@ -178,7 +179,7 @@ export default function VoiceMessage({src,id,mine,time,delivery,avatarSrc,avatar
      <span className="lr-voice-note-duration" aria-label={"Progression "+progressText+" sur "+totalText}>
       {playing||position>0?progressText:totalText}
      </span>
-     <span className="lr-voice-note-time">{time}{mine&&delivery?<span className="lr-voice-note-check" aria-label={delivery==="read"?"Lu":"Envoyé"}> {delivery==="read"?"✓✓":"✓"}</span>:null}</span>
+     <span className="lr-voice-note-time">{time}{mine&&delivery?<span className={"lr-voice-note-check "+(delivery==="read"?"is-read":"")} aria-label={receiptAccessibleLabel(delivery)}> {receiptGlyph(delivery)}</span>:null}</span>
     </div>
    </div>
    {!mine?avatarControl:null}
