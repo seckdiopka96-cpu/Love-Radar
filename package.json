@@ -29,6 +29,7 @@
     "test:animation": "tsx --test tests/activity-frames.test.ts",
     "test:replies": "tsx --test tests/message-replies.test.ts",
     "test:voice-ui": "tsx --test tests/voice-ui.test.ts",
+    "test:audio-focus": "tsx --test tests/audio-focus-profile-usability.test.ts",
     "test:voice-polish": "tsx --test tests/launch-voice-polish.test.ts",
     "test:voice-outbox": "tsx --test tests/voice-outbox.test.ts",
     "test:photos": "tsx --test tests/photo-reliability.test.ts tests/profile-photo.test.ts",

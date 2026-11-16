@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from "react";
 import {audioDuration,formatVoiceTime,voiceBars} from "./voice-waveform";
+import {claimMessagePlayback,hasExclusiveAudioCapture,type AudioInterrupt} from "./audio-focus";
 import "./voice-message.css";
 
 type Props={src:string;id:string;mine:boolean;time:string;delivery?:"read"|"sent";onOpenActions?:()=>void};
@@ -8,6 +9,7 @@ type PlayEvent=CustomEvent<string>;
 /** Functional audio note: actual playback, scrub, duration and one-at-a-time listening. */
 export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:Props){
  const audio=useRef<HTMLAudioElement|null>(null);
+ const fallbackAudio=useRef<HTMLAudioElement|null>(null);
  const [playing,setPlaying]=useState(false);
  const [duration,setDuration]=useState(0);
  const [position,setPosition]=useState(0);
@@ -21,8 +23,18 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:P
    audio.current?.pause();
    setPlaying(false);
   };
+  const stopOnAudioFocus=(event:Event)=>{
+   const detail=(event as CustomEvent<AudioInterrupt>).detail;
+   if(detail?.source==="playback"&&detail.owner===id)return;
+   audio.current?.pause();fallbackAudio.current?.pause();setPlaying(false);
+  };
   window.addEventListener("lr-voice-playing",stopOther);
-  return()=>{window.removeEventListener("lr-voice-playing",stopOther);audio.current?.pause()};
+  window.addEventListener("lr-audio-interrupt",stopOnAudioFocus);
+  return()=>{
+   window.removeEventListener("lr-voice-playing",stopOther);
+   window.removeEventListener("lr-audio-interrupt",stopOnAudioFocus);
+   audio.current?.pause();fallbackAudio.current?.pause();
+  };
  },[id]);
  useEffect(()=>{
   setPlaying(false);setDuration(0);setPosition(0);setError("");setFallback(false);
@@ -49,7 +61,12 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:P
   if(!element)return;
   if(!element.paused){element.pause();setPlaying(false);return}
   setError("");
+  if(hasExclusiveAudioCapture()){
+   setError("Termine l'appel ou l'enregistrement en cours avant d'écouter ce vocal.");
+   return;
+  }
   try{
+   if(!claimMessagePlayback(id,element)){setError("Une autre activité utilise le son.");return}
    window.dispatchEvent(new CustomEvent<string>("lr-voice-playing",{detail:id}));
    // The call begins within the original user gesture, as required by iOS.
    await element.play();
@@ -69,7 +86,7 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:P
  const progressText=formatVoiceTime(position);
  const totalText=formatVoiceTime(duration);
  return <div className={"lr-voice-note"+(mine?" is-own":" is-partner")}>
-  <audio ref={audio} src={src} preload="metadata" playsInline
+  <audio ref={audio} data-lr-audio-owner={id} src={src} preload="metadata" playsInline
    onLoadedMetadata={updateDuration} onDurationChange={updateDuration}
    onTimeUpdate={updatePosition}
    onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)}
@@ -107,6 +124,6 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:P
    </button>:null}
   </div>
   {error?<div className="lr-voice-note-error" role="alert">{error}</div>:null}
-  {fallback?<audio className="lr-voice-note-fallback" src={src} controls preload="metadata" aria-label="Lecteur vocal classique"/>:null}
+  {fallback?<audio ref={fallbackAudio} data-lr-audio-owner={id} className="lr-voice-note-fallback" src={src} controls preload="metadata" aria-label="Lecteur vocal classique"/>:null}
  </div>;
 }

@@ -1,0 +1,78 @@
+/* Slightly larger mobile interface — real font/icon sizes, never zoom/transform
+   the entire app: iOS keyboard, safe areas, recordings and chat remain stable. */
+@media(max-width:700px){
+ /* Five-tab navigation: icons and labels are more readable on iPhone. */
+ .lr-app.lr-app-locked .lr-mobile-nav button small{
+  font-size:11px!important;line-height:1.2!important;
+  font-weight:750!important;letter-spacing:-.15px!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-symbol{
+  width:45px!important;min-width:45px!important;
+  height:42px!important;min-height:42px!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-symbol svg,
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-glyph{
+  width:26px!important;height:26px!important;
+ }
+ /* Home / navigation cards: preserve the three-column layout. */
+ .lr-app .lr-home-quick strong{font-size:14px!important;line-height:1.3!important}
+ .lr-app .lr-home-quick small{font-size:11px!important;line-height:1.3!important}
+ .lr-app .lr-home-quick-icon{width:44px!important;height:44px!important}
+ .lr-app .lr-home-quick-icon svg{width:25px!important;height:25px!important}
+ .lr-app .lr-home-welcome p{font-size:13px!important;line-height:1.5!important}
+ .lr-app .lr-home-kicker{font-size:10px!important}
+ .lr-app .lr-home-section-heading span{font-size:10.5px!important}
+ .lr-app .lr-home-section-heading small{font-size:11px!important}
+ .lr-app .lr-home-our-story strong{font-size:16px!important}
+ .lr-app .lr-home-our-story small{font-size:12px!important}
+ .lr-app .lr-home-our-symbol{width:44px!important;height:44px!important;font-size:24px!important}
+ .lr-app .lr-home-daily-content>span{font-size:12.5px!important}
+ .lr-app .lr-home-together small{font-size:12px!important}
+ .lr-app .lr-home-game p{font-size:13px!important}
+ /* Messaging composer remains one line, sticker in the input, send/mic on right. */
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat .lr-chat-form > button{
+  flex-basis:44px!important;width:44px!important;height:44px!important;
+  min-width:44px!important;min-height:44px!important;
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat .lr-chat-form > button svg{
+  width:23px!important;height:23px!important;
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat .lr-chat-form > .lr-chat-textbox{
+  height:47px!important;min-height:47px!important;
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat .lr-chat-textbox > input[type=text]{
+  height:45px!important;min-height:45px!important;
+  font-size:17px!important;
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat .lr-chat-form .lr-sticker-trigger svg{
+  width:24px!important;height:24px!important;
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat .lr-chat-head h2{
+  font-size:19px!important;
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat .lr-chat-status{
+  font-size:13px!important;
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-voice-note-play{
+  flex:0 0 43px!important;width:43px!important;height:43px!important;
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-voice-note-play svg{
+  width:23px!important;height:23px!important;
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-voice-note-meta,
+ .lr-app.lr-app-locked.lr-chat-mode .lr-voice-note-duration,
+ .lr-app.lr-app-locked.lr-chat-mode .lr-voice-note-time{
+  font-size:12px!important;
+ }
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat-day{font-size:13px!important}
+ .lr-app .lr-settings-card p,.lr-app .lr-settings-card small{font-size:13px!important}
+}
+@media(max-width:355px){
+ .lr-app.lr-app-locked .lr-mobile-nav button small{font-size:10px!important}
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-symbol{width:39px!important;min-width:39px!important}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-chat .lr-chat-form > button{
+  flex-basis:39px!important;width:39px!important;min-width:39px!important;
+ }
+ .lr-app .lr-home-quick strong{font-size:12px!important}
+ .lr-app .lr-home-quick small{font-size:10px!important}
+}

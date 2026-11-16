@@ -1,6 +1,7 @@
 import {apiFetch,isNativeApp} from "./api";
 import {beginNativeCallSession,endNativeCallSession,nativeCallSessionRunning} from "./native-call-session";
 import {findBuiltInSpeaker,audioRouteHelp} from "./audio-output";
+import {claimCallAudio,releaseCallAudio} from "./audio-focus";
 import {relayNeedsRefresh,RELAY_REFRESH_AFTER_MS,RELAY_RETRY_AFTER_ERROR_MS} from "./reliability-rules";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
@@ -124,6 +125,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(p){p.ontrack=null;p.onicecandidate=null;p.onconnectionstatechange=null;p.oniceconnectionstatechange=null;p.close()}
   if(local.current){local.current.getTracks().forEach(track=>track.stop());local.current=null}
   if(remote.current){remote.current.pause();remote.current.srcObject=null}
+  releaseCallAudio();
   offered.current=false;answered.current=false;connectedSince.current=0;
   signalAfter.current=0;
   queuedCandidates.current=[];sessionDescriptionSent.current=false;sendingCandidates.current=false;
@@ -144,6 +146,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    setError("");setPhase(call.direction==="incoming"?"Appel vocal entrant…":"Appel en cours…");
   }
   current.current=call;
+  claimCallAudio(); // Incoming and outgoing calls silence any message or video audio.
   setActive(call);
  },[clearAudio]);
 
@@ -324,6 +327,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  }
  async function start(){
   if(busy||current.current||!hasPartner)return;
+  claimCallAudio();
   setBusy(true);starting.current=true;setError("");
   // iOS getUserMedia begins in the user gesture; signaling starts in parallel
   // rather than waiting for the microphone permission/initialization.
@@ -353,6 +357,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  async function accept(){
   const c=current.current;
   if(!c||c.direction!=="incoming"||busy)return;
+  claimCallAudio();
   setBusy(true);setError("");
   try{
    await Promise.all([microphone(),warmNetwork()]);
@@ -563,7 +568,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  return <>
   {anchor&&createPortal(<button type="button" className="lr-call-trigger" onClick={start} disabled={!hasPartner||busy||Boolean(active)} aria-label="Appeler en vocal" title="Appeler en vocal"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.8v3a2 2 0 0 1-2.2 2A19.5 19.5 0 0 1 2.2 4.2 2 2 0 0 1 4.2 2h3a2 2 0 0 1 2 1.7l.6 3.1a2 2 0 0 1-.6 1.9L7.7 10a16 16 0 0 0 6.3 6.3l1.4-1.5a2 2 0 0 1 1.9-.6l3.1.6a2 2 0 0 1 1.6 1.9Z"/></svg></button>,anchor)}
   {error&&!active?<div className="lr-call-toast" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
-  <audio ref={remote} autoPlay playsInline aria-label="Voix de ton partenaire"/>
+  <audio ref={remote} data-lr-call-audio="true" autoPlay playsInline aria-label="Voix de ton partenaire"/>
   {display}
   {mini}
  </>;
