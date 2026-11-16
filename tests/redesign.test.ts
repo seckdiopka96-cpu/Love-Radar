@@ -61,3 +61,35 @@ test("iPhone redesign preserves fixed shell, no-scroll players and call keyboard
  assert.ok(tiktok.includes("overflow:hidden!important;overscroll-behavior:none!important;"));
  assert.ok(app.includes('showButton={tab==="chat"||tab==="watch"||tab==="watch-tiktok"||tab==="reconcile"}'));
 });
+
+test("minimal header removes the unnecessary heart and relocates notification controls to settings",()=>{
+ const shell=readFileSync("src/polished-shell.css","utf8");
+ assert.ok(app.includes('className="lr-header-context"'));
+ assert.ok(!app.includes('className="lr-brand-emblem"'));
+ assert.ok(app.includes('id="lr-settings-menu"'));
+ assert.ok(app.includes('aria-expanded={menu}'));
+ assert.ok(app.includes('className="lr-menu-notifications"'));
+ assert.ok(!app.includes('className="lr-notification-area"'));
+ assert.ok(app.includes('setMenu(false)'));
+ assert.ok(shell.includes('.lr-menu-notification-actions'));
+ assert.ok(shell.includes('.lr-header-context>strong'));
+});
+test("premium dock anchors to the viewport and reserves scrolling space for home content",()=>{
+ const shell=readFileSync("src/polished-shell.css","utf8");
+ assert.ok(app.includes('import "./polished-shell.css";'));
+ assert.ok(shell.includes('position:fixed!important'));
+ assert.ok(shell.includes('env(safe-area-inset-bottom)'));
+ assert.ok(shell.includes('padding:0 0 calc(94px + env(safe-area-inset-bottom))'));
+ assert.ok(shell.includes('lr-app.lr-app-locked.lr-chat-mode .lr-shell'));
+ assert.ok(shell.includes('prefers-reduced-motion:reduce'));
+ const quick=home.match(/lr-home-quick-icon" aria-hidden="true"><svg/g)||[];
+ assert.equal(quick.length,3,"quick links use coherent vector icons");
+});
+test("unchanged snapshots do not redraw the full dashboard and home requests cannot overlap",()=>{
+ assert.ok(app.includes('JSON.stringify(previous)===JSON.stringify(nextRoom)?previous:nextRoom'));
+ assert.ok(app.includes('tab==="chat"?1050:5000'));
+ assert.ok(app.includes('return items.filter(item=>!received.has(item.id))'));
+ assert.ok(home.includes('if(!alive||pending||document.visibilityState!=="visible")return'));
+ assert.ok(home.includes('if(!active||pending||document.visibilityState==="hidden")return'));
+ assert.ok(home.includes('finally{pending=false}'));
+});
