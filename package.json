@@ -25,7 +25,10 @@
     "test:voice-ui": "tsx --test tests/voice-ui.test.ts",
     "test:voice-outbox": "tsx --test tests/voice-outbox.test.ts",
     "test:photos": "tsx --test tests/photo-reliability.test.ts tests/profile-photo.test.ts",
-    "test:reliability": "tsx --test tests/reliability-audit.test.ts"
+    "test:reliability": "tsx --test tests/reliability-audit.test.ts",
+    "test:security": "tsx --test tests/security-release.test.ts",
+    "test:load": "node scripts/staging-load.mjs --synthetic",
+    "load:staging": "node scripts/staging-load.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",
