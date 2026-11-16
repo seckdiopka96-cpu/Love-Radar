@@ -565,18 +565,27 @@ export default function LoveRadar(){
  }
  const request=useCallback(async(action:string,body:Record<string,unknown>={},authToken?:string):Promise<Result>=>{
   const t=authToken??token;
-  const res=await apiFetch("/api/love",{method:"POST",headers:{"Content-Type":"application/json",...(t?{Authorization:"Bearer "+t}:{})},body:JSON.stringify({action,...body})});
-  const data=await res.json() as Result;
-  if(!data.ok)throw new Error(data.error||"Une erreur est survenue.");
-  return data;
+  const controller=new AbortController();
+  const timeout=window.setTimeout(()=>controller.abort(),15000);
+  try{
+   const res=await apiFetch("/api/love",{method:"POST",headers:{"Content-Type":"application/json",...(t?{Authorization:"Bearer "+t}:{})},body:JSON.stringify({action,...body}),signal:controller.signal});
+   const data=await res.json() as Result;
+   if(!res.ok||!data.ok)throw new Error(data.error||"Une erreur est survenue.");
+   return data;
+  }catch(error){
+   if(controller.signal.aborted)throw Error("La connexion prend trop de temps. Réessaie.");
+   throw error;
+  }finally{window.clearTimeout(timeout)}
  },[token]);
  const refresh=useCallback(async(key?:string,silent=false)=>{
   const t=key||token;
   if(!t||snapshotInFlight.current===t)return;
   snapshotInFlight.current=t;
   const sequence=++snapshotStarted.current;
+  const controller=new AbortController();
+  const timeout=window.setTimeout(()=>controller.abort(),12000);
   try{
-   const res=await apiFetch("/api/love",{headers:{Authorization:"Bearer "+t},cache:"no-store"});
+   const res=await apiFetch("/api/love",{headers:{Authorization:"Bearer "+t},cache:"no-store",signal:controller.signal});
    if(res.status===401){
     if(sequence>=snapshotApplied.current){
      snapshotApplied.current=sequence;
@@ -593,8 +602,11 @@ export default function LoveRadar(){
    const nextRoom=data as unknown as Room;
    // Ignore unchanged snapshots so polling cannot redraw the whole interface.
    setRoom(previous=>previous&&JSON.stringify(previous)===JSON.stringify(nextRoom)?previous:nextRoom);
-  }catch(e){if(!silent)setError(e instanceof Error?e.message:"Connexion impossible.")}
-  finally{if(snapshotInFlight.current===t)snapshotInFlight.current=""}
+  }catch(e){if(!silent)setError(controller.signal.aborted?"Connexion trop lente. Vérifie ton réseau.":e instanceof Error?e.message:"Connexion impossible.")}
+  finally{
+   window.clearTimeout(timeout);
+   if(snapshotInFlight.current===t)snapshotInFlight.current="";
+  }
  },[token]);
  useEffect(()=>{
   const saved=localStorage.getItem("love-radar-token")||"";
@@ -630,6 +642,7 @@ export default function LoveRadar(){
    if(stopped)return;
    if(document.visibilityState==="visible"){
     controller=new AbortController();
+    const timeout=window.setTimeout(()=>controller?.abort(),6500);
     try{
      const res=await apiFetch("/api/love?status=1",{headers:{Authorization:"Bearer "+token},cache:"no-store",signal:controller.signal});
      const data=await res.json() as Result;
@@ -645,7 +658,8 @@ export default function LoveRadar(){
       if(typeof data.revision==="number"&&data.revision!==roomRevisionRef.current)
        void refresh(undefined,true);
      }
-    }catch{/* The previous activity will expire naturally. */}
+    }catch{/* Temporary status failures are retried; the last presence expires naturally. */}
+    finally{window.clearTimeout(timeout);controller=null}
    }
    if(!stopped)timer=window.setTimeout(poll,tab==="chat"?1750:4800);
   };
