@@ -1044,8 +1044,9 @@ export default function LoveRadar(){
    void request("delivered",{messageId:newest.id}).catch(()=>{lastDeliveredSent.current=0});
   };
   acknowledge();
+  const retry=window.setInterval(acknowledge,12000);
   document.addEventListener("visibilitychange",acknowledge);
-  return()=>document.removeEventListener("visibilitychange",acknowledge);
+  return()=>{window.clearInterval(retry);document.removeEventListener("visibilitychange",acknowledge)};
  },[room?.messages,room?.user.id,token,request]);
  useEffect(()=>{
   if(tab!=="chat"||!token||!room)return;
@@ -1059,8 +1060,9 @@ export default function LoveRadar(){
    void request("read").catch(()=>{lastReadSent.current=0});
   };
   acknowledgeRead();
+  const retry=window.setInterval(acknowledgeRead,12000);
   document.addEventListener("visibilitychange",acknowledgeRead);
-  return()=>document.removeEventListener("visibilitychange",acknowledgeRead);
+  return()=>{window.clearInterval(retry);document.removeEventListener("visibilitychange",acknowledgeRead)};
  },[tab,room?.messages,room?.recentReaction?.updated_at,room?.recentReaction?.member_id,room?.user.id,token,request]);
  useEffect(()=>{
   if(tab!=="chat"&&typingActive.current){
