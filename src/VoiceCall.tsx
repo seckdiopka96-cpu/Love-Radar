@@ -1,5 +1,6 @@
 import {apiFetch} from "./api";
 import {findBuiltInSpeaker,audioRouteHelp} from "./audio-output";
+import {relayNeedsRefresh,RELAY_REFRESH_AFTER_MS,RELAY_RETRY_AFTER_ERROR_MS} from "./reliability-rules";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
 import "./voice-call.css";
@@ -46,6 +47,8 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const sendingCandidates=useRef(false);
  const sessionDescriptionSent=useRef(false);
  const networkWarmup=useRef<Promise<void>|null>(null);
+ const networkWarmedAt=useRef(0);
+ const networkMaxAge=useRef(RELAY_REFRESH_AFTER_MS);
  const previousSinkId=useRef<string>("");
 
  useEffect(()=>setAnchor(showButton?document.getElementById("lr-voice-button-slot"):null),[showButton]);
@@ -66,16 +69,23 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    if(!response.ok||!data.ok)throw Error("Configuration audio inaccessible.");
    if(Array.isArray(data.iceServers)&&data.iceServers.length)iceServers.current=data.iceServers;
    else iceServers.current=STUN_SERVERS;
+   networkMaxAge.current=data.relay?RELAY_REFRESH_AFTER_MS:RELAY_RETRY_AFTER_ERROR_MS;
    setRelayEnabled(Boolean(data.relay));
    setNetworkHint(data.warning||(!data.relay?"La connexion directe peut échouer sur certains réseaux. Un relais TURN doit être activé sur Cloudflare.":""));
   }catch{
+   networkMaxAge.current=RELAY_RETRY_AFTER_ERROR_MS;
    iceServers.current=STUN_SERVERS;
    setRelayEnabled(false);
    setNetworkHint("Le serveur relais audio n’a pas pu être contacté.");
   }
  },[token]);
  const warmNetwork=useCallback(()=>{
-  if(!networkWarmup.current)networkWarmup.current=loadNetwork();
+  // TURN credentials expire; refresh before a new call rather than reusing an
+  // expired network setup for hours after the app was left open on an iPhone.
+  if(!networkWarmup.current||relayNeedsRefresh(networkWarmedAt.current,Date.now(),networkMaxAge.current)){
+   networkWarmedAt.current=Date.now();
+   networkWarmup.current=loadNetwork();
+  }
   return networkWarmup.current;
  },[loadNetwork]);
  useEffect(()=>{if(hasPartner)void warmNetwork()},[hasPartner,warmNetwork]);
@@ -149,6 +159,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
     if(!connectedSince.current)connectedSince.current=Date.now();setPhase("Connecté");setError("");
    }else if(peer.connectionState==="failed"){
     setPhase("Connexion échouée");
+    networkWarmedAt.current=0;
     setError("Impossible de transmettre l'audio sur ce réseau. Vérifie la connexion ou le relais TURN.");
    }else if(peer.connectionState==="disconnected")setPhase("Reconnexion…");
    else if(peer.connectionState==="connecting")setPhase("Connexion audio…");
@@ -288,9 +299,10 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   // rather than waiting for the microphone permission/initialization.
   const micTask=microphone();
   const callTask=api("start");
-  void warmNetwork(); // Prewarmed earlier; TURN lookup must not delay ringing.
+  const networkTask=warmNetwork(); // Ring immediately; ensure fresh TURN credentials before creating the peer.
   try{
    const [result]=await Promise.all([callTask,micTask]);
+   await networkTask;
    if(!result.call)throw Error("Appel non créé.");
    if(result.call.direction==="incoming"){
     local.current?.getTracks().forEach(track=>track.stop());
