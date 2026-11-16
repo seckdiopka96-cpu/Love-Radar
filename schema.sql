@@ -161,3 +161,30 @@ CREATE TABLE IF NOT EXISTS native_voip_devices (
  PRIMARY KEY(member_id,device_id)
 );
 CREATE INDEX IF NOT EXISTS idx_native_voip_room ON native_voip_devices(room_id,member_id);
+
+-- Voluntary private couple-care signals and opt-in prayer reminders.
+-- Period notices expire after 48 hours; do not record menstrual cycles.
+CREATE TABLE IF NOT EXISTS care_notices (
+ id TEXT PRIMARY KEY,room_id TEXT NOT NULL,sender_id TEXT NOT NULL,
+ recipient_id TEXT NOT NULL,kind TEXT NOT NULL,label TEXT,
+ created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,read_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_care_notice_inbox ON care_notices(recipient_id,expires_at);
+CREATE TABLE IF NOT EXISTS care_share_throttle (
+ member_id TEXT NOT NULL,kind TEXT NOT NULL,last_at INTEGER NOT NULL,
+ PRIMARY KEY(member_id,kind)
+);
+CREATE TABLE IF NOT EXISTS care_prayer_settings (
+ member_id TEXT PRIMARY KEY,room_id TEXT NOT NULL,
+ latitude REAL NOT NULL,longitude REAL NOT NULL,timezone TEXT NOT NULL,
+ method INTEGER NOT NULL,enabled INTEGER NOT NULL DEFAULT 0,updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_care_prayer_room ON care_prayer_settings(room_id);
+CREATE TABLE IF NOT EXISTS care_prayer_cache (
+ member_id TEXT NOT NULL,room_id TEXT NOT NULL,day TEXT NOT NULL,
+ times_json TEXT NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(member_id,day)
+);
+CREATE TABLE IF NOT EXISTS care_prayer_sent (
+ member_id TEXT NOT NULL,room_id TEXT NOT NULL,day TEXT NOT NULL,
+ prayer TEXT NOT NULL,sent_at INTEGER NOT NULL,PRIMARY KEY(member_id,day,prayer)
+);
