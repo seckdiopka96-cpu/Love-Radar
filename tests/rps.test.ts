@@ -7,6 +7,7 @@ const app=readFileSync("src/App.tsx","utf8");
 const screen=readFileSync("src/RpsDuo.tsx","utf8");
 const hub=readFileSync("src/GamesHub.tsx","utf8");
 const push=readFileSync("functions/lib/push.ts","utf8");
+const sw=readFileSync("public/sw.js","utf8");
 test("all nine outcomes follow the correct rules without bias",()=>{
  const ids=RPS_MOVES.map(item=>item.id);
  assert.deepEqual(ids,["rock","paper","scissors"]);
@@ -56,6 +57,9 @@ test("game screen synchronizes both clients, supports replay and is reachable fr
  assert.ok(app.includes('kind==="rps-challenge"?"rps"'));
  assert.ok(push.includes('"rps-challenge"'));
  assert.ok(push.includes('"rps"'));
+ assert.ok(sw.includes('"rps-challenge"'));
+ assert.ok(sw.includes('if(kind==="rps-challenge")tab="rps"'));
+ assert.ok(sw.includes('"rps"'));
  const css=readFileSync("src/rps-duo.css","utf8");
  assert.ok(css.includes("@media(max-width:450px)"));
  assert.ok(css.includes("prefers-reduced-motion:reduce"));
