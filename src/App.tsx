@@ -53,6 +53,7 @@ import "./premium-dock.css";
 import "./together-premium.css";
 import "./live-voice-waveform.css";
 import "./chat-composer-signature.css";
+import "./chat-readable-type.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
@@ -427,7 +428,7 @@ export default function LoveRadar(){
     if(data.tab==="watch"||data.tab==="watch-tiktok")setWatchInvite(data.tab);
     if(data.tab==="reconcile")setReconcileInvite(true);
     if(document.visibilityState==="visible"&&["message","photo","audio"].includes(data.kind||""))
-     setNotice("💌 Nouveau message reçu. Ouvre Messages pour le lire.");
+     setNotice("lr-partner-push:"+String(data.kind||"message"));
     return;
    }
    if(data?.type==="love-radar-push-needs-repair"){
@@ -1469,7 +1470,14 @@ export default function LoveRadar(){
    <button type="button" className="lr-watch-invite-join" onClick={()=>navigate("reconcile")}>Découvrir</button>
    <button type="button" className="lr-watch-invite-dismiss" onClick={()=>setReconcileInvite(false)} aria-label="Ignorer l'invitation">×</button>
   </div>:null}
-  {notice?<div className="lr-toast" onClick={()=>setNotice("")}>{notice} <span>×</span></div>:null}
+  {notice?<div className={"lr-toast"+(notice.startsWith("lr-partner-push:")?" lr-push-avatar-toast":"")}
+   role="status" onClick={()=>{if(notice.startsWith("lr-partner-push:"))navigate("chat");setNotice("")}}>
+   {notice.startsWith("lr-partner-push:")?<><span className="lr-push-avatar-thumb" aria-hidden="true">
+    {avatars.partner?<img src={avatars.partner} alt=""/>:(room?.partner||"♡").slice(0,1).toUpperCase()}
+   </span><span className="lr-push-avatar-copy"><strong>{room?.partner||"Ton partenaire"}</strong>
+    <small>{notice.endsWith(":audio")?"🎙️ Nouveau message vocal":notice.endsWith(":photo")?"📷 Nouvelle photo":"💌 Nouveau message"}</small></span></>:notice}
+   <span className="lr-push-toast-x" aria-hidden="true">×</span>
+  </div>:null}
   {error?<div className="lr-error" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
   {initializing?<main className="lr-loading">Un petit moment de magie… 💕</main>:!room?
    <main className="lr-auth lr-auth-simple">
