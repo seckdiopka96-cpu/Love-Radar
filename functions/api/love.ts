@@ -311,7 +311,11 @@ async function snapshot(db:D1Database,u:Member){
      await markRoomChanged(db,u.room_id);
      await ensureChatPresence(db);
      await db.prepare("UPDATE chat_presence SET typing_until=0 WHERE room_id=? AND member_id=?").bind(u.room_id,u.id).run();
-     waitUntil(notifyPartner(env,u.room_id,u.id,"Nouveau message 💌",u.name+(message.startsWith("[sticker:v1:")&&/^\[sticker:v1:[a-z0-9-]{1,36}\]$/.test(message)?" t’a envoyé un sticker.":" t’a envoyé un message."),"chat",{kind:"message",id:messageId}));
+     const isStickerToken=/^\[sticker:v1:[a-z0-9-]{1,36}\]$/.test(message);
+     const isGifToken=/^\[gif:v1:[A-Za-z0-9]{3,60}\]$/.test(message);
+     waitUntil(notifyPartner(env,u.room_id,u.id,"Nouveau message 💌",
+      u.name+(isStickerToken?" t’a envoyé un sticker.":isGifToken?" t’a envoyé un GIF.":" t’a envoyé un message."),
+      "chat",{kind:"message",id:messageId}));
      return ok({sent:true,id:messageId});
     }
     if(op==="edit-message"){
