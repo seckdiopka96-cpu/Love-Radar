@@ -15,14 +15,16 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
  const [daily,setDaily]=useState<DailyOverview|null>(null);
  const [story,setStory]=useState<StoryData|null>(null);
  useEffect(()=>{
-  let alive=true;
+  let alive=true,pending=false;
   async function refresh(){
-   if(document.visibilityState!=="visible")return;
+   if(!alive||pending||document.visibilityState!=="visible")return;
+   pending=true;
    try{
     const res=await apiFetch("/api/story",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
     const data=await res.json() as StoryData;
-    if(alive&&res.ok&&data.ok)setStory(data);
+    if(alive&&res.ok&&data.ok)setStory(previous=>previous&&JSON.stringify(previous)===JSON.stringify(data)?previous:data);
    }catch{/* Keep the home page usable if story data is temporarily unavailable. */}
+   finally{pending=false}
   }
   void refresh();
   const interval=window.setInterval(()=>void refresh(),20000);
@@ -31,14 +33,16 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
   return()=>{alive=false;window.clearInterval(interval);document.removeEventListener("visibilitychange",onVisible)};
  },[token]);
  useEffect(()=>{
-  let active=true;
+  let active=true,pending=false;
   async function checkDaily(){
-   if(document.visibilityState==="hidden")return;
+   if(!active||pending||document.visibilityState==="hidden")return;
+   pending=true;
    try{
     const res=await apiFetch("/api/moment",{headers:{"Authorization":"Bearer "+token},cache:"no-store"});
     const data=await res.json() as DailyOverview;
-    if(active&&res.ok&&data.ok)setDaily(data);
+    if(active&&res.ok&&data.ok)setDaily(previous=>previous&&JSON.stringify(previous)===JSON.stringify(data)?previous:data);
    }catch{/* The daily card should never block the home page. */}
+   finally{pending=false}
   }
   void checkDaily();
   const timer=window.setInterval(()=>void checkDaily(),12000);
@@ -48,15 +52,17 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
  },[token]);
  useEffect(()=>{
   if(!room.partner)return;
-  let alive=true;
+  let alive=true,pending=false;
   const refresh=async()=>{
-   if(document.visibilityState!=="visible")return;
+   if(!alive||pending||document.visibilityState!=="visible")return;
+   pending=true;
    try{
     const response=await apiFetch("/api/ludo",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
     if(!response.ok)return;
     const payload=await response.json() as {ok:boolean;game?:Game|null};
-    if(alive&&payload.ok)setGame(payload.game||null);
+    if(alive&&payload.ok)setGame(previous=>JSON.stringify(previous)===JSON.stringify(payload.game||null)?previous:payload.game||null);
    }catch{/* Keep the rest of the home page available if the game is offline. */}
+   finally{pending=false}
   };
   void refresh();
   const timer=window.setInterval(()=>void refresh(),6500);
@@ -86,9 +92,9 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
    <p><span className={"lr-home-online"+(online?" is-online":"")}/>{!room.partner?"En attente de ton partenaire":online?"Ton amour est en ligne":"Votre espace privé, toujours connecté"}</p>
   </section>
   <div className="lr-home-quick" aria-label="Accès rapides">
-   <button type="button" onClick={()=>onNavigate("chat")}><span className="lr-home-quick-icon" aria-hidden="true">✉</span><span><strong>Écrire</strong><small>Un petit mot</small></span><b>↗</b></button>
-   <button type="button" onClick={()=>onNavigate("watch")}><span className="lr-home-quick-icon" aria-hidden="true">▶</span><span><strong>Regarder</strong><small>À deux</small></span><b>↗</b></button>
-   <button type="button" onClick={()=>onNavigate("reconcile")}><span className="lr-home-quick-icon" aria-hidden="true">🕊</span><span><strong>S’écouter</strong><small>Se comprendre</small></span><b>↗</b></button>
+   <button type="button" onClick={()=>onNavigate("chat")}><span className="lr-home-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></span><span><strong>Écrire</strong><small>Un petit mot</small></span><b>↗</b></button>
+   <button type="button" onClick={()=>onNavigate("watch")}><span className="lr-home-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="m10 8 6 4-6 4Z" fill="currentColor" stroke="none"/></svg></span><span><strong>Regarder</strong><small>À deux</small></span><b>↗</b></button>
+   <button type="button" onClick={()=>onNavigate("reconcile")}><span className="lr-home-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v4a5 5 0 0 0 10 0v-4"/><path d="M5 10V9a7 7 0 0 1 14 0v1M5 10H3v5h4v-5Zm14 0h2v5h-4v-5Z"/><path d="M15 20h-2"/></svg></span><span><strong>S’écouter</strong><small>Se comprendre</small></span><b>↗</b></button>
   </div>
   {!room.partner?<section className="lr-home-invite"><div><strong>Invite ton amour 💌</strong><p>Partage ce code pour vous retrouver ici.</p></div><code>{room.code}</code><button type="button" onClick={onInvite}>Partager l’invitation</button></section>:null}
   <div className="lr-home-section-heading"><span>VOTRE HISTOIRE</span><small>Les instants qui comptent</small></div>
