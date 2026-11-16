@@ -5,7 +5,8 @@ let ready:Promise<void>|null=null;
 export async function ensureE2EEKeys(db:D1Database):Promise<void>{
  if(!ready)ready=db.exec(
   "CREATE TABLE IF NOT EXISTS e2ee_keys ("+
-  "member_id TEXT PRIMARY KEY, room_id TEXT NOT NULL, public_key TEXT NOT NULL, created_at INTEGER NOT NULL)"
+  "member_id TEXT PRIMARY KEY, room_id TEXT NOT NULL, public_key TEXT NOT NULL, created_at INTEGER NOT NULL);"+
+  "CREATE INDEX IF NOT EXISTS idx_e2ee_room ON e2ee_keys(room_id)"
  ).then(()=>{}).catch(err=>{ready=null;throw err});
  await ready;
 }
