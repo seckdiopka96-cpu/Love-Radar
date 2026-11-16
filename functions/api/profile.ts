@@ -1,4 +1,5 @@
 import type {D1Database,R2Bucket} from "@cloudflare/workers-types";
+import {markRoomChanged} from "../lib/room-revision";
 
 /** Authenticated, private couple profile pictures. Never expose R2 URLs or
  * accept a member ID outside the caller's room. */
@@ -57,6 +58,7 @@ async function handler(ctx:Ctx,method:"GET"|"POST"|"DELETE"){
    await db.prepare("DELETE FROM profile_photos WHERE room_id=? AND member_id=?")
     .bind(user.room_id,user.id).run();
    try{await bucket.delete(saved.object_key)}catch(err){console.error("Profile photo cleanup",err)}
+   await markRoomChanged(db,user.room_id);
    return ok({deleted:true,version:0});
   }
   const bytesHeader=Number(ctx.request.headers.get("content-length")||0);
@@ -83,6 +85,7 @@ async function handler(ctx:Ctx,method:"GET"|"POST"|"DELETE"){
   if(prior?.object_key&&prior.object_key!==key){
    try{await bucket.delete(prior.object_key)}catch(err){console.error("Old profile photo cleanup",err)}
   }
+  await markRoomChanged(db,user.room_id);
   return ok({saved:true,version});
  }catch(err){
   console.error("Profile photo API",err);
