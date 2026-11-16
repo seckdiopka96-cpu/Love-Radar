@@ -2,7 +2,7 @@ import {useEffect,useMemo,useState} from "react";
 import StickerArt from "./StickerArt";
 import {STICKERS,MOTION_STICKERS,STICKER_GROUPS,getSticker,type StickerCategory} from "./stickers";
 import {EMOJI_CATEGORIES,EMOJIS,filterEmojis} from "./emoji-catalog";
-import {GIPHY_KEY,fetchGifFile,searchGifs,type GifResult} from "./gif-provider";
+import {GIPHY_KEY,gifsByIds,searchGifs,type GifResult} from "./gif-provider";
 import "./stickers.css";
 import "./sticker-picker-premium.css";
 
@@ -10,7 +10,7 @@ type Props={
  storageKey:string;
  onSend:(id:string)=>void;
  onSendEmoji:(emoji:string)=>void;
- onSendGif:(file:File)=>Promise<boolean>;
+ onSendGif:(id:string)=>void;
  onClose:()=>void;
  onSearchFocus?:()=>void;
  onSearchBlur?:()=>void;
@@ -30,18 +30,15 @@ function readSaved(key:string,max=35):string[]{
  }catch{return []}
 }
 function readStickers(key:string){return readSaved(key).filter(id=>Boolean(getSticker(id)))}
-function validGifRecord(value:unknown):value is GifResult{
- if(!value||typeof value!=="object")return false;
- const entry=value as Partial<GifResult>;
- return typeof entry.id==="string"&&/^[A-Za-z0-9]{3,60}$/.test(entry.id)&&
-  typeof entry.preview==="string"&&typeof entry.original==="string"&&
-  /^https:\/\/(media\d*|i)\.giphy\.com\//.test(entry.preview)&&
-  /^https:\/\/(media\d*|i)\.giphy\.com\//.test(entry.original);
-}
-function savedGifs(key:string){
+function readGifIds(key:string):string[]{
  try{
   const parsed=JSON.parse(localStorage.getItem(key)||"[]") as unknown;
-  return Array.isArray(parsed)?parsed.filter(validGifRecord).slice(0,24):[];
+  return Array.isArray(parsed)?parsed.flatMap((entry:unknown)=>{
+   // Migrate any old locally cached URL objects to a list of identifiers only.
+   const id=typeof entry==="string"?entry:
+    entry&&typeof entry==="object"&&"id" in entry?(entry as {id?:unknown}).id:"";
+   return typeof id==="string"&&/^[A-Za-z0-9]{3,60}$/.test(id)?[id]:[];
+  }).slice(0,24):[];
  }catch{return []}
 }
 function save(key:string,value:unknown){try{localStorage.setItem(key,JSON.stringify(value))}catch{/* Safari private mode */}}
@@ -60,11 +57,11 @@ export default function StickerPicker({storageKey,onSend,onSendEmoji,onSendGif,o
  const [favorites,setFavorites]=useState<string[]>(()=>readStickers(FAV_KEY+storageKey));
  const [recents,setRecents]=useState<string[]>(()=>readStickers(RECENT_KEY+storageKey));
  const [recentEmojis,setRecentEmojis]=useState<string[]>(()=>readSaved(EMOJI_RECENT_KEY+storageKey).filter(e=>EMOJIS.includes(e)));
- const [gifFavorites,setGifFavorites]=useState<GifResult[]>(()=>savedGifs(GIF_FAV_KEY+storageKey));
- const [gifRecents,setGifRecents]=useState<GifResult[]>(()=>savedGifs(GIF_RECENT_KEY+storageKey));
+ const [gifFavorites,setGifFavorites]=useState<string[]>(()=>readGifIds(GIF_FAV_KEY+storageKey));
+ const [gifRecents,setGifRecents]=useState<string[]>(()=>readGifIds(GIF_RECENT_KEY+storageKey));
  const [remoteGifs,setRemoteGifs]=useState<GifResult[]>([]);
+ const [savedRemoteGifs,setSavedRemoteGifs]=useState<GifResult[]>([]);
  const [loadingGifs,setLoadingGifs]=useState(false);
- const [gifSending,setGifSending]=useState("");
  const [gifError,setGifError]=useState("");
 
  const stickerResults=useMemo(()=>{
@@ -82,11 +79,11 @@ export default function StickerPicker({storageKey,onSend,onSendEmoji,onSendGif,o
   return filterEmojis(text?query:"",text?"all":emojiCategory,recentEmojis);
  },[query,emojiCategory,recentEmojis]);
  const gifResults=useMemo(()=>{
-  const input=gifGroup==="recent"?gifRecents:gifGroup==="favorite"?gifFavorites:remoteGifs;
+  const input=gifGroup==="recent"||gifGroup==="favorite"?savedRemoteGifs:remoteGifs;
   const text=normalized(query.trim());
   return gifGroup==="trending"||!text?input:
    input.filter(item=>normalized(item.title).includes(text));
- },[gifGroup,query,remoteGifs,gifRecents,gifFavorites]);
+ },[gifGroup,query,remoteGifs,savedRemoteGifs]);
 
  useEffect(()=>{
   if(mode!=="gif"||!GIPHY_KEY||gifGroup!=="trending")return;
@@ -105,6 +102,20 @@ export default function StickerPicker({storageKey,onSend,onSendEmoji,onSendGif,o
   return()=>{alive=false;window.clearTimeout(handle);controller.abort()};
  },[mode,query,gifGroup]);
 
+ useEffect(()=>{
+  if(mode!=="gif"||!GIPHY_KEY||gifGroup==="trending")return;
+  const controller=new AbortController();
+  const ids=gifGroup==="recent"?gifRecents:gifFavorites;
+  setSavedRemoteGifs([]);setGifError("");
+  if(!ids.length)return()=>controller.abort();
+  setLoadingGifs(true);
+  void gifsByIds(ids,controller.signal)
+   .then(items=>{if(!controller.signal.aborted)setSavedRemoteGifs(items)})
+   .catch(error=>{if(!controller.signal.aborted)setGifError(error instanceof Error?error.message:"GIF indisponibles.")})
+   .finally(()=>{if(!controller.signal.aborted)setLoadingGifs(false)});
+  return()=>controller.abort();
+ },[mode,gifGroup,gifRecents,gifFavorites]);
+
  function sendSticker(id:string){
   const updated=[id,...recents.filter(other=>other!==id)].slice(0,25);
   setRecents(updated);save(RECENT_KEY+storageKey,updated);
@@ -119,21 +130,15 @@ export default function StickerPicker({storageKey,onSend,onSendEmoji,onSendGif,o
   setRecentEmojis(updated);save(EMOJI_RECENT_KEY+storageKey,updated);
   onSendEmoji(emoji);
  }
- async function sendGif(item:GifResult){
-  if(gifSending)return;
-  setGifSending(item.id);setGifError("");
-  try{
-   const file=await fetchGifFile(item);
-   if(!await onSendGif(file))throw Error("Le GIF n’a pas pu être envoyé. Réessaie.");
-   const updated=[item,...gifRecents.filter(v=>v.id!==item.id)].slice(0,22);
-   setGifRecents(updated);save(GIF_RECENT_KEY+storageKey,updated);
-   onClose();
-  }catch(error){setGifError(error instanceof Error?error.message:"Envoi du GIF impossible.")}
-  finally{setGifSending("")}
+ function sendGif(item:GifResult){
+  // Store only the GIPHY ID; render by a direct client-side request.
+  const updated=[item.id,...gifRecents.filter(v=>v!==item.id)].slice(0,22);
+  setGifRecents(updated);save(GIF_RECENT_KEY+storageKey,updated);
+  onSendGif(item.id);onClose();
  }
  function toggleGifFavorite(item:GifResult){
-  const updated=gifFavorites.some(v=>v.id===item.id)?
-   gifFavorites.filter(v=>v.id!==item.id):[item,...gifFavorites].slice(0,24);
+  const updated=gifFavorites.includes(item.id)?
+   gifFavorites.filter(v=>v!==item.id):[item.id,...gifFavorites].slice(0,24);
   setGifFavorites(updated);save(GIF_FAV_KEY+storageKey,updated);
  }
  const categories:{id:StickerGroup;label:string;icon:string}[]=[
@@ -210,14 +215,14 @@ export default function StickerPicker({storageKey,onSend,onSendEmoji,onSendGif,o
      {gifError?<p className="lr-gif-error" role="alert">{gifError}</p>:null}
      {gifResults.length?<div className="lr-gif-grid">{gifResults.map(item=>
       <div className="lr-gif-tile" key={item.id}>
-       <button type="button" className="lr-gif-send" disabled={Boolean(gifSending)}
+       <button type="button" className="lr-gif-send" disabled={false}
         aria-label={"Envoyer le GIF "+item.title} title={item.title} onClick={()=>void sendGif(item)}>
         <img src={item.preview} alt={item.title||"GIF animé"} loading="lazy"/>
-        {gifSending===item.id?<span className="lr-gif-loading">Envoi…</span>:null}
+        
        </button>
-       <button type="button" className={"lr-gif-favorite"+(gifFavorites.some(gif=>gif.id===item.id)?" is-favorite":"")}
-        aria-label={"Favori : "+item.title} aria-pressed={gifFavorites.some(gif=>gif.id===item.id)}
-        onClick={()=>toggleGifFavorite(item)}>{gifFavorites.some(gif=>gif.id===item.id)?"★":"☆"}</button>
+       <button type="button" className={"lr-gif-favorite"+(gifFavorites.includes(item.id)?" is-favorite":"")}
+        aria-label={"Favori : "+item.title} aria-pressed={gifFavorites.includes(item.id)}
+        onClick={()=>toggleGifFavorite(item)}>{gifFavorites.includes(item.id)?"★":"☆"}</button>
       </div>)}</div>:!loadingGifs&&!gifError?<p className="lr-sticker-empty">Aucun GIF trouvé.</p>:null}
     </>:<>
      <p className="lr-expression-hint">Animations Love Radar disponibles immédiatement. La recherche de GIF externes nécessite une clé GIPHY.</p>
@@ -227,7 +232,7 @@ export default function StickerPicker({storageKey,onSend,onSendEmoji,onSendGif,o
      </button>)}</div>
     </>}
    </div>
-   {GIPHY_KEY?<div className="lr-sticker-footer"><strong>Powered By GIPHY</strong><span>GIF animés • 5,5 Mo max</span></div>:
+   {GIPHY_KEY?<div className="lr-sticker-footer"><strong>Powered By GIPHY</strong><span>GIF servis directement par GIPHY</span></div>:
     <div className="lr-sticker-footer"><span>32 animations Love Radar incluses</span><span>GIF externes en option</span></div>}
   </>}
  </section>;
