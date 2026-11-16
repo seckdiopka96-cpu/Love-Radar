@@ -49,6 +49,7 @@ import ChatActivity from "./ChatActivity";
 import QuoteCard from "./QuoteCard";
 import {quoteAuthor,type QuoteKind} from "./message-quote";
 import {mergeOptimisticMessages,shouldKeepVoiceDraft,type AudioOutboxStatus} from "./voice-outbox";
+import {receiptState,receiptGlyph,receiptAccessibleLabel} from "./message-delivery";
 import "./redesign.css";
 import "./redesign-features.css";
 import "./chat-stability.css";
@@ -82,7 +83,7 @@ type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:s
  reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null;
  edited_at?:number;reactions?:{member_id:string;emoji:string}[];view_once?:number|boolean};
 type RecentReaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
-type Room = {revision?:number;e2ee?:EncryptionState;recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean;avatarVersion?:number};code:string;roomId:string;partner:string|null;partnerId?:string|null;partnerAvatarVersion?:number;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
+type Room = {revision?:number;e2ee?:EncryptionState;recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean;avatarVersion?:number};code:string;roomId:string;partner:string|null;partnerId?:string|null;partnerAvatarVersion?:number;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerDeliveredAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string;recoveryCode?:string;id?:string}&Partial<Room>;
 type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
 type LocalText={id:string;created_at:number;text:string;wireText?:string;replyToId?:string;replyKind?:QuoteKind|null;replyContent?:string|null;replySenderId?:string|null;status:"sending"|"failed"|"sent";error?:string};
@@ -443,7 +444,8 @@ export default function LoveRadar(){
  const fileInput=useRef<HTMLInputElement|null>(null);
  const firstPoll=useRef(true);
  const lastReadSent=useRef(0);
- useEffect(()=>{lastReadSent.current=0},[token]);
+ const lastDeliveredSent=useRef(0);
+ useEffect(()=>{lastReadSent.current=0;lastDeliveredSent.current=0},[token]);
  useEffect(()=>()=>{if(swipe.current?.timer!==null&&swipe.current?.timer!==undefined)clearTimeout(swipe.current.timer)},[]);
  const lastTypingSent=useRef(0);
  const typingActive=useRef(false);
@@ -1030,6 +1032,21 @@ export default function LoveRadar(){
   const timer=window.setInterval(heartbeat,2800);
   return()=>window.clearInterval(timer);
  },[tab,token,request]);
+ // A single check means stored on the server; two checks require a receipt
+ // from the partner's visible app. Simply being "online" is not proof of delivery.
+ useEffect(()=>{
+  if(!token||!room)return;
+  const acknowledge=()=>{
+   if(document.visibilityState!=="visible")return;
+   const newest=[...room.messages].reverse().find(m=>m.sender_id!==room.user.id);
+   if(!newest||newest.created_at<=lastDeliveredSent.current)return;
+   lastDeliveredSent.current=newest.created_at;
+   void request("delivered",{messageId:newest.id}).catch(()=>{lastDeliveredSent.current=0});
+  };
+  acknowledge();
+  document.addEventListener("visibilitychange",acknowledge);
+  return()=>document.removeEventListener("visibilitychange",acknowledge);
+ },[room?.messages,room?.user.id,token,request]);
  useEffect(()=>{
   if(tab!=="chat"||!token||!room||document.visibilityState!=="visible")return;
   const newest=[...room.messages].reverse().find(m=>m.sender_id!==room.user.id);
@@ -1932,6 +1949,7 @@ export default function LoveRadar(){
        const groupedBefore=previous&&!newDay&&previous.sender_id===m.sender_id&&m.created_at-previous.created_at<5*60*1000;
        const groupedAfter=next&&next.sender_id===m.sender_id&&new Date(next.created_at).toDateString()===day&&next.created_at-m.created_at<5*60*1000;
        const time=new Date(m.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+       const delivery=receiptState(m.created_at,room.partnerReadAt||0,room.partnerDeliveredAt||0);
        const date=new Date(m.created_at).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"long"});
        return <Fragment key={m.id}>
         {newDay?<div className="lr-chat-day">{date}</div>:null}
@@ -1964,7 +1982,7 @@ export default function LoveRadar(){
           media[m.id]?<VoiceMessage id={m.id} src={media[m.id]} mine={mine} time={time}
            avatarSrc={mine?avatars.mine:avatars.partner} avatarName={mine?room.user.name:partner}
            onOpenProfile={mine?()=>navigate("settings"):()=>setPartnerPhotoOpen(true)}
-           delivery={mine&&m.id===lastOwnMessage?.id?((room.partnerReadAt||0)>=m.created_at?"read":"sent"):undefined}
+           delivery={mine&&m.id===lastOwnMessage?.id?delivery:undefined}
            speed={voiceSpeed} onSpeedChange={setVoiceSpeed}
            autoPlay={nextAutoVoiceId===m.id}
            onAutoPlayConsumed={()=>setNextAutoVoiceId(null)}
@@ -1988,10 +2006,10 @@ export default function LoveRadar(){
            {textOutbox.find(v=>v.id===m.id)?.status==="failed"?<>
             <span>Échec de l’envoi</span>
             <button type="button" aria-label="Réessayer l’envoi du message" onClick={()=>{const entry=textOutbox.find(v=>v.id===m.id);if(entry)void sendQueuedText(entry)}}>Réessayer</button>
-           </>:<span>{textOutbox.find(v=>v.id===m.id)?.status==="sent"?"✓ Envoyé":"◌ Envoi…"}</span>}
+           </>:<span>{textOutbox.find(v=>v.id===m.id)?.status==="sent"?"✓":"◌ Envoi…"}</span>}
           </div>:null}
           {!groupedAfter&&m.kind!=="audio"?<time className="lr-message-time" dateTime={new Date(m.created_at).toISOString()}>{time}{m.edited_at?<span className="lr-edited-label"> · modifié</span>:null}</time>:null}
-          {mine&&m.kind!=="audio"&&m.id===lastOwnMessage?.id?<span className={"lr-read-receipt "+((room.partnerReadAt||0)>=m.created_at?"is-read":"")} aria-label="Statut du dernier message">{(room.partnerReadAt||0)>=m.created_at?"✓✓ Vu":"✓ Envoyé"}</span>:null}
+          {mine&&m.kind!=="audio"&&m.id===lastOwnMessage?.id?<span className={"lr-read-receipt "+(delivery==="read"?"is-read":"")} aria-label={receiptAccessibleLabel(delivery)}>{receiptGlyph(delivery)}</span>:null}
          </div>
         </div>
        </Fragment>
@@ -2050,7 +2068,7 @@ export default function LoveRadar(){
        <p>Envoyé par {quoteAuthor(infoMessage.sender_id,room.user.id,partner)}</p>
        <p>Le {new Date(infoMessage.created_at).toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"})}</p>
        {infoMessage.edited_at?<p>Modifié le {new Date(infoMessage.edited_at).toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"})}</p>:null}
-       {infoMessage.sender_id===room.user.id?<p>{(room.partnerReadAt||0)>=infoMessage.created_at?"✓✓ Vu par ton partenaire":"✓ Envoyé"}</p>:null}
+       {infoMessage.sender_id===room.user.id?<p>{receiptAccessibleLabel(receiptState(infoMessage.created_at,room.partnerReadAt||0,room.partnerDeliveredAt||0))}</p>:null}
        <button type="button" className="lr-message-action-close" onClick={()=>setInfoMessageId(null)}>Fermer</button>
       </div>
      </div>:null}
