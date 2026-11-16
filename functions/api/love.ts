@@ -2,7 +2,7 @@ import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { notifyPartner, type PushEnv } from "../lib/push";
 import { ensureProfilePhotos } from "./profile";
 import {roomRevision,markRoomChanged} from "../lib/room-revision";
-import {roomPublicKeys,encryptedText,validPublicKey,ENCRYPTED_TEXT_PREFIX} from "../lib/e2ee";
+import {roomPublicKeys,encryptedText,validateP256PublicKey,ENCRYPTED_TEXT_PREFIX} from "../lib/e2ee";
 import {deleteCoupleRoom} from "../lib/delete-room";
 import {generateRecoveryCode,ensureRecoveryCodes,recoveryHash} from "../lib/account-recovery";
 import {consumePublicLimit,consumeMemberLimit,PUBLIC_LIMITS,MEMBER_LIMITS,throttled} from "../lib/abuse-limits";
@@ -217,7 +217,7 @@ async function snapshot(db:D1Database,u:Member){
     const session=await auth(request);if(!session)return fail("Session expirée. Rejoins ton espace.",401);
     const {user:u}=session;
     if(op==="enable-e2ee"){
-     if(!validPublicKey(body.publicKey))return fail("Clé publique invalide.",400);
+     if(!await validateP256PublicKey(body.publicKey))return fail("Clé publique invalide.",400);
      const current=await roomPublicKeys(db,u.room_id);
      const prior=current.find(row=>row.member_id===u.id);
      if(prior&&prior.public_key!==body.publicKey)return fail("Cette identité est déjà activée. La clé privée ne peut pas être remplacée silencieusement.",409);
