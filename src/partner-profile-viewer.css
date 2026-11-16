@@ -1,0 +1,66 @@
+/* Tap the partner avatar as in a native messenger; keep the authenticated
+   photo in its existing local Blob URL. */
+.lr-chat .lr-partner-photo-trigger{
+ display:grid!important;place-items:center!important;
+ flex:0 0 auto!important;
+ min-width:43px!important;min-height:43px!important;
+ width:43px!important;height:43px!important;
+ border-radius:50%!important;padding:0!important;
+ margin:0!important;border:0!important;
+ background:transparent!important;box-shadow:none!important;
+ cursor:zoom-in;-webkit-tap-highlight-color:transparent;
+}
+.lr-chat .lr-partner-photo-trigger .lr-avatar{
+ width:43px!important;height:43px!important;min-width:43px!important;
+ border-radius:50%;overflow:hidden;box-sizing:border-box;
+}
+.lr-chat .lr-partner-photo-trigger .lr-avatar img{object-fit:cover;width:100%;height:100%}
+.lr-chat .lr-partner-photo-trigger:focus-visible{
+ outline:3px solid #f1b3d1!important;outline-offset:3px!important;
+}
+.lr-partner-photo-backdrop{
+ position:fixed;inset:0;z-index:2147483635;
+ padding:calc(12px + env(safe-area-inset-top)) 14px calc(15px + env(safe-area-inset-bottom));
+ display:flex;align-items:center;justify-content:center;box-sizing:border-box;
+ background:#050d1be8;backdrop-filter:blur(15px);
+}
+.lr-partner-photo-viewer{
+ display:flex;flex-direction:column;gap:14px;
+ width:min(100%,440px);max-height:calc(100dvh - 36px);
+ min-width:0;padding:16px;
+ border:1px solid #a7789d8c;border-radius:23px;
+ background:linear-gradient(150deg,#273949,#192c3d);
+ color:#fff5f9;box-shadow:0 20px 60px #00000087;
+ overflow:auto;box-sizing:border-box;
+}
+.lr-partner-photo-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.lr-partner-photo-heading>div{min-width:0}
+.lr-partner-photo-heading small{display:block;letter-spacing:1.8px;color:#df9dbd;font-weight:800;font-size:10px}
+.lr-partner-photo-heading h2{font-size:21px;line-height:1.25;margin:5px 0 0;overflow-wrap:anywhere}
+.lr-partner-photo-close{
+ display:grid;place-items:center;flex:0 0 42px;
+ width:42px;height:42px;padding:0;border-radius:50%;
+ border:1px solid #c89bbb;background:#334a59;color:#ffdfec;font-size:28px;
+ cursor:pointer;
+}
+.lr-partner-photo-close:focus-visible{outline:3px solid #ffd5ea;outline-offset:3px}
+.lr-partner-photo-full,.lr-partner-photo-empty{
+ display:block;width:100%;aspect-ratio:1/1;
+ max-height:min(56dvh,400px);object-fit:contain;
+ background:#0c1c2b;border:1px solid #ffffff26;border-radius:18px;
+ box-sizing:border-box;overflow:hidden;
+}
+.lr-partner-photo-empty{
+ display:grid;place-items:center;
+ background:linear-gradient(140deg,#6f496e,#294f69);
+ color:#fff1f6;
+}
+.lr-partner-photo-empty span{font-size:clamp(88px,26vw,140px);font-weight:750}
+.lr-partner-photo-viewer>p{font-size:12px;margin:0;color:#c8d6df;text-align:center}
+@media(max-width:700px){
+ .lr-partner-photo-viewer{padding:12px;gap:11px}
+ .lr-partner-photo-full,.lr-partner-photo-empty{max-height:min(52dvh,400px)}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-partner-photo-backdrop{backdrop-filter:none}
+}
