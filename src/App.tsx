@@ -25,6 +25,7 @@ import VoiceMessage from "./VoiceMessage";
 import StickerArt from "./StickerArt";
 import StickerPicker from "./StickerPicker";
 import {encodeSticker,isSticker,readStickerId} from "./stickers";
+import {mediaRetryDelay} from "./reliability-rules";
 import ChatActivity from "./ChatActivity";
 import QuoteCard from "./QuoteCard";
 import {quoteAuthor,type QuoteKind} from "./message-quote";
@@ -173,6 +174,7 @@ export default function LoveRadar(){
  const [media,setMedia]=useState<Record<string,string>>({});
  const [mediaErrors,setMediaErrors]=useState<Record<string,string>>({});
  const mediaRetries=useRef<Record<string,number>>({});
+ const mediaRetryTimers=useRef<Record<string,number>>({});
  const mediaFailures=useRef<Record<string,number>>({});
  const [voiceOutbox,setVoiceOutbox]=useState<LocalVoice[]>([]);
  const [textOutbox,setTextOutbox]=useState<LocalText[]>([]);
@@ -690,9 +692,12 @@ export default function LoveRadar(){
   if(mediaCache.current[id])return;
   if(!force&&Date.now()<(mediaRetries.current[id]||0))return;
   mediaCache.current[id]="pending";
+  const controller=new AbortController();
+  // A disconnected iPhone must not leave photo/audio loading permanently pending.
+  const timeout=window.setTimeout(()=>controller.abort(),12000);
   try{
    const response=await apiFetch("/api/media?id="+encodeURIComponent(item.object_key),{
-    headers:{Authorization:"Bearer "+token},cache:"no-store"
+    headers:{Authorization:"Bearer "+token},cache:"no-store",signal:controller.signal
    });
    if(!response.ok)throw new Error("HTTP "+response.status);
    const mime=(response.headers.get("content-type")||"").toLowerCase();
@@ -707,6 +712,9 @@ export default function LoveRadar(){
    }
    if(mediaCache.current[id]!=="pending"){URL.revokeObjectURL(url);return}
    mediaCache.current[id]=url;
+   if(mediaRetryTimers.current[id]){
+    window.clearTimeout(mediaRetryTimers.current[id]);delete mediaRetryTimers.current[id];
+   }
    delete mediaRetries.current[id];
    delete mediaFailures.current[id];
    setMedia(prev=>({...prev,[id]:url}));
@@ -718,12 +726,24 @@ export default function LoveRadar(){
    if(mediaCache.current[id]==="pending")delete mediaCache.current[id];
    const attempts=(mediaFailures.current[id]||0)+1;
    mediaFailures.current[id]=attempts;
-   mediaRetries.current[id]=Date.now()+Math.min(30000,2500*2**Math.min(attempts-1,4));
+   const delay=mediaRetryDelay(attempts);
+   if(delay!==null){
+    mediaRetries.current[id]=Date.now()+delay;
+    if(!mediaRetryTimers.current[id]){
+     mediaRetryTimers.current[id]=window.setTimeout(()=>{
+      delete mediaRetryTimers.current[id];
+      if(document.visibilityState==="visible")void fetchMedia(item,true);
+     },delay);
+    }
+   }
    if(item.kind==="image")
     setMediaErrors(prev=>prev[id]?prev:{...prev,[id]:"Photo indisponible pour le moment."});
-  }
+  }finally{window.clearTimeout(timeout)}
  }
  function retryMedia(item:Message){
+  if(mediaRetryTimers.current[item.id]){
+   window.clearTimeout(mediaRetryTimers.current[item.id]);delete mediaRetryTimers.current[item.id];
+  }
   const url=mediaCache.current[item.id];
   if(url?.startsWith("blob:"))URL.revokeObjectURL(url);
   delete mediaCache.current[item.id];
@@ -739,6 +759,27 @@ export default function LoveRadar(){
    if(item.object_key&&!item.view_once&&!mediaCache.current[item.id])void fetchMedia(item);
   }
  },[room?.messages,token]);
+ useEffect(()=>{
+  const resumeMedia=()=>{
+   if(document.visibilityState!=="visible")return;
+   for(const item of room?.messages||[]){
+    if(!item.object_key||item.view_once||mediaCache.current[item.id])continue;
+    if((mediaFailures.current[item.id]||0)>0){
+     if(mediaRetryTimers.current[item.id]){
+      window.clearTimeout(mediaRetryTimers.current[item.id]);delete mediaRetryTimers.current[item.id];
+     }
+     // Recover once on reconnection; do not start infinite retry loops.
+     if(mediaRetryDelay(mediaFailures.current[item.id])!==null)
+      void fetchMedia(item,true);
+    }
+   }
+  };
+  const onVisible=()=>{if(document.visibilityState==="visible")resumeMedia()};
+  window.addEventListener("online",resumeMedia);
+  document.addEventListener("visibilitychange",onVisible);
+  return()=>{window.removeEventListener("online",resumeMedia);document.removeEventListener("visibilitychange",onVisible)};
+ },[room?.messages,token]);
+ useEffect(()=>()=>{for(const timer of Object.values(mediaRetryTimers.current))window.clearTimeout(timer);mediaRetryTimers.current={}},[token]);
  // Retire the local item only once the matching server row is visible.
  useEffect(()=>{
   if(!room)return;
