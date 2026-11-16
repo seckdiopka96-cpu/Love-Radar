@@ -179,6 +179,8 @@ export default function LoveRadar(){
  const [voiceSpeed,setVoiceSpeed]=useState<VoiceSpeed>(1);
  const [callHistory,setCallHistory]=useState<CallHistoryEvent[]>([]);
  const [callClockOffset,setCallClockOffset]=useState(0);
+ // A recovered/different private room must never see the previous couple's call cards.
+ useEffect(()=>{setCallHistory([]);setCallClockOffset(0)},[room?.roomId,token]);
  // Leave chat / switch couple: never auto-start an old private message.
  useEffect(()=>{setNextAutoVoiceId(null)},[tab,room?.roomId]);
  const currentTab=useRef(tab);
