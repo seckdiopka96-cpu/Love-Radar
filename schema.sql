@@ -149,3 +149,15 @@ CREATE TABLE IF NOT EXISTS couple_party_games (
  last_invite_at INTEGER NOT NULL DEFAULT 0,
  PRIMARY KEY(room_id,mode)
 );
+
+-- Native iOS PushKit VoIP tokens (never Apple signing keys). Each record is
+-- linked to an authenticated room member and physical installation.
+CREATE TABLE IF NOT EXISTS native_voip_devices (
+ member_id TEXT NOT NULL,
+ room_id TEXT NOT NULL,
+ device_id TEXT NOT NULL,
+ voip_token TEXT NOT NULL UNIQUE,
+ updated_at INTEGER NOT NULL,
+ PRIMARY KEY(member_id,device_id)
+);
+CREATE INDEX IF NOT EXISTS idx_native_voip_room ON native_voip_devices(room_id,member_id);
