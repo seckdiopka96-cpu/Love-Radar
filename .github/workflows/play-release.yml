@@ -1,0 +1,103 @@
+name: Construire Love Radar pour Google Play
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: "Code de version Android (1 pour une premiere publication)"
+        type: string
+        required: true
+        default: "1"
+      version_name:
+        description: "Numero de version visible"
+        type: string
+        required: true
+        default: "1.0.0"
+  pull_request:
+    paths:
+      - '.github/workflows/play-release.yml'
+      - 'scripts/prepare-play-release.mjs'
+      - 'package.json'
+      - 'capacitor.config.ts'
+      - 'native/call-session/**'
+      - 'scripts/configure-native.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  android-play-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Compiler React et generer Android
+        run: |
+          npm install
+          npm run build
+          npx cap add android
+          node scripts/configure-native.mjs android
+          npx cap sync android
+      - name: Controler le package, l'API 36 et la version
+        env:
+          ANDROID_VERSION_CODE: ${{ inputs.version_code || '1' }}
+          ANDROID_VERSION_NAME: ${{ inputs.version_name || '1.0.0' }}
+        run: node scripts/prepare-play-release.mjs
+      - name: Produire l'Android App Bundle
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew bundleRelease --no-daemon
+          test -s app/build/outputs/bundle/release/app-release.aab
+      - name: Signer avec les secrets du depot
+        id: signing
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$ANDROID_UPLOAD_KEYSTORE_BASE64" || -z "$ANDROID_UPLOAD_KEYSTORE_PASSWORD" || -z "$ANDROID_UPLOAD_KEY_ALIAS" || -z "$ANDROID_UPLOAD_KEY_PASSWORD" ]]; then
+            echo "::notice::AAB non signe. Configurer les quatre secrets GitHub pour publier sur Google Play."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          umask 077
+          KEYSTORE="$RUNNER_TEMP/love-radar-upload.jks"
+          SIGNED_AAB="$RUNNER_TEMP/love-radar-play-signed.aab"
+          trap 'rm -f "$KEYSTORE"' EXIT
+          printf '%s' "$ANDROID_UPLOAD_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+          jarsigner -keystore "$KEYSTORE" \
+            -storepass:env ANDROID_UPLOAD_KEYSTORE_PASSWORD \
+            -keypass:env ANDROID_UPLOAD_KEY_PASSWORD \
+            -signedjar "$SIGNED_AAB" \
+            android/app/build/outputs/bundle/release/app-release.aab \
+            "$ANDROID_UPLOAD_KEY_ALIAS"
+          jarsigner -verify "$SIGNED_AAB"
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+      - name: Joindre l'AAB signe pour Google Play
+        if: steps.signing.outputs.signed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: love-radar-google-play-signed-aab
+          path: ${{ runner.temp }}/love-radar-play-signed.aab
+          if-no-files-found: error
+          retention-days: 7
+      - name: Joindre l'AAB non signe (non publiable)
+        if: steps.signing.outputs.signed != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: love-radar-unsigned-not-for-play
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 7
