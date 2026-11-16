@@ -75,7 +75,7 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
  const gameSub=game?.status==="won"?"Une nouvelle partie vous attend.":game?(game.turn===room.user.seat?"C’est à toi de jouer !":"C’est au tour de "+room.partner):"Un défi privé, juste vous deux.";
  return <div className="lr-home">
   <div className="lr-home-welcome">
-   <div><span className="lr-home-kicker">LOVE RADAR · VOTRE UNIVERS</span><h2>Bienvenue, <em>{room.user.name}.</em> <span>♡</span></h2><p>Votre petite bulle de bonheur, chaque jour.</p></div>
+   <div><span className="lr-home-kicker">VOTRE UNIVERS</span><h2>Bienvenue, <em>{room.user.name}.</em> <span>♡</span></h2><p>Votre petite bulle de bonheur, chaque jour.</p></div>
    <div className="lr-home-welcome-date">{new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",month:"long"}).format(new Date())}</div>
   </div>
   <section className="lr-home-couple" aria-label="Votre couple">
