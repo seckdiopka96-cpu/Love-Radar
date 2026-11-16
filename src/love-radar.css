@@ -636,6 +636,8 @@ html,body,#root{max-width:100%;background:#140e1d;color:#fff1f2}
 .lr-chat-status.online{color:#7be0af}
 .lr-chat-status.typing{color:#cbaac9}
 .lr-chat-status.offline{color:#a58da6}
+.lr-chat-partner>div:last-child{min-width:0}
+.lr-chat .lr-chat-status.offline{max-width:100%;font-size:clamp(10px,2.6vw,12px);white-space:normal}
 
 
 /* Minimal brand: only Love Radar in the top header. */
