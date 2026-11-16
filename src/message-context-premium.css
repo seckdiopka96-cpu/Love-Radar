@@ -1,3 +1,24 @@
+/* A body portal keeps the iOS long-press menu outside the chat
+ * scroll container (overflow:hidden) and every ancestor stacking context.
+ * display:contents prevents the portal shell from itself clipping fixed UI. */
+body > .lr-chat.lr-chat-context-root{
+ display:contents!important;
+ position:static!important;
+ overflow:visible!important;
+ width:auto!important;
+ height:auto!important;
+ max-height:none!important;
+}
+body > .lr-chat.lr-chat-context-root .lr-message-context-backdrop{
+ visibility:visible!important;
+ pointer-events:auto!important;
+}
+body > .lr-chat.lr-chat-context-root .lr-message-action-popover{
+ visibility:visible!important;
+ opacity:1!important;
+ pointer-events:auto!important;
+}
+
 /* Love Radar • WhatsApp-style anchored long-press actions.
  * This is a real, accessible interaction: gestures, reply, copy, edit, info,
  * reaction and deletion continue using their existing authenticated handlers.
