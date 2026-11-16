@@ -1,5 +1,6 @@
 import type { D1Database } from "@cloudflare/workers-types";
 import { notifyPartner, type PushEnv } from "../lib/push";
+import {consumeMemberLimit,MEMBER_LIMITS,throttled} from "../lib/abuse-limits";
 
 type Env = PushEnv;
 type Context = {request:Request;env:Env;waitUntil:(task:Promise<unknown>)=>void};
@@ -71,6 +72,7 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
    if(!partner)return fail("L’autre personne doit rejoindre votre espace.",409);
    const existing=await activeCall(db,u.room_id);
    if(existing)return response({ok:true,call:view(existing,u),already:true});
+   if(!await consumeMemberLimit(db,u.id,MEMBER_LIMITS.call))return throttled(MEMBER_LIMITS.call);
    const id=crypto.randomUUID();
    const created=await db.prepare("INSERT INTO voice_calls(id,room_id,caller_id,callee_id,status,created_at,updated_at,expires_at) SELECT ?,?,?,?,'ringing',?,?,? WHERE NOT EXISTS (SELECT 1 FROM voice_calls WHERE room_id=? AND status IN ('ringing','active') AND expires_at>?)")
     .bind(id,u.room_id,u.id,partner.id,t,t,t+60000,u.room_id,t).run();
