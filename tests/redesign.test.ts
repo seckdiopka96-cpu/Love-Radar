@@ -113,7 +113,7 @@ test("single-surface premium dock has no doubled outlines or active tab capsule"
  const dock=readFileSync("src/premium-dock.css","utf8");
  assert.ok(app.includes('import "./premium-dock.css";'),"Final dock stylesheet must be loaded");
  assert.ok(dock.includes('position:fixed!important'));
- assert.ok(dock.includes('bottom:calc(10px + env(safe-area-inset-bottom))'));
+ assert.ok(dock.includes('bottom:max(6px,calc(env(safe-area-inset-bottom) - 6px))'));
  assert.ok(dock.includes('border:1px solid rgba(209,222,237,.17)!important'));
  assert.ok(dock.includes('background:rgba(28,39,55,.86)!important'));
  assert.ok(dock.includes('.lr-mobile-nav::before,'));
@@ -169,7 +169,7 @@ test("readable spacious couple tiles after stale mobile CSS",()=>{
  assert.ok(legacy.includes('gap:14px!important'),"Readable gap between activity tiles");
  assert.ok(legacy.includes('.tg-affection-heading h2'),"Love section retains legible typography");
  assert.ok(legacy.includes('min-width:105px!important'),"Send heart action stays compact");
- assert.ok(sw.includes('love-radar-static-v61'),"Installed iPhones refresh the updated shell cache");
+ assert.ok(sw.includes('love-radar-static-v62'),"Installed iPhones refresh the updated shell cache");
 });
 
 
