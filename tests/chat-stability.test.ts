@@ -68,10 +68,36 @@ test("typing focuses last message and keyboard remains in safe iPhone viewport",
  assert.ok(!chat.includes('viewport?.addEventListener("scroll",syncWithChat)'));
  assert.ok(chat.includes("discardRecording.current=true"));
  assert.ok(chat.includes("!discardRecording.current"));
- assert.ok(chat.includes('recorder.current.state==="recording"'));
+ assert.ok(chat.includes('if(active.state==="recording")'));
  assert.ok(css.includes("lr-keyboard-open .lr-chat-head"));
  assert.ok(css.includes("padding:max(55px, env(safe-area-inset-top))"));
  assert.ok(css.includes("overflow-y:auto!important"));
  assert.ok(css.includes("lr-chat-jump"));
  assert.ok(css.includes("lr-chat-form input[type=text]"));
+});
+
+test("voice recording replaces the typing keyboard with a full-width iPhone composer",()=>{
+ const styles=readFileSync("src/recording-composer.css","utf8");
+ assert.ok(chat.includes('import "./recording-composer.css";'));
+ const start=chat.indexOf("async function toggleRecording(){");
+ const blur=chat.indexOf("chatInput.current?.blur();",start);
+ const startMic=chat.indexOf("navigator.mediaDevices.getUserMedia({audio:true})",start);
+ assert.ok(blur>start&&blur<startMic,"Input loses focus before microphone acquisition");
+ assert.ok(chat.includes("setChatFocused(false);"));
+ assert.ok(chat.includes("setStickerOpen(false);"));
+ assert.ok(chat.includes('lr-recording-mode'));
+ assert.ok(chat.includes('{recording?<div className="lr-voice-recording-composer"'));
+ assert.ok(chat.includes('aria-label="Supprimer le vocal"'));
+ assert.ok(chat.includes('aria-label="Envoyer le vocal"'));
+ assert.ok(chat.includes('pauseOrResumeRecording'));
+ assert.ok(chat.includes("active.pause();setRecordingPaused(true)"));
+ assert.ok(chat.includes("active.resume();recordingStartedAt.current=Date.now()"));
+ assert.ok(chat.includes('finishRecording(false)'));
+ assert.ok(chat.includes('finishRecording(true)'));
+ assert.ok(chat.includes('if(blob.size>0&&!discardRecording.current)'));
+ assert.ok(chat.includes("if(recorder.current?.state!==\"inactive\")recorder.current?.stop()"));
+ assert.ok(styles.includes(".lr-voice-recording-actions"));
+ assert.ok(styles.includes(".lr-voice-recording-wave"));
+ assert.ok(styles.includes("env(safe-area-inset-bottom)"));
+ assert.ok(styles.includes("@media(prefers-reduced-motion:reduce)"));
 });
