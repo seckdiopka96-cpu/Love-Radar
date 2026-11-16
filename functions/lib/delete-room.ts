@@ -7,7 +7,7 @@ import type {D1Database,R2Bucket,D1PreparedStatement} from "@cloudflare/workers-
  */
 export const ROOM_DATA_TABLES=[
  "message_replies","message_reactions","message_edits","message_hidden",
- "message_one_time","messages","e2ee_keys","chat_presence","voice_signals","voice_calls","voice_call_history",
+ "message_one_time","messages","e2ee_keys","chat_presence","voice_signals","voice_calls","voice_call_history","native_voip_devices",
  "profile_photos","couple_story_events","couple_stories",
  "couple_location_requests","couple_canvas_presence","couple_canvas_events",
  "couple_canvas_invites","affection_signals","daily_moments",
