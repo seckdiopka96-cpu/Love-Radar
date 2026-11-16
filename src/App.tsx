@@ -24,6 +24,8 @@ import CoupleStory from "./CoupleStory";
 import PrivatePhoto from "./PrivatePhoto";
 import ProfilePhotoEditor from "./ProfilePhotoEditor";
 import {useProfileAvatars} from "./use-profile-avatars";
+import {claimRecordingAudio,releaseRecordingAudio,isCallAudioActive,installAudioPlaybackGuard,type AudioInterrupt} from "./audio-focus";
+import PartnerProfileViewer from "./PartnerProfileViewer";
 import VoiceMessage from "./VoiceMessage";
 import LiveVoiceWaveform from "./LiveVoiceWaveform";
 import StickerArt from "./StickerArt";
@@ -54,6 +56,7 @@ import "./together-premium.css";
 import "./live-voice-waveform.css";
 import "./chat-composer-signature.css";
 import "./chat-readable-type.css";
+import "./comfortable-ui.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
@@ -147,6 +150,7 @@ export default function LoveRadar(){
  },[room?.roomId,room?.user.id,room?.partnerId,room?.e2ee?.mine,room?.e2ee?.partner]);
  const profilePicker=useRef<HTMLInputElement|null>(null);
  const [profileFile,setProfileFile]=useState<File|null>(null);
+ const [partnerPhotoOpen,setPartnerPhotoOpen]=useState(false);
  const [profileBusy,setProfileBusy]=useState(false);
  const [profileError,setProfileError]=useState("");
  const [initializing,setInitializing]=useState(true);
@@ -179,6 +183,7 @@ export default function LoveRadar(){
  function navigate(tab:Tab){
   if(tab==="chat"&&currentTab.current!=="chat")chatReturnTab.current=currentTab.current;
   closeNotice();
+  setPartnerPhotoOpen(false);
   setStickerOpen(false);
   setTab(tab);
   if(tab==="watch"||tab==="watch-tiktok")setWatchInvite(null);
@@ -244,6 +249,7 @@ export default function LoveRadar(){
  const recorder=useRef<MediaRecorder|null>(null);
  const recordingStream=useRef<MediaStream|null>(null);
  const recordingStarting=useRef(false);
+ const recordingRequestId=useRef(0);
  const recordingTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
  const mediaCache=useRef<Record<string,string>>({});
  const tail=useRef<HTMLDivElement|null>(null);
@@ -256,6 +262,26 @@ export default function LoveRadar(){
  const typingActive=useRef(false);
  const recordingActive=useRef(false);
  const discardRecording=useRef(false);
+ useEffect(()=>{
+  const uninstall=installAudioPlaybackGuard();
+  const onInterrupt=(event:Event)=>{
+   const focus=(event as CustomEvent<AudioInterrupt>).detail;
+   if(focus?.source!=="call")return;
+   recordingRequestId.current+=1; // Cancel a pending getUserMedia result too.
+   if(recorder.current&&recorder.current.state!=="inactive")finishRecording(false);
+  };
+  window.addEventListener("lr-audio-interrupt",onInterrupt);
+  return()=>{
+   window.removeEventListener("lr-audio-interrupt",onInterrupt);
+   uninstall();
+   recordingRequestId.current+=1;
+   discardRecording.current=true;
+   if(recorder.current?.state!=="inactive")try{recorder.current?.stop()}catch{}
+   recordingStream.current?.getTracks().forEach(track=>track.stop());
+   releaseRecordingAudio();
+  };
+ },[]);
+
  useEffect(()=>{
   const viewport=window.visualViewport;
   const sync=()=>{
@@ -1315,6 +1341,7 @@ export default function LoveRadar(){
    recordingStream.current?.getTracks().forEach(track=>track.stop());
    recordingStream.current=null;
    setRecording(false);
+   releaseRecordingAudio();
   }
   setRecordingPaused(false);
  }
@@ -1349,6 +1376,8 @@ export default function LoveRadar(){
   if(recording&&recorder.current){finishRecording(true);return}
   if(busy||!room?.partner||recordingStarting.current)return;
   if(typeof navigator==="undefined"||!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined"){setError("Enregistrement vocal indisponible sur ce navigateur.");return}
+  if(!claimRecordingAudio()){setError("Termine d’abord l’appel ou le vocal en cours.");return}
+  const requestId=++recordingRequestId.current;
   // A rapid double tap must not create two concurrent iOS microphone permission requests.
   recordingStarting.current=true;
   // Immediately dismiss the iPhone keyboard, before requesting microphone access.
@@ -1365,6 +1394,11 @@ export default function LoveRadar(){
    const stream=await navigator.mediaDevices.getUserMedia({audio:{
     echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1
    }});
+   // If a WebRTC call began during the permission prompt, discard this mic stream.
+   if(requestId!==recordingRequestId.current||isCallAudioActive()){
+    stream.getTracks().forEach(track=>track.stop());
+    throw new Error("Appel en cours.");
+   }
    recordingStream.current=stream;
    const mime=["audio/mp4","audio/webm;codecs=opus","audio/webm","audio/ogg"].find(type=>MediaRecorder.isTypeSupported(type));
    const rec=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);
@@ -1375,12 +1409,14 @@ export default function LoveRadar(){
     recordingActive.current=false;
     void request("recording",{active:false}).catch(()=>{});
     setError("Enregistrement interrompu.");
+    releaseRecordingAudio();
    };
    rec.onstop=()=>{
     if(recordingTimer.current)clearTimeout(recordingTimer.current);
     recordingTimer.current=null;
     stream.getTracks().forEach(track=>track.stop());
     recordingStream.current=null;
+    releaseRecordingAudio();
     if(recorder.current===rec)recorder.current=null;
     recordingStartedAt.current=null;
     recordingAccumulatedMs.current=0;
@@ -1405,10 +1441,11 @@ export default function LoveRadar(){
    recordingStream.current?.getTracks().forEach(track=>track.stop());
    recordingStream.current=null;
    setRecording(false);setRecordingPaused(false);
+   releaseRecordingAudio();
    const denied=err instanceof DOMException&&(err.name==="NotAllowedError"||err.name==="PermissionDeniedError");
    setError(denied?
     "Microphone bloqué. Autorise le micro pour Love Radar dans les réglages Safari ou de ton téléphone.":
-    "Impossible de démarrer l’enregistrement. Vérifie le micro et réessaie.");
+    isCallAudioActive()?"Un appel utilise déjà le microphone.":"Impossible de démarrer l’enregistrement. Vérifie le micro et réessaie.");
   }finally{
    recordingStarting.current=false;
   }
@@ -1562,7 +1599,9 @@ export default function LoveRadar(){
       <button type="button" className="lr-chat-back" aria-label="Revenir aux onglets" onClick={()=>navigate(chatReturnTab.current)}>
        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
       </button>
-      <div className="lr-chat-partner"><Initials name={partner} size="small" src={avatars.partner}/>
+      <div className="lr-chat-partner"><button type="button" className="lr-partner-photo-trigger"
+        aria-label={"Agrandir la photo de profil de "+partner} title={"Photo de profil de "+partner}
+        onClick={()=>setPartnerPhotoOpen(true)}><Initials name={partner} size="small" src={avatars.partner}/></button>
        <div><h2>{partner}</h2><span className={"lr-chat-status "+(partnerOnline?"online":"offline")}>{!room.partner?"En attente de votre partenaire…":partnerOnline?"En ligne":"Hors ligne"}</span></div>
       </div>
       <div id="lr-voice-button-slot"/>
@@ -1719,6 +1758,8 @@ export default function LoveRadar(){
     </section>:null}
     {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Retrouvez les photos partagées dans votre conversation.</p></div><button type="button" className="lr-story-album-entry" onClick={()=>navigate("story")}><span aria-hidden="true">💑</span><span><strong>Notre histoire</strong><small>Notre photo, nos jours ensemble et nos souvenirs marquants.</small></span><b aria-hidden="true">→</b></button><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>navigate("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt="Souvenir du couple" enabled={privacyEnabled} viewer={room.user.name} variant="album"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
    </main>
+      {partnerPhotoOpen&&token&&room?.partner?<PartnerProfileViewer
+       name={partner} src={avatars.partner} onClose={()=>setPartnerPhotoOpen(false)}/>:null}
       {profileFile?<ProfilePhotoEditor key={profileFile.name+":"+profileFile.lastModified+":"+profileFile.size} file={profileFile} onCancel={()=>{if(!profileBusy){setProfileFile(null);setProfileError("")}}} onSave={saveProfilePhoto}/>:null}
    {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} avatarSrc={avatars.partner} hasPartner={Boolean(room.partner)} showButton={tab==="chat"||tab==="watch"||tab==="watch-tiktok"||tab==="reconcile"} onOpenChat={()=>navigate("chat")}/>:null}
    {room&&token&&tab==="chat"&&noticeTarget?.id&&["message","photo","audio"].includes(noticeTarget.kind||"")?<div className="lr-push-focus-backdrop" role="dialog" aria-modal="true" aria-label="Contenu de la notification">
