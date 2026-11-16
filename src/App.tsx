@@ -4,6 +4,7 @@ import {ensureIdentity,loadIdentity,loadRecoveredRoomKey,encryptedBackupFor,rest
 import {revealMessages} from "./e2ee-room";
 import {setNativePrivacy} from "./native-privacy";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
+import {createPortal} from "react-dom";
 import "./love-radar.css";
 import VoiceCall from "./VoiceCall";
 import CallHistoryBubble,{type CallHistoryEvent} from "./CallHistoryBubble";
@@ -345,7 +346,8 @@ export default function LoveRadar(){
    setActionPosition(prev=>prev&&Math.abs(prev.left-left)<.6&&Math.abs(prev.top-top)<.6?prev:{left,top});
   };
   const schedule=()=>{if(frame!==undefined)cancelAnimationFrame(frame);frame=requestAnimationFrame(place)};
-  schedule();
+  // Place synchronously so iOS cannot remain in an invisible menu state.
+  place();
   window.addEventListener("resize",schedule);
   window.visualViewport?.addEventListener("resize",schedule);
   window.visualViewport?.addEventListener("scroll",schedule);
@@ -1908,10 +1910,10 @@ export default function LoveRadar(){
       {partnerActivityKind?<ChatActivity kind={partnerActivityKind}/>:null}
       <div ref={tail}/>
      </div>
-     {actionMessage?<div className="lr-message-action-backdrop lr-message-context-backdrop" onClick={()=>setActionMessageId(null)}>
+     {actionMessage&&typeof document!=="undefined"?createPortal(<div className="lr-chat lr-chat-context-root"><div className="lr-message-action-backdrop lr-message-context-backdrop" onClick={()=>setActionMessageId(null)}>
       <div ref={actionPopoverRef} className={"lr-message-action-popover "+(actionMessage.sender_id===room.user.id?"is-own":"is-partner")}
        role="dialog" aria-modal="true" aria-label="Actions sur le message"
-       style={actionPosition?{left:actionPosition.left,top:actionPosition.top}:{left:12,top:12,visibility:"hidden"}}
+       style={actionPosition?{left:actionPosition.left,top:actionPosition.top}:{left:12,top:Math.max(18,Math.round((window.visualViewport?.height??window.innerHeight)*.17))}}
        onClick={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==="Escape"){e.stopPropagation();setActionMessageId(null)}}}>
        <div className="lr-message-reaction-picker" role="group" aria-label="Réagir au message">
         {CHAT_REACTIONS.map(emoji=><button key={emoji} type="button" aria-label={"Réagir "+emoji} onClick={()=>void reactToMessage(actionMessage,emoji)}>{emoji}</button>)}
@@ -1952,7 +1954,7 @@ export default function LoveRadar(){
        </div>
        <button type="button" className="lr-message-action-close" onClick={()=>setActionMessageId(null)}>Annuler</button>
       </div>
-     </div>:null}
+     </div></div>,document.body):null}
      {infoMessage?<div className="lr-message-action-backdrop" onClick={()=>setInfoMessageId(null)}>
       <div className="lr-message-action-sheet" role="dialog" aria-modal="true" aria-label="Informations du message" onClick={e=>e.stopPropagation()}>
        <strong>Informations du message</strong>
