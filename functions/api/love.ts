@@ -2,6 +2,7 @@ import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { notifyPartner, type PushEnv } from "../lib/push";
 import { ensureProfilePhotos } from "./profile";
 import {roomRevision,markRoomChanged} from "../lib/room-revision";
+import {deleteCoupleRoom} from "../lib/delete-room";
 import {generateRecoveryCode,ensureRecoveryCodes,recoveryHash} from "../lib/account-recovery";
 import {consumePublicLimit,consumeMemberLimit,PUBLIC_LIMITS,MEMBER_LIMITS,throttled} from "../lib/abuse-limits";
 
@@ -369,88 +370,17 @@ async function snapshot(db:D1Database,u:Member){
     }
     if(op==="delete"){
      if(u.owner_id!==u.id)return fail("Seul le créateur de l’espace peut le supprimer.",403);
-     await ensureProfilePhotos(db);
-     const profileObjects=await db.prepare("SELECT object_key FROM profile_photos WHERE room_id=?")
-      .bind(u.room_id).all<{object_key:string}>();
-     if(profileObjects.results.length&&!bindings().STORAGE)return fail("Stockage des profils indisponible.",503);
-     for(const profile of profileObjects.results){
-      try{await bindings().STORAGE?.delete(profile.object_key)}
-      catch(err){console.error("Delete profile photo",err);return fail("Suppression de photo de profil impossible.",503)}
-     }
-     await db.prepare("DELETE FROM profile_photos WHERE room_id=?").bind(u.room_id).run();
-     const objects=await db.prepare("SELECT object_key FROM messages WHERE room_id=? AND object_key IS NOT NULL").bind(u.room_id).all<{object_key:string}>();
-     const bucket=bindings().STORAGE;
-     if(bucket)for(const row of objects.results)try{await bucket.delete(row.object_key)}catch(e){console.error("delete media",e);return fail("Suppression des médias impossible. Réessaie.",503)}
-     // The couple portrait is stored separately from chat images. Delete it too.
-     let portrait:{photo_key:string|null}|null=null;
-     try{portrait=await db.prepare("SELECT photo_key FROM couple_stories WHERE room_id=?").bind(u.room_id).first<{photo_key:string|null}>()}
-     catch(e){console.error("Optional story portrait lookup",e)}
-     if(portrait?.photo_key){
-      if(!bucket)return fail("Le stockage de la photo du couple est indisponible.",503);
-      try{await bucket.delete(portrait.photo_key)}
-      catch(e){console.error("delete story photo",e);return fail("Suppression de la photo commune impossible. Réessaie.",503)}
-     }
-     for(const table of ["couple_story_events","couple_stories"]){
-      try{await db.prepare("DELETE FROM "+table+" WHERE room_id=?").bind(u.room_id).run()}
-      catch(e){console.error("Optional couple story cleanup",table,e)}
-     }
-     try{await db.prepare("DELETE FROM push_subscriptions WHERE room_id=?").bind(u.room_id).run()}catch(e){console.error("push cleanup",e)}
-     await ensureChatPresence(db);
-     await db.prepare("DELETE FROM chat_presence WHERE room_id=?").bind(u.room_id).run();
-     // If voice calling was used, remove its signaling records with the room.
+     // Delete every room-scoped feature, one-time recovery, push subscriptions,
+     // reconciliation texts, media and portraits; D1 cleanup is transactional.
+     // Keep the owner's session when R2 fails, so deletion remains retryable.
      try{
-      await db.prepare("DELETE FROM voice_signals WHERE room_id=?").bind(u.room_id).run();
-      await db.prepare("DELETE FROM voice_calls WHERE room_id=?").bind(u.room_id).run();
-     }catch(err){console.error("Optional voice call cleanup",err)}
-     try{await db.prepare("DELETE FROM couple_location_requests WHERE room_id=?").bind(u.room_id).run()}
-     catch(e){console.error("Optional location consent cleanup",e)}
-     try{await db.prepare("DELETE FROM couple_canvas_presence WHERE room_id=?").bind(u.room_id).run()}
-     catch(e){console.error("Optional canvas presence cleanup",e)}
-     for(const table of ["affection_signals","couple_canvas_events","couple_canvas_invites"]){
-      try{await db.prepare("DELETE FROM "+table+" WHERE room_id=?").bind(u.room_id).run()}
-      catch(e){console.error("Optional Together cleanup",table,e)}
+      const result=await deleteCoupleRoom(db,bindings().STORAGE,u.room_id);
+      if(!result.deleted)return fail("Cet espace n’existe plus.",404);
+      return ok({deleted:true});
+     }catch(err){
+      console.error("Private room deletion incomplete",err);
+      return fail("La suppression n’a pas pu être terminée. Réessaie.",503);
      }
-     try{await db.prepare("DELETE FROM daily_moments WHERE room_id=?").bind(u.room_id).run()}
-     catch(err){console.error("Optional daily moments cleanup",err)}
-     for(const table of ["memory_challenges","memory_gifts","memory_agreements","memory_games"]){
-      try{await db.prepare("DELETE FROM "+table+" WHERE room_id=?").bind(u.room_id).run()}
-      catch(err){console.error("Optional Memory Love cleanup",table,err)}
-     }
-     try{await db.prepare("DELETE FROM ludo_challenges WHERE room_id=?").bind(u.room_id).run()}
-     catch(err){console.error("Optional Ludo challenge cleanup",err)}
-     try{await db.prepare("DELETE FROM ludo_agreements WHERE room_id=?").bind(u.room_id).run()}
-     catch(err){console.error("Optional Ludo rules agreement cleanup",err)}
-     try{await db.prepare("DELETE FROM ludo_gifts WHERE room_id=?").bind(u.room_id).run()}
-     catch(err){console.error("Optional Ludo gifts cleanup",err)}
-     try{await db.prepare("DELETE FROM ludo_reactions WHERE room_id=?").bind(u.room_id).run()}
-     catch(err){console.error("Optional Ludo reactions cleanup",err)}
-     for(const table of ["ludo_reaction_events","ludo_move_events"]){
-      try{await db.prepare("DELETE FROM "+table+" WHERE room_id=?").bind(u.room_id).run()}
-      catch(err){console.error("Optional Ludo animation cleanup",table,err)}
-     }
-     // Existing couples may have a live Ludo match; erase it with the room.
-     try{await db.prepare("DELETE FROM ludo_games WHERE room_id=?").bind(u.room_id).run()}
-     catch(err){console.error("Optional Ludo cleanup",err)}
-     await ensureMessageReplies(db);
-     await db.prepare("DELETE FROM message_replies WHERE room_id=?").bind(u.room_id).run();
-     await ensureMessageActions(db);
-     await db.prepare("DELETE FROM message_reactions WHERE room_id=?").bind(u.room_id).run();
-     await db.prepare("DELETE FROM message_edits WHERE room_id=?").bind(u.room_id).run();
-     await db.prepare("DELETE FROM message_hidden WHERE room_id=?").bind(u.room_id).run();
-     await db.prepare("DELETE FROM message_one_time WHERE room_id=?").bind(u.room_id).run();
-     await ensureRecoveryCodes(db);
-     await db.prepare("DELETE FROM member_recovery WHERE member_id IN (SELECT id FROM members WHERE room_id=?)").bind(u.room_id).run();
-     // Member identifiers in security counters must not outlive room deletion.
-     try{await db.prepare("DELETE FROM abuse_counters WHERE actor IN"+
-      " (SELECT 'member:'||id FROM members WHERE room_id=?)").bind(u.room_id).run()}
-     catch(error){console.error("Optional security counter cleanup",error)}
-     await db.batch([
-      db.prepare("DELETE FROM messages WHERE room_id=?").bind(u.room_id),
-      db.prepare("DELETE FROM members WHERE room_id=?").bind(u.room_id),
-      db.prepare("DELETE FROM rooms WHERE id=?").bind(u.room_id)
-     ]);
-     try{await db.prepare("DELETE FROM room_revisions WHERE room_id=?").bind(u.room_id).run()}catch{/* Revision table may be absent in older rooms */}
-     return ok({deleted:true});
     }
     return fail("Action inconnue.",404);
    }catch(err){console.error("Love Radar API",err);return fail("Impossible de traiter la demande.",500)}
