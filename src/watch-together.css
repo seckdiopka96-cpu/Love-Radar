@@ -19,17 +19,17 @@
 .wt-call-slot .lr-call-trigger{position:static!important;transform:none!important;margin:0;min-width:37px;min-height:37px;padding:6px}
 .wt-chat-open{font-size:22px;width:39px;padding:0}
 .wt-presence{display:flex;align-items:center;gap:7px;padding:10px 12px;min-height:39px;
- border:1px solid #a6788f;border-radius:12px;background:linear-gradient(100deg,#543a58,#3e3049);
+ border:1px solid #bc396c;border-radius:12px;background:linear-gradient(100deg,#543a58,#3e3049);
  color:#fbe4e9;font-size:12px;font-weight:750}
 .wt-presence>span:nth-child(2){flex:1;min-width:0}
-.wt-live-dot{width:9px;height:9px;flex:none;border-radius:50%;background:#bc8998;box-shadow:0 0 0 3px #ba7f942c}
+.wt-live-dot{width:9px;height:9px;flex:none;border-radius:50%;background:#a82358;box-shadow:0 0 0 3px #a21e522c}
 .wt-live-dot.active{background:#6debaf;box-shadow:0 0 0 3px #69e89a29,0 0 9px #6fffa8b8}
 .wt-presence-tag{white-space:nowrap;font-size:9px;letter-spacing:.45px;color:#edc4db}
 .wt-body{display:flex;flex-direction:column;min-height:0;min-width:0;gap:9px;flex:1 1 auto;overflow:auto;padding-bottom:5px;overscroll-behavior:contain}
 .wt-screen-panel{display:flex;flex-direction:column;gap:9px;min-width:0;flex:none}
 .wt-screen{position:relative;aspect-ratio:16/9;width:100%;min-height:210px;max-height:55vh;
  border-radius:16px;overflow:hidden;background:linear-gradient(145deg,#1b1225,#0b0c17);
- border:2px solid #a4778b;box-shadow:0 10px 30px #14081e9c,inset 0 0 0 1px #f8c9ca40;
+ border:2px solid #bc396c;box-shadow:0 10px 30px #14081e9c,inset 0 0 0 1px #f8c9ca40;
  isolation:isolate}
 .wt-youtube-host,.wt-youtube-target,.wt-youtube-host iframe{width:100%;height:100%;display:block;border:0}
 .wt-youtube-host{position:absolute;inset:0;z-index:1}
@@ -49,26 +49,26 @@
  background:linear-gradient(125deg,#3f2d46,#2c243e)}
 .wt-video-status{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#f9e5ed;font-size:11px}
 .wt-video-status>span:last-child{color:#e3baca;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px}
-.wt-activate{width:100%;min-height:39px;background:linear-gradient(110deg,#ffb970,#c95a7a);color:#231025;border:1px solid #ffefb8;
+.wt-activate{width:100%;min-height:39px;background:linear-gradient(110deg,#ffb970,#a82358);color:#231025;border:1px solid #ffefb8;
  border-radius:11px;font-weight:900;font-size:12px}
 .wt-player-actions{display:flex;gap:7px;min-width:0}
 .wt-player-actions button{flex:1 1 0;min-height:38px;padding:8px 5px;
  border:1px solid #a98a9f;border-radius:10px;background:#5e4867;color:#fff5ef;font-weight:850;font-size:12px}
-.wt-player-actions button.wt-player-play{flex:2 1 0;background:linear-gradient(135deg,#e7829f,#c15b85);border-color:#ffc2d1}
+.wt-player-actions button.wt-player-play{flex:2 1 0;background:linear-gradient(135deg,#bd2763,#a82358);border-color:#bc396c}
 .wt-player-actions button:disabled{opacity:.5}
 .wt-progress{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:750;min-width:0;color:#f8dbe6}
 .wt-progress span{flex:none;min-width:34px;text-align:center;font-variant-numeric:tabular-nums}
-.wt-progress input{flex:1 1 auto;min-width:0;accent-color:#ffb0cc;touch-action:pan-x}
+.wt-progress input{flex:1 1 auto;min-width:0;accent-color:#bd2763;touch-action:pan-x}
 .wt-youtube-source{color:#f2c5da;font-size:10px;text-align:right}
 .wt-link-form{display:flex;flex-direction:column;gap:7px;padding:12px;border:1px solid #a37f9f;
  border-radius:15px;background:linear-gradient(145deg,#45344d,#2e263d)}
 .wt-link-form label{font-size:12px;font-weight:850;color:#fff0dc}
 .wt-link-line{display:flex;align-items:center;gap:7px;min-width:0}
 .wt-link-line input{flex:1 1 auto;min-width:0;height:42px;padding:0 10px;border-radius:10px;
- border:1px solid #b48eae;background:#fdf7fc;color:#342437;font-size:13px}
-.wt-link-line input:focus-visible{outline:2px solid #ffc3e0;outline-offset:2px}
-.wt-link-line button{flex:none;height:42px;padding:0 12px;border:1px solid #ffbecf;border-radius:10px;
- color:#fff;background:linear-gradient(140deg,#c96891,#8c517b);font-weight:850;font-size:12px}
+ border:1px solid #b48eae;background:#c8326c;color:#342437;font-size:13px}
+.wt-link-line input:focus-visible{outline:2px solid #bc396c;outline-offset:2px}
+.wt-link-line button{flex:none;height:42px;padding:0 12px;border:1px solid #bc396c;border-radius:10px;
+ color:#fff;background:linear-gradient(140deg,#a82358,#8c517b);font-weight:850;font-size:12px}
 .wt-link-line button:disabled{opacity:.5}
 .wt-link-form small{color:#e2c4d7;font-size:10px;line-height:1.4}
 .wt-conversation{display:flex;flex-direction:column;min-height:0;flex:none;
@@ -82,15 +82,15 @@
 .wt-message-list{max-height:210px;min-height:80px;overflow:auto;display:flex;flex-direction:column;gap:7px;padding:10px 12px;
  border-top:1px solid #654963;overscroll-behavior:contain}
 .wt-message{max-width:82%;align-self:flex-start;border-radius:11px 11px 11px 3px;background:#59465e;padding:8px 10px;overflow-wrap:anywhere}
-.wt-message.mine{align-self:flex-end;border-radius:11px 11px 3px 11px;background:#9d547b}
+.wt-message.mine{align-self:flex-end;border-radius:11px 11px 3px 11px;background:#a82358}
 .wt-message span{font-size:9px;color:#f6c8d9;font-weight:850}
 .wt-message p{font-size:12px;line-height:1.4;margin:3px 0 0;color:#fff}
 .wt-chat-empty{align-self:center;text-align:center;font-size:12px;color:#e8c6d6}
 .wt-chat-compose{display:flex;align-items:center;gap:7px;padding:10px;border-top:1px solid #6d506a}
 .wt-chat-compose input{flex:1 1 auto;min-width:0;height:39px;padding:0 12px;border-radius:20px;
- border:1px solid #926a92;background:#fff5f9;color:#36223b;font-size:13px}
-.wt-chat-compose button{width:39px;height:39px;flex:none;border:1px solid #ffc8df;border-radius:50%;
- background:#c65c8b;color:white;font-size:19px}
+ border:1px solid #926a92;background:#c8326c;color:#36223b;font-size:13px}
+.wt-chat-compose button{width:39px;height:39px;flex:none;border:1px solid #bc396c;border-radius:50%;
+ background:#a82358;color:white;font-size:19px}
 .wt-chat-compose button:disabled{opacity:.45}
 .wt-footnote{font-size:10px;line-height:1.4;color:#ead0df;margin:0 5px 6px}
 .wt-alert,.wt-toast{display:flex;align-items:center;justify-content:space-between;gap:7px;
@@ -131,7 +131,7 @@
 /* Switch between YouTube (built-in player) and Netflix (Teleparty external player). */
 .wt-provider-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px;border:1px solid #8d6688;border-radius:12px;background:#2b2036;flex:none}
 .wt-provider-tabs button{border:0;border-radius:9px;background:transparent;padding:9px;color:#e9c7d9;font-size:12px;font-weight:900}
-.wt-provider-tabs button.active{color:#fff;background:linear-gradient(110deg,#ba6390,#854877);box-shadow:0 3px 10px #11082080}
+.wt-provider-tabs button.active{color:#fff;background:linear-gradient(110deg,#a82358,#854877);box-shadow:0 3px 10px #11082080}
 
 /* Consistent with TikTok: co-watch screens never scroll the page on iPhone.
    The actual message history can scroll independently when expanded. */
