@@ -28,11 +28,27 @@ test("32 original animated stickers are valid shareable first-party sticker toke
  }
  const art=readFileSync("src/StickerArt.tsx","utf8");
  const css=readFileSync("src/animated-stickers.css","utf8");
- assert.ok(art.includes('sticker.motion?" lr-motion-"'));
+ assert.ok(art.includes("sticker.motion??motions["),"all stickers get a deterministic motion, not only the first 32");
  assert.ok(css.includes(".lr-sticker-art.lr-motion-heartbeat"));
  assert.ok(css.includes(".lr-sticker-art.lr-motion-shake"));
  assert.ok(css.includes(".lr-sticker-art.lr-motion-kiss"));
  assert.ok(css.includes("(prefers-reduced-motion:reduce)"));
+});
+
+test("Emoji messages animate on both sides without changing the transported text",()=>{
+ const renderer=readFileSync("src/AnimatedEmojiText.tsx","utf8");
+ const css=readFileSync("src/animated-emoji.css","utf8");
+ const picker=readFileSync("src/StickerPicker.tsx","utf8");
+ const app=readFileSync("src/App.tsx","utf8");
+ assert.ok(renderer.includes("emojiOnlyText"),"detect emoji-only messages");
+ assert.ok(renderer.includes("content.split(emojiRegExp)"),"animate each emoji in ordinary text too");
+ assert.ok(renderer.includes("emojiMotionClass(part)"),"attach animation classes");
+ assert.ok(css.includes("@keyframes lr-emoji-heartbeat"));
+ assert.ok(css.includes("@keyframes lr-emoji-shake"));
+ assert.ok(css.includes("(prefers-reduced-motion:reduce)"),"respect motion accessibility preference");
+ assert.ok(picker.includes("emojiMotionClass(emoji)"),"emoji picker visibly animates");
+ assert.ok(app.includes("emojiOnlyText(m.content)"),"solo emoji gets a larger chat bubble");
+ assert.ok(app.includes('<AnimatedEmojiText content={m.content||""}/>'),"both sender and receiver use the same component");
 });
 
 test("GIF URLs and malformed provider results are rejected before any download",()=>{
