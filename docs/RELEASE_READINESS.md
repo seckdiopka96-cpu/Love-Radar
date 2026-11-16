@@ -21,6 +21,16 @@
 - Test automatisé : `npm run test:deletion`. Il utilise SQLite réel et un stockage R2 simulé, sans toucher aux espaces de production.
 - **À confirmer** sur une préproduction Cloudflare isolée : suppression/échec R2, restauration de sauvegardes, effacement des anciens objets orphelins, et absence de nouvelles écritures concurrentes pendant la suppression. Aucune purge des anciennes données déjà orphelines en production n'a été effectuée.
 
+## Mise à jour native — appels déjà établis en arrière-plan
+
+La base native des appels en arrière-plan a été ajoutée :
+- `src/native-call-session.ts` active/arrête le pont natif pendant un appel WebRTC accepté.
+- `scripts/configure-native.mjs` configure automatiquement l'audio `playAndRecord / voiceChat` et `UIBackgroundModes:audio` sur iPhone ; sur Android, il configure un service de microphone au premier plan avec notification persistante et permissions dédiées.
+- Les deux implémentations envoient un maintien de session au serveur toutes les 24 secondes pendant l'appel, indépendamment des intervalles React lorsqu'ils sont suspendus.
+- `tests/native-background-call.test.ts` vérifie les permissions, les enregistrements, la génération idempotente et les contrôles de cycle de vie.
+
+**Statut : la compilation Web et l'APK debug Android ont réussi. La validation d'un build iOS et les tests réels d'audio après verrouillage, changement d'application et réseaux 4G/5G restent indispensables.** Les appels entrants avec l'app fermée, CallKit/PushKit sur iPhone et les notifications natives Android ne sont pas encore implémentés. La PWA iOS ne gagne pas ces capacités natives.
+
 ## Conditions nécessaires à la mise en ligne
 
 1. Confirmer le déploiement Cloudflare Pages avec les bindings D1 `DB` et R2 privé `STORAGE`. Sur une nouvelle base, exécuter `schema.sql` ; pour les bases existantes, les nouvelles tables de récupération et de limitation se créent automatiquement.
