@@ -5,3 +5,7 @@ dist/
 .wrangler/
 .DS_Store
 *.log
+
+# Never commit staging load-test tokens or test accounts
+*.load-roster.json
+staging-accounts*.json
