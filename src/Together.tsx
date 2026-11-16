@@ -7,7 +7,7 @@ type Signal={id:string;sender_id:string;seat:number;kind:string;reply_to:string|
 type Reply={ok:boolean;error?:string;signals?:Signal[];focus?:Signal|null};
 type Props={
  token:string;myName:string;partnerName:string|null;mySeat:number;onExit:()=>void;
- onOpenMoment:()=>void;onOpenReunion:()=>void;onOpenWatch:()=>void;onOpenPuzzle:()=>void;onOpenReconcile:()=>void;
+ onOpenMoment:()=>void;onOpenReunion:()=>void;onOpenWatch:()=>void;onOpenPuzzle:()=>void;onOpenReconcile:()=>void;onOpenCare:()=>void;
  focusKind?:"love-signal"|null;focusId?:string|null
 };
 const RESPONSE_OPTIONS=[
@@ -21,7 +21,7 @@ function messageOf(signal:Signal){
  if(signal.kind==="love")return "Je t’aime 💖";
  return "Tu me manques aussi ❤️";
 }
-export default function Together({token,myName,partnerName,mySeat,onExit,onOpenMoment,onOpenReunion,onOpenWatch,onOpenPuzzle,onOpenReconcile,focusKind,focusId}:Props){
+export default function Together({token,myName,partnerName,mySeat,onExit,onOpenMoment,onOpenReunion,onOpenWatch,onOpenPuzzle,onOpenReconcile,onOpenCare,focusKind,focusId}:Props){
  const [signals,setSignals]=useState<Signal[]>([]);
  const [focused,setFocused]=useState<Signal|null>(null);
  const [onlyFocused,setOnlyFocused]=useState(Boolean(focusKind==="love-signal"&&focusId));
@@ -107,6 +107,11 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
      <span className="tg-tile-icon" aria-hidden="true">🧩</span><strong>Puzzle à deux</strong><small>Jouer ensemble</small>
     </button>
    </div>
+   <button type="button" className="tg-care-entry" onClick={onOpenCare}>
+    <span className="tg-care-symbol" aria-hidden="true">💗</span>
+    <span><small>PRENDRE SOIN DE NOUS</small><strong>Nos petites attentions</strong><small>Règles et rappels de prière, en toute liberté</small></span>
+    <b aria-hidden="true">›</b>
+   </button>
   </div>
   <section className="tg-affection-section" aria-labelledby="tg-affection-heading">
    <div className="tg-affection-heading">
