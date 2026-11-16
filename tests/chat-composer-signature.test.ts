@@ -51,6 +51,19 @@ test("iPhone composer keeps full-width input and all four original actions",()=>
  assert.ok(!css.includes("display:none"),"visual polish cannot hide any actions");
 });
 
+test("empty WhatsApp-style input shows mic, not a disabled send button",()=>{
+ const start=app.indexOf('className={"lr-chat-form ');
+ const end=app.indexOf('</form>',start);
+ const composer=app.slice(start,end);
+ assert.ok(composer.includes('{draft.trim()?<button className="lr-send"'),"send only exists when text is nonblank");
+ assert.ok(composer.includes('</button>:<button className={"lr-mic "'),"mic and send are mutually exclusive");
+ assert.ok(composer.includes('type="submit"'),"a nonempty message remains sendable");
+ assert.ok(composer.includes('disabled={!room.partner||busy}'),"send remains protected during requests");
+ assert.ok(!composer.includes('disabled={!room.partner||!draft.trim()||busy}'),"no visible disabled send on empty input");
+ assert.ok(composer.includes('onClick={toggleRecording}'),"empty input can still start a vocal");
+ assert.ok(composer.includes('onPointerDown={e=>e.preventDefault()}'),"sending preserves iPhone keyboard focus");
+ assert.ok(css.includes('flex:0 0 42px!important'),"send and mic occupy the same width and do not shift layout");
+});
 test("plus and sticker symbols use crisp accessible SVGs without emoji font fallback",()=>{
  assert.ok(app.includes('aria-label="Ajouter une photo"'));
  assert.ok(app.includes('M12 4v16M4 12h16'));
