@@ -46,8 +46,19 @@ function harness(){
 }
 test("care period notice requires explicit consent, remains private to couple and may be revoked",async()=>{
  const h=harness();
+ const defaultA=await h.request("a");
+ const defaultB=await h.request("b");
+ assert.equal(defaultA.json.periodEnabled,false,"no gender is inferred from the account name");
+ assert.equal(defaultB.json.periodEnabled,false,"personal preferences are not inferred from couple membership");
  const no=await h.request("a","period",{supplies:true});
  assert.equal(no.status,400);
+ const blocked=await h.request("a","period",{confirmed:true,supplies:true});
+ assert.equal(blocked.status,403,"period notices cannot be sent until the member opts in");
+ assert.equal((await h.request("b")).json.notices.length,0);
+ const enabled=await h.request("a","set-period-preference",{enabled:true});
+ assert.equal(enabled.status,200);
+ assert.equal(enabled.json.periodEnabled,true);
+ assert.equal((await h.request("b")).json.periodEnabled,false,"partner's own preference is unchanged");
  const period=await h.request("a","period",{confirmed:true,supplies:true});
  assert.equal(period.status,200);
  assert.equal(period.json.sent,true);
@@ -66,6 +77,11 @@ test("care period notice requires explicit consent, remains private to couple an
  const revoke=await h.request("a","revoke-period",{id:receive[0].id});
  assert.equal(revoke.status,200);
  assert.equal((await h.request("b")).json.notices.length,0);
+ const disabled=await h.request("a","set-period-preference",{enabled:false});
+ assert.equal(disabled.status,200);
+ assert.equal(disabled.json.periodEnabled,false);
+ assert.equal((await h.request("b")).json.periodEnabled,false);
+ assert.equal((await h.request("a","period",{confirmed:true})).status,403);
  h.sqlite.close();
 });
 test("each prayer schedule is voluntary and only coarse coordinates are saved",async()=>{
@@ -132,6 +148,11 @@ test("prayer timings validate timezone, due windows and method; no silent geoloc
  assert.ok(component.includes('enableHighAccuracy:false'));
  assert.ok(component.includes('window.confirm("Envoyer'));
  assert.ok(component.includes("confirmed:true,supplies"));
+ assert.ok(component.includes('state?.periodEnabled===true?<section className="lr-care-card lr-care-period">'));
+ const settings=readFileSync("src/SettingsPage.tsx","utf8");
+ assert.ok(settings.includes("updatePeriodPreference(event.target.checked)"));
+ assert.ok(settings.includes("set-period-preference"));
+ assert.ok(settings.includes("Cette fonction"),"profile explains the optional preference");
  const api=readFileSync("functions/api/care.ts","utf8");
  assert.ok(api.includes('body.confirmed!==true'));
  assert.ok(api.includes('expires_at>?'));
