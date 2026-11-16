@@ -1655,8 +1655,9 @@ export default function LoveRadar(){
        <button className="lr-attach" type="button" title="Ajouter une photo" aria-label="Ajouter une photo" onClick={()=>fileInput.current?.click()} disabled={!room.partner||busy}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>
        </button>
-       <input ref={chatInput} aria-label="Écrire un message" type="text" enterKeyHint="send" autoComplete="off" value={draft} onFocus={()=>{setStickerOpen(false);firstPoll.current=true;setChatFocused(true);scrollToLatest()}} onBlur={()=>{setChatFocused(false);setTyping(false)}} onChange={e=>{setDraft(e.target.value);setTyping(e.target.value.trim().length>0)}} placeholder={room.partner?"Message…":"En attente de ton partenaire…"} disabled={!room.partner} maxLength={1600}/>
-              <button className={"lr-sticker-trigger"+(stickerOpen?" is-open":"")} type="button"
+       <div className="lr-chat-textbox">
+        <input ref={chatInput} aria-label="Écrire un message" type="text" enterKeyHint="send" autoComplete="off" value={draft} onFocus={()=>{setStickerOpen(false);firstPoll.current=true;setChatFocused(true);scrollToLatest()}} onBlur={()=>{setChatFocused(false);setTyping(false)}} onChange={e=>{setDraft(e.target.value);setTyping(e.target.value.trim().length>0)}} placeholder={room.partner?"Message…":"En attente de ton partenaire…"} disabled={!room.partner} maxLength={1600}/>
+        <button className={"lr-sticker-trigger"+(stickerOpen?" is-open":"")} type="button"
          aria-label={stickerOpen?"Fermer les stickers":"Ouvrir les stickers"}
          aria-expanded={stickerOpen} title="Stickers" disabled={!room.partner||busy||recording||Boolean(editTarget)}
          onClick={()=>{chatInput.current?.blur();setChatFocused(false);setStickerOpen(open=>!open);requestAnimationFrame(scrollToLatest)}}>
@@ -1665,6 +1666,7 @@ export default function LoveRadar(){
           <path d="M15 20.5V15h5.5"/><circle cx="9" cy="10" r=".8" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r=".8" fill="currentColor" stroke="none"/><path d="M8.5 13c1.8 2 4.5 2 6.3 0"/>
          </svg>
         </button>
+       </div>
         {draft.trim()?<button className="lr-send" type="submit" aria-label={editTarget?"Enregistrer la modification":"Envoyer"} onPointerDown={e=>e.preventDefault()} disabled={!room.partner||busy}>
          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg>
         </button>:<button className={"lr-mic "+(recording?"recording":"")} type="button" title={recording?"Arrêter le vocal":"Enregistrer un vocal"} aria-label={recording?"Arrêter le message vocal":"Enregistrer un message vocal"} onClick={toggleRecording} disabled={!room.partner||busy}>
