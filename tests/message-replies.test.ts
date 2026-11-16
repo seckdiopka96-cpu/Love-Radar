@@ -7,6 +7,7 @@ import {quoteAuthor,quotePreview} from "../src/message-quote";
 import StickerArt from "../src/StickerArt";
 import {STICKERS,STICKER_GROUPS,encodeSticker,getSticker,readStickerId} from "../src/stickers";
 import QuoteCard from "../src/QuoteCard";
+import {receiptState,receiptGlyph,receiptAccessibleLabel} from "../src/message-delivery";
 
 const app=readFileSync("src/App.tsx","utf8");
 const api=readFileSync("functions/api/love.ts","utf8");
@@ -270,4 +271,19 @@ test("long press actions always render on iOS even when chat clips or first meas
   "long press remains the gesture that opens actions");
  assert.ok(app.includes("onPointerMove={messagePointerMove}"),
   "swipe reply is still supported");
+});
+
+test("message receipts distinguish server send, actual device receipt and read",()=>{
+ assert.equal(receiptState(200,0,0),"sent");
+ assert.equal(receiptState(200,0,199),"sent");
+ assert.equal(receiptState(200,0,200),"delivered");
+ assert.equal(receiptState(200,199,201),"delivered");
+ assert.equal(receiptState(200,200,0),"read");
+ assert.equal(receiptGlyph("sent"),"✓");
+ assert.equal(receiptGlyph("delivered"),"✓✓");
+ assert.equal(receiptGlyph("read"),"Vu");
+ assert.equal(receiptAccessibleLabel("delivered"),"Distribué");
+ assert.ok(app.includes('request("delivered",{messageId:newest.id})'));
+ assert.ok(api.includes('sender_id<>?'));
+ assert.ok(api.includes("last_delivered_at"));
 });
