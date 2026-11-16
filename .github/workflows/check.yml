@@ -37,6 +37,7 @@ jobs:
       - run: npm run test:photos
       - run: npm run test:reliability
       - run: npm run test:session-recovery
+      - run: npm run test:partner-recovery
       - run: npm run test:security
       - run: npm run test:deletion
       - run: npm run test:load
