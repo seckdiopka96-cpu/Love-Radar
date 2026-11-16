@@ -18,3 +18,16 @@
 .lr-games-copy b{font-size:12px;color:#ffe0a6;margin-top:auto}
 .lr-games-note{text-align:center;font-size:11px;line-height:1.65;color:#d7b7ce;padding:0 10px;margin:0}
 @media(max-width:700px){.lr-games-hub{gap:13px;padding:5px 2px 17px}.lr-games-hero{padding:13px 8px 6px}.lr-games-hero h1{font-size:36px}.lr-games-hero p{font-size:12px}.lr-games-grid{grid-template-columns:1fr;gap:11px}.lr-games-choice{flex-direction:row;align-items:center;gap:15px;min-height:126px;padding:18px;border-radius:17px}.lr-games-symbol{font-size:40px;align-self:center;flex:none}.lr-games-copy{gap:6px}.lr-games-copy strong{font-size:25px}.lr-games-copy small{font-size:9px}.lr-games-copy>span{font-size:11px}.lr-games-copy b{font-size:11px;margin-top:2px}.lr-games-note{font-size:10px}}
+
+/* Real-time two-player hand game is immediately discoverable. */
+.lr-games-choice.lr-games-rps{
+ border-color:#e0a7bd;background:linear-gradient(135deg,#6b405d,#3b3156 65%,#254456);
+ box-shadow:inset 0 1px rgba(255,255,255,.15),0 10px 29px #090d2288;
+}
+.lr-games-rps .lr-games-art-svg{filter:drop-shadow(0 3px 9px rgba(236,140,191,.3))}
+.lr-games-rps .lr-games-copy strong{font-size:clamp(22px,3vw,31px)}
+.lr-games-choice.lr-games-rps:focus-visible{outline-color:#ffc1dc}
+@media(max-width:700px){
+ .lr-games-choice.lr-games-rps{min-height:136px}
+ .lr-games-rps .lr-games-copy strong{font-size:24px}
+}
