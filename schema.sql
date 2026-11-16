@@ -50,6 +50,13 @@ CREATE TABLE IF NOT EXISTS voice_signals (
 );
 CREATE INDEX IF NOT EXISTS idx_voice_signals_next ON voice_signals(call_id,to_member,id);
 
+-- Only call metadata (no audio) is kept for the private chat call history.
+CREATE TABLE IF NOT EXISTS voice_call_history (
+ call_id TEXT PRIMARY KEY,room_id TEXT NOT NULL,
+ connected_at INTEGER,ended_at INTEGER,outcome TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_voice_call_history_room ON voice_call_history(room_id);
+
 -- Two-player Ludo, created automatically on first access for existing couples.
 CREATE TABLE IF NOT EXISTS ludo_games (
  room_id TEXT PRIMARY KEY,
