@@ -110,11 +110,11 @@ function ios(){
  }
  // The delegate starts PushKit before the web bridge is initialized so the
  // operating system can deliver VoIP pushes when Love Radar was terminated.
- if(!swift.includes("LoveRadarVoipManager.shared.start()")){
-  const method=swift.indexOf("didFinishLaunchingWithOptions");
-  const returnAt=swift.indexOf("return true",method);
-  if(method<0||returnAt<0)throw Error("Cannot insert native VoIP startup in AppDelegate");
-  swift=swift.slice(0,returnAt)+"LoveRadarVoipManager.shared.start()\n        "+swift.slice(returnAt);
+ const launch=swift.indexOf("didFinishLaunchingWithOptions");
+ const launchReturn=swift.indexOf("return true",launch);
+ if(launch<0||launchReturn<0)throw Error("Cannot locate native launch callback");
+ if(!swift.slice(launch,launchReturn).includes("LoveRadarVoipManager.shared.start()")){
+  swift=swift.slice(0,launchReturn)+"LoveRadarVoipManager.shared.start()\n        "+swift.slice(launchReturn);
  }
  // A previously generated iOS app is upgraded without repeating plugin registration.
  if(!swift.includes("bridge?.registerPluginInstance(LoveRadarVoipPlugin())")){
