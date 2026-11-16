@@ -75,3 +75,25 @@ CREATE TABLE IF NOT EXISTS room_revisions (
 -- Keep recent activity queries room-local as the number of couples grows.
 CREATE INDEX IF NOT EXISTS idx_messages_room_sender_time ON messages(room_id,sender_id,created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_members_room_seat ON members(room_id,seat);
+
+-- Personal lost-phone recovery: secret displayed once, only the digest is stored.
+CREATE TABLE IF NOT EXISTS member_recovery (
+ member_id TEXT PRIMARY KEY,
+ code_hash TEXT NOT NULL UNIQUE,
+ created_at INTEGER NOT NULL
+);
+
+-- Atomic request limits shared across all Cloudflare edge isolates.
+-- IP-based actors are hashed with a randomly generated D1 secret; never store
+-- raw IP addresses or recovery codes in these counters.
+CREATE TABLE IF NOT EXISTS abuse_salt (
+ id INTEGER PRIMARY KEY CHECK(id=1),
+ secret TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS abuse_counters (
+ scope TEXT NOT NULL,
+ actor TEXT NOT NULL,
+ hits INTEGER NOT NULL,
+ expires_at INTEGER NOT NULL,
+ PRIMARY KEY(scope,actor)
+);
