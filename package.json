@@ -16,6 +16,7 @@
     "test:privacy": "tsx --test tests/privacy-overlay.test.ts",
     "test:puzzle": "tsx --test tests/puzzle.test.ts",
     "test:call": "tsx --test tests/voice-call.test.ts tests/call-history.test.ts tests/native-voip.test.ts",
+    "test:care": "tsx --test tests/couple-care.test.ts",
     "test:background-call": "tsx --test tests/native-background-call.test.ts",
     "test:e2ee": "tsx --test tests/e2ee.test.ts",
     "test:server": "tsx --test tests/server-diagnostics.test.ts",
