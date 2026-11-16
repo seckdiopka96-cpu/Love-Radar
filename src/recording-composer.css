@@ -1,0 +1,110 @@
+/* WhatsApp-inspired full-width recorder: replaces the keyboard/input while audio captures.
+   Scoped to chat and recording mode so ordinary composer remains unchanged. */
+.lr-chat .lr-voice-recording-composer{
+ display:flex!important;flex-direction:column;gap:14px;
+ width:100%;min-width:0;padding:13px 13px 9px;
+ border-radius:18px;background:#101f2d;
+ color:#f6ebf2;box-sizing:border-box;
+ border:1px solid #455769;
+ box-shadow:inset 0 1px 0 #ffffff14;
+}
+.lr-chat .lr-voice-recording-status{
+ display:flex;align-items:center;gap:12px;
+ width:100%;min-height:44px;
+}
+.lr-chat .lr-voice-recording-led{
+ display:inline-block;flex:none;
+ width:9px;height:9px;border-radius:50%;
+ background:#ff628b;box-shadow:0 0 0 3px #ff628b29;
+ animation:lr-rec-led 1.1s ease-in-out infinite;
+}
+.lr-chat .lr-voice-recording-led.is-paused{animation:none;background:#e7b78e;box-shadow:0 0 0 3px #e7b78e29}
+.lr-chat .lr-voice-recording-clock{
+ flex:none;min-width:48px;
+ color:#fff4f7;font:650 21px/1.2 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
+ font-variant-numeric:tabular-nums;
+}
+.lr-chat .lr-voice-recording-wave{
+ flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:flex-end;
+ height:36px;gap:3px;overflow:hidden;white-space:nowrap;
+}
+.lr-chat .lr-voice-recording-wave i{
+ flex:1 1 0;max-width:5px;min-width:2px;
+ display:block;border-radius:5px;
+ background:linear-gradient(180deg,#ffd2e2,#f06c9f);
+ animation:lr-rec-wave .78s ease-in-out infinite alternate;
+}
+.lr-chat .lr-voice-recording-wave.is-paused i{
+ animation-play-state:paused;opacity:.45;
+}
+.lr-chat .lr-voice-recording-actions{
+ display:grid;grid-template-columns:1fr 1fr 1fr;
+ align-items:center;justify-items:center;
+ gap:10px;width:100%;min-height:62px;
+}
+.lr-chat .lr-voice-recording-actions button{
+ display:grid;place-items:center;
+ padding:0!important;
+ width:51px;height:51px;min-width:51px;
+ border-radius:50%!important;
+ cursor:pointer;
+ transition:transform .16s,filter .16s;
+}
+.lr-chat .lr-voice-recording-actions button:active{transform:scale(.93)}
+.lr-chat .lr-voice-recording-actions button svg{
+ display:block;width:26px;height:26px;
+}
+.lr-chat .lr-voice-recording-actions .lr-voice-rec-delete{
+ justify-self:start;
+ color:#f7e8ef!important;background:transparent!important;
+ border:1px solid transparent!important;
+}
+.lr-chat .lr-voice-recording-actions .lr-voice-rec-pause{
+ justify-self:center;
+ color:#fa577e!important;background:#291a2e!important;
+ border:2px solid #f55c86!important;
+}
+.lr-chat .lr-voice-recording-actions .lr-voice-rec-send{
+ justify-self:end;
+ color:#231523!important;background:#f54891!important;
+ border:1px solid #ffafd0!important;
+}
+.lr-chat .lr-voice-recording-actions button:focus-visible{
+ outline:3px solid #ffd2e5!important;outline-offset:3px!important;
+}
+/* The keyboard-focused layout no longer owns the recording surface. */
+.lr-app.lr-app-locked.lr-chat-mode.lr-recording-mode .lr-chat-compose{
+ padding:11px 10px max(13px,env(safe-area-inset-bottom))!important;
+ background:#101b28!important;
+}
+.lr-app.lr-app-locked.lr-chat-mode.lr-recording-mode .lr-chat{
+ display:flex;flex-direction:column;
+}
+.lr-app.lr-app-locked.lr-chat-mode.lr-recording-mode .lr-chat-messages{
+ min-height:0!important;flex:1 1 0!important;
+ overflow-y:auto!important;
+ overscroll-behavior:contain!important;
+}
+/* When recording, no hidden input or sticker drawer may summon the iPhone keyboard. */
+.lr-app.lr-recording-mode .lr-chat-form,
+.lr-app.lr-recording-mode .lr-sticker-picker{
+ display:none!important;
+}
+@keyframes lr-rec-led{50%{opacity:.35;transform:scale(.8)}}
+@keyframes lr-rec-wave{
+ 0%{transform:scaleY(.38);opacity:.58}
+ 100%{transform:scaleY(1);opacity:1}
+}
+@media(max-width:700px){
+ .lr-app.lr-app-locked.lr-chat-mode.lr-recording-mode .lr-chat-compose{
+  padding:7px 10px max(14px,env(safe-area-inset-bottom))!important;
+ }
+ .lr-chat .lr-voice-recording-composer{border-radius:17px;padding:10px 11px 8px;gap:11px}
+ .lr-chat .lr-voice-recording-status{min-height:36px}
+ .lr-chat .lr-voice-recording-actions button{height:49px;width:49px;min-width:49px}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-chat .lr-voice-recording-led,
+ .lr-chat .lr-voice-recording-wave i{animation:none!important}
+ .lr-chat .lr-voice-recording-actions button{transition:none!important}
+}
