@@ -1,6 +1,12 @@
 name: Construire Love Radar pour Google Play
 
 on:
+  # Rebuild the release bundle when the Google Play pipeline itself changes.
+  # An unconfigured upload keystore produces an explicitly NON-PUBLISHABLE AAB.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/play-release.yml'
   workflow_dispatch:
     inputs:
       version_code:
@@ -58,7 +64,6 @@ jobs:
           test -s app/build/outputs/bundle/release/app-release.aab
       - name: Signer avec les secrets du depot
         id: signing
-        if: github.event_name == 'workflow_dispatch'
         shell: bash
         env:
           ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
