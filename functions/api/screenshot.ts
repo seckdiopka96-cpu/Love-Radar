@@ -81,8 +81,7 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
    "Ton partenaire a fait une capture d’écran dans Love-Radar.","chat");
   if(waitUntil)waitUntil(push);else void push;
   // Expired metadata is also pruned when future notifications are sent.
-  const cleanup=clean(db,now);
-  if(waitUntil)waitUntil(cleanup);else void cleanup;
+  await clean(db,now);
   return response({saved:true,event:{id:body.id,member_id:user.id,created_at:now}});
  }catch(error){console.error("Screenshot POST",error);return fail("Notification momentanément indisponible.",503)}
 }
