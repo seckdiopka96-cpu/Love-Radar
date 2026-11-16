@@ -2,7 +2,7 @@ import {useMemo,useState} from "react";
 import StickerArt from "./StickerArt";
 import {STICKERS,STICKER_GROUPS,getSticker,type StickerCategory} from "./stickers";
 import "./stickers.css";
-type Props={storageKey:string;onSend:(id:string)=>void;onClose:()=>void};
+type Props={storageKey:string;onSend:(id:string)=>void;onClose:()=>void;onSearchFocus?:()=>void;onSearchBlur?:()=>void};
 type Group="all"|"recent"|"favorite"|StickerCategory;
 const FAV_KEY="couple-stickers-favorite-v1:";
 const RECENT_KEY="couple-stickers-recent-v1:";
@@ -13,7 +13,7 @@ function readIds(key:string){
  }catch{return []}
 }
 function normalized(str:string){return str.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}
-export default function StickerPicker({storageKey,onSend,onClose}:Props){
+export default function StickerPicker({storageKey,onSend,onClose,onSearchFocus,onSearchBlur}:Props){
  const [selected,setSelected]=useState<Group>("all");
  const [query,setQuery]=useState("");
  const [favorites,setFavorites]=useState<string[]>(()=>readIds(FAV_KEY+storageKey));
@@ -49,7 +49,7 @@ export default function StickerPicker({storageKey,onSend,onClose}:Props){
    <button type="button" className="lr-sticker-picker-close" aria-label="Fermer les stickers" onClick={onClose}>×</button>
   </div>
   <label className="lr-sticker-search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
-   <input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Rechercher un sticker…" aria-label="Rechercher un sticker" autoComplete="off"/>
+   <input type="search" value={query} onChange={e=>setQuery(e.target.value)} onFocus={onSearchFocus} onBlur={onSearchBlur} placeholder="Rechercher un sticker…" aria-label="Rechercher un sticker" autoComplete="off"/>
   </label>
   <div className="lr-sticker-categories" role="tablist" aria-label="Catégories de stickers">
    {tabs.map(t=><button key={t.id} type="button" role="tab" aria-selected={selected===t.id} className={selected===t.id?"is-selected":""} onClick={()=>setSelected(t.id)}>
