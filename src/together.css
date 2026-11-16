@@ -77,10 +77,10 @@
 @media(max-width:950px){
  html:has(.lr-app.lr-together-mode),body:has(.lr-app.lr-together-mode),#root:has(.lr-app.lr-together-mode){height:100dvh!important;max-height:100dvh!important;overflow:hidden!important}
  .lr-app.lr-together-mode.lr-app-locked{position:fixed!important;inset:0!important;height:100dvh!important;min-height:0!important;max-height:100dvh!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;overscroll-behavior:none!important}
- .lr-app.lr-together-mode.lr-app-locked>.lr-header,.lr-app.lr-together-mode.lr-app-locked>.lr-notification-area,.lr-app.lr-together-mode.lr-app-locked>.lr-toast,.lr-app.lr-together-mode.lr-app-locked>.lr-bg-decor,.lr-app.lr-together-mode.lr-app-locked .lr-sidebar,.lr-app.lr-together-mode.lr-app-locked .lr-mobile-nav{display:none!important}
+ .lr-app.lr-together-mode.lr-app-locked>.lr-header,.lr-app.lr-together-mode.lr-app-locked>.lr-notification-area,.lr-app.lr-together-mode.lr-app-locked>.lr-toast,.lr-app.lr-together-mode.lr-app-locked>.lr-bg-decor,.lr-app.lr-together-mode.lr-app-locked .lr-sidebar{display:none!important}
  .lr-app.lr-together-mode.lr-app-locked .lr-shell{display:flex!important;flex:1 1 0!important;min-height:0!important;max-height:100%!important;width:100%!important;margin:0!important;padding:0!important;overflow:hidden!important}
  .lr-app.lr-together-mode.lr-app-locked .lr-main{display:flex!important;flex:1 1 0!important;min-height:0!important;max-height:100%!important;width:100%!important;max-width:none!important;padding:0!important;margin:0!important;overflow:hidden!important}
- .lr-app.lr-together-mode.lr-app-locked .tg-page{position:relative;flex:1 1 0!important;min-height:0!important;max-height:100%!important;height:100%!important;width:100%!important;max-width:100%!important;overflow:hidden!important;padding:calc(6px + env(safe-area-inset-top)) 9px calc(7px + env(safe-area-inset-bottom));gap:7px;background:linear-gradient(160deg,#302039,#24182e)}
+ .lr-app.lr-together-mode.lr-app-locked .tg-page{position:relative;flex:1 1 0!important;min-height:0!important;max-height:100%!important;height:100%!important;width:100%!important;max-width:100%!important;overflow-x:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;padding:calc(13px + env(safe-area-inset-top)) 14px calc(110px + env(safe-area-inset-bottom));gap:17px!important;background:#0c1c29!important}
  .tg-top{min-height:39px}
  .tg-modes button{padding:9px 3px;font-size:11px}
  .tg-heart-center{flex:0 1 auto;min-height:0;padding:11px 12px;gap:6px}
@@ -197,7 +197,7 @@
 .tg-feed-empty strong{font-size:12px;color:#ffe4ef}
 .tg-feed-empty p{font-size:10px;color:#d8baca;line-height:1.4;margin:0}
 @media(max-width:950px){
- .lr-app.lr-together-mode.lr-app-locked .tg-page{gap:7px}
+ .lr-app.lr-together-mode.lr-app-locked .tg-page{gap:17px!important}
  .tg-watch-feature{min-height:76px;padding:10px 12px;gap:11px}
  .tg-watch-symbol{width:48px;height:48px;border-radius:14px}
  .tg-heart-center{padding:13px 12px;gap:5px}
@@ -263,4 +263,90 @@
  .tg-reconcile-entry{min-height:49px;padding:5px 9px}
  .tg-reconcile-icon{width:33px;height:33px}
  .tg-reconcile-copy small{font-size:9px}
+}
+
+/* Mobile fallback: maintain readable activities even if a device has cached
+   an older shell bundle. This is the same readable structure as together-premium. */
+@media(max-width:950px){
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-activities{
+  gap:15px!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-shortcuts{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:14px!important;align-items:stretch!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-shortcuts>button,
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-shortcuts>button.tg-reconcile-entry{
+  display:flex!important;flex-direction:column!important;
+  align-items:flex-start!important;justify-content:center!important;
+  text-align:left!important;gap:8px!important;min-height:119px!important;
+  padding:16px!important;border-radius:18px!important;
+  background:#1b3040!important;border:1px solid #3c5668!important;
+  color:#f9edf3!important;box-shadow:none!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-shortcuts>button>.tg-tile-icon{
+  display:block!important;flex:none!important;
+  height:auto!important;min-height:0!important;width:auto!important;
+  font-size:25px!important;line-height:1.15!important;
+  background:transparent!important;border:0!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-shortcuts>button>strong{
+  display:block!important;max-width:100%;
+  font-size:15px!important;line-height:1.25!important;white-space:normal!important;
+  color:#fff2f7!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-shortcuts>button>small{
+  display:block!important;max-width:100%;
+  font-size:11px!important;line-height:1.45!important;white-space:normal!important;
+  color:#bdcdd5!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-affection-section{
+  display:flex!important;flex-direction:column!important;gap:18px!important;
+  padding:18px!important;background:#1b3040!important;
+  border:1px solid #3a5366!important;border-radius:20px!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-affection-heading{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  gap:16px!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-affection-heading>div{
+  display:flex!important;flex-direction:column!important;gap:6px!important;
+  flex:1 1 auto!important;min-width:0!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-affection-heading h2{
+  margin:0!important;font-size:20px!important;line-height:1.2!important;
+  color:#fff0f5!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-affection-heading p{
+  margin:0!important;color:#b8c9d3!important;font-size:12px!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-send-heart{
+  flex:none!important;width:auto!important;min-width:105px!important;
+  margin:0!important;padding:11px 14px!important;font-size:12px!important;
+  background:#d4779f!important;color:white!important;
+  border:1px solid #f4b5d0!important;border-radius:13px!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-heart-feed{
+  padding:14px!important;gap:12px!important;
+  background:#142838!important;border:1px solid #385367!important;
+  border-radius:16px!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-signal{
+  padding:13px!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .lr-mobile-nav{
+  display:flex!important;
+ }
+}
+@media(max-width:375px){
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-shortcuts{
+  gap:10px!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-shortcuts>button,
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-shortcuts>button.tg-reconcile-entry{
+  min-height:117px!important;padding:12px!important;gap:7px!important;
+ }
+ .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-shortcuts>button>strong{
+  font-size:13px!important;
+ }
 }
