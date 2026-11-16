@@ -78,17 +78,17 @@
  --sticker-halo:#ed8aae;
  position:relative;isolation:isolate;
  display:inline-flex;align-items:center;justify-content:center;flex-direction:column;
- width:151px;height:145px;max-width:100%;flex:none;
+ width:106px;height:101px;max-width:100%;flex:none;
  line-height:1!important;user-select:none;overflow:visible;
- filter:drop-shadow(0 5px 3px rgba(0,0,0,.17));
+ filter:drop-shadow(0 3px 5px rgba(0,0,0,.14));
 }
 .lr-sticker-art::before{
- content:"";position:absolute;inset:12% 5% 17%;
- border-radius:40% 60% 50% 40%;
- transform:rotate(-9deg);
- background:radial-gradient(circle at 45% 38%,#ffffff67,transparent 45%),var(--sticker-halo);
- border:4px solid #fff7f7;
- box-shadow:0 0 0 1px #0001,0 5px 8px #0002;
+ content:"";position:absolute;inset:8% 12% 22%;
+ border-radius:48% 52% 45% 50%;
+ transform:rotate(-5deg);
+ background:radial-gradient(circle at 40% 25%,#ffffffc4,transparent 58%),color-mix(in srgb,var(--sticker-halo) 68%,transparent);
+ border:1.5px solid #ffffffa8;
+ box-shadow:0 1px 6px #00000012;
  z-index:-1;
 }
 .lr-sticker-tone-rose{--sticker-halo:#f5a0bc}
@@ -99,41 +99,51 @@
 .lr-sticker-main{
  display:block;position:relative;
  font-family:-apple-system,BlinkMacSystemFont,"Apple Color Emoji","Segoe UI Emoji",sans-serif;
- font-size:66px!important;line-height:1.1!important;
- transform:rotate(-6deg);
- text-shadow:0 1px 2px #fff4;white-space:nowrap;
+ font-size:49px!important;line-height:1.1!important;
+ transform:rotate(-4deg);
+ text-shadow:0 1px 2px #fff3;white-space:nowrap;
 }
-.lr-sticker-sparkle{position:absolute;color:#fff8f0;font-size:20px;text-shadow:0 1px 3px #a55c8266;pointer-events:none}
+.lr-sticker-sparkle{position:absolute;color:#fff8f0;font-size:11px;text-shadow:0 1px 3px #a55c8266;pointer-events:none}
 .lr-sticker-sparkle-left{top:16%;left:8%;transform:rotate(-15deg)}
 .lr-sticker-sparkle-right{top:25%;right:7%;transform:rotate(16deg)}
 .lr-sticker-caption{
- position:relative;margin-top:0;
- display:block;max-width:96%;padding:4px 8px;
- background:#fffaf8;color:#80425d;border:2px solid #fff;
- border-radius:10px;box-shadow:0 2px 0 #a95d7f65;
- font:900 13px/1.05 -apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif!important;
- letter-spacing:.2px;white-space:nowrap;text-align:center;
- transform:rotate(-3deg);
+ position:relative;margin-top:-1px;
+ display:block;max-width:100%;padding:4px 7px;
+ background:#fff9fbe8;color:#83435f;border:1px solid #fff8;
+ border-radius:9px;box-shadow:0 2px 4px #15101d22;
+ font:850 9.5px/1.1 -apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif!important;
+ letter-spacing:.1px;white-space:nowrap;text-align:center;
+ transform:rotate(-2deg);
 }
-.lr-sticker-art.is-compact{width:78px;height:82px}
-.lr-sticker-art.is-compact::before{inset:12% 4% 19%;border-width:2px}
-.lr-sticker-art.is-compact .lr-sticker-main{font-size:38px!important}
-.lr-sticker-art.is-compact .lr-sticker-sparkle{font-size:11px}
+.lr-sticker-art.is-compact{width:69px;height:69px}
+.lr-sticker-art.is-compact::before{inset:8% 10% 20%;border-width:1px}
+.lr-sticker-art.is-compact .lr-sticker-main{font-size:34px!important}
+.lr-sticker-art.is-compact .lr-sticker-sparkle{font-size:9px}
 .lr-sticker-art.is-compact .lr-sticker-caption{
- max-width:100%;font-size:8px!important;letter-spacing:-.1px;
- padding:3px 4px;border-width:1px;border-radius:5px;
+ max-width:100%;font-size:7px!important;letter-spacing:-.1px;
+ padding:2px 4px;border-width:1px;border-radius:6px;
 }
 .lr-chat .lr-bubble-row .lr-bubble.lr-bubble-sticker,
 .lr-chat .lr-bubble-row.mine .lr-bubble.lr-bubble-sticker{
  display:flex!important;flex-direction:column!important;align-items:center!important;
  padding:0!important;margin:0!important;
- width:160px!important;min-width:0!important;max-width:100%!important;
+ width:110px!important;min-width:0!important;max-width:100%!important;
  background:transparent!important;border:0!important;border-radius:0!important;
  box-shadow:none!important;overflow:visible!important;
 }
-.lr-chat .lr-bubble-sticker .lr-sticker-art{width:155px;height:146px}
-.lr-chat .lr-bubble-sticker .lr-quote-card{width:100%;margin:0 0 5px}
-.lr-chat .lr-bubble-stack:has(.lr-bubble-sticker){max-width:min(82%,245px)}
+.lr-chat .lr-bubble-sticker .lr-sticker-art{width:104px;height:99px}
+.lr-chat .lr-bubble-sticker .lr-quote-card{width:100%;margin:0 0 4px}
+.lr-chat .lr-bubble-stack:has(.lr-bubble-sticker){max-width:min(70%,205px)}
+/* Stickers are naturally short messages: keep their timestamps and neighboring
+   bubbles together rather than reserving a large message-sized rectangle. */
+.lr-chat .lr-bubble-row:has(.lr-bubble-sticker){margin-top:5px!important}
+.lr-chat .lr-bubble-row.lr-grouped:has(.lr-bubble-sticker){margin-top:2px!important}
+.lr-chat .lr-bubble-stack:has(.lr-bubble-sticker) .lr-message-time{
+ padding-top:0!important;font-size:10px!important;line-height:1.2!important
+}
+.lr-chat .lr-bubble-stack:has(.lr-bubble-sticker) .lr-read-receipt{
+ font-size:10px!important;line-height:1.15!important;
+}
 .lr-chat .lr-sticker-picker button:focus-visible,.lr-chat .lr-sticker-trigger:focus-visible{
  outline:2px solid #ffcadf!important;outline-offset:2px;
 }
@@ -153,9 +163,9 @@
 .lr-chat .lr-chat-form .lr-sticker-trigger:disabled{opacity:.42;cursor:not-allowed}
 @media(max-width:400px){
  .lr-chat .lr-sticker-grid{gap:4px}
- .lr-sticker-art.is-compact{width:66px;height:75px}
- .lr-sticker-art.is-compact .lr-sticker-main{font-size:34px!important}
- .lr-sticker-art.is-compact .lr-sticker-caption{font-size:7px!important}
+ .lr-sticker-art.is-compact{width:61px;height:66px}
+ .lr-sticker-art.is-compact .lr-sticker-main{font-size:31px!important}
+ .lr-sticker-art.is-compact .lr-sticker-caption{font-size:6.6px!important}
  .lr-chat .lr-chat-form .lr-sticker-trigger{
   flex-basis:31px!important;width:31px!important;min-width:31px!important;
  }
