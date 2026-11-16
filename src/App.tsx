@@ -21,6 +21,7 @@ import SettingsPage from "./SettingsPage";
 import RecoveryCodeDialog from "./RecoveryCodeDialog";
 import GamesHub from "./GamesHub";
 import RpsDuo from "./RpsDuo";
+import CoupleParty from "./CoupleParty";
 import CoupleStory from "./CoupleStory";
 import PrivatePhoto from "./PrivatePhoto";
 import ProfilePhotoEditor from "./ProfilePhotoEditor";
@@ -65,7 +66,7 @@ import "./voice-alignment.css";
 import "./premium-design-polish.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
-type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
+type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
 type EncryptionState={mine:string|null;partner:string|null;required:boolean};
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number;
  reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null;
@@ -96,7 +97,7 @@ function NavGlyph({tab}:{tab:Tab}){
 function selectedNav(tab:Tab):Tab {
  if(tab==="moment"||tab==="puzzle"||tab==="reconcile"||tab==="reunion"||tab==="watch"||tab==="watch-tiktok")return "together";
  if(tab==="story")return "memories";
- if(tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo"||tab==="memory"||tab==="rps")return "games";
+ if(tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo"||tab==="memory"||tab==="rps"||tab==="rapid"||tab==="truth")return "games";
  return tab;
 }
 const HEARTS = ["♡","♥","✦","♡","♥"];
@@ -109,7 +110,7 @@ function parseNotice(search:string):NoticeTarget|null{
  const q=new URLSearchParams(search);
  const tab=q.get("tab");
  if(tab==="location")return {tab:"together",kind:null,id:null};
- if(tab!=="settings"&&tab!=="home"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="puzzle"&&tab!=="reconcile"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="memory"&&tab!=="rps"&&tab!=="memories")return null;
+ if(tab!=="settings"&&tab!=="home"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="puzzle"&&tab!=="reconcile"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="memory"&&tab!=="rps"&&tab!=="rapid"&&tab!=="truth"&&tab!=="memories")return null;
  const kind=q.get("kind"),id=q.get("id");
  if(!kind||!NOTICE_KINDS.has(kind)||!id||!(/^[0-9a-f-]{36}$/i.test(id)||(kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(id))))return {tab,kind:null,id:null};
  return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":kind==="rps-challenge"?"rps":kind==="daily-question"?"moment":kind==="love-signal"?"together":"chat",kind:kind as NoticeKind,id};
@@ -1699,6 +1700,7 @@ export default function LoveRadar(){
      {tab==="reconcile"?<Reconcile token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="games"?<GamesHub onOpenGame={game=>navigate(game)} partnerName={room.partner}/>:null}
     {tab==="rps"?<RpsDuo key={room.roomId+":"+room.user.id} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} onOpenChat={()=>navigate("chat")}/>:null}
+    {tab==="rapid"||tab==="truth"?<CoupleParty key={room.roomId+":"+room.user.id+":"+tab} mode={tab} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}/>:null}
      {tab==="ludo-solo"?<SoloLudo myName={room.user.name} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("games")}/>:null}
      {tab==="ludo-senegal"?<SenegalLudo mode="duo" token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("games")}/>:null}
