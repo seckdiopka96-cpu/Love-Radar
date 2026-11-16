@@ -1048,13 +1048,19 @@ export default function LoveRadar(){
   return()=>document.removeEventListener("visibilitychange",acknowledge);
  },[room?.messages,room?.user.id,token,request]);
  useEffect(()=>{
-  if(tab!=="chat"||!token||!room||document.visibilityState!=="visible")return;
-  const newest=[...room.messages].reverse().find(m=>m.sender_id!==room.user.id);
-  const latestReaction=room.recentReaction?.member_id!==room.user.id?Number(room.recentReaction?.updated_at||0):0;
-  const latestIncoming=Math.max(newest?.created_at||0,latestReaction);
-  if(latestIncoming<=lastReadSent.current)return;
-  lastReadSent.current=latestIncoming;
-  void request("read").catch(()=>{lastReadSent.current=0});
+  if(tab!=="chat"||!token||!room)return;
+  const acknowledgeRead=()=>{
+   if(document.visibilityState!=="visible")return;
+   const newest=[...room.messages].reverse().find(m=>m.sender_id!==room.user.id);
+   const latestReaction=room.recentReaction?.member_id!==room.user.id?Number(room.recentReaction?.updated_at||0):0;
+   const latestIncoming=Math.max(newest?.created_at||0,latestReaction);
+   if(latestIncoming<=lastReadSent.current)return;
+   lastReadSent.current=latestIncoming;
+   void request("read").catch(()=>{lastReadSent.current=0});
+  };
+  acknowledgeRead();
+  document.addEventListener("visibilitychange",acknowledgeRead);
+  return()=>document.removeEventListener("visibilitychange",acknowledgeRead);
  },[tab,room?.messages,room?.recentReaction?.updated_at,room?.recentReaction?.member_id,room?.user.id,token,request]);
  useEffect(()=>{
   if(tab!=="chat"&&typingActive.current){
