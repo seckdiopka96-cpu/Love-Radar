@@ -1,5 +1,6 @@
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import {markRoomChanged} from "../lib/room-revision";
+import {consumeMemberLimit,MEMBER_LIMITS,throttled} from "../lib/abuse-limits";
 import { notifyPartner, type PushEnv } from "../lib/push";
 
 type Env = PushEnv & {STORAGE?: R2Bucket};
@@ -95,6 +96,7 @@ function sniff(bytes:Uint8Array,mime:string){
       return no("Identifiant déjà utilisé.",409);
      return Response.json({ok:true,id,created_at:existing.created_at,duplicate:true},{headers:{"Cache-Control":"no-store"}});
     }
+    if(!await consumeMemberLimit(db,u.id,MEMBER_LIMITS.media))return throttled(MEMBER_LIMITS.media);
     const now=Date.now();
     await bucket.put(id,bytes,{httpMetadata:{contentType:mime}});
     try{
