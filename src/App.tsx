@@ -456,7 +456,12 @@ export default function LoveRadar(){
     const data=await res.json() as {ok:boolean;focusMessage?:Message|null;error?:string};
     if(!res.ok||!data.ok)throw Error(data.error||"Ce message n’est pas disponible.");
     if(!data.focusMessage)throw Error("Ce contenu n’est plus disponible dans cet espace.");
-    if(!cancelled)setFocusMessage(data.focusMessage);
+    if(!cancelled){
+     let context:CryptoContext|null=null;
+     if(room?.e2ee?.required)try{context=await cryptoFor(room)}catch{/* No key yet. */}
+     const [message]=await revealMessages([data.focusMessage],context);
+     setFocusMessage(message);
+    }
    }catch(err){if(!cancelled)setFocusError(err instanceof Error?err.message:"Impossible d’ouvrir le contenu.")}
    finally{if(!cancelled)setFocusLoading(false)}
   })();
@@ -471,6 +476,13 @@ export default function LoveRadar(){
   setFocusMedia("");
   void apiFetch("/api/media?id="+encodeURIComponent(m.object_key),{headers:{Authorization:"Bearer "+token},signal:controller.signal})
    .then(res=>{if(!res.ok)throw Error("Média indisponible");return res.blob()})
+   .then(async blob=>{
+    if(isEncryptedMedia(m.mime)){
+     if(!room)throw Error("Clé manquante");
+     blob=await decryptMedia(await cryptoFor(room),blob,m.kind as "image"|"audio",m.id,m.sender_id);
+    }
+    return blob;
+   })
    .then(blob=>{if(cancelled)return;const url=URL.createObjectURL(blob);focusAsset.current=url;setFocusMedia(url)})
    .catch(()=>{if(!cancelled)setFocusError("Ce média n’est plus disponible.")});
   return()=>{cancelled=true;controller.abort();if(focusAsset.current){URL.revokeObjectURL(focusAsset.current);focusAsset.current="";}}
@@ -787,10 +799,15 @@ export default function LoveRadar(){
     headers:{Authorization:"Bearer "+token},cache:"no-store",signal:controller.signal
    });
    if(!response.ok)throw new Error("HTTP "+response.status);
-   const mime=(response.headers.get("content-type")||"").toLowerCase();
+   let mime=(response.headers.get("content-type")||"").toLowerCase();
+   let blob=await response.blob();
+   if(isEncryptedMedia(item.mime)){
+    if(!isEncryptedMedia(mime)||!room)throw Error("Média chiffré indisponible.");
+    blob=await decryptMedia(await cryptoFor(room),blob,item.kind as "image"|"audio",item.id,item.sender_id);
+    mime=blob.type;
+   }
    if(item.kind==="image"&&!mime.startsWith("image/"))throw new Error("Incorrect photo MIME");
    if(item.kind==="audio"&&!mime.startsWith("audio/")&&!mime.startsWith("video/"))throw new Error("Incorrect sound MIME");
-   const blob=await response.blob();
    if(blob.size===0)throw new Error("Empty file");
    const url=URL.createObjectURL(blob);
    if(item.kind==="image"){
@@ -978,7 +995,11 @@ export default function LoveRadar(){
   sendingTextIds.current.add(entry.id);
   setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"sending" as const,error:undefined}:item));
   try{
-   const result=await request("message",{text:entry.text,messageId:entry.id,...(entry.replyToId?{replyTo:entry.replyToId}:{})});
+   if(!room)throw Error("Espace indisponible.");
+   const wire=entry.wireText||await encryptedOutgoing(entry.text,entry.id,room);
+   entry.wireText=wire;
+   setTextOutbox(items=>items.map(v=>v.id===entry.id?{...v,wireText:wire}:v));
+   const result=await request("message",{text:wire,messageId:entry.id,...(entry.replyToId?{replyTo:entry.replyToId}:{})});
    if(result.id!==entry.id)throw Error("Confirmation d'envoi incorrecte.");
    setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"sent" as const}:item));
    void refresh(undefined,true);
@@ -993,7 +1014,8 @@ export default function LoveRadar(){
    const text=draft.trim(),id=editTarget.id;
    setBusy(true);setError("");
    try{
-    await request("edit-message",{id,text});
+    if(!room)throw Error("Espace indisponible.");
+    await request("edit-message",{id,text:await encryptedOutgoing(text,id,room)});
     cancelEditing();
     await refresh(undefined,true);
    }catch(err){setError(err instanceof Error?err.message:"Impossible de modifier ce message.")}
@@ -1159,7 +1181,11 @@ export default function LoveRadar(){
   if(file.size>limit){setError("Fichier trop lourd : "+(kind==="image"?"6 Mo":"5 Mo")+" maximum.");return}
   setBusy(true);setError("");
   try{
-   const form=new FormData();form.append("file",file);form.append("kind",kind);
+   if(!room)throw Error("Espace indisponible.");
+   if(room.e2ee?.mine&&!room.e2ee?.required)throw Error("Ton partenaire doit activer le chiffrement avant l’envoi.");
+   const id=crypto.randomUUID();
+   const sendFile=room.e2ee?.required?await encryptMedia(await cryptoFor(room),file,kind,id):file;
+   const form=new FormData();form.append("file",sendFile);form.append("kind",kind);form.append("messageId",id);
    const res=await apiFetch("/api/media",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
    const data=await res.json() as {ok:boolean;error?:string};
    if(!data.ok)throw new Error(data.error||"Envoi impossible.");
@@ -1175,7 +1201,10 @@ export default function LoveRadar(){
   setVoiceOutbox(items=>items.map(v=>v.id===entry.id?{...v,status:"uploading",error:undefined}:v));
   try{
    const form=new FormData();
-   form.append("file",entry.file);
+   if(!room)throw Error("Espace indisponible.");
+   if(room.e2ee?.mine&&!room.e2ee?.required)throw Error("Ton partenaire doit activer le chiffrement avant l’envoi.");
+   const sendFile=room.e2ee?.required?await encryptMedia(await cryptoFor(room),entry.file,"audio",entry.id):entry.file;
+   form.append("file",sendFile);
    form.append("kind","audio");
    form.append("messageId",entry.id);
    const response=await apiFetch("/api/media",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
@@ -1407,6 +1436,9 @@ export default function LoveRadar(){
      name={room.user.name} code={room.code} owner={room.user.owner} token={token} avatarSrc={avatars.mine} avatarVersion={room.user.avatarVersion}
      profileBusy={profileBusy} profileError={profileError} recoveryBusy={recoveryBusy} onGenerateRecovery={()=>void issueRecoveryCode()} privacyEnabled={privacyEnabled}
      notificationsOn={notificationsOn} notificationsBusy={notificationsBusy} notificationsTesting={notificationsTesting} notificationsHint={notificationsHint}
+     e2ee={room.e2ee} e2eeBusy={e2eeBusy} e2eeOwnCode={e2eeOwnCode} e2eePartnerCode={e2eePartnerCode}
+     e2eeDeviceReady={e2eeDeviceReady} e2eeVerified={e2eeVerified}
+     onEnableE2EE={()=>void enableE2EE()} onVerifyPartnerKey={()=>void approvePartnerKey()}
      nativeApp={isNativeApp} onBack={()=>navigate("home")}
      onChoosePhoto={()=>profilePicker.current?.click()}
      onAdjustPhoto={()=>void adjustProfilePhoto()} onRemovePhoto={()=>void removeProfilePhoto()}
@@ -1419,11 +1451,11 @@ export default function LoveRadar(){
     {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenWatch={()=>navigate("watch")} onOpenPuzzle={()=>navigate("puzzle")} onOpenReconcile={()=>navigate("reconcile")} focusKind={noticeTarget?.kind==="love-signal"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"?noticeTarget.id:null}/>:null}
     {tab==="watch"?<WatchTogether token={token} myId={room.user.id} myName={room.user.name}
       partnerName={room.partner} messages={room.messages}
-      onSendText={async text=>{await request("message",{text});await refresh()}}
+      onSendText={async text=>{await sendBackgroundText(text)}}
       onOpenChat={()=>navigate("chat")} onOpenTikTok={()=>navigate("watch-tiktok")} onExit={()=>navigate("together")}/>:null}
     {tab==="watch-tiktok"?<TikTokTogether token={token} myId={room.user.id} myName={room.user.name}
       partnerName={room.partner} messages={room.messages}
-      onSendText={async text=>{await request("message",{text});await refresh()}}
+      onSendText={async text=>{await sendBackgroundText(text)}}
       onExit={()=>navigate("watch")} onOpenYouTube={()=>navigate("watch")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="story"||tab==="reunion"?<CoupleStory key={tab} token={token} mode={tab} privacyEnabled={privacyEnabled} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate(tab==="story"?"memories":"together")} onOpenStory={()=>navigate("story")} onOpenReunion={()=>navigate("reunion")}/>:null}
     {tab==="puzzle"?<SharedPuzzle token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")}/>:null}
