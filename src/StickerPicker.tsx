@@ -1,6 +1,7 @@
 import {useEffect,useMemo,useState} from "react";
 import StickerArt from "./StickerArt";
 import {emojiMotionClass} from "./AnimatedEmojiText";
+import {getMotionEnabled,setMotionEnabled} from "./motion-mode";
 import {STICKERS,MOTION_STICKERS,STICKER_GROUPS,getSticker,type StickerCategory} from "./stickers";
 import {EMOJI_CATEGORIES,EMOJIS,filterEmojis} from "./emoji-catalog";
 import {GIPHY_KEY,gifsByIds,searchGifs,type GifResult} from "./gif-provider";
@@ -51,6 +52,12 @@ const pickerModes:{id:Mode;label:string;symbol:string}[]=[
 ];
 export default function StickerPicker({storageKey,onSend,onSendEmoji,onSendGif,onClose,onSearchFocus,onSearchBlur}:Props){
  const [mode,setMode]=useState<Mode>("stickers");
+ const [motionEnabled,setMotionEnabledState]=useState(getMotionEnabled);
+ function toggleMotion(){
+  const next=!motionEnabled;
+  setMotionEnabledState(next);
+  setMotionEnabled(next);
+ }
  const [selected,setSelected]=useState<StickerGroup>("animated");
  const [emojiCategory,setEmojiCategory]=useState("all");
  const [gifGroup,setGifGroup]=useState<GifGroup>("trending");
@@ -157,7 +164,12 @@ export default function StickerPicker({storageKey,onSend,onSendEmoji,onSendGif,o
  return <section className="lr-sticker-picker lr-expressive-picker" aria-label="Émojis, GIF et stickers" onKeyDown={event=>{if(event.key==="Escape")onClose()}}>
   <div className="lr-sticker-picker-head">
    <div><strong>Vos expressions <span aria-hidden="true">✦</span></strong><small>{subtitle}</small></div>
-   <button type="button" className="lr-sticker-picker-close" aria-label="Fermer le sélecteur" onClick={onClose}>×</button>
+   <div className="lr-animation-controls">
+    <button type="button" className="lr-animation-switch" aria-pressed={motionEnabled}
+     aria-label={motionEnabled?"Mettre les animations en pause":"Activer les animations"}
+     onClick={toggleMotion}>{motionEnabled?"⏸ Animations":"▶ Animer"}</button>
+    <button type="button" className="lr-sticker-picker-close" aria-label="Fermer le sélecteur" onClick={onClose}>×</button>
+   </div>
   </div>
   <nav className="lr-expression-modes" role="tablist" aria-label="Type d'expression">
    {pickerModes.map(tab=><button key={tab.id} type="button" role="tab" aria-selected={mode===tab.id}
