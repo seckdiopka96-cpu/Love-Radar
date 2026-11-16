@@ -1,5 +1,6 @@
 import {useEffect,useRef} from "react";
 import "./live-voice-waveform.css";
+import {microphoneAmplitude} from "./live-voice-level";
 
 type Props={stream:MediaStream|null;paused:boolean};
 /**
@@ -43,13 +44,7 @@ export default function LiveVoiceWaveform({stream,paused}:Props){
     ctx.clearRect(0,0,width,height);
     if(!pausedRef.current&&clock-lastSample>=sampleEvery){
      analyser.getByteTimeDomainData(waveform);
-     let sum=0;
-     for(let i=0;i<waveform.length;i+=2){
-      const value=(waveform[i]-128)/128;
-      sum+=value*value;
-     }
-     const rms=Math.sqrt(sum/(waveform.length/2));
-     const amplitude=Math.min(1,Math.max(.06,Math.pow(rms*5,.77)));
+     const amplitude=microphoneAmplitude(waveform);
      samples.push({at:clock,height:4+(height-6)*amplitude});
      if(samples.length>160)samples.splice(0,samples.length-160);
      lastSample=clock;
