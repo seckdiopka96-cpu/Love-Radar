@@ -9,7 +9,7 @@ export const ROOM_DATA_TABLES=[
  "message_replies","message_reactions","message_edits","message_hidden",
  "message_one_time","messages","e2ee_keys","chat_presence","voice_signals","voice_calls","voice_call_history","native_voip_devices",
  "profile_photos","couple_story_events","couple_stories",
- "care_notices","care_prayer_settings","care_prayer_cache","care_prayer_sent",
+ "care_notices","care_period_preferences","care_prayer_settings","care_prayer_cache","care_prayer_sent",
  "couple_location_requests","couple_canvas_presence","couple_canvas_events",
  "couple_canvas_invites","affection_signals","daily_moments",
  "memory_challenges","memory_gifts","memory_agreements","memory_games",
