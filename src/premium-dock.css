@@ -9,7 +9,7 @@
   top:auto!important;
   left:14px!important;
   right:14px!important;
-  bottom:calc(10px + env(safe-area-inset-bottom))!important;
+  bottom:max(6px,calc(env(safe-area-inset-bottom) - 6px))!important;
   width:calc(100% - 28px)!important;
   max-width:480px!important;
   margin:0 auto!important;
