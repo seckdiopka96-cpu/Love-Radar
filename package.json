@@ -36,6 +36,7 @@
     "test:photos": "tsx --test tests/photo-reliability.test.ts tests/profile-photo.test.ts",
     "test:reliability": "tsx --test tests/reliability-audit.test.ts",
     "test:session-recovery": "tsx --test tests/restore-session-mobile-error.test.ts",
+    "test:partner-recovery": "tsx --test tests/partner-recovery.test.ts",
     "test:security": "tsx --test tests/security-release.test.ts",
     "test:deletion": "tsx --test tests/room-deletion.test.ts",
     "test:load": "node scripts/staging-load.mjs --synthetic",
