@@ -169,7 +169,7 @@ test("readable spacious couple tiles after stale mobile CSS",()=>{
  assert.ok(legacy.includes('gap:14px!important'),"Readable gap between activity tiles");
  assert.ok(legacy.includes('.tg-affection-heading h2'),"Love section retains legible typography");
  assert.ok(legacy.includes('min-width:105px!important'),"Send heart action stays compact");
- assert.ok(sw.includes('love-radar-static-v62'),"Installed iPhones refresh the updated shell cache");
+ assert.ok(sw.includes('love-radar-static-v63'),"Installed iPhones refresh the updated shell cache");
 });
 
 
@@ -183,4 +183,22 @@ test("soft pink theme is restored without losing the voice alignment",()=>{
  assert.ok(voice.includes("grid-template-rows:32px 18px;"));
  assert.ok(app.includes('import "./voice-alignment.css";'));
  assert.ok(!app.includes('import "./deep-rose-finish.css";'));
+});
+
+test("premium design polish keeps pale rose, vector activities and fixed iPhone dock",()=>{
+ const polish=readFileSync("src/premium-design-polish.css","utf8");
+ const dashboard=readFileSync("src/HomeDashboard.tsx","utf8");
+ const app=readFileSync("src/App.tsx","utf8");
+ assert.ok(app.includes('import "./premium-design-polish.css";'));
+ assert.ok(app.indexOf('import "./premium-design-polish.css";')>app.indexOf('import "./voice-alignment.css";'));
+ assert.ok(polish.includes("--lr-polish-rose:#ff7292;"),"original pale rose remains");
+ assert.ok(polish.includes("--lr-polish-ink:#0c1c2a;"),"night blue remains");
+ assert.ok(polish.includes(".lr-home-compact .lr-home-quick button"),"quick actions match");
+ assert.ok(polish.includes(".lr-home-essentials .lr-home-essential-symbol svg"),"vector icons share a style");
+ assert.ok(polish.includes(".lr-chat .lr-bubble-row.mine .lr-bubble:not(.lr-bubble-audio)"),"text bubbles change without touching voice notes");
+ assert.ok(polish.includes(".lr-app.lr-app-locked .lr-mobile-nav"),"premium bottom navigation receives visual polish");
+ assert.ok(!polish.includes("bottom:max("),"the recently tuned safe-area offset is unchanged");
+ assert.equal((dashboard.match(/className="lr-home-essential-symbol" aria-hidden="true"><svg/g)||[]).length,2);
+ assert.ok(dashboard.includes('className="lr-home-daily-icon" aria-hidden="true"><svg'));
+ assert.ok(!dashboard.includes('aria-hidden="true">🎲</span>'));
 });
