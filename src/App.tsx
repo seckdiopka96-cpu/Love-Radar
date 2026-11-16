@@ -6,6 +6,7 @@ import {setNativePrivacy} from "./native-privacy";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import "./love-radar.css";
 import VoiceCall from "./VoiceCall";
+import CallHistoryBubble,{type CallHistoryEvent} from "./CallHistoryBubble";
 import Ludo from "./Ludo";
 import SoloLudo from "./SoloLudo";
 import SenegalLudo from "./SenegalLudo";
@@ -68,6 +69,7 @@ import "./premium-design-polish.css";
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
 type EncryptionState={mine:string|null;partner:string|null;required:boolean};
+type ChatTimelineItem = {type:"message";message:Message;index:number;createdAt:number}|{type:"call";call:CallHistoryEvent;createdAt:number};
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number;
  reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null;
  edited_at?:number;reactions?:{member_id:string;emoji:string}[];view_once?:number|boolean};
@@ -174,6 +176,8 @@ export default function LoveRadar(){
  const [tab,setTab]=useState<Tab>(()=>parseNotice(window.location.search)?.tab||"home");
  const [nextAutoVoiceId,setNextAutoVoiceId]=useState<string|null>(null);
  const [voiceSpeed,setVoiceSpeed]=useState<VoiceSpeed>(1);
+ const [callHistory,setCallHistory]=useState<CallHistoryEvent[]>([]);
+ const [callClockOffset,setCallClockOffset]=useState(0);
  // Leave chat / switch couple: never auto-start an old private message.
  useEffect(()=>{setNextAutoVoiceId(null)},[tab,room?.roomId]);
  const currentTab=useRef(tab);
@@ -264,6 +268,41 @@ export default function LoveRadar(){
    reply_content:entry.replyContent||null,reply_sender_id:entry.replySenderId||null
   }))
  ]),[olderMessages,room?.messages,room?.user.id,voiceOutbox,textOutbox]);
+ const chatTimeline=useMemo<ChatTimelineItem[]>(()=>[
+  ...chatMessages.map((message,index)=>({type:"message" as const,message,index,createdAt:message.created_at})),
+  ...callHistory.map(call=>({type:"call" as const,call,createdAt:call.createdAt}))
+ ].sort((a,b)=>a.createdAt-b.createdAt),[chatMessages,callHistory]);
+ // These are room-scoped server events, not fabricated chat messages.
+ useEffect(()=>{
+  if(!token||!room?.roomId){setCallHistory([]);return}
+  if(tab!=="chat")return;
+  let stopped=false,inFlight=false;
+  const poll=async()=>{
+   if(inFlight||document.visibilityState==="hidden")return;
+   inFlight=true;
+   try{
+    const res=await apiFetch("/api/call?history=1",{
+     headers:{Authorization:"Bearer "+token},cache:"no-store"
+    });
+    if(!res.ok)return;
+    const payload=await res.json() as {ok:boolean;calls?:CallHistoryEvent[];serverNow?:number};
+    if(!stopped&&payload.ok&&Array.isArray(payload.calls)){
+     const calls=payload.calls.filter(item=>typeof item.id==="string"&&typeof item.createdAt==="number");
+     setCallHistory(prev=>JSON.stringify(prev)===JSON.stringify(calls)?prev:calls);
+     if(typeof payload.serverNow==="number")setCallClockOffset(payload.serverNow-Date.now());
+    }
+   }catch{/* The existing chat and call are still usable during a temporary log outage. */}
+   finally{inFlight=false}
+  };
+  void poll();
+  const interval=window.setInterval(()=>void poll(),2400);
+  const onVisible=()=>{if(document.visibilityState==="visible")void poll()};
+  document.addEventListener("visibilitychange",onVisible);
+  window.addEventListener("focus",onVisible);
+  return()=>{stopped=true;window.clearInterval(interval);
+   document.removeEventListener("visibilitychange",onVisible);
+   window.removeEventListener("focus",onVisible)};
+ },[token,room?.roomId,tab]);
  const actionMessage=chatMessages.find(m=>m.id===actionMessageId)||null;
  const infoMessage=chatMessages.find(m=>m.id===infoMessageId)||null;
  const [recording,setRecording]=useState(false);
@@ -1063,7 +1102,7 @@ export default function LoveRadar(){
   const closeToBottom=list.scrollHeight-list.scrollTop-list.clientHeight<155;
   if(firstPoll.current||chatFocused||closeToBottom)scrollToLatest();
   firstPoll.current=false;
- },[chatMessages.at(-1)?.id,tab,chatFocused,scrollToLatest]);
+ },[chatMessages.at(-1)?.id,callHistory.at(-1)?.id,callHistory.at(-1)?.status,tab,chatFocused,scrollToLatest]);
  useEffect(()=>()=>{if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current)},[]);
  // Keyboard changes the visible area: keep recent messages anchored, but
  // don't jump down when a user deliberately reads older messages.
@@ -1724,10 +1763,23 @@ export default function LoveRadar(){
         {historyBusy?"Chargement de l’historique…":"↑ Afficher les anciens messages"}</button>
       </div>:null}
       {historyError?<p className="lr-history-error" role="alert">{historyError}</p>:null}
-      {chatMessages.length===0?<div className="lr-chat-empty"><span>♡</span><h3>Votre conversation</h3><p>Écris ton premier message pour commencer.</p></div>:
-      chatMessages.map((m,idx)=>{
+      {chatTimeline.length===0?<div className="lr-chat-empty"><span>♡</span><h3>Votre conversation</h3><p>Écris ton premier message pour commencer.</p></div>:
+      chatTimeline.map((entry,feedIndex)=>{
+       const preceding=chatTimeline[feedIndex-1];
+       if(entry.type==="call"){
+        const callDay=new Date(entry.call.createdAt).toDateString();
+        const showCallDay=!preceding||new Date(preceding.createdAt).toDateString()!==callDay;
+        const callDate=new Date(entry.call.createdAt).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"long"});
+        return <Fragment key={"call-"+entry.call.id}>
+         {showCallDay?<div className="lr-chat-day">{callDate}</div>:null}
+         <CallHistoryBubble call={entry.call} mine={entry.call.callerId===room.user.id}
+          partner={partner} serverOffset={callClockOffset}/>
+        </Fragment>;
+       }
+       const m=entry.message,idx=entry.index;
        const mine=m.sender_id===room.user.id;
-       const previous=chatMessages[idx-1], next=chatMessages[idx+1];
+       const previous=preceding?.type==="message"?preceding.message:undefined;
+       const next=chatTimeline[feedIndex+1]?.type==="message"?chatTimeline[feedIndex+1].message:undefined;
        const day=new Date(m.created_at).toDateString();
        const newDay=!previous||new Date(previous.created_at).toDateString()!==day;
        const groupedBefore=previous&&!newDay&&previous.sender_id===m.sender_id&&m.created_at-previous.created_at<5*60*1000;
