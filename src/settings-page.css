@@ -60,3 +60,16 @@
 @media(max-width:700px){.lr-settings-page{padding:4px 1px 40px;gap:11px}.lr-settings-section{padding:14px;border-radius:18px;gap:12px}.lr-settings-heading{padding:4px 0}.lr-settings-heading h1{font-size:26px}}
 @media(max-width:355px){.lr-settings-profile{flex-wrap:wrap}.lr-settings-primary{margin-left:auto}.lr-settings-invitation{flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){.lr-settings-switch,.lr-settings-switch:before{transition:none}}
+
+/* Screenshot protection is presented honestly per platform, not as a
+   misleading cross-platform toggle. */
+.lr-settings-screenshot-info{
+ display:flex;flex-direction:column;gap:8px;
+ margin-top:13px;padding:14px 15px;
+ border:1px solid rgba(245,165,198,.38);border-radius:14px;
+ background:linear-gradient(145deg,#283f50,#1c3040);
+ color:#fceaf2;
+}
+.lr-settings-screenshot-info strong{font-size:13px;font-weight:800}
+.lr-settings-screenshot-info p{margin:0;color:#d4e0e7;font-size:12px;line-height:1.55}
+.lr-settings-screenshot-info small{color:#aebfcd;font-size:11px;line-height:1.6}
