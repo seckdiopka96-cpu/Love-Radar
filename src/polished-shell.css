@@ -1,0 +1,174 @@
+/* Mobile polish: minimal private header, compact settings, stable safe-area dock.
+   The bottom dock is attached to the viewport, not the scroll container. */
+.lr-header-context{
+ display:flex;flex-direction:column;justify-content:center;gap:3px;
+ min-width:0;letter-spacing:0;text-align:left;
+}
+.lr-header-context>span{
+ color:#b99db2;font:800 9px/1.2 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
+ letter-spacing:2.1px;
+}
+.lr-header-context>strong{
+ color:#f8e7ee;font:750 19px/1.18 -apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
+ letter-spacing:-.45px;
+}
+.lr-menu-notifications{
+ display:flex;flex-direction:column;gap:9px;padding:11px 0 12px;
+ margin-top:3px;border-top:1px solid rgba(255,230,243,.12);
+ border-bottom:1px solid rgba(255,230,243,.12);
+}
+.lr-menu-notification-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lr-menu-notification-title strong{font-size:13px;color:#fce9f3}
+.lr-menu-notification-status{
+ display:inline-flex;align-items:center;gap:6px;color:#d8becb!important;
+ font-size:10px!important;white-space:nowrap;
+}
+.lr-menu-notification-status::before{
+ content:"";width:7px;height:7px;border-radius:50%;background:#bd97a5;
+}
+.lr-menu-notification-status.is-on::before{background:#65dcad;box-shadow:0 0 0 3px #65dcad19}
+.lr-menu-notification-actions{display:flex;flex-wrap:wrap;gap:6px}
+.lr-menu .lr-menu-notification-actions button{
+ flex:1 1 auto!important;min-height:38px!important;padding:8px 11px!important;
+ background:#2a4050!important;color:#f4e5f0!important;
+ border:1px solid #526879!important;border-radius:12px!important;
+ text-align:center!important;font-size:11px!important;
+}
+.lr-menu .lr-menu-notification-actions button:first-child{
+ background:#523d57!important;border-color:#99708d!important;
+}
+.lr-menu .lr-menu-notification-actions button:disabled{opacity:.5}
+.lr-menu-notification-help{
+ font-size:11px!important;line-height:1.45!important;color:#dac7d4!important;
+ margin:0!important;overflow-wrap:anywhere;
+}
+.lr-menu{max-height:min(72dvh,620px);overflow-y:auto;overscroll-behavior:contain}
+.lr-header-avatar:focus-visible,.lr-menu button:focus-visible{
+ outline:2px solid #f8c8dc!important;outline-offset:3px!important;
+}
+@media(max-width:700px){
+ .lr-app.lr-app-locked>.lr-header{
+  height:calc(58px + env(safe-area-inset-top))!important;
+  min-height:0!important;box-sizing:border-box!important;
+  padding:env(safe-area-inset-top) 17px 0!important;
+  background:#0c1d29f5!important;
+  border-bottom:1px solid rgba(147,179,192,.14)!important;
+  box-shadow:0 1px 0 rgba(255,255,255,.03)!important;
+ }
+ .lr-app.lr-app-locked .lr-header-end{gap:9px!important}
+ .lr-app.lr-app-locked .lr-header-avatar{
+  width:39px!important;height:39px!important;
+  border-radius:15px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12)!important;
+ }
+ .lr-app.lr-app-locked .lr-menu{
+  width:min(310px,calc(100vw - 28px))!important;
+  top:calc(100% + 12px)!important;right:0!important;
+  padding:15px!important;border-radius:20px!important;
+  max-height:calc(100dvh - 160px)!important;
+  box-shadow:0 22px 65px #050b16e6!important;
+ }
+ /* The opaque nav scroll gap caused the home to look unfinished. Reserve
+    exact dock + safe-area height in the main scroller, never under content. */
+ .lr-app.lr-app-locked:not(.lr-chat-mode):not(.lr-watch-mode):not(.lr-puzzle-mode):not(.lr-reconcile-mode):not(.lr-ludo-mode) .lr-shell{
+  padding:0 0 calc(94px + env(safe-area-inset-bottom))!important;
+ }
+ .lr-app.lr-app-locked:not(.lr-chat-mode):not(.lr-watch-mode):not(.lr-puzzle-mode):not(.lr-reconcile-mode):not(.lr-ludo-mode) .lr-main{
+  padding:13px 13px 26px!important;
+  scroll-padding-bottom:25px;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav{
+  position:fixed!important;left:12px!important;right:12px!important;
+  bottom:calc(9px + env(safe-area-inset-bottom))!important;
+  width:calc(100% - 24px)!important;max-width:none!important;
+  height:70px!important;min-height:70px!important;
+  padding:5px 6px!important;gap:3px!important;
+  border-radius:23px!important;
+  background:linear-gradient(155deg,#293446f7,#192738f9)!important;
+  border:1px solid rgba(229,206,223,.22)!important;
+  box-shadow:0 10px 35px #050c1dbb,inset 0 1px rgba(255,255,255,.14)!important;
+  -webkit-backdrop-filter:blur(19px) saturate(140%);
+  backdrop-filter:blur(19px) saturate(140%);
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button{
+  height:58px!important;min-height:58px!important;
+  border-radius:17px!important;gap:2px!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-symbol{
+  flex-basis:31px!important;height:31px!important;min-height:31px!important;
+  width:38px!important;min-width:38px!important;border-radius:13px!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-symbol svg{
+  width:22px!important;height:22px!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button.active{
+  background:rgba(237,139,177,.08)!important;
+  border-color:rgba(255,191,220,.13)!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button.active .lr-nav-symbol{
+  background:linear-gradient(145deg,#ed9ebc,#bc6b95)!important;
+  box-shadow:0 4px 12px #a63f7359,inset 0 1px 0 #fff6!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button small{
+  font-size:9px!important;line-height:12px!important;letter-spacing:.05px!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button.active::after{bottom:0!important}
+ .lr-app.lr-app-locked.lr-chat-mode .lr-shell,
+ .lr-app.lr-app-locked.lr-keyboard-open .lr-shell{
+  padding-bottom:0!important;
+ }
+ /* Calm dashboard density with generous tap targets but no oversized tiles. */
+ .lr-home{gap:12px!important;padding:1px 0 5px!important}
+ .lr-home-welcome{gap:5px!important;padding:2px 1px 0!important}
+ .lr-home-welcome h2{
+  font-size:clamp(27px,7vw,34px)!important;
+  letter-spacing:-.8px!important;line-height:1.12!important;
+ }
+ .lr-home-welcome h2 span{display:none!important}
+ .lr-home-welcome p{font-size:11px!important;line-height:1.55!important}
+ .lr-home-kicker{font-size:9px!important;letter-spacing:1.8px!important}
+ .lr-home-couple{
+  padding:14px 12px 16px!important;
+  border-radius:23px!important;
+  box-shadow:inset 0 1px 0 #fff2,0 9px 28px #050e1d46!important;
+ }
+ .lr-home-couple h1{
+  margin:13px 0 8px!important;
+  font-size:clamp(25px,6.8vw,34px)!important;line-height:1.12!important;
+ }
+ .lr-home-avatar{width:46px!important;height:46px!important}
+ .lr-home-quick{gap:9px!important}
+ .lr-home-quick button{
+  min-height:91px!important;gap:7px!important;
+  padding:12px 5px 10px!important;border-radius:19px!important;
+  border:1px solid rgba(255,255,255,.36)!important;
+  box-shadow:inset 0 1px 0 #fff8,0 5px 20px #06112135!important;
+  transition:transform .15s ease,filter .15s ease!important;
+ }
+ .lr-home-quick button:active{transform:scale(.97)!important}
+ .lr-home-quick-icon{width:40px!important;height:40px!important;border-radius:14px!important}
+ .lr-home-quick-icon svg{width:22px;height:22px;stroke-width:2.1}
+ .lr-home-quick strong{font-size:12px!important}
+ .lr-home-quick small{font-size:9px!important}
+ .lr-home-section-heading{margin-top:5px!important}
+ .lr-home-our-story{gap:9px!important}
+ .lr-home-our-story button{
+  min-height:80px!important;border-radius:19px!important;
+  box-shadow:inset 0 1px #fff2!important;
+ }
+ .lr-home-daily{border-radius:21px!important}
+ .lr-home-game,.lr-home-memory,.lr-home-tile{box-shadow:inset 0 1px rgba(255,255,255,.08)!important}
+}
+@media(max-width:365px){
+ .lr-app.lr-app-locked .lr-mobile-nav{
+  left:7px!important;right:7px!important;width:calc(100% - 14px)!important;
+  gap:1px!important;padding:5px 3px!important
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button small{font-size:8.5px!important}
+ .lr-home-quick strong{font-size:11px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-home-quick button,.lr-app .lr-mobile-nav button,.lr-app .lr-mobile-nav button .lr-nav-symbol{
+  transition:none!important
+ }
+}
