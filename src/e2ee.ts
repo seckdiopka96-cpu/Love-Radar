@@ -43,6 +43,67 @@ export async function generateIdentity():Promise<Identity>{
  const publicKey=b64url(new Uint8Array(await crypto.subtle.exportKey("raw",pair.publicKey)));
  return {publicKey,privateKey:pair.privateKey};
 }
+
+/** Encrypted export: backed up only to a user-selected file, not Cloudflare. */
+export type IdentityBackup={identity:Identity;encryptedBackup:string};
+type BackupV1={version:"love-radar-key-backup-v1";publicKey:string;salt:string;iv:string;cipher:string;iterations:number};
+const BACKUP_ITERATIONS=600_000;
+async function backupKey(passphrase:string,salt:Uint8Array):Promise<CryptoKey>{
+ if(passphrase.length<12||passphrase.length>256)throw Error("Choisis une phrase secrète d’au moins 12 caractères.");
+ const material=await crypto.subtle.importKey("raw",buffer(bytes(passphrase)),"PBKDF2",false,["deriveKey"]);
+ return crypto.subtle.deriveKey({name:"PBKDF2",salt:buffer(salt),iterations:BACKUP_ITERATIONS,hash:"SHA-256"},
+  material,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+export async function generateIdentityWithBackup(passphrase:string):Promise<IdentityBackup>{
+ // Generation key is extractable only in this temporary function, while
+ // wrapping its PKCS#8 private bytes. IndexedDB receives nonextractable copy.
+ const temp=await crypto.subtle.generateKey({name:"ECDH",namedCurve:"P-256"},true,["deriveBits"]) as CryptoKeyPair;
+ const publicKey=b64url(new Uint8Array(await crypto.subtle.exportKey("raw",temp.publicKey)));
+ const pkcs8=new Uint8Array(await crypto.subtle.exportKey("pkcs8",temp.privateKey));
+ try{
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await backupKey(passphrase,salt);
+  const ciphertext=new Uint8Array(await crypto.subtle.encrypt(
+   {name:"AES-GCM",iv,additionalData:bytes(VERSION+"|backup|"+publicKey)},key,buffer(pkcs8)));
+  const privateKey=await crypto.subtle.importKey("pkcs8",buffer(pkcs8),
+   {name:"ECDH",namedCurve:"P-256"},false,["deriveBits"]);
+  const backup:BackupV1={version:"love-radar-key-backup-v1",publicKey,
+   salt:b64url(salt),iv:b64url(iv),cipher:b64url(ciphertext),iterations:BACKUP_ITERATIONS};
+  return {identity:{publicKey,privateKey},encryptedBackup:JSON.stringify(backup)};
+ }finally{pkcs8.fill(0)}
+}
+export async function decryptIdentityBackup(encryptedBackup:string,passphrase:string,expectedPublicKey:string):Promise<Identity>{
+ if(encryptedBackup.length>4000)throw Error("Sauvegarde de clé trop volumineuse.");
+ let parsed:Partial<BackupV1>;
+ try{parsed=JSON.parse(encryptedBackup) as Partial<BackupV1>}
+ catch{throw Error("Fichier de sauvegarde invalide.")}
+ if(parsed.version!=="love-radar-key-backup-v1"||parsed.publicKey!==expectedPublicKey||!validPublicKey(expectedPublicKey)||
+  parsed.iterations!==BACKUP_ITERATIONS||!parsed.salt||!parsed.iv||!parsed.cipher)
+  throw Error("Cette sauvegarde ne correspond pas à ton identité Love Radar.");
+ const salt=unb64(parsed.salt),iv=unb64(parsed.iv),cipher=unb64(parsed.cipher);
+ if(salt.length!==16||iv.length!==12||cipher.length<80||cipher.length>1000)
+  throw Error("Sauvegarde de clé corrompue.");
+ const key=await backupKey(passphrase,salt);
+ let pkcs8:Uint8Array;
+ try{
+  pkcs8=new Uint8Array(await crypto.subtle.decrypt(
+   {name:"AES-GCM",iv:buffer(iv),additionalData:bytes(VERSION+"|backup|"+expectedPublicKey)},key,buffer(cipher)));
+ }catch{throw Error("Phrase secrète incorrecte ou sauvegarde corrompue.")}
+ try{
+  const privateKey=await crypto.subtle.importKey("pkcs8",buffer(pkcs8),
+   {name:"ECDH",namedCurve:"P-256"},false,["deriveBits"]);
+  // Verify the backup's private key actually matches the advertised public key.
+  const remote=await crypto.subtle.importKey("raw",buffer(unb64(expectedPublicKey)),{name:"ECDH",namedCurve:"P-256"},false,[]);
+  const ecdh=await crypto.subtle.deriveBits({name:"ECDH",public:remote},privateKey,256);
+  const check=await crypto.subtle.importKey("pkcs8",buffer(pkcs8),
+   {name:"ECDH",namedCurve:"P-256"},true,["deriveBits"]);
+  const same=await crypto.subtle.deriveBits({name:"ECDH",public:remote},check,256);
+  if(!new Uint8Array(ecdh).every((v,i)=>v===new Uint8Array(same)[i]))
+   throw Error("Clé privée incohérente.");
+  return {publicKey:expectedPublicKey,privateKey};
+ }finally{pkcs8.fill(0)}
+}
+
 export async function fingerprint(publicKey:string):Promise<string>{
  if(!validPublicKey(publicKey))throw Error("Clé publique invalide.");
  const digest=new Uint8Array(await crypto.subtle.digest("SHA-256",buffer(unb64(publicKey))));
@@ -70,10 +131,8 @@ export async function loadIdentity(memberId:string):Promise<Identity|null>{
   });
  }finally{db.close()}
 }
-export async function ensureIdentity(memberId:string):Promise<Identity>{
- const existing=await loadIdentity(memberId);
- if(existing)return existing;
- const identity=await generateIdentity();
+type StoredIdentity=Identity&{encryptedBackup?:string};
+async function saveIdentity(memberId:string,identity:StoredIdentity):Promise<void>{
  const db=await identityDb();
  try{
   await new Promise<void>((resolve,reject)=>{
@@ -81,8 +140,28 @@ export async function ensureIdentity(memberId:string):Promise<Identity>{
    tr.objectStore("identities").put(identity,memberId);
    tr.oncomplete=()=>resolve();tr.onerror=()=>reject(tr.error);tr.onabort=()=>reject(tr.error);
   });
-  return identity;
  }finally{db.close()}
+}
+export async function encryptedBackupFor(memberId:string):Promise<string|null>{
+ return ((await loadIdentity(memberId)) as StoredIdentity|null)?.encryptedBackup||null;
+}
+/** Create private key and encrypted backup BEFORE registering the public key server-side. */
+export async function ensureIdentity(memberId:string,passphrase:string):Promise<IdentityBackup>{
+ const existing=await loadIdentity(memberId) as StoredIdentity|null;
+ if(existing){
+  if(!existing.encryptedBackup)throw Error("Cette identité n’a aucune sauvegarde récupérable. Ne réinitialise pas sa clé.");
+  return {identity:existing,encryptedBackup:existing.encryptedBackup};
+ }
+ const created=await generateIdentityWithBackup(passphrase);
+ await saveIdentity(memberId,{...created.identity,encryptedBackup:created.encryptedBackup});
+ return created;
+}
+/** Restore on another device only after signed-in account recovery, matching server public key. */
+export async function restoreIdentityBackup(memberId:string,backup:string,passphrase:string,expectedPublicKey:string):Promise<void>{
+ const identity=await decryptIdentityBackup(backup,passphrase,expectedPublicKey);
+ const old=await loadIdentity(memberId);
+ if(old&&old.publicKey!==identity.publicKey)throw Error("Une autre clé privée existe déjà sur cet appareil.");
+ await saveIdentity(memberId,{...identity,encryptedBackup:backup});
 }
 function trustStorageKey(roomId:string,partnerId:string){return "lr-e2ee-verified-v1:"+roomId+":"+partnerId}
 export function isPartnerVerified(roomId:string,partnerId:string,fingerprintCode:string):boolean{
