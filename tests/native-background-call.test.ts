@@ -10,8 +10,8 @@ const configure=join(root,"scripts/configure-native.mjs");
 const sampleAndroid='<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Love Radar"><activity android:name=".MainActivity"/></application></manifest>';
 const sampleJava='package com.diaotech.loveradar;\nimport com.getcapacitor.BridgeActivity;\npublic class MainActivity extends BridgeActivity {\n}\n';
 const samplePlist='<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleName</key><string>App</string></dict></plist>';
-const sampleSwift='import UIKit\nimport Capacitor\n@UIApplicationMain\nclass AppDelegate: UIResponder, UIApplicationDelegate {}\n';
-const sampleStoryboard='<storyboard><viewController customClass="CAPBridgeViewController" customModule="Capacitor" customModuleProvider="target"/></storyboard>';
+const sampleSwift='import UIKit\nimport Capacitor\n@UIApplicationMain\nclass AppDelegate: UIResponder, UIApplicationDelegate {\n func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {\n return true\n }\n}\n';
+const sampleStoryboard='<storyboard><viewController customClass="CAPBridgeViewController" customModule="Capacitor" customModuleProvider="target"/></storyboard>';\nconst sampleProject='AA /* Debug */ = { isa = XCBuildConfiguration; buildSettings = { INFOPLIST_FILE = App/Info.plist; }; name = Debug; };\\nBB /* Release */ = { isa = XCBuildConfiguration; buildSettings = { INFOPLIST_FILE = App/Info.plist; }; name = Release; };';
 
 function write(path:string,data:string){
  mkdirSync(dirname(path),{recursive:true});writeFileSync(path,data);
@@ -24,13 +24,13 @@ test("generated Android and iOS background-call installation is repeatable and p
    activity:"android/app/src/main/java/com/diaotech/loveradar/MainActivity.java",
    plist:"ios/App/App/Info.plist",
    appDelegate:"ios/App/App/AppDelegate.swift",
-   storyboard:"ios/App/App/Base.lproj/Main.storyboard"
+   storyboard:"ios/App/App/Base.lproj/Main.storyboard",\n   project:"ios/App/App.xcodeproj/project.pbxproj"
   };
   write(join(dir,files.manifest),sampleAndroid);
   write(join(dir,files.activity),sampleJava);
   write(join(dir,files.plist),samplePlist);
   write(join(dir,files.appDelegate),sampleSwift);
-  write(join(dir,files.storyboard),sampleStoryboard);
+  write(join(dir,files.storyboard),sampleStoryboard);\n  write(join(dir,files.project),sampleProject);
   const run=()=>spawnSync(process.execPath,[configure,"all"],{cwd:dir,encoding:"utf8"});
   const first=run();
   assert.equal(first.status,0,first.stderr);
@@ -57,7 +57,7 @@ test("generated Android and iOS background-call installation is repeatable and p
   assert.ok(service.includes("notification"));
   assert.ok(!service.includes("SharedPreferences"),"Do not persist session tokens");
   assert.ok(plist.includes("<key>UIBackgroundModes</key>"));
-  assert.ok(plist.includes("<string>audio</string>"));
+  assert.ok(plist.includes("<string>audio</string>"));\n  assert.ok(plist.includes("<string>voip</string>"));\n  assert.ok(plist.includes("<string>remote-notification</string>"));\n  assert.ok(read("ios/App/App/App.entitlements").includes("aps-environment"));\n  assert.ok(read(files.project).includes("CODE_SIGN_ENTITLEMENTS = App/App.entitlements;"));\n  assert.ok(read(files.project).includes("APS_ENVIRONMENT = production;"));\n  assert.ok(delegate.includes("LoveRadarVoipManager.shared.start()"));\n  assert.ok(delegate.includes("bridge?.registerPluginInstance(LoveRadarVoipPlugin())"));\n  assert.ok(delegate.includes("PKPushRegistry"));\n  assert.ok(delegate.includes("CXProvider"));
   assert.ok(delegate.includes("AVAudioSession.sharedInstance()"));
   assert.ok(delegate.includes("mode: .voiceChat"));
   assert.ok(delegate.includes("bridge?.registerPluginInstance(LoveRadarNativeCall())"));
@@ -65,7 +65,7 @@ test("generated Android and iOS background-call installation is repeatable and p
   assert.ok(!storyboard.includes('customClass="CAPBridgeViewController"'));
   const before=[...Object.values(files),
    "android/app/src/main/java/com/diaotech/loveradar/NativeCallPlugin.java",
-   "android/app/src/main/java/com/diaotech/loveradar/NativeCallService.java"].map(read);
+   "android/app/src/main/java/com/diaotech/loveradar/NativeCallService.java",\n   "ios/App/App/App.entitlements"].map(read);
   const again=run();
   assert.equal(again.status,0,again.stderr);
   const after=[...Object.values(files),
