@@ -29,3 +29,16 @@ export function encryptedText(value:string):boolean{
 export function validPublicKey(key:unknown):key is string{
  return typeof key==="string"&&/^[A-Za-z0-9_-]{87}$/.test(key)&&key.startsWith("B");
 }
+
+/** Reject malformed or non-curve public keys before immutable registration. */
+export async function validateP256PublicKey(key:unknown):Promise<boolean>{
+ if(!validPublicKey(key))return false;
+ try{
+  const base64=key.replace(/-/g,"+").replace(/_/g,"/");
+  const data=atob(base64+"=".repeat((4-base64.length%4)%4));
+  if(data.length!==65||data.charCodeAt(0)!==4)return false;
+  const bytes=Uint8Array.from(data,c=>c.charCodeAt(0));
+  await crypto.subtle.importKey("raw",bytes,{name:"ECDH",namedCurve:"P-256"},false,[]);
+  return true;
+ }catch{return false}
+}
