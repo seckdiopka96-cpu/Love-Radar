@@ -1,0 +1,30 @@
+/* Native-app and PWA opening slate — private, quick and non-interactive. */
+.lr-launch-splash{
+ position:fixed;inset:0;z-index:10000;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ min-height:100dvh;padding:24px 28px max(28px,env(safe-area-inset-bottom));
+ overflow:hidden;isolation:isolate;
+ background:radial-gradient(ellipse at 50% 29%,#5a294d 0%,#241a31 40%,#0c1c28 100%);
+ color:#fff5f7;text-align:center;
+ opacity:1;transition:opacity .35s ease,visibility .35s ease;
+}
+.lr-launch-splash.is-leaving{opacity:0;visibility:hidden;pointer-events:none}
+.lr-launch-glow{position:absolute;inset:-30%;z-index:-1;pointer-events:none;
+ background:radial-gradient(ellipse at center,#ed6d9e30 0%,transparent 48%)}
+.lr-launch-emblem{display:grid;place-items:center;width:92px;height:92px;
+ border-radius:29px;background:linear-gradient(145deg,#ee7fac35,#f6c1df0b);
+ border:1px solid #ffcede5c;box-shadow:0 20px 70px #d8558b47, inset 0 2px 0 #ffffff23;
+ animation:lr-launch-appear .65s cubic-bezier(.2,.9,.23,1) both}
+.lr-launch-emblem svg{width:75px;height:75px}
+.lr-launch-kicker{font-size:10px;font-weight:850;letter-spacing:3.2px;color:#eab2ce;
+ margin:28px 0 8px}
+.lr-launch-splash h1{margin:0;font:600 clamp(39px,11vw,58px)/1.12 Georgia,serif;letter-spacing:-2px}
+.lr-launch-splash h1 span{color:#f59abc}
+.lr-launch-tagline{max-width:290px;margin:17px auto 0;
+ color:#c6cbd7;font-size:13px;line-height:1.65}
+.lr-launch-credit{position:absolute;bottom:max(36px,calc(22px + env(safe-area-inset-bottom)));
+ left:0;right:0;color:#b8aebb;font-size:11px;letter-spacing:.2px}
+.lr-launch-credit strong{color:#f6b5d1}
+@keyframes lr-launch-appear{from{opacity:.2;transform:translateY(15px) scale(.88)}
+ to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.lr-launch-splash,.lr-launch-emblem{transition:none!important;animation:none!important}}
