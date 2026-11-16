@@ -4,7 +4,7 @@ import "./couple-care.css";
 
 type PrayerConfig={enabled:boolean;latitude:number;longitude:number;timezone:string;method:number};
 type Notice={id:string;sender_id:string;kind:"period"|"prayer";label:string|null;created_at:number;expires_at:number;read_at:number|null};
-type State={ok:boolean;error?:string;prayer?:PrayerConfig|null;partnerPrayerEnabled?:boolean;
+type State={ok:boolean;error?:string;periodEnabled?:boolean;prayer?:PrayerConfig|null;partnerPrayerEnabled?:boolean;
  notices?:Notice[];ownPeriodId?:string|null;timings?:Record<string,string>};
 type Props={token:string;partnerName:string|null;myName:string;onExit:()=>void;onOpenChat:()=>void};
 const methods=[
@@ -95,7 +95,7 @@ export default function CoupleCare({token,partnerName,myName,onExit,onOpenChat}:
   </header>
   <p className="lr-care-intro">Prendre soin l'un de l'autre, avec douceur et toujours avec votre accord.</p>
   <div className="lr-care-grid">
-   <section className="lr-care-card lr-care-period">
+   {state?.periodEnabled===true?<section className="lr-care-card lr-care-period">
     <span className="lr-care-icon" aria-hidden="true">💗</span>
     <span className="lr-care-eyebrow">UNE ATTENTION DOUCE</span>
     <h2>J'ai mes règles</h2>
@@ -116,7 +116,7 @@ export default function CoupleCare({token,partnerName,myName,onExit,onOpenChat}:
      Retirer cette attention</button>:null}
     {!partnerName?<small>Invitez d'abord ton partenaire pour partager cette information.</small>:null}
     <small>Visible uniquement par ton partenaire pendant 48 h, puis supprimé. Le partage est facultatif.</small>
-   </section>
+   </section>:null}
    <section className="lr-care-card lr-care-prayer">
     <span className="lr-care-icon" aria-hidden="true">🕌</span>
     <span className="lr-care-eyebrow">SE RAPPELER L'ESSENTIEL</span>
