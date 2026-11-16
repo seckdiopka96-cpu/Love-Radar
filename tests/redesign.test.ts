@@ -158,5 +158,5 @@ test("readable spacious couple tiles after stale mobile CSS",()=>{
  assert.ok(legacy.includes('gap:14px!important'),"Readable gap between activity tiles");
  assert.ok(legacy.includes('.tg-affection-heading h2'),"Love section retains legible typography");
  assert.ok(legacy.includes('min-width:105px!important'),"Send heart action stays compact");
- assert.ok(sw.includes('love-radar-static-v56'),"Installed iPhones refresh the updated shell cache");
+ assert.ok(sw.includes('love-radar-static-v57'),"Installed iPhones refresh the updated shell cache");
 });
