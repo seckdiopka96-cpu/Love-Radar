@@ -1,0 +1,117 @@
+/* Love Radar: premium compact glass dock, mobile only.
+   Intent: calm native-app polish, visible focus, safe-area and no layout jump. */
+@media(max-width:700px){
+ .lr-app.lr-app-locked .lr-mobile-nav{
+  position:absolute!important;
+  left:10px!important;right:10px!important;top:auto!important;
+  bottom:calc(8px + env(safe-area-inset-bottom))!important;
+  width:calc(100% - 20px)!important;
+  height:72px!important;min-height:72px!important;
+  padding:6px 6px!important;
+  display:flex;align-items:stretch;justify-content:space-between!important;gap:4px!important;
+  box-sizing:border-box!important;
+  background:linear-gradient(155deg,rgba(39,44,60,.96),rgba(20,32,47,.97))!important;
+  border:1px solid rgba(255,227,244,.22)!important;
+  border-radius:26px!important;
+  box-shadow:0 15px 40px rgba(4,11,24,.54),inset 0 1px 0 rgba(255,255,255,.20),0 0 0 1px rgba(248,152,187,.06)!important;
+  -webkit-backdrop-filter:blur(26px) saturate(165%);
+  backdrop-filter:blur(26px) saturate(165%);
+  overflow:visible!important;
+  isolation:isolate;z-index:61!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav::before{
+  content:"";pointer-events:none;position:absolute;left:8px;right:8px;top:2px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,241,250,.35),transparent);
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button{
+  flex:1 1 0!important;max-width:none!important;min-width:0!important;
+  width:0!important;height:60px!important;min-height:60px!important;
+  padding:4px 1px 5px!important;gap:3px!important;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative!important;
+  background:transparent!important;border:1px solid transparent!important;
+  border-radius:19px!important;
+  box-shadow:none!important;
+  color:#bdc9d4!important;
+  transition:background .18s ease,color .18s ease,transform .18s ease!important;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-symbol{
+  position:relative!important;flex:0 0 33px!important;
+  width:42px!important;min-width:42px!important;height:33px!important;min-height:33px!important;
+  display:grid!important;place-items:center!important;
+  margin:0!important;padding:0!important;
+  border:1px solid transparent;border-radius:15px;
+  background:transparent;
+  color:inherit!important;
+  transition:background .18s ease,color .18s ease,box-shadow .18s ease;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-symbol svg{
+  width:23px!important;height:23px!important;
+  stroke:currentColor!important;stroke-width:1.85!important;
+  display:block!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button small{
+  color:inherit!important;flex:none!important;
+  display:block!important;margin:0!important;padding:0!important;
+  font:750 10px/13px -apple-system,BlinkMacSystemFont,"SF Pro Text",Arial,sans-serif!important;
+  letter-spacing:-.05px!important;white-space:nowrap!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button.active{
+  background:linear-gradient(155deg,rgba(240,138,178,.15),rgba(197,110,152,.07))!important;
+  border-color:rgba(255,177,215,.15)!important;
+  color:#fff9fc!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button.active .lr-nav-symbol{
+  color:#fffafc!important;
+  background:linear-gradient(140deg,#f091b2,#bb5f90)!important;
+  border-color:rgba(255,227,243,.42)!important;
+  box-shadow:0 4px 14px rgba(236,99,154,.32),inset 0 1px 0 rgba(255,255,255,.33)!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button.active::after{
+  content:"";position:absolute;bottom:1px;width:10px;height:2px;border-radius:3px;
+  background:#ffc3df;box-shadow:0 0 7px rgba(255,162,202,.74);
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button:active{transform:scale(.94)!important}
+ .lr-app.lr-app-locked .lr-mobile-nav button:focus-visible{
+  outline:2px solid #ffe2f1!important;outline-offset:-3px!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-unread{
+  position:absolute!important;left:calc(50% + 11px)!important;top:0!important;z-index:4!important;
+  min-width:18px!important;height:18px!important;padding:0 4px!important;
+  background:#ff82ad!important;color:#1d1830!important;
+  border:2px solid #202b3a!important;border-radius:999px!important;
+  box-shadow:0 2px 8px rgba(0,0,0,.42)!important;
+  font-size:10px!important;font-weight:900!important;
+ }
+ .lr-app.lr-app-locked>.lr-header .lr-brand{display:flex;align-items:center;gap:0!important}
+ .lr-app.lr-app-locked>.lr-header .lr-brand-copy{display:none!important}
+ .lr-app.lr-app-locked>.lr-header .lr-brand-emblem{
+  width:37px!important;height:37px!important;border-radius:14px!important;
+  background:linear-gradient(135deg,#a85d86,#633e70)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.23)!important;
+ }
+}
+@media(max-width:365px){
+ .lr-app.lr-app-locked .lr-mobile-nav{left:7px!important;right:7px!important;width:calc(100% - 14px)!important;gap:1px!important;padding:5px 4px!important}
+ .lr-app.lr-app-locked .lr-mobile-nav button small{font-size:9px!important}
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-symbol{width:37px!important;min-width:37px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-app.lr-app-locked .lr-mobile-nav button,.lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-symbol{transition:none!important}
+}
+.lr-chat .lr-text-send-state{
+ display:flex;align-items:center;justify-content:flex-end;gap:6px;
+ font:650 10px/1.25 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
+ color:#c9d2da;text-align:right;margin:4px 1px 1px;
+}
+.lr-chat .lr-text-send-state.failed{color:#ffb9c9}
+.lr-chat .lr-text-send-state.sent{color:#b6e4d2}
+.lr-chat .lr-text-send-state button{
+ border:1px solid rgba(255,181,203,.58);border-radius:999px;
+ background:rgba(116,48,73,.5);color:#ffe2eb;
+ padding:3px 9px;font-size:11px;font-weight:800;cursor:pointer;
+}
+.lr-chat .lr-text-send-state button:focus-visible{outline:2px solid #fff;outline-offset:2px}
