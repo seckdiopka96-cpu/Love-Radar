@@ -4,22 +4,22 @@
 .lr-recovery-dialog h2{font:800 22px/1.25 -apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;text-align:center;margin:0;color:#fff3f8}
 .lr-recovery-dialog p{font:400 13px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;margin:0;color:#cbd6df}
 .lr-recovery-secret{font:800 clamp(12px,3vw,18px)/1.65 ui-monospace,Menlo,Consolas,monospace;text-align:center;letter-spacing:.9px;word-break:break-all;color:#fff0f7;padding:16px 8px;border-radius:14px;border:1px solid #986c92;background:#433448;user-select:all}
-.lr-recovery-copy,.lr-recovery-close{width:100%;min-height:46px;border:1px solid #efb3cc;border-radius:13px;background:linear-gradient(115deg,#ce759d,#a95984);font-size:13px;font-weight:800;color:white;cursor:pointer}
+.lr-recovery-copy,.lr-recovery-close{width:100%;min-height:46px;border:1px solid #bc396c;border-radius:13px;background:linear-gradient(115deg,#a82358,#a82358);font-size:13px;font-weight:800;color:white;cursor:pointer}
 .lr-recovery-warning{background:#213345;border:1px solid #42586b;border-radius:13px;padding:12px!important;font-size:11px!important}
 .lr-recovery-confirm{display:flex;align-items:flex-start;gap:9px;line-height:1.5;font-size:12px;cursor:pointer}
-.lr-recovery-confirm input{margin-top:3px;width:18px;height:18px;accent-color:#d778a1;flex:none}
+.lr-recovery-confirm input{margin-top:3px;width:18px;height:18px;accent-color:#bd2763;flex:none}
 .lr-recovery-close:disabled{opacity:.48;cursor:not-allowed}
-.lr-recovery-dialog button:focus-visible{outline:3px solid #ffe0ec;outline-offset:3px}
+.lr-recovery-dialog button:focus-visible{outline:3px solid #bc396c;outline-offset:3px}
 .lr-recovery-entry{display:flex;flex-direction:column;gap:12px;padding:14px;border:1px solid #3f5768;border-radius:16px;background:#203345}
 .lr-recovery-entry p{font-size:12px;line-height:1.5;color:#cdd8e0}
 .lr-recovery-entry label{font-size:12px;color:#f8e7f1}
 .lr-recovery-entry input{width:100%;min-height:45px;box-sizing:border-box;border-radius:12px;border:1px solid #627586;padding:11px 12px;background:#0e2331;color:#fff;letter-spacing:.5px;font-family:ui-monospace,Menlo,Consolas,monospace}
-.lr-recovery-entry button,.lr-recovery-toggle{border:1px solid #956783;border-radius:12px;padding:11px 14px;background:#51364d;color:#ffe8f1;font-size:13px;font-weight:750;cursor:pointer}
+.lr-recovery-entry button,.lr-recovery-toggle{border:1px solid #bc396c;border-radius:12px;padding:11px 14px;background:#51364d;color:#ffe8f1;font-size:13px;font-weight:750;cursor:pointer}
 .lr-recovery-entry button:disabled{opacity:.5;cursor:not-allowed}
 .lr-recovery-toggle{display:block;margin:14px auto 0;text-align:center;background:transparent;border-color:#4c6377}
 .lr-settings-recovery{display:flex;flex-direction:column;gap:10px;padding:13px;border:1px solid #51667a;background:#263b4a;border-radius:14px}
 .lr-settings-recovery strong{font-size:13px;color:#fceaf2}
 .lr-settings-recovery small{font-size:11px;line-height:1.55;color:#c3d0da}
-.lr-settings-recovery button{border:1px solid #c58cae;background:#67405c;color:#fff0f6;border-radius:12px;min-height:43px;padding:9px 12px;font-size:12px;font-weight:800;cursor:pointer}
+.lr-settings-recovery button{border:1px solid #bc396c;background:#67405c;color:#fff0f6;border-radius:12px;min-height:43px;padding:9px 12px;font-size:12px;font-weight:800;cursor:pointer}
 .lr-settings-recovery button:disabled{opacity:.6}
 @media(max-width:370px){.lr-recovery-dialog{padding:17px 14px}.lr-recovery-secret{letter-spacing:0;font-size:12px}}
