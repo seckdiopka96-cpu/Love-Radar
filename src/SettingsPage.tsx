@@ -1,7 +1,8 @@
 import "./settings-page.css";
 import ConnectionDiagnostics from "./ConnectionDiagnostics";
 import PartnerRecoverySponsor from "./PartnerRecoverySponsor";
-import {useState} from "react";
+import {useEffect,useState} from "react";
+import {apiFetch} from "./api";
 type Props={
  name:string;code:string;owner:boolean;token:string;avatarSrc?:string;avatarVersion?:number;
  recoveryMemberId:string;recoveryPartnerId:string|null;recoveryRoomId:string;
@@ -31,6 +32,38 @@ name,code,owner,token,avatarSrc,avatarVersion,recoveryMemberId,recoveryPartnerId
  const [restorePhrase,setRestorePhrase]=useState("");
  const [restoreFile,setRestoreFile]=useState<File|null>(null);
  const [backupSaved,setBackupSaved]=useState(false);
+ // This private preference does not infer gender from the user's name,
+ // avatar or partner. It starts off for everybody until explicitly enabled.
+ const [periodEnabled,setPeriodEnabled]=useState(false);
+ const [periodReady,setPeriodReady]=useState(false);
+ const [periodBusy,setPeriodBusy]=useState(false);
+ const [periodError,setPeriodError]=useState("");
+ useEffect(()=>{
+  let alive=true;
+  setPeriodReady(false);setPeriodEnabled(false);setPeriodError("");
+  void apiFetch("/api/care",{headers:{Authorization:"Bearer "+token},cache:"no-store"})
+   .then(async response=>{
+    const data=await response.json() as {ok:boolean;error?:string;periodEnabled?:boolean};
+    if(!response.ok||!data.ok)throw Error(data.error||"Préférences indisponibles.");
+    if(alive){setPeriodEnabled(data.periodEnabled===true);setPeriodReady(true)}
+   }).catch(error=>{
+    if(alive)setPeriodError(error instanceof Error?error.message:"Préférences indisponibles.");
+   });
+  return()=>{alive=false};
+ },[token]);
+ async function updatePeriodPreference(enabled:boolean){
+  if(periodBusy||!periodReady)return;
+  setPeriodBusy(true);setPeriodError("");
+  try{
+   const res=await apiFetch("/api/care",{method:"POST",cache:"no-store",
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    body:JSON.stringify({action:"set-period-preference",enabled})});
+   const data=await res.json() as {ok:boolean;error?:string;periodEnabled?:boolean};
+   if(!res.ok||!data.ok)throw Error(data.error||"Enregistrement impossible.");
+   setPeriodEnabled(data.periodEnabled===true);
+  }catch(error){setPeriodError(error instanceof Error?error.message:"Enregistrement impossible.")}
+  finally{setPeriodBusy(false)}
+ }
  const downloadBackup=()=>{
   if(!e2eeBackup)return;
   const blob=new Blob([e2eeBackup],{type:"application/json"});
@@ -56,6 +89,15 @@ name,code,owner,token,avatarSrc,avatarVersion,recoveryMemberId,recoveryPartnerId
     <button type="button" disabled={profileBusy} onClick={onRemovePhoto}>Supprimer</button>
    </div>:null}
    {profileError?<p className="lr-settings-error" role="alert">{profileError}</p>:null}
+   <label className="lr-settings-toggle">
+    <span><strong>La fonction « J’ai mes règles » me concerne</strong>
+     <small>Masquée par défaut. Active-la seulement si tu souhaites l’utiliser. Ton partenaire peut toujours t’envoyer des attentions.</small></span>
+    <input type="checkbox" checked={periodEnabled} disabled={!periodReady||periodBusy}
+     onChange={event=>void updatePeriodPreference(event.target.checked)}
+     aria-label="Afficher la fonction J’ai mes règles dans Nos attentions"/>
+    <span className="lr-settings-switch" aria-hidden="true"/>
+   </label>
+   {periodError?<p className="lr-settings-error" role="alert">{periodError}</p>:null}
   </section>
   <section className="lr-settings-section" aria-labelledby="lr-confidentiality-settings-title">
    <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">♧</span><div><h2 id="lr-confidentiality-settings-title">Confidentialité</h2><p>Choisis comment afficher les photos privées.</p></div></div>
