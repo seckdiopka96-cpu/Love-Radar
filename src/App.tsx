@@ -36,6 +36,7 @@ import "./message-actions.css";
 import "./photo-reliability.css";
 import "./premium-navigation.css";
 import "./polished-shell.css";
+import "./recording-composer.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story";
@@ -179,6 +180,10 @@ export default function LoveRadar(){
  const actionMessage=chatMessages.find(m=>m.id===actionMessageId)||null;
  const infoMessage=chatMessages.find(m=>m.id===infoMessageId)||null;
  const [recording,setRecording]=useState(false);
+ const [recordingPaused,setRecordingPaused]=useState(false);
+ const [recordingElapsed,setRecordingElapsed]=useState(0);
+ const recordingStartedAt=useRef<number|null>(null);
+ const recordingAccumulatedMs=useRef(0);
  const recorder=useRef<MediaRecorder|null>(null);
  const recordingStream=useRef<MediaStream|null>(null);
  const recordingTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
@@ -604,7 +609,7 @@ export default function LoveRadar(){
   }
   if(tab!=="chat"&&recordingActive.current){
    discardRecording.current=true;
-   if(recorder.current?.state==="recording")recorder.current.stop();
+   if(recorder.current?.state!=="inactive")recorder.current?.stop();
    recordingActive.current=false;
    void request("recording",{active:false}).catch(()=>{});
   }
@@ -969,10 +974,57 @@ export default function LoveRadar(){
   const file=e.target.files?.[0];e.target.value="";
   if(file)await upload(file,"image");
  }
+ function finishRecording(shouldSend=true){
+  const active=recorder.current;
+  if(!active)return;
+  discardRecording.current=!shouldSend;
+  // Stop from both recording and paused states; onstop releases the microphone.
+  if(active.state!=="inactive"){
+   active.stop();
+  }else{
+   recordingStream.current?.getTracks().forEach(track=>track.stop());
+   recordingStream.current=null;
+   setRecording(false);
+  }
+  setRecordingPaused(false);
+ }
+ function pauseOrResumeRecording(){
+  const active=recorder.current;
+  if(!active||!recording)return;
+  if(active.state==="recording"){
+   recordingAccumulatedMs.current+=Date.now()-(recordingStartedAt.current||Date.now());
+   recordingStartedAt.current=null;
+   active.pause();setRecordingPaused(true);
+   void request("recording",{active:false}).catch(()=>{});
+  }else if(active.state==="paused"){
+   active.resume();recordingStartedAt.current=Date.now();setRecordingPaused(false);
+   void request("recording",{active:true}).catch(()=>{});
+  }
+ }
+ // Update the visible timer independently of chat polling; paused time is excluded.
+ useEffect(()=>{
+  if(!recording)return;
+  const tick=()=>{
+   const live=recordingStartedAt.current===null?0:Date.now()-recordingStartedAt.current;
+   const ms=recordingAccumulatedMs.current+live;
+   setRecordingElapsed(Math.floor(ms/1000));
+   if(ms>=45000&&recorder.current&&recorder.current.state!=="inactive")finishRecording(true);
+  };
+  tick();
+  const interval=window.setInterval(tick,200);
+  return()=>window.clearInterval(interval);
+ },[recording]);
  async function toggleRecording(){
-  if(recording&&recorder.current){if(recorder.current.state==="recording")recorder.current.stop();setRecording(false);return}
+  if(recording&&recorder.current){finishRecording(true);return}
   if(busy||!room?.partner)return;
   if(typeof navigator==="undefined"||!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined"){setError("Enregistrement vocal indisponible sur ce navigateur.");return}
+  // Immediately dismiss the iPhone keyboard, before requesting microphone access.
+  // Unmounting the text input while recording prevents it from stealing focus again.
+  chatInput.current?.blur();
+  if(document.activeElement instanceof HTMLElement)document.activeElement.blur();
+  setChatFocused(false);
+  setStickerOpen(false);
+  setTyping(false);
   setError("");
   try{
    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
@@ -982,16 +1034,22 @@ export default function LoveRadar(){
    const chunks:Blob[]=[];
    rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
    rec.onerror=()=>{
-     discardRecording.current=true;
-     recordingActive.current=false;
-     void request("recording",{active:false}).catch(()=>{});
-     setError("Enregistrement interrompu.");
-    };
+    discardRecording.current=true;
+    recordingActive.current=false;
+    void request("recording",{active:false}).catch(()=>{});
+    setError("Enregistrement interrompu.");
+   };
    rec.onstop=()=>{
     if(recordingTimer.current)clearTimeout(recordingTimer.current);
-    stream.getTracks().forEach(t=>t.stop());recordingStream.current=null;setRecording(false);
-     recordingActive.current=false;
-     void request("recording",{active:false}).catch(()=>{});
+    recordingTimer.current=null;
+    stream.getTracks().forEach(track=>track.stop());
+    recordingStream.current=null;
+    if(recorder.current===rec)recorder.current=null;
+    recordingStartedAt.current=null;
+    recordingAccumulatedMs.current=0;
+    setRecording(false);setRecordingPaused(false);setRecordingElapsed(0);
+    recordingActive.current=false;
+    void request("recording",{active:false}).catch(()=>{});
     const type=rec.mimeType?.split(";")[0]||"audio/mp4";
     const ext=type.includes("webm")?"webm":type.includes("ogg")?"ogg":"m4a";
     const blob=new Blob(chunks,{type});
@@ -999,10 +1057,13 @@ export default function LoveRadar(){
     discardRecording.current=false;
    };
    discardRecording.current=false;
-   rec.start(1000);recorder.current=rec;recordingActive.current=true;setRecording(true);
-    setTyping(false);
-    void request("recording",{active:true}).catch(()=>{});
-   recordingTimer.current=setTimeout(()=>{if(rec.state==="recording")rec.stop()},45000);
+   rec.start(1000);
+   recorder.current=rec;
+   recordingStartedAt.current=Date.now();
+   recordingAccumulatedMs.current=0;
+   setRecordingElapsed(0);setRecordingPaused(false);
+   recordingActive.current=true;setRecording(true);
+   void request("recording",{active:true}).catch(()=>{});
   }catch{setError("Microphone refusé ou non disponible. Autorise le micro dans Safari.")}
  }
  async function shareCode(){
@@ -1035,7 +1096,7 @@ export default function LoveRadar(){
  const lastOwnMessage=[...chatMessages].reverse().find(m=>m.sender_id===room?.user.id&&!voiceOutbox.some(v=>v.id===m.id&&v.status!=="sent")&&!textOutbox.some(v=>v.id===m.id));
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
- return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
+ return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-header-context" aria-label="Espace privé"><span>ESPACE PRIVÉ</span><strong>{room?.partner?"Notre univers":"Bienvenue"}</strong></div>
    <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" type="button" aria-label="Ouvrir les paramètres" aria-expanded={menu} aria-controls="lr-settings-menu" onClick={()=>setMenu(open=>!open)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu" id="lr-settings-menu"><b>Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span><button type="button" className="lr-privacy-toggle" aria-pressed={privacyEnabled} onClick={()=>updatePrivacy(!privacyEnabled)}>
@@ -1235,8 +1296,24 @@ export default function LoveRadar(){
         kind={replyTarget.kind} content={replyTarget.content}/>
        <button type="button" className="lr-reply-compose-close" aria-label="Annuler la réponse" onClick={()=>setReplyTarget(null)}>×</button>
       </div>:null}
-      {recording?<div className="lr-recording"><span className="lr-record-dot"/> Enregistrement en cours…</div>:null}
-      <form className={"lr-chat-form "+(chatFocused||draft.trim()?"is-writing ":"")+(recording?"is-recording":"")} onSubmit={sendMessage}>
+      {recording?<div className="lr-voice-recording-composer" role="group" aria-label="Enregistrement d’un message vocal">
+       <div className="lr-voice-recording-status" role="status" aria-live="off">
+        <span className={"lr-voice-recording-led"+(recordingPaused?" is-paused":"")} aria-hidden="true"/>
+        <time className="lr-voice-recording-clock">{Math.floor(recordingElapsed/60)}:{String(recordingElapsed%60).padStart(2,"0")}</time>
+        <span className={"lr-voice-recording-wave"+(recordingPaused?" is-paused":"")} aria-label={recordingPaused?"Vocal en pause":"Vocal en cours"}>{Array.from({length:24},(_,index)=><i key={index} style={{height:(6+(index*7+index%3*11)%21)+"px",animationDelay:((index%7)*-.12)+"s"}}/>)}</span>
+       </div>
+       <div className="lr-voice-recording-actions">
+        <button type="button" className="lr-voice-rec-delete" aria-label="Supprimer le vocal" title="Supprimer le vocal" onClick={()=>finishRecording(false)}>
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7h16M10 3h4M6 7l1 14h10l1-14M10 11v6M14 11v6"/></svg>
+        </button>
+        <button type="button" className="lr-voice-rec-pause" aria-label={recordingPaused?"Reprendre le vocal":"Mettre le vocal en pause"} title={recordingPaused?"Reprendre":"Pause"} aria-pressed={recordingPaused} onClick={pauseOrResumeRecording}>
+         {recordingPaused?<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.7" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 8v8M15 8v8"/></svg>}
+        </button>
+        <button type="button" className="lr-voice-rec-send" aria-label="Envoyer le vocal" title="Envoyer le vocal" onClick={()=>finishRecording(true)}>
+         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m3.5 3.5 18 8.5-18 8.5 2-7.2L15 12 5.5 10.7 3.5 3.5Z"/></svg>
+        </button>
+       </div>
+      </div>:<form className={"lr-chat-form "+(chatFocused||draft.trim()?"is-writing ":"")+(recording?"is-recording":"")} onSubmit={sendMessage}>
        <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={onImageChange}/>
        <button className="lr-attach" type="button" title="Envoyer une photo" aria-label="Ajouter une photo" onClick={()=>fileInput.current?.click()} disabled={!room.partner||busy}><span aria-hidden="true">+</span></button>
        <input ref={chatInput} aria-label="Écrire un message" type="text" enterKeyHint="send" autoComplete="off" value={draft} onFocus={()=>{setStickerOpen(false);firstPoll.current=true;setChatFocused(true);scrollToLatest()}} onBlur={()=>{setChatFocused(false);setTyping(false)}} onChange={e=>{setDraft(e.target.value);setTyping(e.target.value.trim().length>0)}} placeholder={room.partner?"Message…":"En attente de ton partenaire…"} disabled={!room.partner} maxLength={1600}/>
@@ -1253,7 +1330,7 @@ export default function LoveRadar(){
         {recording?<span aria-hidden="true">■</span>:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8 21h8"/></svg>}
        </button>
        <button className="lr-send" type="submit" aria-label={editTarget?"Enregistrer la modification":"Envoyer"} onPointerDown={e=>e.preventDefault()} disabled={!room.partner||!draft.trim()||busy}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg></button>
-      </form>
+      </form>}
      </div>
     </section>:null}
     {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Retrouvez les photos partagées dans votre conversation.</p></div><button type="button" className="lr-story-album-entry" onClick={()=>navigate("story")}><span aria-hidden="true">💑</span><span><strong>Notre histoire</strong><small>Notre photo, nos jours ensemble et nos souvenirs marquants.</small></span><b aria-hidden="true">→</b></button><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>navigate("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt="Souvenir du couple" enabled={privacyEnabled} viewer={room.user.name} variant="album"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
