@@ -1,5 +1,5 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
-const CACHE="love-radar-static-v54";
+const CACHE="love-radar-static-v55";
 const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png"];
 self.addEventListener("install",event=>{
  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
@@ -27,17 +27,18 @@ self.addEventListener("fetch",event=>{
 });
 
 /* Notifications open their exact content, not just the app's welcome page. */
-const SUPPORTED_TABS=new Set(["home","chat","games","ludo","memory","memories","moment","together","watch","watch-tiktok","puzzle","reconcile","story","reunion"]);
-const TARGET_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","daily-question","love-signal"]);
+const SUPPORTED_TABS=new Set(["home","chat","games","ludo","memory","rps","memories","moment","together","watch","watch-tiktok","puzzle","reconcile","story","reunion"]);
+const TARGET_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","rps-challenge","daily-question","love-signal"]);
 function notificationTarget(info){
  const kind=typeof info?.kind==="string"&&TARGET_KINDS.has(info.kind)?info.kind:null;
  const id=typeof info?.id==="string"&&(/^[0-9a-f-]{36}$/i.test(info.id)||(kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(info.id)))?info.id:null;
  let tab=SUPPORTED_TABS.has(info?.tab)?info.tab:"home";
  if(kind==="ludo-challenge")tab="ludo";
  if(kind==="memory-challenge")tab="memory";
+ if(kind==="rps-challenge")tab="rps";
  if(kind==="daily-question")tab="moment";
  if(kind==="love-signal")tab="together";
- if(kind&&kind!=="ludo-challenge"&&kind!=="memory-challenge"&&kind!=="daily-question"&&kind!=="love-signal")tab="chat";
+ if(kind&&kind!=="ludo-challenge"&&kind!=="memory-challenge"&&kind!=="rps-challenge"&&kind!=="daily-question"&&kind!=="love-signal")tab="chat";
  const query=new URLSearchParams({tab});
  if(kind&&id){query.set("kind",kind);query.set("id",id)}
  return {tab,kind:kind&&id?kind:null,id:kind&&id?id:null,url:"/?"+query.toString()};
