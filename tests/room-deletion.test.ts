@@ -9,22 +9,23 @@ function localD1(){
  const sqlite=new DatabaseSync(":memory:");
  // This adapter executes actual SQLite SQL and uses a real BEGIN/ROLLBACK
  // transaction, as Cloudflare D1's batch() does.
- const prepare=(sql:string)=>({
-  bind(...params:unknown[]):Bound{
-   return {
-    sql,params,
-    async run(){
-     const result=sqlite.prepare(sql).run(...params as []);
-     return {meta:{changes:Number(result.changes)}};
-    },
-    async first(){
-     return (sqlite.prepare(sql).get(...params as []) as Record<string,unknown>|undefined)??null;
-    },
-    async all(){
-     return {results:sqlite.prepare(sql).all(...params as []) as Record<string,unknown>[]};
-    }
-   };
+ const bound=(sql:string,params:unknown[]):Bound=>({
+  sql,params,
+  async run(){
+   const result=sqlite.prepare(sql).run(...params as []);
+   return {meta:{changes:Number(result.changes)}};
+  },
+  async first(){
+   return (sqlite.prepare(sql).get(...params as []) as Record<string,unknown>|undefined)??null;
+  },
+  async all(){
+   return {results:sqlite.prepare(sql).all(...params as []) as Record<string,unknown>[]};
   }
+ });
+ // Cloudflare D1 accepts both db.prepare(sql).all() and .bind(...).all().
+ const prepare=(sql:string)=>({
+  ...bound(sql,[]),
+  bind(...params:unknown[]){return bound(sql,params)}
  });
  const db={
   prepare,
