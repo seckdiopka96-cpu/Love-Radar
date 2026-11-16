@@ -1,0 +1,62 @@
+/* Animated Unicode emoji for the sender and recipient, without external APIs. */
+.lr-emoji-motion{
+ display:inline-block;
+ vertical-align:baseline;
+ transform-origin:center 73%;
+ animation:lr-emoji-bounce 1.65s ease-in-out infinite;
+}
+.lr-emoji-motion.lr-emoji-heartbeat{animation:lr-emoji-heartbeat 1.3s ease-in-out infinite}
+.lr-emoji-motion.lr-emoji-shake{animation:lr-emoji-shake 1.25s ease-in-out infinite}
+.lr-emoji-motion.lr-emoji-kiss{animation:lr-emoji-kiss 1.55s ease-in-out infinite}
+.lr-emoji-motion.lr-emoji-party{animation:lr-emoji-party 1.5s ease-in-out infinite}
+.lr-emoji-motion.lr-emoji-wave{animation:lr-emoji-wave 1.35s ease-in-out infinite}
+.lr-chat .lr-bubble.lr-bubble-emoji{
+ padding:6px 8px!important;
+ background:transparent!important;
+ box-shadow:none!important;
+ border:none!important;
+ overflow:visible!important;
+ min-height:0!important;
+}
+.lr-chat .lr-bubble.lr-bubble-emoji p{
+ margin:0!important;
+ line-height:1.35!important;
+ font-size:42px!important;
+ letter-spacing:2px;
+ word-break:break-word;
+}
+@keyframes lr-emoji-bounce{
+ 0%,100%{transform:translateY(0) rotate(-4deg) scale(1)}
+ 45%{transform:translateY(-5px) rotate(5deg) scale(1.09)}
+ 65%{transform:translateY(0) rotate(-2deg) scale(.98)}
+}
+@keyframes lr-emoji-heartbeat{
+ 0%,55%,100%{transform:scale(1)}
+ 12%,33%{transform:scale(1.2)}
+ 22%,43%{transform:scale(1.04)}
+}
+@keyframes lr-emoji-shake{
+ 0%,100%{transform:translateX(0) rotate(0deg)}
+ 18%{transform:translateX(-2px) rotate(-10deg)}
+ 42%{transform:translateX(2px) rotate(10deg)}
+ 65%{transform:translateX(-2px) rotate(-7deg)}
+}
+@keyframes lr-emoji-kiss{
+ 0%,100%{transform:scale(1) translateX(0)}
+ 40%{transform:scale(1.19) translateX(4px)}
+ 70%{transform:scale(.96) translateX(-1px)}
+}
+@keyframes lr-emoji-party{
+ 0%,100%{transform:rotate(-8deg) translateY(0)}
+ 25%{transform:rotate(10deg) translateY(-5px)}
+ 60%{transform:rotate(-11deg) translateY(1px)}
+ 80%{transform:rotate(9deg) translateY(-3px)}
+}
+@keyframes lr-emoji-wave{
+ 0%,100%{transform:rotate(-13deg)}
+ 35%{transform:rotate(20deg)}
+ 65%{transform:rotate(-7deg)}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-emoji-motion{animation:none!important}
+}
