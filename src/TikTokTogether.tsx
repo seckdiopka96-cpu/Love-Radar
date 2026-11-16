@@ -260,7 +260,7 @@ export default function TikTokTogether({token,myId,myName,partnerName,messages,o
  return <section className={"tk-page"+(id?" tk-has-video":" tk-no-video")} aria-label="Regarder TikTok ensemble">
   <header className="tk-header">
    <button type="button" className="tk-back" onClick={onExit}>‹ Ensemble</button>
-   <div className="tk-title"><strong>TikTok <span>♥</span> à deux</strong><small>LOVE RADAR · REGARDER ENSEMBLE</small></div>
+   <div className="tk-title"><strong>TikTok <span>♥</span> à deux</strong><small>REGARDER ENSEMBLE</small></div>
    <div className="tk-header-actions">
     <div id="lr-voice-button-slot" aria-label="Appel vocal"/>
     <button type="button" aria-label="Ouvrir la conversation" onClick={onOpenChat}>✉</button>
