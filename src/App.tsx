@@ -18,6 +18,8 @@ import GamesHub from "./GamesHub";
 import RpsDuo from "./RpsDuo";
 import CoupleStory from "./CoupleStory";
 import PrivatePhoto from "./PrivatePhoto";
+import ProfilePhotoEditor from "./ProfilePhotoEditor";
+import {useProfileAvatars} from "./use-profile-avatars";
 import VoiceMessage from "./VoiceMessage";
 import StickerArt from "./StickerArt";
 import StickerPicker from "./StickerPicker";
@@ -44,7 +46,7 @@ type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:s
  reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null;
  edited_at?:number;reactions?:{member_id:string;emoji:string}[];view_once?:number|boolean};
 type RecentReaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
-type Room = {recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
+type Room = {recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean;avatarVersion?:number};code:string;roomId:string;partner:string|null;partnerId?:string|null;partnerAvatarVersion?:number;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string;id?:string}&Partial<Room>;
 type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
 type LocalText={id:string;created_at:number;text:string;replyToId?:string;replyKind?:QuoteKind|null;replyContent?:string|null;replySenderId?:string|null;status:"sending"|"failed"|"sent";error?:string};
@@ -93,12 +95,17 @@ function noticeUrl(target:NoticeTarget){
  return "/?"+q.toString();
 }
 
-function Initials({name,size="normal"}:{name:string;size?:"normal"|"small"}) {
- return <div className={"lr-avatar "+(size==="small"?"lr-avatar-sm":"")}>{name.trim().slice(0,1).toUpperCase()||"♡"}</div>;
+function Initials({name,size="normal",src}:{name:string;size?:"normal"|"small";src?:string}) {
+ return <div className={"lr-avatar "+(size==="small"?"lr-avatar-sm":"")}>{src?<img src={src} alt={"Photo de "+name}/>:name.trim().slice(0,1).toUpperCase()||"♡"}</div>;
 }
 export default function LoveRadar(){
  const [token,setToken]=useState("");
  const [room,setRoom]=useState<Room|null>(null);
+ const avatars=useProfileAvatars(token,room?.user.id,room?.user.avatarVersion,room?.partnerId,room?.partnerAvatarVersion);
+ const profilePicker=useRef<HTMLInputElement|null>(null);
+ const [profileFile,setProfileFile]=useState<File|null>(null);
+ const [profileBusy,setProfileBusy]=useState(false);
+ const [profileError,setProfileError]=useState("");
  const [initializing,setInitializing]=useState(true);
  const [joinMode,setJoinMode]=useState(false);
  const [name,setName]=useState("");
@@ -250,6 +257,53 @@ export default function LoveRadar(){
   };
  },[!!room]);
  const [menu,setMenu]=useState(false);
+ function chooseProfileFile(event:ChangeEvent<HTMLInputElement>){
+  const file=event.target.files?.[0];
+  event.target.value="";
+  if(!file)return;
+  if(file.size>12_000_000){setProfileError("Choisis une photo de moins de 12 Mo.");return}
+  if(!file.type.startsWith("image/")){setProfileError("Sélectionne une photo valide.");return}
+  setProfileError("");setProfileFile(file);setMenu(false);
+ }
+ async function saveProfilePhoto(photo:File){
+  if(!token||profileBusy)return;
+  setProfileBusy(true);setProfileError("");
+  try{
+   const body=new FormData();body.append("photo",photo);
+   const response=await apiFetch("/api/profile",{
+    method:"POST",headers:{Authorization:"Bearer "+token},body
+   });
+   const result=await response.json() as {ok:boolean;error?:string};
+   if(!response.ok||!result.ok)throw Error(result.error||"Impossible d’enregistrer la photo.");
+   setProfileFile(null);
+   await refresh(undefined,true);
+   setNotice("Ta nouvelle photo de profil est enregistrée.");
+  }catch(err){
+   const message=err instanceof Error?err.message:"Enregistrement impossible.";
+   setProfileError(message);
+   throw Error(message);
+  }finally{setProfileBusy(false)}
+ }
+ async function removeProfilePhoto(){
+  if(!token||!room?.user.avatarVersion||profileBusy)return;
+  if(!window.confirm("Supprimer ta photo de profil ? Ton initiale sera affichée à la place."))return;
+  setProfileBusy(true);setProfileError("");
+  try{
+   const response=await apiFetch("/api/profile",{method:"DELETE",headers:{Authorization:"Bearer "+token}});
+   const result=await response.json() as {ok:boolean;error?:string};
+   if(!response.ok||!result.ok)throw Error(result.error||"Impossible de supprimer la photo.");
+   await refresh(undefined,true);
+   setNotice("Photo de profil supprimée.");
+  }catch(err){setProfileError(err instanceof Error?err.message:"Suppression impossible.")}
+  finally{setProfileBusy(false)}
+ }
+ async function adjustProfilePhoto(){
+  if(!avatars.mine||profileBusy)return;
+  try{
+   const blob=await (await fetch(avatars.mine)).blob();
+   setProfileFile(new File([blob],"photo-de-profil.jpg",{type:"image/jpeg"}));setMenu(false);setProfileError("");
+  }catch{setProfileError("Photo momentanément indisponible. Choisis-la à nouveau.")}
+ }
  const [privacyEnabled,setPrivacyEnabled]=useState(()=>{
   try{return localStorage.getItem("love-radar-privacy-mode")!=="off"}catch{return true}
  });
@@ -1105,7 +1159,17 @@ export default function LoveRadar(){
  return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-header-context" aria-label="Espace privé"><span>ESPACE PRIVÉ</span><strong>{room?.partner?"Notre univers":"Bienvenue"}</strong></div>
-   <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" type="button" aria-label="Ouvrir les paramètres" aria-expanded={menu} aria-controls="lr-settings-menu" onClick={()=>setMenu(open=>!open)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu" id="lr-settings-menu"><b>Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span><button type="button" className="lr-privacy-toggle" aria-pressed={privacyEnabled} onClick={()=>updatePrivacy(!privacyEnabled)}>
+   <div className="lr-header-end"><input ref={profilePicker} type="file" hidden accept="image/*" onChange={chooseProfileFile}/>{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" type="button" aria-label="Ouvrir les paramètres" aria-expanded={menu} aria-controls="lr-settings-menu" onClick={()=>setMenu(open=>!open)}>{avatars.mine?<img src={avatars.mine} alt="Ma photo de profil"/>:room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu" id="lr-settings-menu"><b>Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span>
+     <div className="lr-profile-settings">
+      <div className="lr-profile-settings-photo">{avatars.mine?<img src={avatars.mine} alt="Ma photo de profil"/>:room.user.name.trim().charAt(0).toUpperCase()}</div>
+      <div className="lr-profile-settings-options">
+       <strong>Photo de profil</strong><small>Visible uniquement dans votre espace privé</small>
+       <button type="button" disabled={profileBusy} onClick={()=>profilePicker.current?.click()}>{room.user.avatarVersion?"Changer la photo":"Ajouter une photo"}</button>
+       {room.user.avatarVersion&&avatars.mine?<button type="button" disabled={profileBusy} onClick={()=>void adjustProfilePhoto()}>Ajuster la photo</button>:null}
+       {room.user.avatarVersion?<button type="button" className="lr-profile-remove" disabled={profileBusy} onClick={()=>void removeProfilePhoto()}>Supprimer la photo</button>:null}
+      </div>
+     </div>
+     {profileError?<p className="lr-profile-photo-error" role="alert">{profileError}</p>:null}<button type="button" className="lr-privacy-toggle" aria-pressed={privacyEnabled} onClick={()=>updatePrivacy(!privacyEnabled)}>
      {privacyEnabled?"🔐 Mode confidentialité : activé":"🔓 Mode confidentialité : désactivé"}
     </button>
     <small className="lr-privacy-menu-note">Photos privées révélées temporairement et filigrane. Aucun écran violet ne masque la lecture vidéo.</small>
@@ -1160,12 +1224,12 @@ export default function LoveRadar(){
      </section>
    </main>:
   <div className="lr-shell">
-   <aside className="lr-sidebar"><div className="lr-sidebar-top"><span className="lr-side-label">VOTRE PETIT UNIVERS</span><div className="lr-couple"><Initials name={room.user.name}/><span className="lr-couple-mid">♥</span><Initials name={partner}/></div><h2>{room.user.name}<span> &amp; </span>{partner}</h2><p>{room.partner?"La belle aventure continue…":"En attente de ta moitié."}</p></div>
+   <aside className="lr-sidebar"><div className="lr-sidebar-top"><span className="lr-side-label">VOTRE PETIT UNIVERS</span><div className="lr-couple"><Initials name={room.user.name} src={avatars.mine}/><span className="lr-couple-mid">♥</span><Initials name={partner} src={avatars.partner}/></div><h2>{room.user.name}<span> &amp; </span>{partner}</h2><p>{room.partner?"La belle aventure continue…":"En attente de ta moitié."}</p></div>
     <div className="lr-side-nav">{NAV.map(n=><button key={n.id} className={selectedNav(tab)===n.id?"active":""} aria-current={selectedNav(tab)===n.id?"page":undefined} onClick={()=>navigate(n.id)}><span className="lr-nav-symbol" aria-hidden="true"><NavGlyph tab={n.id}/></span>{n.label}{n.id==="chat"&&unreadCount>0?<b className="lr-side-unread" aria-hidden="true">{unreadLabel}</b>:null}</button>)}</div>
     <div className="lr-sidebar-bottom"><div className="lr-side-heart">♡</div>Vos messages et vos souvenirs, toujours à portée de main.</div>
    </aside>
    <main className="lr-main">
-    {tab==="home"?<HomeDashboard room={room} token={token} media={media} privacyEnabled={privacyEnabled} onInvite={()=>void shareCode()} onNavigate={navigate}/>:null}
+    {tab==="home"?<HomeDashboard room={room} token={token} media={media} privacyEnabled={privacyEnabled} mineAvatar={avatars.mine} partnerAvatar={avatars.partner} onEditProfile={()=>profilePicker.current?.click()} onInvite={()=>void shareCode()} onNavigate={navigate}/>:null}
     {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
     {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenWatch={()=>navigate("watch")} onOpenPuzzle={()=>navigate("puzzle")} onOpenReconcile={()=>navigate("reconcile")} focusKind={noticeTarget?.kind==="love-signal"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"?noticeTarget.id:null}/>:null}
     {tab==="watch"?<WatchTogether token={token} myId={room.user.id} myName={room.user.name}
@@ -1191,7 +1255,7 @@ export default function LoveRadar(){
       <button type="button" className="lr-chat-back" aria-label="Revenir aux onglets" onClick={()=>navigate(chatReturnTab.current)}>
        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
       </button>
-      <div className="lr-chat-partner"><Initials name={partner} size="small"/>
+      <div className="lr-chat-partner"><Initials name={partner} size="small" src={avatars.partner}/>
        <div><h2>{partner}</h2><span className={"lr-chat-status "+(partnerOnline?"online":"offline")}>{!room.partner?"En attente de votre partenaire…":partnerOnline?"En ligne":"Hors ligne"}</span></div>
       </div>
       <div id="lr-voice-button-slot"/>
@@ -1341,7 +1405,8 @@ export default function LoveRadar(){
     </section>:null}
     {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Retrouvez les photos partagées dans votre conversation.</p></div><button type="button" className="lr-story-album-entry" onClick={()=>navigate("story")}><span aria-hidden="true">💑</span><span><strong>Notre histoire</strong><small>Notre photo, nos jours ensemble et nos souvenirs marquants.</small></span><b aria-hidden="true">→</b></button><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>navigate("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt="Souvenir du couple" enabled={privacyEnabled} viewer={room.user.name} variant="album"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
    </main>
-      {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} hasPartner={Boolean(room.partner)} showButton={tab==="chat"||tab==="watch"||tab==="watch-tiktok"||tab==="reconcile"} onOpenChat={()=>navigate("chat")}/>:null}
+      {profileFile?<ProfilePhotoEditor key={profileFile.name+":"+profileFile.lastModified+":"+profileFile.size} file={profileFile} onCancel={()=>{if(!profileBusy){setProfileFile(null);setProfileError("")}}} onSave={saveProfilePhoto}/>:null}
+   {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} avatarSrc={avatars.partner} hasPartner={Boolean(room.partner)} showButton={tab==="chat"||tab==="watch"||tab==="watch-tiktok"||tab==="reconcile"} onOpenChat={()=>navigate("chat")}/>:null}
    {room&&token&&tab==="chat"&&noticeTarget?.id&&["message","photo","audio"].includes(noticeTarget.kind||"")?<div className="lr-push-focus-backdrop" role="dialog" aria-modal="true" aria-label="Contenu de la notification">
     <div className="lr-push-focus-card">
      <div className="lr-push-focus-header"><strong>{noticeTarget.kind==="photo"?"📸 Photo reçue":noticeTarget.kind==="audio"?"🎙️ Message vocal reçu":"💌 Message reçu"}</strong><button type="button" onClick={closeNotice} aria-label="Fermer le contenu">×</button></div>
