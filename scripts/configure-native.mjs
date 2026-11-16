@@ -83,13 +83,17 @@ function ios(){
   if(!xml.includes("<dict>"))throw Error("Unexpected iOS Info.plist");
   xml=xml.replace("<dict>","<dict>\n"+additions);
  }
- // Apple's documented audio background mode, activated only while talking.
+ // PushKit VoIP is required to wake a terminated/native iOS app for CallKit.
+ // UIBackgroundModes alone does not grant APNs: signed Apple capabilities
+ // and APNs server credentials must be configured separately.
  const mode=xml.match(/<key>UIBackgroundModes<\/key>\s*<array>([\s\S]*?)<\/array>/);
+ const needed=["audio","voip","remote-notification"];
  if(mode){
-  if(!mode[1].includes("<string>audio</string>"))
-   xml=xml.replace(mode[0],mode[0].replace("</array>","    <string>audio</string>\n</array>"));
+  const missing=needed.filter(x=>!mode[1].includes("<string>"+x+"</string>"));
+  if(missing.length)xml=xml.replace(mode[0],mode[0].replace("</array>",
+   missing.map(x=>"    <string>"+x+"</string>").join("\n")+"\n</array>"));
  }else{
-  xml=xml.replace("<dict>","<dict>\n    <key>UIBackgroundModes</key>\n    <array><string>audio</string></array>");
+  xml=xml.replace("<dict>","<dict>\n    <key>UIBackgroundModes</key>\n    <array>"+needed.map(x=>"<string>"+x+"</string>").join("")+"</array>");
  }
  put(iosPath,xml);
  // AppDelegate.swift is already a compile-source in Capacitor's Xcode target.
@@ -101,7 +105,47 @@ function ios(){
  if(!swift.includes("// END LOVE RADAR NATIVE CALL")){
   swift+="\n"+template("ios-bridge.swift.txt");
  }
+ if(!swift.includes("// END LOVE RADAR VOIP CALLKIT")){
+  swift+="\n"+template("ios-voip.swift.txt");
+ }
+ // The delegate starts PushKit before the web bridge is initialized so the
+ // operating system can deliver VoIP pushes when Love Radar was terminated.
+ if(!swift.includes("LoveRadarVoipManager.shared.start()")){
+  const method=swift.indexOf("didFinishLaunchingWithOptions");
+  const returnAt=swift.indexOf("return true",method);
+  if(method<0||returnAt<0)throw Error("Cannot insert native VoIP startup in AppDelegate");
+  swift=swift.slice(0,returnAt)+"LoveRadarVoipManager.shared.start()\n        "+swift.slice(returnAt);
+ }
+ // A previously generated iOS app is upgraded without repeating plugin registration.
+ if(!swift.includes("bridge?.registerPluginInstance(LoveRadarVoipPlugin())")){
+  const callRegistration="bridge?.registerPluginInstance(LoveRadarNativeCall())";
+  if(!swift.includes(callRegistration))throw Error("Missing existing Capacitor call bridge registration");
+  swift=swift.replace(callRegistration,callRegistration+"\n        bridge?.registerPluginInstance(LoveRadarVoipPlugin())");
+ }
  put(delegate,swift);
+ const entitlements="ios/App/App/App.entitlements";
+ put(entitlements,`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>aps-environment</key><string>$(APS_ENVIRONMENT)</string>
+</dict></plist>
+`);
+ const pbxproj="ios/App/App.xcodeproj/project.pbxproj";
+ if(!existsSync(pbxproj))throw Error("Cannot find generated Xcode project");
+ let project=readFileSync(pbxproj,"utf8");
+ let patched=0;
+ project=project.replace(/(buildSettings = \{)([\s\S]*?)(\n\s*\};\s*name = (Debug|Release);\s*\};)/g,
+  (block,head,settings,tail,configuration)=>{
+   if(!settings.includes("INFOPLIST_FILE = App/Info.plist"))return block;
+   patched++;
+   const lines=(!settings.includes("CODE_SIGN_ENTITLEMENTS")?
+    "\n                CODE_SIGN_ENTITLEMENTS = App/App.entitlements;":"")+
+    (!settings.includes("APS_ENVIRONMENT")?
+    "\n                APS_ENVIRONMENT = "+(configuration==="Release"?"production":"development")+";":"");
+   return head+lines+settings+tail;
+  });
+ if(patched<2)throw Error("Could not configure iOS Debug and Release signing entitlements");
+ put(pbxproj,project);
  // The initial view controller must be the plugin-registering subclass.
  const storyboard="ios/App/App/Base.lproj/Main.storyboard";
  if(!existsSync(storyboard))throw Error("Expected iOS Main.storyboard was not generated.");
@@ -112,7 +156,7 @@ function ios(){
   story=story.replace(rx,'customClass="LoveRadarBridgeViewController" customModule="App" customModuleProvider="target"');
  }
  put(storyboard,story);
- console.log("iOS background audio mode, AVAudioSession and custom call bridge configured.");
+ console.log("iOS PushKit, CallKit, background VoIP, per-build APNs entitlements and WebRTC bridge configured.");
 }
 if(platform==="android")android();
 else if(platform==="ios")ios();
