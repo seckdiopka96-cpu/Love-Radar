@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {EMOJIS,EMOJI_CATEGORIES,filterEmojis} from "../src/emoji-catalog";
 import {STICKERS,MOTION_STICKERS,encodeSticker,readStickerId} from "../src/stickers";
-import {validGifUrl,readGifResults} from "../src/gif-provider";
+import {validGifUrl,readGifResults,readGifId,encodeGif} from "../src/gif-provider";
 
 test("Emoji catalog has categorized offline keyboard, search and recent entries",()=>{
  assert.ok(EMOJIS.length>=230,"emoji keyboard should not be a token 20 emoji sample");
@@ -53,19 +53,25 @@ test("GIF URLs and malformed provider results are rejected before any download",
  assert.deepEqual(readGifResults({bad:true}),[]);
 });
 
-test("GIFs are downloaded as verified GIF files and uploaded by existing private encrypted media path",()=>{
- const src=readFileSync("src/gif-provider.ts","utf8");
+test("external GIFs use only client-side GIPHY API and send encrypted ID tokens",()=>{
+ const provider=readFileSync("src/gif-provider.ts","utf8");
+ const renderer=readFileSync("src/GifMessage.tsx","utf8");
  const app=readFileSync("src/App.tsx","utf8");
- const media=readFileSync("functions/api/media.ts","utf8");
- assert.ok(src.includes('mime!=="image/gif"'));
- assert.ok(src.includes('GIF87a')&&src.includes('GIF89a'));
- assert.ok(src.includes('blob.size>5_500_000'));
- assert.ok(src.includes('credentials:"omit"'));
- assert.ok(src.includes('new File([blob]'));
- assert.ok(app.includes('onSendGif={file=>upload(file,"image")}'));
- assert.ok(app.includes('encryptMedia(await cryptoFor(room),file,kind,id)'));
- assert.ok(media.includes('"image/gif"'));
- assert.ok(src.includes("VITE_GIPHY_API_KEY"));
+ const server=readFileSync("functions/api/love.ts","utf8");
+ const expected=encodeGif("ABC123");
+ assert.equal(expected,"[gif:v1:ABC123]");
+ assert.equal(readGifId(expected),"ABC123");
+ assert.equal(readGifId("[gif:v1:!!]"),null);
+ assert.ok(provider.includes("VITE_GIPHY_API_KEY"));
+ assert.ok(provider.includes('cache:"no-store"'),"no API response caching");
+ assert.ok(!provider.includes("fetchGifFile"),"no downloading or R2 copying GIPHY media");
+ assert.ok(renderer.includes("gifById(id,controller.signal)"),"recipient fetches directly");
+ assert.ok(renderer.includes("Powered By GIPHY"),"mandatory provider attribution");
+ assert.ok(app.includes("onSendGif={sendGif}"));
+ assert.ok(app.includes("text=encodeGif(id)"),"send as encrypted text message");
+ assert.ok(app.includes("readGifId(m.content)?<GifMessage"),"render GIPHY ID without exposing raw token");
+ assert.ok(!app.includes('onSendGif={file=>upload(file,"image")}'),"no third party media rehosting");
+ assert.ok(server.includes("isGifToken"),"push notification does not reveal GIF ID");
 });
 
 test("Picker has GIF, Stickers and Emojis with search, favorites, recents and legacy send behavior",()=>{
@@ -78,7 +84,7 @@ test("Picker has GIF, Stickers and Emojis with search, favorites, recents and le
  }
  assert.ok(picker.includes("onSend(id)"),"preserve sender transport");
  assert.ok(picker.includes("onSendEmoji(emoji)"),"emoji insert callback wired");
- assert.ok(picker.includes('if(!await onSendGif(file))'),"send only claims success after media upload");
+ assert.ok(picker.includes("onSendGif(item.id)"),"GIF IDs sent through text, no third party media saved");
  assert.ok(app.includes("function insertEmoji(emoji:string)"));
  assert.ok(app.includes('chatInput.current?.setSelectionRange(position,position)'));
  assert.ok(app.includes("function sendSticker(id:string)"));
