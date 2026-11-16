@@ -202,3 +202,17 @@ test("premium design polish keeps pale rose, vector activities and fixed iPhone 
  assert.ok(dashboard.includes('className="lr-home-daily-icon" aria-hidden="true"><svg'));
  assert.ok(!dashboard.includes('aria-hidden="true">🎲</span>'));
 });
+
+test("chat finishing pass retains readable quotes and coherent spacing",()=>{
+ const polish=readFileSync("src/premium-design-polish.css","utf8");
+ const replies=readFileSync("src/message-replies.css","utf8");
+ const app=readFileSync("src/App.tsx","utf8");
+ assert.ok(polish.includes(".lr-chat .lr-bubble .lr-quote-card.is-bubble"),"reply preview is compact inside bubble");
+ assert.ok(polish.includes("padding:6px 9px!important;"),"quote has less padding but remains readable");
+ assert.ok(polish.includes(".lr-chat .lr-bubble-row.lr-grouped"),"successive messages remain visually grouped");
+ assert.ok(polish.includes("margin-top:8px!important"),"normal messages have a modest consistent gap");
+ assert.ok(polish.includes(".lr-chat .lr-voice-note-wave>span"),"waveform display is refined");
+ assert.ok(replies.includes(".lr-chat .lr-quote-card:is(button)"),"quoted message is still clickable");
+ assert.ok(app.includes('onPointerMove={messagePointerMove}'),"swipe-to-reply remains enabled");
+ assert.ok(!polish.includes("bottom:max("),"fixed iPhone navigation position remains untouched");
+});
