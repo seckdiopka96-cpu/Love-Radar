@@ -1073,6 +1073,19 @@ export default function LoveRadar(){
   requestAnimationFrame(scrollToLatest);
   void sendQueuedText(entry);
  }
+ function insertEmoji(emoji:string){
+  if(!room?.partner||busy||recording)return;
+  const field=chatInput.current;
+  const caret=field?.selectionStart??draft.length;
+  const end=field?.selectionEnd??caret;
+  const next=(draft.slice(0,caret)+emoji+draft.slice(end)).slice(0,1600);
+  setDraft(next);setStickerOpen(false);setChatFocused(true);
+  const position=Math.min(1600,caret+emoji.length);
+  requestAnimationFrame(()=>{
+   chatInput.current?.focus();
+   try{chatInput.current?.setSelectionRange(position,position)}catch{/* Safari cursor fallback */}
+  });
+ }
  function sendSticker(id:string){
   if(!room?.partner||busy||recording)return;
   let text:string;
@@ -1213,10 +1226,10 @@ export default function LoveRadar(){
   const target=document.getElementById("lr-chat-message-"+id);
   if(target)target.scrollIntoView({behavior:"smooth",block:"center"});
  }
- async function upload(file:File,kind:"image"|"audio"){
-  if(!token||!room?.partner){setError("Ton partenaire doit d’abord rejoindre l’espace.");return}
+ async function upload(file:File,kind:"image"|"audio"):Promise<boolean>{
+  if(!token||!room?.partner){setError("Ton partenaire doit d’abord rejoindre l’espace.");return false}
   const limit=kind==="image"?6_000_000:5_000_000;
-  if(file.size>limit){setError("Fichier trop lourd : "+(kind==="image"?"6 Mo":"5 Mo")+" maximum.");return}
+  if(file.size>limit){setError("Fichier trop lourd : "+(kind==="image"?"6 Mo":"5 Mo")+" maximum.");return false}
   setBusy(true);setError("");
   try{
    if(!room)throw Error("Espace indisponible.");
@@ -1229,7 +1242,8 @@ export default function LoveRadar(){
    if(!data.ok)throw new Error(data.error||"Envoi impossible.");
    await refresh();
    requestAnimationFrame(()=>{if(chatScroller.current)chatScroller.current.scrollTop=chatScroller.current.scrollHeight});
-  }catch(e){setError(e instanceof Error?e.message:"Envoi impossible.")}
+   return true;
+  }catch(e){setError(e instanceof Error?e.message:"Envoi impossible.");return false}
   finally{setBusy(false)}
  }
  // Local first: a fresh recording is visible before any network request.
@@ -1623,7 +1637,9 @@ export default function LoveRadar(){
      </div>:null}
      {!chatAtBottom&&!chatFocused?<button type="button" className="lr-chat-jump" onClick={scrollToLatest}>↓ Derniers messages</button>:null}
      <div className="lr-chat-compose">
-       {stickerOpen&&room.partner?<StickerPicker storageKey={room.roomId+":"+room.user.id} onSend={sendSticker} onClose={()=>{setStickerOpen(false);setChatFocused(false)}} onSearchFocus={()=>setChatFocused(true)} onSearchBlur={()=>setChatFocused(false)}/>:null}
+       {stickerOpen&&room.partner?<StickerPicker storageKey={room.roomId+":"+room.user.id} onSend={sendSticker}
+        onSendEmoji={insertEmoji} onSendGif={file=>upload(file,"image")}
+        onClose={()=>{setStickerOpen(false);setChatFocused(false)}} onSearchFocus={()=>setChatFocused(true)} onSearchBlur={()=>setChatFocused(false)}/>:null}
       {editTarget?<div className="lr-reply-compose lr-edit-compose" role="status" aria-label="Modification du message">
        <span className="lr-edit-compose-label"><strong>✎ Modifier mon message</strong><small>{editTarget.content}</small></span>
        <button type="button" className="lr-reply-compose-close" aria-label="Annuler la modification" onClick={cancelEditing}>×</button>
