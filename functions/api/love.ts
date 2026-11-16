@@ -139,6 +139,40 @@ async function snapshot(db:D1Database,u:Member){
     const session=await auth(request);
     if(!session)return fail("Session expirée ou invalide.",401);
     await ensureChatPresence(session.db);
+    const historyBefore=new URL(request.url).searchParams.get("historyBefore");
+    if(historyBefore!==null){
+     const match=/^([0-9]{1,16}):([a-f0-9-]{36})$/i.exec(historyBefore);
+     if(!match||!Number.isSafeInteger(Number(match[1])))return fail("Curseur historique invalide.",400);
+     const stamp=Number(match[1]),cursorId=match[2];
+     await ensureMessageReplies(session.db);await ensureMessageActions(session.db);
+     const result=await session.db.prepare(
+      "SELECT m.id,m.sender_id,m.kind,m.content,m.object_key,m.mime,m.created_at,"+
+      " r.target_id AS reply_to_id,p.kind AS reply_kind,p.content AS reply_content,p.sender_id AS reply_sender_id,COALESCE(ed.edited_at,0) AS edited_at,"+
+      " CASE WHEN ot.message_id IS NULL THEN 0 ELSE 1 END AS view_once,COALESCE(ot.opened_at,0) AS once_opened_at"+
+      " FROM messages m LEFT JOIN message_replies r ON r.room_id=m.room_id AND r.message_id=m.id"+
+      " LEFT JOIN message_edits ed ON ed.room_id=m.room_id AND ed.message_id=m.id"+
+      " LEFT JOIN messages p ON p.id=r.target_id AND p.room_id=m.room_id"+
+      " LEFT JOIN message_one_time ot ON ot.room_id=m.room_id AND ot.message_id=m.id"+
+      " WHERE m.room_id=? AND m.kind IN ('text','image','audio') AND"+
+      " (m.created_at<? OR (m.created_at=? AND m.id<?)) AND NOT EXISTS"+
+      " (SELECT 1 FROM message_hidden h WHERE h.room_id=m.room_id AND h.message_id=m.id AND h.member_id=?)"+
+      " ORDER BY m.created_at DESC,m.id DESC LIMIT 51"
+     ).bind(session.user.room_id,stamp,stamp,cursorId,session.user.id).all();
+     const rows=result.results||[],page=rows.slice(0,50);
+     // History obeys every same-room and per-member hide restriction.
+     const ids=page.map(m=>m.id as string);
+     const reactions=ids.length?await session.db.prepare(
+      "SELECT message_id,member_id,emoji FROM message_reactions WHERE room_id=? AND message_id IN ("+
+      ids.map(()=>"?").join(",")+")"
+     ).bind(session.user.room_id,...ids).all<{message_id:string;member_id:string;emoji:string}>():{results:[]};
+     const byId=new Map<string,{member_id:string;emoji:string}[]>();
+     for(const reaction of reactions.results||[]){
+      const prior=byId.get(reaction.message_id)||[];
+      prior.push({member_id:reaction.member_id,emoji:reaction.emoji});byId.set(reaction.message_id,prior);
+     }
+     return ok({messages:page.map(m=>({...m,reactions:byId.get(m.id as string)||[]})).reverse(),
+      hasMore:rows.length>50});
+    }
     if(new URL(request.url).searchParams.get("status")==="1"){
      const presence=await session.db.prepare("SELECT typing_until,recording_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1")
       .bind(session.user.room_id,session.user.id).first<{typing_until:number,recording_until:number,last_seen_at:number}>();

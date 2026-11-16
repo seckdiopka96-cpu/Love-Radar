@@ -113,9 +113,10 @@ export async function fingerprint(publicKey:string):Promise<string>{
 function identityDb():Promise<IDBDatabase>{
  return new Promise((resolve,reject)=>{
   if(typeof indexedDB==="undefined")return reject(Error("Ce téléphone ne permet pas le stockage sécurisé requis."));
-  const req=indexedDB.open("love-radar-e2ee-v1",1);
+  const req=indexedDB.open("love-radar-e2ee-v1",2);
   req.onupgradeneeded=()=>{
    if(!req.result.objectStoreNames.contains("identities"))req.result.createObjectStore("identities");
+   if(!req.result.objectStoreNames.contains("recovered-room-keys"))req.result.createObjectStore("recovered-room-keys");
   };
   req.onerror=()=>reject(req.error||Error("Stockage chiffré indisponible."));
   req.onsuccess=()=>resolve(req.result);
@@ -165,6 +166,102 @@ export async function restoreIdentityBackup(memberId:string,backup:string,passph
  if(old&&old.publicKey!==identity.publicKey)throw Error("Une autre clé privée existe déjà sur cet appareil.");
  await saveIdentity(memberId,{...identity,encryptedBackup:backup});
 }
+export type RoomKeyBinding={roomId:string;mineId:string;partnerId:string;minePublicKey:string;partnerPublicKey:string};
+type StoredRoomKey={binding:RoomKeyBinding;key:CryptoKey};
+function recoveredStorageKey(binding:RoomKeyBinding):string{
+ return [binding.roomId,binding.mineId,binding.partnerId].join(":");
+}
+export async function loadRecoveredRoomKey(binding:RoomKeyBinding):Promise<CryptoKey|null>{
+ const db=await identityDb();
+ try{
+  const item=await new Promise<StoredRoomKey|null>((resolve,reject)=>{
+   const tx=db.transaction("recovered-room-keys","readonly");
+   const req=tx.objectStore("recovered-room-keys").get(recoveredStorageKey(binding));
+   req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);
+  });
+  if(!item||Object.keys(binding).some(k=>item.binding[k as keyof RoomKeyBinding]!==binding[k as keyof RoomKeyBinding]))return null;
+  return item.key instanceof CryptoKey?item.key:null;
+ }finally{db.close()}
+}
+export async function saveRecoveredRoomKey(binding:RoomKeyBinding,raw:Uint8Array):Promise<void>{
+ if(raw.length!==32||!validPublicKey(binding.minePublicKey)||!validPublicKey(binding.partnerPublicKey)||
+  binding.mineId===binding.partnerId)throw Error("Clé privée récupérée invalide.");
+ const key=await crypto.subtle.importKey("raw",buffer(raw),{name:"AES-GCM"},false,["encrypt","decrypt"]);
+ const db=await identityDb();
+ try{
+  await new Promise<void>((resolve,reject)=>{
+   const tx=db.transaction("recovered-room-keys","readwrite");
+   tx.objectStore("recovered-room-keys").put({binding,key} satisfies StoredRoomKey,recoveredStorageKey(binding));
+   tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
+  });
+ }finally{db.close()}
+}
+/** Re-derive the existing room AES key temporarily so the OTHER trusted device
+ * can send it through a fresh ECDH/AES-GCM envelope. Never send its raw bytes
+ * to the server, and wipe all intermediary byte arrays immediately. */
+export async function deriveRoomKeyMaterial(identity:Identity,binding:RoomKeyBinding):Promise<Uint8Array>{
+ const {roomId,mineId,partnerId,minePublicKey,partnerPublicKey}=binding;
+ if(identity.publicKey!==minePublicKey||mineId===partnerId||!validPublicKey(partnerPublicKey))
+  throw Error("Identité de chiffrement différente.");
+ const remote=await crypto.subtle.importKey("raw",buffer(unb64(partnerPublicKey)),
+  {name:"ECDH",namedCurve:"P-256"},false,[]);
+ const secret=await crypto.subtle.deriveBits({name:"ECDH",public:remote},identity.privateKey,256);
+ const kdf=await crypto.subtle.importKey("raw",secret,"HKDF",false,["deriveBits"]);
+ const ids=[mineId,partnerId].sort().join(":");
+ const salt=await crypto.subtle.digest("SHA-256",bytes(VERSION+"|"+roomId+"|"+ids));
+ return new Uint8Array(await crypto.subtle.deriveBits({
+  name:"HKDF",hash:"SHA-256",salt,info:bytes(VERSION+"|AES-256-GCM")
+ },kdf,256));
+}
+export async function recoveryWrappingKey(privateKey:CryptoKey,peerPublic:string,info:{
+ id:string;roomId:string;sponsorId:string;targetId:string;ephemeralPublic:string
+}):Promise<CryptoKey>{
+ if(!validPublicKey(peerPublic))throw Error("Clé publique de récupération incorrecte.");
+ const peer=await crypto.subtle.importKey("raw",buffer(unb64(peerPublic)),
+  {name:"ECDH",namedCurve:"P-256"},false,[]);
+ const shared=await crypto.subtle.deriveBits({name:"ECDH",public:peer},privateKey,256);
+ const material=await crypto.subtle.importKey("raw",shared,"HKDF",false,["deriveKey"]);
+ const context=[VERSION,"partner-recovery-v1",info.roomId,info.sponsorId,info.targetId,info.id,info.ephemeralPublic].join("|");
+ const salt=await crypto.subtle.digest("SHA-256",bytes(context));
+ return crypto.subtle.deriveKey({
+  name:"HKDF",hash:"SHA-256",salt,info:bytes(VERSION+"|recovery-key-wrap")
+ },material,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+export type RecoveryWrapInfo={id:string;roomId:string;sponsorId:string;targetId:string;ephemeralPublic:string};
+export async function wrapRoomKeyForPartner(binding:RoomKeyBinding,info:RecoveryWrapInfo):Promise<string>{
+ const identity=await loadIdentity(binding.mineId);
+ if(!identity||identity.publicKey!==binding.minePublicKey)
+  throw Error("La clé originale de cet appareil est nécessaire pour retrouver les anciens messages.");
+ const fingerprintCode=await fingerprint(binding.partnerPublicKey);
+ if(!isPartnerVerified(binding.roomId,binding.partnerId,fingerprintCode))
+  throw Error("Vérifie d'abord l'empreinte de ton partenaire dans les paramètres.");
+ return wrapRoomKeyWithIdentity(identity,binding,info);
+}
+export async function wrapRoomKeyWithIdentity(identity:Identity,binding:RoomKeyBinding,info:RecoveryWrapInfo):Promise<string>{
+ const bytesToWrap=await deriveRoomKeyMaterial(identity,binding);
+ try{
+  const key=await recoveryWrappingKey(identity.privateKey,info.ephemeralPublic,info);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const aad=bytes([info.roomId,info.sponsorId,info.targetId,info.id,info.ephemeralPublic].join("|"));
+  const cipher=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv,additionalData:aad},key,buffer(bytesToWrap)));
+  return b64url(iv)+"."+b64url(cipher);
+ }finally{bytesToWrap.fill(0)}
+}
+export async function unwrapRoomKeyFromPartner(
+ ephemeralPrivate:CryptoKey,sponsorPublic:string,info:RecoveryWrapInfo,envelope:string
+):Promise<Uint8Array>{
+ const parts=envelope.split(".");
+ if(parts.length!==2)throw Error("Transfert chiffré invalide.");
+ const iv=unb64(parts[0]),cipher=unb64(parts[1]);
+ if(iv.length!==12||cipher.length<48||cipher.length>400)throw Error("Enveloppe de récupération invalide.");
+ const key=await recoveryWrappingKey(ephemeralPrivate,sponsorPublic,info);
+ const aad=bytes([info.roomId,info.sponsorId,info.targetId,info.id,info.ephemeralPublic].join("|"));
+ try{
+  const raw=new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:buffer(iv),additionalData:aad},key,buffer(cipher)));
+  if(raw.length!==32)throw Error("Clé de récupération incorrecte.");
+  return raw;
+ }catch{throw Error("La clé reçue ne correspond pas à votre conversation privée.")}
+}
 function trustStorageKey(roomId:string,partnerId:string){return "lr-e2ee-verified-v1:"+roomId+":"+partnerId}
 export function isPartnerVerified(roomId:string,partnerId:string,fingerprintCode:string):boolean{
  try{return localStorage.getItem(trustStorageKey(roomId,partnerId))===fingerprintCode}catch{return false}
@@ -178,12 +275,14 @@ export async function makeContext(args:{roomId:string;mineId:string;partnerId:st
  if(!validPublicKey(minePublicKey)||!validPublicKey(partnerPublicKey)||mineId===partnerId)
   throw Error("Clés de chiffrement invalides.");
  const identity=await loadIdentity(mineId);
- if(!identity||identity.publicKey!==minePublicKey)
-  throw Error("La clé privée de ce téléphone est absente ou différente. Ne recrée pas la clé : tes messages chiffrés pourraient devenir illisibles.");
+ const recovered=await loadRecoveredRoomKey(args);
+ if((!identity||identity.publicKey!==minePublicKey)&&!recovered)
+  throw Error("La clé de cette conversation est absente. Demande une récupération approuvée par ton partenaire.");
  const code=await fingerprint(partnerPublicKey);
  if(!isPartnerVerified(roomId,partnerId,code))
   throw Error("Vérifie d’abord l’empreinte de la clé de ton partenaire dans les paramètres.");
- return deriveContext(identity,args);
+ if(identity&&identity.publicKey===minePublicKey)return deriveContext(identity,args);
+ return {...args,key:recovered!};
 }
 /** Cryptographic primitive used only after the trust-on-first-use check in makeContext. */
 export async function deriveContext(identity:Identity,args:{roomId:string;mineId:string;partnerId:string;minePublicKey:string;partnerPublicKey:string}):Promise<CryptoContext>{

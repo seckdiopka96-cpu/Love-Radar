@@ -1,6 +1,6 @@
 import {apiFetch,isNativeApp,publicInviteUrl} from "./api";
 import {recoverSavedSession,persistSessionToken,clearSessionToken,hadPreviousSession} from "./session-persistence";
-import {ensureIdentity,loadIdentity,encryptedBackupFor,restoreIdentityBackup,fingerprint,makeContext,verifyPartner,isPartnerVerified,encryptText,encryptMedia,decryptMedia,isEncryptedMedia,isEncryptedText,type CryptoContext} from "./e2ee";
+import {ensureIdentity,loadIdentity,loadRecoveredRoomKey,encryptedBackupFor,restoreIdentityBackup,fingerprint,makeContext,verifyPartner,isPartnerVerified,encryptText,encryptMedia,decryptMedia,isEncryptedMedia,isEncryptedText,type CryptoContext} from "./e2ee";
 import {revealMessages} from "./e2ee-room";
 import {setNativePrivacy} from "./native-privacy";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
@@ -25,6 +25,7 @@ import CoupleStory from "./CoupleStory";
 import PrivatePhoto from "./PrivatePhoto";
 import ProfilePhotoEditor from "./ProfilePhotoEditor";
 import {useProfileAvatars} from "./use-profile-avatars";
+import PartnerRecoveryClaim from "./PartnerRecoveryClaim";
 import {claimRecordingAudio,releaseRecordingAudio,isCallAudioActive,installAudioPlaybackGuard,type AudioInterrupt} from "./audio-focus";
 import PartnerProfileViewer from "./PartnerProfileViewer";
 import VoiceMessage from "./VoiceMessage";
@@ -145,7 +146,10 @@ export default function LoveRadar(){
    const own=await fingerprint(rm.e2ee!.mine!);
    const partner=rm.e2ee!.partner?await fingerprint(rm.e2ee!.partner):"";
    if(!alive)return;
-   setE2eeDeviceReady(Boolean(identity&&identity.publicKey===rm.e2ee!.mine));
+   const recovered=rm.partnerId&&rm.e2ee?.partner?
+    await loadRecoveredRoomKey({roomId:rm.roomId,mineId:rm.user.id,partnerId:rm.partnerId,
+     minePublicKey:rm.e2ee.mine!,partnerPublicKey:rm.e2ee.partner}):null;
+   setE2eeDeviceReady(Boolean(identity&&identity.publicKey===rm.e2ee!.mine||recovered));
    setE2eeOwnCode(own);setE2eePartnerCode(partner);
    setE2eeVerified(Boolean(partner&&rm.partnerId&&isPartnerVerified(rm.roomId,rm.partnerId,partner)));
   })().catch(()=>{if(alive){setE2eeDeviceReady(false);setE2eeVerified(false)}});
@@ -225,6 +229,17 @@ export default function LoveRadar(){
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
+ const [olderMessages,setOlderMessages]=useState<Message[]>([]);
+ const [historyBusy,setHistoryBusy]=useState(false);
+ const [historyMore,setHistoryMore]=useState(true);
+ const [historyError,setHistoryError]=useState("");
+ const historyScrollAnchor=useRef<{height:number;top:number}|null>(null);
+ useEffect(()=>{setOlderMessages([]);setHistoryMore(true);setHistoryError("")},[token,room?.roomId]);
+ useEffect(()=>{
+  if(!historyScrollAnchor.current||!chatScroller.current)return;
+  const prior=historyScrollAnchor.current;historyScrollAnchor.current=null;
+  chatScroller.current.scrollTop=prior.top+(chatScroller.current.scrollHeight-prior.height);
+ },[olderMessages]);
  const [media,setMedia]=useState<Record<string,string>>({});
  const [mediaErrors,setMediaErrors]=useState<Record<string,string>>({});
  const mediaRetries=useRef<Record<string,number>>({});
@@ -234,7 +249,7 @@ export default function LoveRadar(){
  const [textOutbox,setTextOutbox]=useState<LocalText[]>([]);
  const sendingVoiceIds=useRef(new Set<string>());
  const sendingTextIds=useRef(new Set<string>());
- const chatMessages=useMemo(()=>mergeOptimisticMessages(room?.messages||[],[
+ const chatMessages=useMemo(()=>mergeOptimisticMessages([...olderMessages,...(room?.messages||[])],[
   ...voiceOutbox.map(entry=>({
    id:entry.id,sender_id:room?.user.id||"",kind:"audio" as const,
    content:null,object_key:entry.id,mime:entry.file.type,created_at:entry.created_at
@@ -245,7 +260,7 @@ export default function LoveRadar(){
    reply_to_id:entry.replyToId||null,reply_kind:entry.replyKind||null,
    reply_content:entry.replyContent||null,reply_sender_id:entry.replySenderId||null
   }))
- ]),[room?.messages,room?.user.id,voiceOutbox,textOutbox]);
+ ]),[olderMessages,room?.messages,room?.user.id,voiceOutbox,textOutbox]);
  const actionMessage=chatMessages.find(m=>m.id===actionMessageId)||null;
  const infoMessage=chatMessages.find(m=>m.id===infoMessageId)||null;
  const [recording,setRecording]=useState(false);
@@ -871,6 +886,34 @@ export default function LoveRadar(){
    void request("recording",{active:false}).catch(()=>{});
   }
  },[tab,request]);
+ async function loadEarlierHistory(){
+  if(!room||!token||historyBusy||!historyMore)return;
+  const all=[...olderMessages,...room.messages].sort((a,b)=>a.created_at-b.created_at||a.id.localeCompare(b.id));
+  const first=all[0];if(!first)return;
+  setHistoryBusy(true);setHistoryError("");
+  const element=chatScroller.current;
+  historyScrollAnchor.current=element?{height:element.scrollHeight,top:element.scrollTop}:null;
+  try{
+   const cursor=first.created_at+":"+first.id;
+   const res=await apiFetch("/api/love?historyBefore="+encodeURIComponent(cursor),{
+    headers:{Authorization:"Bearer "+token},cache:"no-store"
+   });
+   const data=await res.json() as {ok:boolean;error?:string;messages?:Message[];hasMore?:boolean};
+   if(!res.ok||!data.ok)throw Error(data.error||"Impossible de charger les anciens messages.");
+   let context:CryptoContext|null=null;
+   if(room.e2ee?.required)try{context=await cryptoFor(room)}catch{/* preserve locked placeholders */}
+   const decoded=await revealMessages(data.messages||[],context);
+   setOlderMessages(items=>{
+    const combined=new Map(items.map(m=>[m.id,m]));
+    for(const item of decoded)combined.set(item.id,item);
+    return [...combined.values()].sort((a,b)=>a.created_at-b.created_at||a.id.localeCompare(b.id));
+   });
+   setHistoryMore(Boolean(data.hasMore));
+  }catch(e){
+   historyScrollAnchor.current=null;
+   setHistoryError(e instanceof Error?e.message:"Chargement de l’historique impossible.");
+  }finally{setHistoryBusy(false)}
+ }
  // Verify that a media response actually contains decodable image bytes. A
  // failed photo used to disappear silently, leaving an empty narrow rectangle.
  async function fetchMedia(item:Message,force=false){
@@ -955,6 +998,12 @@ export default function LoveRadar(){
   }
  },[room?.messages,token]);
  useEffect(()=>{
+  if(!room||!token)return;
+  for(const item of olderMessages){
+   if(item.object_key&&!item.view_once&&!mediaCache.current[item.id])void fetchMedia(item);
+  }
+ },[olderMessages,token]);
+ useEffect(()=>{
   const resumeMedia=()=>{
    if(document.visibilityState!=="visible")return;
    for(const item of room?.messages||[]){
@@ -1025,6 +1074,13 @@ export default function LoveRadar(){
  },[tab,chatFocused,scrollToLatest]);
  useEffect(()=>{if(tab!=="chat"&&chatFocused)setChatFocused(false)},[tab,chatFocused]);
 
+ function finishApprovedPartnerRecovery(newToken:string){
+  setError("");setToken(newToken);setRecoverMode(false);setRecoverInput("");
+  setTab("chat");
+  void refresh(newToken).then(()=>{
+   setNotice("Compte retrouvé ! Tes anciens messages disponibles sur le serveur sont de nouveau accessibles.");
+  });
+ }
  async function issueRecoveryCode(){
   if(!token||recoveryBusy)return;
   setRecoveryBusy(true);setError("");
@@ -1568,7 +1624,7 @@ export default function LoveRadar(){
       <p>Discutez, jouez et partagez vos moments à deux.</p>
      </section>
      <section className="lr-auth-panel" aria-label="Créer ou rejoindre votre espace privé">
-      <div className="lr-panel-head"><h2>{recoverMode?"Retrouver mon compte 🔐":joinMode?"Rejoins ton amour ♡":"Bienvenue à deux ♡"}</h2><p>{recoverMode?"Utilise ton code personnel de secours sauvegardé.":joinMode?"Entre ton prénom et votre code privé.":"Crée ton espace et invite ton partenaire."}</p></div>
+      <div className="lr-panel-head"><h2>{recoverMode?"Retrouver mon compte 🔐":joinMode?"Rejoins ton amour ♡":"Bienvenue à deux ♡"}</h2><p>{recoverMode?"Utilise ton code personnel de secours, ou demande l’aide de ton partenaire connecté.":joinMode?"Entre ton prénom et votre code privé.":"Crée ton espace et invite ton partenaire."}</p></div>
       {error?<div className="lr-inline-auth-error" role="alert"><span>{error}</span>
        <button type="button" onClick={()=>setError("")} aria-label="Fermer le message">×</button></div>:null}
       {recoverMode?<div className="lr-recovery-entry">
@@ -1579,6 +1635,7 @@ export default function LoveRadar(){
          maxLength={40} placeholder="XXXX-XXXX-XXXX-XXXX" autoComplete="off" autoCapitalize="characters" spellCheck={false} required/>
         <button type="submit" disabled={recoveryBusy}>{recoveryBusy?"Vérification…":"Retrouver mon compte"}</button>
        </form>
+       <PartnerRecoveryClaim onRecovered={finishApprovedPartnerRecovery}/>
        <button type="button" onClick={()=>setRecoverMode(false)}>Retour à l’inscription</button>
       </div>:<>
       <div className="lr-auth-switch" role="group" aria-label="Créer ou rejoindre un espace">
@@ -1606,6 +1663,7 @@ export default function LoveRadar(){
     {tab==="settings"?<SettingsPage
      name={room.user.name} code={room.code} owner={room.user.owner} token={token} avatarSrc={avatars.mine} avatarVersion={room.user.avatarVersion}
      profileBusy={profileBusy} profileError={profileError} recoveryBusy={recoveryBusy} onGenerateRecovery={()=>void issueRecoveryCode()} privacyEnabled={privacyEnabled}
+     recoveryRoomId={room.roomId} recoveryMemberId={room.user.id} recoveryPartnerId={room.partnerId||null}
      notificationsOn={notificationsOn} notificationsBusy={notificationsBusy} notificationsTesting={notificationsTesting} notificationsHint={notificationsHint}
      e2ee={room.e2ee} e2eeBusy={e2eeBusy} e2eeBackup={e2eeBackup} e2eeOwnCode={e2eeOwnCode} e2eePartnerCode={e2eePartnerCode}
      e2eeDeviceReady={e2eeDeviceReady} e2eeVerified={e2eeVerified}
@@ -1652,6 +1710,11 @@ export default function LoveRadar(){
       <div id="lr-voice-button-slot"/>
      </div>
      <div className="lr-chat-messages" ref={chatScroller} onScroll={e=>{const list=e.currentTarget;const near=list.scrollHeight-list.scrollTop-list.clientHeight<120;chatAtBottomRef.current=near;setChatAtBottom(prev=>prev===near?prev:near)}} role="log" aria-label="Messages" aria-live="off">
+      {room.messages.length>=90&&historyMore?<div className="lr-history-loader">
+       <button type="button" disabled={historyBusy} onClick={()=>void loadEarlierHistory()}>
+        {historyBusy?"Chargement de l’historique…":"↑ Afficher les anciens messages"}</button>
+      </div>:null}
+      {historyError?<p className="lr-history-error" role="alert">{historyError}</p>:null}
       {chatMessages.length===0?<div className="lr-chat-empty"><span>♡</span><h3>Votre conversation</h3><p>Écris ton premier message pour commencer.</p></div>:
       chatMessages.map((m,idx)=>{
        const mine=m.sender_id===room.user.id;
