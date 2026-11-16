@@ -131,7 +131,7 @@ test("all external security boundaries are enforced on the server",()=>{
  assert.ok(api.includes("MEMBER_LIMITS.recoveryIssue"));
  assert.ok(api.includes('DELETE FROM push_subscriptions WHERE member_id=?'));
  assert.ok(love.includes('import {deleteCoupleRoom} from "../lib/delete-room"'));
- assert.ok(readFileSync("functions/lib/delete-room.ts","utf8").includes('MEMBER_DATA_TABLES=["member_recovery","push_test_throttle"]'));
+ assert.ok(readFileSync("functions/lib/delete-room.ts","utf8").includes('MEMBER_DATA_TABLES=["member_recovery","push_test_throttle","care_share_throttle"]'));
  assert.ok(ui.includes('J’ai perdu mon accès'));
  assert.ok(ui.includes("<RecoveryCodeDialog"));
  assert.ok(settings.includes("onGenerateRecovery"));
