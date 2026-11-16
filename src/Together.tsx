@@ -24,6 +24,7 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
  const [signals,setSignals]=useState<Signal[]>([]);
  const [focused,setFocused]=useState<Signal|null>(null);
  const [onlyFocused,setOnlyFocused]=useState(Boolean(focusKind==="love-signal"&&focusId));
+ const [showAll,setShowAll]=useState(false);
  const [loading,setLoading]=useState(true);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
@@ -41,14 +42,16 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
    const data=await response.json() as Reply;
    if(!data.ok||!response.ok)throw Error(data.error||"Nos petits mots sont indisponibles.");
    if(alive.current){
-    setSignals(data.signals||[]);setFocused(data.focus||null);setError("");
+    setSignals(previous=>JSON.stringify(previous)===JSON.stringify(data.signals||[])?previous:data.signals||[]);
+    setFocused(previous=>JSON.stringify(previous)===JSON.stringify(data.focus||null)?previous:data.focus||null);
+    setError(previous=>previous?"":previous);
    }
   }catch(e){if(alive.current&&!silent)setError(e instanceof Error?e.message:"Connexion interrompue.")}
   finally{requesting.current=false;if(alive.current)setLoading(false)}
  },[token,focusIdValid]);
  useEffect(()=>{
   alive.current=true;void load();
-  const timer=window.setInterval(()=>{if(document.visibilityState==="visible")void load(true)},2200);
+  const timer=window.setInterval(()=>{if(document.visibilityState==="visible")void load(true)},6000);
   const visible=()=>{if(document.visibilityState==="visible")void load(true)};
   document.addEventListener("visibilitychange",visible);
   return ()=>{alive.current=false;window.clearInterval(timer);document.removeEventListener("visibilitychange",visible)};
@@ -73,62 +76,72 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
  const selected=onlyFocused?(focused||signals.find(s=>s.id===focusIdValid)||null):null;
  const canReply=(signal:Signal)=>signal.kind==="miss"&&signal.seat!==mySeat&&
   !signals.some(s=>s.seat===mySeat&&s.reply_to===signal.id);
- const feed=selected?[selected]:signals.slice(-9).reverse();
- return <section className="tg-page" aria-label="Nous deux, votre espace privé">
+ const feed=selected?[selected]:showAll?signals.slice(-9).reverse():signals.slice(-1);
+ return <section className="tg-page tg-page-premium" aria-label="Nous deux, votre espace privé">
   <header className="tg-top">
-   <button type="button" onClick={onExit} className="tg-back">‹ Accueil</button>
-   <div className="tg-brand"><strong>Nous deux <span>♡</span></strong><small>TOUJOURS ENSEMBLE</small></div>
-   <span className="tg-top-heart" aria-hidden="true">♥</span>
+   <button type="button" onClick={onExit} className="tg-back" aria-label="Retour à l’accueil">
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+   </button>
+   <div className="tg-brand"><strong>Nous deux</strong><small>VOTRE ESPACE À DEUX</small></div>
+   <span className="tg-header-sparkle" aria-hidden="true">✧</span>
   </header>
   <div className="tg-activities">
-   <div className="tg-section-label"><strong>NOS ACTIVITÉS À DEUX</strong><small>Même à distance 💞</small></div>
+   <div className="tg-section-label"><strong>À PARTAGER ENSEMBLE</strong><small>Même à distance</small></div>
    <button type="button" className="tg-watch-feature" onClick={onOpenWatch}>
     <span className="tg-watch-symbol" aria-hidden="true">▶</span>
-    <span className="tg-watch-copy"><small>NOTRE CINÉMA · EN DIRECT</small><strong>Regarder ensemble</strong><span>YouTube & TikTok · Une vidéo pour vous deux</span></span>
+    <span className="tg-watch-copy"><small>NOTRE CINÉMA</small><strong>Regarder ensemble</strong><span>YouTube et TikTok, au même moment</span></span>
     <span className="tg-watch-arrow" aria-hidden="true">›</span>
    </button>
-   <div className="tg-shortcuts" aria-label="Nos moments privilégiés">
-    <button type="button" className="tg-moment-link" onClick={onOpenMoment}><span aria-hidden="true">💌</span><strong>Moment</strong></button>
-    <button type="button" className="tg-reunion-link" onClick={onOpenReunion}><span aria-hidden="true">📅</span><strong>Retrouvailles</strong></button>
+   <div className="tg-shortcuts" aria-label="Nos activités à deux">
+    <button type="button" className="tg-moment-link" onClick={onOpenMoment}>
+     <span className="tg-tile-icon" aria-hidden="true">💌</span><strong>Notre moment</strong><small>Chaque jour</small>
+    </button>
+    <button type="button" className="tg-reunion-link" onClick={onOpenReunion}>
+     <span className="tg-tile-icon" aria-hidden="true">📅</span><strong>Retrouvailles</strong><small>Nos rendez-vous</small>
+    </button>
+    <button type="button" className="tg-reconcile-entry" onClick={onOpenReconcile} aria-label="On se comprend : un espace pour mieux s’écouter">
+     <span className="tg-tile-icon" aria-hidden="true">🕊️</span><strong>On se comprend</strong><small>S’écouter</small>
+    </button>
+    <button type="button" className="tg-puzzle-open" onClick={onOpenPuzzle}>
+     <span className="tg-tile-icon" aria-hidden="true">🧩</span><strong>Puzzle à deux</strong><small>Jouer ensemble</small>
+    </button>
    </div>
   </div>
-  <button type="button" className="tg-reconcile-entry" onClick={onOpenReconcile} aria-label="Mode Réconciliation, exprimer librement ce qui me fait mal">
-   <span className="tg-reconcile-icon" aria-hidden="true">🕊️</span>
-   <span className="tg-reconcile-copy"><strong>On se comprend</strong><small>Un espace pour dire tout ce qui fait mal et s'écouter vraiment</small></span>
-   <span className="tg-reconcile-arrow" aria-hidden="true">›</span>
-  </button>
-  <div className="tg-section-label tg-between-label"><strong>RIEN QUE NOUS DEUX</strong><small>Des attentions et des jeux</small></div>
-  <div className="tg-modes" role="group" aria-label="Activités romantiques">
-   <button type="button" className="selected" aria-current="page">💗 Tu me manques</button>
-   <button type="button" className="tg-puzzle-open" onClick={onOpenPuzzle}>🧩 Puzzle à deux</button>
-  </div>
-  <div className="tg-heart-screen">
-   {selected?<div className="tg-direct-notice" role="status"><span>Notification reçue</span>
+  <section className="tg-affection-section" aria-labelledby="tg-affection-heading">
+   <div className="tg-affection-heading">
+    <div><span className="tg-heart-kicker">UNE PETITE ATTENTION</span><h2 id="tg-affection-heading">Un cœur pour toi</h2><p>Un geste, même à distance.</p></div>
+    <button type="button" className="tg-send-heart" disabled={busy||!partnerName} onClick={()=>void send({action:"miss"})}>
+     <span aria-hidden="true">💗</span> Envoyer
+    </button>
+   </div>
+   {!partnerName?<p className="tg-partner-hint">Invite ton partenaire pour lui envoyer un cœur.</p>:null}
+   {selected?<div className="tg-direct-notice" role="status">
+    <span>NOTIFICATION REÇUE</span>
     <strong>{selected.seat===mySeat?"Tu as envoyé ce cœur":partner+" pense à toi"}</strong>
-    <button type="button" onClick={()=>setOnlyFocused(false)}>Voir nos autres cœurs →</button></div>:null}
-   <div className="tg-heart-center">
-    <span className="tg-heart-kicker">TOUJOURS UN PEU PLUS PRÈS</span>
-    <span className="tg-heart-animation" aria-hidden="true">♥</span>
-    <h1>Un petit cœur, <em>juste pour toi.</em></h1>
-    <p>Même à distance, une pensée peut traverser le monde.</p>
-    {!selected?<button type="button" className="tg-send-heart" disabled={busy||!partnerName} onClick={()=>void send({action:"miss"})}>💗 Tu me manques</button>:null}
-    {!partnerName?<small>Invite ton partenaire pour lui envoyer un cœur.</small>:null}
-   </div>
+    <button type="button" onClick={()=>{setOnlyFocused(false);setShowAll(false)}}>Voir les petits mots</button>
+   </div>:null}
    <div className="tg-heart-feed">
-    <div className="tg-heart-feed-title"><strong>{selected?"Ce cœur reçu":"Nos petits mots"}</strong><span>♡</span></div>
-    {loading&&!signals.length?<p>Chargement des cœurs…</p>:feed.length===0?
-     <div className="tg-feed-empty"><span aria-hidden="true">💌</span><strong>Votre première attention vous attend</strong>
-      <p>Un petit mot, un cœur… vos moments apparaîtront ici.</p></div>:
+    <div className="tg-heart-feed-title">
+     <strong>{selected?"Le cœur reçu":"Nos petits mots"}</strong>
+     {!selected&&signals.length>1?<button type="button" className="tg-history-toggle" aria-expanded={showAll} onClick={()=>setShowAll(value=>!value)}>
+      {showAll?"Réduire":"Tout voir ("+signals.length+")"}
+     </button>:<span aria-hidden="true">♡</span>}
+    </div>
+    {loading&&!signals.length?<p>Chargement des petits mots…</p>:feed.length===0?
+     <div className="tg-feed-empty"><span aria-hidden="true">💌</span><strong>Votre premier petit mot vous attend</strong>
+      <p>Envoyez un cœur pour commencer.</p></div>:
      feed.map(signal=><article key={signal.id} className={"tg-signal"+(signal.seat===mySeat?" sent":" received")}>
       <span className="tg-signal-avatar">{(signal.seat===mySeat?myName:partner).slice(0,1).toUpperCase()}</span>
-      <div className="tg-signal-content"><small>{signal.seat===mySeat?"Toi":partner} · {new Date(signal.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</small>
+      <div className="tg-signal-content">
+       <small>{signal.seat===mySeat?"Toi":partner} · {new Date(signal.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</small>
        <strong>{messageOf(signal)}</strong>
-       {canReply(signal)?<div className="tg-reply-options">{RESPONSE_OPTIONS.map(option=><button key={option.kind} type="button" disabled={busy} onClick={()=>void send({action:"reply",kind:option.kind,replyTo:signal.id})}>{option.symbol} {option.text}</button>)}</div>:null}
+       {canReply(signal)?<div className="tg-reply-options">
+        {RESPONSE_OPTIONS.map(option=><button key={option.kind} type="button" disabled={busy} onClick={()=>void send({action:"reply",kind:option.kind,replyTo:signal.id})}>{option.symbol} {option.text}</button>)}
+       </div>:null}
       </div>
      </article>)}
-    <p className="tg-vocal-hint">🎙️ Pour un vocal, ouvre votre conversation.</p>
    </div>
-  </div>
+  </section>
   {error?<p className="tg-floating-alert" role="alert">{error}</p>:null}
   {notice?<p className="tg-floating-alert tg-floating-success" role="status">{notice}</p>:null}
  </section>;
