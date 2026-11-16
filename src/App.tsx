@@ -18,7 +18,6 @@ import GamesHub from "./GamesHub";
 import CoupleStory from "./CoupleStory";
 import PrivatePhoto from "./PrivatePhoto";
 import VoiceMessage from "./VoiceMessage";
-import OneTimeMedia from "./OneTimeMedia";
 import ChatActivity from "./ChatActivity";
 import QuoteCard from "./QuoteCard";
 import {quoteAuthor,type QuoteKind} from "./message-quote";
@@ -36,11 +35,11 @@ type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story";
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number;
  reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null;
- edited_at?:number;reactions?:{member_id:string;emoji:string}[];view_once?:number|boolean;once_opened_at?:number};
+ edited_at?:number;reactions?:{member_id:string;emoji:string}[];view_once?:number|boolean};
 type RecentReaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
 type Room = {recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
-type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;view_once:boolean;error?:string};
+type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
 
 
 const NAV: {id:Tab;label:string}[] = [
@@ -118,7 +117,6 @@ export default function LoveRadar(){
  function navigate(tab:Tab){
   if(tab==="chat"&&currentTab.current!=="chat")chatReturnTab.current=currentTab.current;
   closeNotice();
-  setOnceTarget(null);
   setTab(tab);
   if(tab==="watch"||tab==="watch-tiktok")setWatchInvite(null);
   if(tab==="reconcile")setReconcileInvite(false);
@@ -129,9 +127,6 @@ export default function LoveRadar(){
   firstPoll.current=true;
  }
  const [draft,setDraft]=useState("");
- const [viewOnce,setViewOnce]=useState(false);
- const [onceTarget,setOnceTarget]=useState<Message|null>(null);
- const viewOnceRecording=useRef(false);
  const [replyTarget,setReplyTarget]=useState<Message|null>(null);
  const [actionMessageId,setActionMessageId]=useState<string|null>(null);
  const [infoMessageId,setInfoMessageId]=useState<string|null>(null);
@@ -159,7 +154,7 @@ export default function LoveRadar(){
  const sendingVoiceIds=useRef(new Set<string>());
  const chatMessages=mergeOptimisticMessages(room?.messages||[],voiceOutbox.map(entry=>({
   id:entry.id,sender_id:room?.user.id||"",kind:"audio" as const,
-  content:null,object_key:entry.id,mime:entry.file.type,created_at:entry.created_at,view_once:entry.view_once?1:0
+  content:null,object_key:entry.id,mime:entry.file.type,created_at:entry.created_at
  })));
  const actionMessage=chatMessages.find(m=>m.id===actionMessageId)||null;
  const infoMessage=chatMessages.find(m=>m.id===infoMessageId)||null;
@@ -865,11 +860,10 @@ export default function LoveRadar(){
   if(file.size>limit){setError("Fichier trop lourd : "+(kind==="image"?"6 Mo":"5 Mo")+" maximum.");return}
   setBusy(true);setError("");
   try{
-   const form=new FormData();form.append("file",file);form.append("kind",kind);form.append("viewOnce",String(viewOnce));
+   const form=new FormData();form.append("file",file);form.append("kind",kind);
    const res=await apiFetch("/api/media",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
    const data=await res.json() as {ok:boolean;error?:string};
    if(!data.ok)throw new Error(data.error||"Envoi impossible.");
-   setViewOnce(false);
    await refresh();
    requestAnimationFrame(()=>{if(chatScroller.current)chatScroller.current.scrollTop=chatScroller.current.scrollHeight});
   }catch(e){setError(e instanceof Error?e.message:"Envoi impossible.")}
@@ -885,7 +879,6 @@ export default function LoveRadar(){
    form.append("file",entry.file);
    form.append("kind","audio");
    form.append("messageId",entry.id);
-   form.append("viewOnce",String(entry.view_once));
    const response=await apiFetch("/api/media",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
    const result=await response.json() as {ok:boolean;error?:string;id?:string;created_at?:number};
    if(!response.ok||!result.ok||result.id!==entry.id)throw Error(result.error||"Envoi vocal impossible.");
@@ -896,17 +889,14 @@ export default function LoveRadar(){
    setVoiceOutbox(items=>items.map(v=>v.id===entry.id?{...v,status:"failed",error:message}:v));
   }finally{sendingVoiceIds.current.delete(entry.id)}
  }
- function enqueueVoice(file:File,once=viewOnceRecording.current){
+ function enqueueVoice(file:File){
   if(!room?.partner||!token)return;
   if(file.size===0){setError("Aucun son enregistré. Réessaie.");return}
   if(file.size>5_000_000){setError("Ce vocal dépasse 5 Mo. Réessaie avec un enregistrement plus court.");return}
-  const entry:LocalVoice={id:crypto.randomUUID(),created_at:Date.now(),file,status:"uploading",view_once:once};
-  if(!once){
-   const url=URL.createObjectURL(file);
-   mediaCache.current[entry.id]=url;
-   setMedia(prev=>({...prev,[entry.id]:url}));
-  }
-  setViewOnce(false);
+  const entry:LocalVoice={id:crypto.randomUUID(),created_at:Date.now(),file,status:"uploading"};
+  const url=URL.createObjectURL(file);
+  mediaCache.current[entry.id]=url;
+  setMedia(prev=>({...prev,[entry.id]:url}));
   setVoiceOutbox(prev=>[...prev,entry]);
   scrollToLatest();
   void sendQueuedVoice(entry);
@@ -921,7 +911,6 @@ export default function LoveRadar(){
   if(typeof navigator==="undefined"||!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined"){setError("Enregistrement vocal indisponible sur ce navigateur.");return}
   setError("");
   try{
-   viewOnceRecording.current=viewOnce;
    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
    recordingStream.current=stream;
    const mime=["audio/mp4","audio/webm;codecs=opus","audio/webm","audio/ogg"].find(type=>MediaRecorder.isTypeSupported(type));
@@ -1108,13 +1097,7 @@ export default function LoveRadar(){
            {m.reply_to_id?<QuoteCard author={quoteAuthor(m.reply_sender_id,room.user.id,partner)}
             kind={m.reply_kind||"text"} content={m.reply_kind?m.reply_content:"Message supprimé"}
             onJump={chatMessages.some(item=>item.id===m.reply_to_id)?()=>jumpToQuote(m.reply_to_id!):undefined}/>:null}
-           {m.view_once?<button type="button" className="lr-once-placeholder" disabled={mine||Boolean(m.once_opened_at)||voiceOutbox.some(v=>v.id===m.id&&v.status!=="sent")}
-             aria-label={mine?"Média à vue unique envoyé":m.once_opened_at?"Média à vue unique déjà ouvert":"Ouvrir le média à vue unique"}
-             onClick={()=>setOnceTarget(m)}>
-             <span aria-hidden="true">①</span>
-             <strong>{m.kind==="image"?"Photo à vue unique":"Vocal à écoute unique"}</strong>
-             <small>{mine?"Envoyé · le destinataire peut l’ouvrir une fois":m.once_opened_at?"Déjà ouvert":"Toucher pour ouvrir une seule fois"}</small>
-            </button>:m.kind==="text"?<p>{m.content}</p>:m.kind==="image"?
+           {m.view_once?<div className="lr-legacy-expired" role="note">Ancien média temporaire indisponible</div>:m.kind==="text"?<p>{m.content}</p>:m.kind==="image"?
           media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} enabled={privacyEnabled} viewer={room.user.name} variant="chat" onImageError={()=>retryMedia(m)}/>:
           <div className="lr-photo-loading" role="status">
            <span aria-hidden="true">▧</span>
@@ -1186,10 +1169,7 @@ export default function LoveRadar(){
        <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={onImageChange}/>
        <button className="lr-attach" type="button" title="Envoyer une photo" aria-label="Ajouter une photo" onClick={()=>fileInput.current?.click()} disabled={!room.partner||busy}><span aria-hidden="true">+</span></button>
        <input ref={chatInput} aria-label="Écrire un message" type="text" enterKeyHint="send" autoComplete="off" value={draft} onFocus={()=>{firstPoll.current=true;setChatFocused(true);scrollToLatest()}} onBlur={()=>{setChatFocused(false);setTyping(false)}} onChange={e=>{setDraft(e.target.value);setTyping(e.target.value.trim().length>0)}} placeholder={room.partner?"Message…":"En attente de ton partenaire…"} disabled={!room.partner} maxLength={1600}/>
-       <button type="button" className={"lr-view-once-toggle "+(viewOnce?"is-selected":"")} onClick={()=>setViewOnce(value=>!value)} aria-pressed={viewOnce}
-        aria-label={viewOnce?"Désactiver la vue unique pour le prochain média":"Activer la vue unique pour la prochaine photo ou le prochain vocal"}
-        title={viewOnce?"Vue unique activée pour photo ou vocal":"Vue unique : photo ou vocal"} disabled={!room.partner||busy||recording}>①</button>
-       <button className={"lr-mic "+(recording?"recording":"")} type="button" title={recording?"Arrêter le vocal":"Enregistrer un vocal"} aria-label={recording?"Arrêter le message vocal":"Enregistrer un message vocal"} onClick={toggleRecording} disabled={!room.partner||busy}>
+              <button className={"lr-mic "+(recording?"recording":"")} type="button" title={recording?"Arrêter le vocal":"Enregistrer un vocal"} aria-label={recording?"Arrêter le message vocal":"Enregistrer un message vocal"} onClick={toggleRecording} disabled={!room.partner||busy}>
         {recording?<span aria-hidden="true">■</span>:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8 21h8"/></svg>}
        </button>
        <button className="lr-send" type="submit" aria-label={editTarget?"Enregistrer la modification":"Envoyer"} onPointerDown={e=>e.preventDefault()} disabled={!room.partner||!draft.trim()||busy}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg></button>
@@ -1198,21 +1178,13 @@ export default function LoveRadar(){
     </section>:null}
     {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Retrouvez les photos partagées dans votre conversation.</p></div><button type="button" className="lr-story-album-entry" onClick={()=>navigate("story")}><span aria-hidden="true">💑</span><span><strong>Notre histoire</strong><small>Notre photo, nos jours ensemble et nos souvenirs marquants.</small></span><b aria-hidden="true">→</b></button><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>navigate("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt="Souvenir du couple" enabled={privacyEnabled} viewer={room.user.name} variant="album"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
    </main>
-   {onceTarget&&room&&token&&onceTarget.kind!=="text"?<OneTimeMedia key={onceTarget.id} id={onceTarget.id} kind={onceTarget.kind} token={token} viewer={room.user.name}
-    onClose={()=>setOnceTarget(null)} onOpened={()=>void refresh(undefined,true)}/>:null}
-   {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} hasPartner={Boolean(room.partner)} showButton={tab==="chat"||tab==="watch"||tab==="watch-tiktok"||tab==="reconcile"} onOpenChat={()=>navigate("chat")}/>:null}
+      {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} hasPartner={Boolean(room.partner)} showButton={tab==="chat"||tab==="watch"||tab==="watch-tiktok"||tab==="reconcile"} onOpenChat={()=>navigate("chat")}/>:null}
    {room&&token&&tab==="chat"&&noticeTarget?.id&&["message","photo","audio"].includes(noticeTarget.kind||"")?<div className="lr-push-focus-backdrop" role="dialog" aria-modal="true" aria-label="Contenu de la notification">
     <div className="lr-push-focus-card">
      <div className="lr-push-focus-header"><strong>{noticeTarget.kind==="photo"?"📸 Photo reçue":noticeTarget.kind==="audio"?"🎙️ Message vocal reçu":"💌 Message reçu"}</strong><button type="button" onClick={closeNotice} aria-label="Fermer le contenu">×</button></div>
      {focusLoading?<p>Ouverture du contenu…</p>:focusError?<p role="alert">{focusError}</p>:focusMessage?
        <div className="lr-push-focus-content">
-        {focusMessage.view_once?
-         <button type="button" className="lr-once-placeholder" disabled={focusMessage.sender_id===room.user.id||Boolean(focusMessage.once_opened_at)}
-          onClick={()=>{setOnceTarget(focusMessage);closeNotice()}}>
-          <span aria-hidden="true">①</span><strong>{focusMessage.kind==="image"?"Photo à vue unique":"Vocal à écoute unique"}</strong>
-          <small>{focusMessage.once_opened_at?"Déjà ouvert":"Ouvrir une seule fois"}</small>
-         </button>:
-        focusMessage.kind==="text"?<p className="lr-push-focus-text">{focusMessage.content}</p>:focusMessage.kind==="image"?
+        {focusMessage.view_once?<p className="lr-legacy-expired">Ancien média temporaire indisponible.</p>:focusMessage.kind==="text"?<p className="lr-push-focus-text">{focusMessage.content}</p>:focusMessage.kind==="image"?
          focusMedia?<PrivatePhoto key={focusMessage.id} src={focusMedia} alt="Photo reçue de ton partenaire" enabled={privacyEnabled} viewer={room.user.name} variant="focus"/>:<p>Chargement de la photo…</p>:
          focusMedia?<audio src={focusMedia} controls preload="metadata"/>:<p>Chargement du message vocal…</p>}
         <small>{new Date(focusMessage.created_at).toLocaleString("fr-FR",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})}</small>
