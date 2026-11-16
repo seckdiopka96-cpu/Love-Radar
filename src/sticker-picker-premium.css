@@ -5,7 +5,7 @@
  max-height:min(55dvh,540px)!important;
  padding:12px 10px 8px!important;
  background:linear-gradient(152deg,#283a4c 0%,#172736 61%,#1c283a 100%)!important;
- border:1px solid #c88aab57!important;
+ border:1px solid #bc396c57!important;
  border-radius:22px 22px 16px 16px!important;
  box-shadow:0 10px 32px #050c1b99,inset 0 1px 0 #ffffff1a!important;
  overscroll-behavior:contain;
@@ -25,7 +25,7 @@
 }
 .lr-chat .lr-expression-modes button span{font-size:18px;line-height:1}
 .lr-chat .lr-expression-modes button[aria-selected=true]{
- background:linear-gradient(150deg,#c75c8c,#8e4a77)!important;
+ background:linear-gradient(150deg,#a82358,#8e4a77)!important;
  color:#fff!important;
  box-shadow:0 3px 10px #5f274d52!important;
 }
@@ -34,7 +34,7 @@
 .lr-chat .lr-emoji-grid button:focus-visible,
 .lr-chat .lr-gif-grid button:focus-visible,
 .lr-chat .lr-gif-categories button:focus-visible{
- outline:2px solid #ffd4e6!important;outline-offset:1px!important;
+ outline:2px solid #bc396c!important;outline-offset:1px!important;
 }
 .lr-chat .lr-emoji-categories{
  display:flex;flex:none;align-items:center;gap:3px;overflow-x:auto;
@@ -50,7 +50,7 @@
  background:transparent!important;color:#d6c3dd!important;
 }
 .lr-chat .lr-emoji-categories button[aria-selected=true]{
- background:#d65e9133!important;border-color:#d65e9199!important;
+ background:#a8235833!important;border-color:#bc396c99!important;
 }
 .lr-chat .lr-emoji-grid{
  display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
@@ -63,7 +63,7 @@
  background:transparent!important;font-size:27px!important;
  line-height:1!important;cursor:pointer;
 }
-.lr-chat .lr-emoji-grid button:active{background:#e57ba13b!important;transform:scale(.93)}
+.lr-chat .lr-emoji-grid button:active{background:#bd27633b!important;transform:scale(.93)}
 .lr-chat .lr-emoji-scroll{scrollbar-width:thin}
 .lr-chat .lr-gif-categories{
  display:flex;flex:none;justify-content:center;gap:5px;
@@ -76,7 +76,7 @@
  color:#d0dce6!important;font-size:12px!important;font-weight:750!important;
 }
 .lr-chat .lr-gif-categories button[aria-selected=true]{
- background:#6e3b65!important;color:#fff!important;border-color:#e5a7c6!important;
+ background:#6e3b65!important;color:#fff!important;border-color:#bc396c!important;
 }
 .lr-chat .lr-gif-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:3px 1px 12px}
 .lr-chat .lr-gif-tile{position:relative;min-width:0}
