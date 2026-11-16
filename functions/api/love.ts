@@ -224,7 +224,19 @@ async function snapshot(db:D1Database,u:Member){
        .bind(u.room_id,replyTo).first<{id:string}>();
       if(!quoted)return fail("Ce message n’appartient pas à votre conversation.",404);
      }
-     const messageId=crypto.randomUUID(),now=Date.now();
+     // Client-supplied UUID makes rapid sends and retries idempotent.
+     const requestedId=body.messageId;
+     if(requestedId!=null&&!validMessageId(requestedId))return fail("Identifiant de message invalide.",400);
+     const messageId=requestedId||crypto.randomUUID(),now=Date.now();
+     const existing=await db.prepare(
+      "SELECT m.id,m.room_id,m.sender_id,m.kind,m.content,r.target_id AS reply_to_id"+
+      " FROM messages m LEFT JOIN message_replies r ON r.room_id=m.room_id AND r.message_id=m.id WHERE m.id=?"
+     ).bind(messageId).first<{id:string;room_id:string;sender_id:string;kind:string;content:string|null;reply_to_id:string|null}>();
+     if(existing){
+      if(existing.room_id!==u.room_id||existing.sender_id!==u.id||existing.kind!=="text"||existing.content!==message||(existing.reply_to_id||"")!==replyTo)
+       return fail("Identifiant déjà utilisé.",409);
+      return ok({sent:true,id:messageId,duplicate:true});
+     }
      if(replyTo){
       // Both rows commit together: never deliver an uncited reply when a
       // server write fails partway through.
@@ -241,7 +253,7 @@ async function snapshot(db:D1Database,u:Member){
      await ensureChatPresence(db);
      await db.prepare("UPDATE chat_presence SET typing_until=0 WHERE room_id=? AND member_id=?").bind(u.room_id,u.id).run();
      waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",u.name+" t’a envoyé un message.","chat",{kind:"message",id:messageId}));
-     return ok({sent:true});
+     return ok({sent:true,id:messageId});
     }
     if(op==="edit-message"){
      if(!validMessageId(body.id))return fail("Message invalide.",400);
