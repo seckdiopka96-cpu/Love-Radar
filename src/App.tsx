@@ -1,6 +1,6 @@
 import {apiFetch,isNativeApp,publicInviteUrl} from "./api";
 import {setNativePrivacy} from "./native-privacy";
-import { Fragment, useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import "./love-radar.css";
 import VoiceCall from "./VoiceCall";
 import Ludo from "./Ludo";
@@ -48,7 +48,7 @@ type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:s
  reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null;
  edited_at?:number;reactions?:{member_id:string;emoji:string}[];view_once?:number|boolean};
 type RecentReaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
-type Room = {recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean;avatarVersion?:number};code:string;roomId:string;partner:string|null;partnerId?:string|null;partnerAvatarVersion?:number;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
+type Room = {revision?:number;recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean;avatarVersion?:number};code:string;roomId:string;partner:string|null;partnerId?:string|null;partnerAvatarVersion?:number;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string;id?:string}&Partial<Room>;
 type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
 type LocalText={id:string;created_at:number;text:string;replyToId?:string;replyKind?:QuoteKind|null;replyContent?:string|null;replySenderId?:string|null;status:"sending"|"failed"|"sent";error?:string};
@@ -161,6 +161,9 @@ export default function LoveRadar(){
  const chatScroller=useRef<HTMLDivElement|null>(null);
  const snapshotStarted=useRef(0);
  const snapshotApplied=useRef(0);
+ const snapshotInFlight=useRef("");
+ const roomRevisionRef=useRef(0);
+ roomRevisionRef.current=Number(room?.revision||0);
  const scrollFrame=useRef<number|null>(null);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
@@ -173,7 +176,7 @@ export default function LoveRadar(){
  const [textOutbox,setTextOutbox]=useState<LocalText[]>([]);
  const sendingVoiceIds=useRef(new Set<string>());
  const sendingTextIds=useRef(new Set<string>());
- const chatMessages=mergeOptimisticMessages(room?.messages||[],[
+ const chatMessages=useMemo(()=>mergeOptimisticMessages(room?.messages||[],[
   ...voiceOutbox.map(entry=>({
    id:entry.id,sender_id:room?.user.id||"",kind:"audio" as const,
    content:null,object_key:entry.id,mime:entry.file.type,created_at:entry.created_at
@@ -184,7 +187,7 @@ export default function LoveRadar(){
    reply_to_id:entry.replyToId||null,reply_kind:entry.replyKind||null,
    reply_content:entry.replyContent||null,reply_sender_id:entry.replySenderId||null
   }))
- ]);
+ ]),[room?.messages,room?.user.id,voiceOutbox,textOutbox]);
  const actionMessage=chatMessages.find(m=>m.id===actionMessageId)||null;
  const infoMessage=chatMessages.find(m=>m.id===infoMessageId)||null;
  const [recording,setRecording]=useState(false);
@@ -565,7 +568,8 @@ export default function LoveRadar(){
  },[token]);
  const refresh=useCallback(async(key?:string,silent=false)=>{
   const t=key||token;
-  if(!t)return;
+  if(!t||snapshotInFlight.current===t)return;
+  snapshotInFlight.current=t;
   const sequence=++snapshotStarted.current;
   try{
    const res=await apiFetch("/api/love",{headers:{Authorization:"Bearer "+t},cache:"no-store"});
@@ -586,6 +590,7 @@ export default function LoveRadar(){
    // Ignore unchanged snapshots so polling cannot redraw the whole interface.
    setRoom(previous=>previous&&JSON.stringify(previous)===JSON.stringify(nextRoom)?previous:nextRoom);
   }catch(e){if(!silent)setError(e instanceof Error?e.message:"Connexion impossible.")}
+  finally{if(snapshotInFlight.current===t)snapshotInFlight.current=""}
  },[token]);
  useEffect(()=>{
   const saved=localStorage.getItem("love-radar-token")||"";
@@ -607,7 +612,7 @@ export default function LoveRadar(){
  },[token,request]);
  useEffect(()=>{
   if(!token)return;
-  const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh(undefined,true)},tab==="chat"?1050:5000);
+  const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh(undefined,true)},tab==="chat"?15000:30000);
   const onFocus=()=>{void refresh(undefined,true)};
   window.addEventListener("focus",onFocus);
   return()=>{clearInterval(interval);window.removeEventListener("focus",onFocus)};
@@ -624,18 +629,25 @@ export default function LoveRadar(){
     try{
      const res=await apiFetch("/api/love?status=1",{headers:{Authorization:"Bearer "+token},cache:"no-store",signal:controller.signal});
      const data=await res.json() as Result;
-     if(!stopped&&res.ok&&data.ok)setPartnerActivity({
-      partnerTypingUntil:Number(data.partnerTypingUntil||0),
-      partnerRecordingUntil:Number(data.partnerRecordingUntil||0),
-      partnerLastSeenAt:Number(data.partnerLastSeenAt||0)
-     });
+     if(!stopped&&res.ok&&data.ok){
+      const next={
+       partnerTypingUntil:Number(data.partnerTypingUntil||0),
+       partnerRecordingUntil:Number(data.partnerRecordingUntil||0),
+       partnerLastSeenAt:Number(data.partnerLastSeenAt||0)
+      };
+      setPartnerActivity(previous=>previous&&previous.partnerTypingUntil===next.partnerTypingUntil&&
+       previous.partnerRecordingUntil===next.partnerRecordingUntil&&previous.partnerLastSeenAt===next.partnerLastSeenAt?previous:next);
+      // Refresh a chat only after a change to this couple's room, not every second.
+      if(typeof data.revision==="number"&&data.revision!==roomRevisionRef.current)
+       void refresh(undefined,true);
+     }
     }catch{/* The previous activity will expire naturally. */}
    }
-   if(!stopped)timer=window.setTimeout(poll,1050);
+   if(!stopped)timer=window.setTimeout(poll,1750);
   };
   void poll();
   return()=>{stopped=true;controller?.abort();if(timer!==null)clearTimeout(timer)};
- },[tab,token,room?.roomId,room?.partner]);
+ },[tab,token,room?.roomId,room?.partner,refresh]);
  // Keep activity online even if the person pauses while composing a message.
  useEffect(()=>{
   if(tab!=="chat"||!token)return;
