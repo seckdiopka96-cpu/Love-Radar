@@ -40,6 +40,7 @@ type RecentReaction={message_id:string;member_id:string;emoji:string;updated_at:
 type Room = {recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean};code:string;roomId:string;partner:string|null;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string}&Partial<Room>;
 type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
+type LocalText={id:string;created_at:number;text:string;replyToId?:string;replyKind?:QuoteKind|null;replyContent?:string|null;replySenderId?:string|null;status:"sending"|"failed"|"sent";error?:string};
 
 
 const NAV: {id:Tab;label:string}[] = [
@@ -151,11 +152,21 @@ export default function LoveRadar(){
  const mediaRetries=useRef<Record<string,number>>({});
  const mediaFailures=useRef<Record<string,number>>({});
  const [voiceOutbox,setVoiceOutbox]=useState<LocalVoice[]>([]);
+ const [textOutbox,setTextOutbox]=useState<LocalText[]>([]);
  const sendingVoiceIds=useRef(new Set<string>());
- const chatMessages=mergeOptimisticMessages(room?.messages||[],voiceOutbox.map(entry=>({
-  id:entry.id,sender_id:room?.user.id||"",kind:"audio" as const,
-  content:null,object_key:entry.id,mime:entry.file.type,created_at:entry.created_at
- })));
+ const sendingTextIds=useRef(new Set<string>());
+ const chatMessages=mergeOptimisticMessages(room?.messages||[],[
+  ...voiceOutbox.map(entry=>({
+   id:entry.id,sender_id:room?.user.id||"",kind:"audio" as const,
+   content:null,object_key:entry.id,mime:entry.file.type,created_at:entry.created_at
+  })),
+  ...textOutbox.map(entry=>({
+   id:entry.id,sender_id:room?.user.id||"",kind:"text" as const,
+   content:entry.text,object_key:null,mime:null,created_at:entry.created_at,
+   reply_to_id:entry.replyToId||null,reply_kind:entry.replyKind||null,
+   reply_content:entry.replyContent||null,reply_sender_id:entry.replySenderId||null
+  }))
+ ]);
  const actionMessage=chatMessages.find(m=>m.id===actionMessageId)||null;
  const infoMessage=chatMessages.find(m=>m.id===infoMessageId)||null;
  const [recording,setRecording]=useState(false);
@@ -653,6 +664,15 @@ export default function LoveRadar(){
    return items.filter(item=>shouldKeepVoiceDraft(item.status,received.has(item.id)));
   });
  },[room?.messages,voiceOutbox]);
+ // A sent text remains locally visible until its UUID appears in a server snapshot.
+ useEffect(()=>{
+  if(!room)return;
+  const received=new Set(room.messages.map(message=>message.id));
+  setTextOutbox(items=>{
+   if(!items.some(item=>item.status==="sent"&&received.has(item.id)))return items;
+   return items.filter(item=>item.status!=="sent"||!received.has(item.id));
+  });
+ },[room?.messages]);
  useEffect(()=>()=>{for(const url of Object.values(mediaCache.current)){if(url.startsWith("blob:"))URL.revokeObjectURL(url)}},[]);
  const scrollToLatest=useCallback(()=>{
   const list=chatScroller.current;
@@ -706,6 +726,20 @@ export default function LoveRadar(){
   typingActive.current=active;
   void request("typing",{active}).catch(()=>{});
  }
+ async function sendQueuedText(entry:LocalText){
+  if(sendingTextIds.current.has(entry.id))return;
+  sendingTextIds.current.add(entry.id);
+  setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"sending",error:undefined}:item));
+  try{
+   const result=await request("message",{text:entry.text,messageId:entry.id,...(entry.replyToId?{replyTo:entry.replyToId}:{})});
+   if(result.id!==entry.id)throw Error("Confirmation d'envoi incorrecte.");
+   setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"sent"}:item));
+   void refresh(undefined,true);
+  }catch(err){
+   const message=err instanceof Error?err.message:"Échec de l’envoi.";
+   setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"failed",error:message}:item));
+  }finally{sendingTextIds.current.delete(entry.id)}
+ }
  async function sendMessage(e:FormEvent){
   e.preventDefault();if(!draft.trim()||busy||!room?.partner)return;
   if(editTarget){
@@ -719,16 +753,17 @@ export default function LoveRadar(){
    finally{setBusy(false)}
    return;
   }
-  const original=draft,quoted=replyTarget;
-  setDraft("");setReplyTarget(null);setTyping(false);setBusy(true);setError("");
-  try{
-   await request("message",{text:original,...(quoted?{replyTo:quoted.id}:{})});
-   await refresh(undefined,true);
-   scrollToLatest();
-  }catch(e){
-   setDraft(original);if(quoted)setReplyTarget(quoted);
-   setError(e instanceof Error?e.message:"Échec de l’envoi.");
-  }finally{setBusy(false)}
+  const quoted=replyTarget;
+  const entry:LocalText={
+   id:crypto.randomUUID(),created_at:Date.now(),text:draft.trim(),
+   replyToId:quoted?.id,replyKind:quoted?.kind,replyContent:quoted?.content,
+   replySenderId:quoted?.sender_id,status:"sending"
+  };
+  // The bubble appears before the request starts; other messages can be typed meanwhile.
+  setTextOutbox(items=>[...items,entry]);
+  setDraft("");setReplyTarget(null);setTyping(false);setError("");
+  requestAnimationFrame(scrollToLatest);
+  void sendQueuedText(entry);
  }
  function cancelEditing(){
   const previous=composerBeforeEdit.current;
@@ -788,6 +823,7 @@ export default function LoveRadar(){
   catch{setError("Copie indisponible sur ce téléphone.")}
  }
  function openMessageActions(message:Message){
+  if(textOutbox.some(entry=>entry.id===message.id))return;
   chatInput.current?.blur();
   setActionMessageId(message.id);
  }
@@ -968,7 +1004,7 @@ export default function LoveRadar(){
   if(chatFocused||chatAtBottomRef.current)scrollToLatest();
  },[tab,partnerActivityKind,chatFocused,scrollToLatest]);
  const images=room?.messages.filter(m=>m.kind==="image"&&!m.view_once)||[];
- const lastOwnMessage=[...chatMessages].reverse().find(m=>m.sender_id===room?.user.id&&!voiceOutbox.some(v=>v.id===m.id&&v.status!=="sent"));
+ const lastOwnMessage=[...chatMessages].reverse().find(m=>m.sender_id===room?.user.id&&!voiceOutbox.some(v=>v.id===m.id&&v.status!=="sent")&&!textOutbox.some(v=>v.id===m.id));
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
  return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
@@ -1118,6 +1154,12 @@ export default function LoveRadar(){
            {m.reactions.map(reaction=><button type="button" key={reaction.member_id}
             aria-label={"Réaction "+reaction.emoji+" de "+quoteAuthor(reaction.member_id,room.user.id,partner)}
             onClick={()=>void reactToMessage(m,reaction.emoji)}>{reaction.emoji}</button>)}
+          </div>:null}
+          {m.kind==="text"&&textOutbox.some(v=>v.id===m.id)?<div className={"lr-text-send-state "+(textOutbox.find(v=>v.id===m.id)?.status||"sending")} role="status">
+           {textOutbox.find(v=>v.id===m.id)?.status==="failed"?<>
+            <span>Échec de l’envoi</span>
+            <button type="button" aria-label="Réessayer l’envoi du message" onClick={()=>{const entry=textOutbox.find(v=>v.id===m.id);if(entry)void sendQueuedText(entry)}}>Réessayer</button>
+           </>:<span>{textOutbox.find(v=>v.id===m.id)?.status==="sent"?"✓ Envoyé":"◌ Envoi…"}</span>}
           </div>:null}
           {!groupedAfter&&m.kind!=="audio"?<time className="lr-message-time" dateTime={new Date(m.created_at).toISOString()}>{time}{m.edited_at?<span className="lr-edited-label"> · modifié</span>:null}</time>:null}
           {mine&&m.kind!=="audio"&&m.id===lastOwnMessage?.id?<span className={"lr-read-receipt "+((room.partnerReadAt||0)>=m.created_at?"is-read":"")} aria-label="Statut du dernier message">{(room.partnerReadAt||0)>=m.created_at?"✓✓ Vu":"✓ Envoyé"}</span>:null}
