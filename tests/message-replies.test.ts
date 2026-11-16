@@ -215,3 +215,14 @@ test("comedy, memes and culturally varied sticker packs stay searchable and rend
   assert.equal(readStickerId(encodeSticker(id)),id);
  }
 });
+
+test("stickers render small and lightweight without inflating chat bubble spacing",()=>{
+ const css=readFileSync("src/stickers.css","utf8");
+ assert.ok(css.includes("width:106px;height:101px"),"Sticker is compact");
+ assert.ok(css.includes("width:110px!important"),"Chat bubble only reserves a compact footprint");
+ assert.ok(css.includes("width:104px;height:99px"),"Sticker art fits chat bubble");
+ assert.ok(css.includes("margin-top:5px!important"),"Sticker messages no longer create large vertical gaps");
+ assert.ok(css.includes("border:1.5px solid #ffffffa8"),"Subtle outline replaces heavy sticker frame");
+ assert.ok(!css.includes("width:155px;height:146px"),"Old oversized sticker art is removed");
+ assert.ok(!css.includes("border:4px solid #fff7f7"),"Old thick bright border is removed");
+});
