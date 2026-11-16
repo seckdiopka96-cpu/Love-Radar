@@ -1,4 +1,5 @@
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
+import {markRoomChanged} from "../lib/room-revision";
 import { notifyPartner, type PushEnv } from "../lib/push";
 
 type Env = PushEnv & {STORAGE?: R2Bucket};
@@ -112,6 +113,7 @@ function sniff(bytes:Uint8Array,mime:string){
      if(!committed)await bucket.delete(id);
      throw e;
     }
+    await markRoomChanged(db,u.room_id);
     waitUntil(notifyPartner(env,u.room_id,u.id,"Nouveau média 💌",kind==="image"?"Ton partenaire t’a envoyé une photo.":"Ton partenaire t’a envoyé un message vocal.","chat",{kind:kind==="image"?"photo":"audio",id}));
     return Response.json({ok:true,id,created_at:now},{headers:{"Cache-Control":"no-store"}});
    }catch(e){console.error("media upload",e);return no("Envoi impossible. Réessaie.",500)}
