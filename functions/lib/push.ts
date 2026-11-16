@@ -65,5 +65,5 @@ export async function sendTestPush(env:PushEnv,roomId:string,memberId:string):Pr
  if(!env.DB||!env.VAPID_PUBLIC_KEY||!env.VAPID_PRIVATE_KEY)return {registered:0,accepted:0,failed:0};
  const rows=await env.DB.prepare("SELECT endpoint,p256dh,auth FROM push_subscriptions WHERE room_id=? AND member_id=? LIMIT 12")
   .bind(roomId,memberId).all<StoredSub>();
- return deliver(env,rows.results||[],"❤️ Test Love Radar","Tes notifications fonctionnent si tu vois ce message sur ton téléphone.","home");
+ return deliver(env,rows.results||[],"❤️ Notification de test","Tes notifications fonctionnent si tu vois ce message sur ton téléphone.","home");
 }
