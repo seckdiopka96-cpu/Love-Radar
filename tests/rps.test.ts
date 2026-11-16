@@ -1,0 +1,62 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+import {RPS_MOVES,isRpsMove,rpsWinner,rpsEmoji,rpsName} from "../src/rps-engine";
+const api=readFileSync("functions/api/rps.ts","utf8");
+const app=readFileSync("src/App.tsx","utf8");
+const screen=readFileSync("src/RpsDuo.tsx","utf8");
+const hub=readFileSync("src/GamesHub.tsx","utf8");
+const push=readFileSync("functions/lib/push.ts","utf8");
+test("all nine outcomes follow the correct rules without bias",()=>{
+ const ids=RPS_MOVES.map(item=>item.id);
+ assert.deepEqual(ids,["rock","paper","scissors"]);
+ for(const first of ids)for(const second of ids){
+  const outcome=rpsWinner(first,second);
+  if(first===second)assert.equal(outcome,null);
+  else assert.equal(outcome===0, rpsWinner(second,first)===1);
+ }
+ assert.equal(rpsWinner("rock","scissors"),0);
+ assert.equal(rpsWinner("scissors","paper"),0);
+ assert.equal(rpsWinner("paper","rock"),0);
+ assert.equal(rpsWinner("scissors","rock"),1);
+ assert.equal(rpsWinner("paper","scissors"),1);
+ assert.equal(rpsWinner("rock","paper"),1);
+ assert.equal(isRpsMove("rock"),true);
+ assert.equal(isRpsMove("lizard"),false);
+ assert.equal(rpsEmoji("rock"),"✊");
+ assert.equal(rpsName("paper"),"Papier");
+});
+test("server only accepts authenticated room members and protects secret choices",()=>{
+ assert.ok(api.includes("SELECT id,room_id,seat,name FROM members WHERE token_hash=?"));
+ assert.ok(api.includes("room_id TEXT PRIMARY KEY"));
+ assert.ok(api.includes('if(members!==2)return no'));
+ assert.ok(api.includes('row.status==="revealed"?partner:null'));
+ assert.ok(api.includes("partnerPicked:partner!==null"));
+ assert.ok(api.includes("if(!isRpsMove(data.move))"));
+ assert.ok(api.includes('data.round!==game.round'));
+ assert.ok(api.includes('data.gameId!==game.game_id'));
+ assert.ok(api.includes("AND move_0=? AND move_1=?"));
+ assert.ok(api.includes("AND status='choosing' AND "));
+ assert.ok(api.includes("WHERE room_id=? AND game_id=? AND round=? AND status='revealed' AND ready_0=1 AND ready_1=1"));
+ assert.ok(api.includes("score_0=score_0+?,score_1=score_1+?,ties=ties+?"));
+ assert.ok(api.includes("const winner=rpsWinner"));
+});
+test("game screen synchronizes both clients, supports replay and is reachable from the app",()=>{
+ assert.ok(screen.includes('window.setInterval(()=>{void refresh()},900)'));
+ assert.ok(screen.includes("visibilitychange"));
+ assert.ok(screen.includes('apiFetch("/api/rps"'));
+ assert.ok(screen.includes("aria-label=\"Choisir Pierre Papier ou Ciseaux\""));
+ assert.ok(screen.includes('act("choose",option.id)'));
+ assert.ok(screen.includes('act("next")'));
+ assert.ok(screen.includes('act("invite")'));
+ assert.ok(screen.includes('game.partnerPicked?"Choix enregistré":"Choix secret"'));
+ assert.ok(hub.includes('onOpenGame("rps")'));
+ assert.ok(app.includes('import RpsDuo from "./RpsDuo"'));
+ assert.ok(app.includes('tab==="rps"?<RpsDuo'));
+ assert.ok(app.includes('kind==="rps-challenge"?"rps"'));
+ assert.ok(push.includes('"rps-challenge"'));
+ assert.ok(push.includes('"rps"'));
+ const css=readFileSync("src/rps-duo.css","utf8");
+ assert.ok(css.includes("@media(max-width:450px)"));
+ assert.ok(css.includes("prefers-reduced-motion:reduce"));
+});
