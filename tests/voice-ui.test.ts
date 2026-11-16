@@ -86,3 +86,22 @@ test("voice notes use live member profile photos, clickable profile and in-place
  assert.ok(css.includes(".lr-chat .lr-voice-note-identity"),"voice avatar has its own stable flex cell");
  assert.ok(css.includes(".lr-chat .lr-voice-note-mic"),"microphone badge is attached to the member photo");
 });
+
+test("voice speed, play icon and waveform sit on the same row in both directions",()=>{
+ const app=readFileSync("src/App.tsx","utf8");
+ const theme=readFileSync("src/deep-rose-finish.css","utf8");
+ const player=readFileSync("src/VoiceMessage.tsx","utf8");
+ assert.ok(app.includes('import "./deep-rose-finish.css";'),"Final alignment overrides older mobile voice rules");
+ assert.ok(theme.includes("grid-template-rows:32px 18px;"),"Playback controls and time have separate rows");
+ assert.ok(theme.includes("display:contents!important;"),"Waveform and time become direct grid children");
+ assert.ok(theme.includes("grid-template-columns:42px 34px minmax(0,1fr);"),"Outgoing notes start with the avatar/speed slot");
+ assert.ok(theme.includes("grid-template-columns:34px minmax(0,1fr) 42px;"),"Incoming notes end with the avatar/speed slot");
+ assert.ok(theme.includes(".lr-voice-note-identity.is-active"),"Speed pill aligns with top playback row");
+ assert.ok(theme.includes(".lr-voice-note.is-own .lr-voice-note-play{grid-column:2!important}"));
+ assert.ok(theme.includes(".lr-voice-note.is-partner .lr-voice-note-play{grid-column:1!important}"));
+ assert.ok(theme.includes(".lr-voice-note-wave-wrap{"),"Waveform follows play control");
+ assert.ok(theme.includes(".lr-voice-note-meta{"),"Duration and timestamp remain beneath waveform");
+ assert.ok(player.includes("onClick={toggle}"),"Play/pause still works");
+ assert.ok(player.includes("onClick={event=>{event.stopPropagation();changeSpeed()}}"),"Speed still changes without triggering reply");
+ assert.ok(player.includes("onChange={event=>seek(Number(event.target.value))}"),"Scrubbing still works");
+});
