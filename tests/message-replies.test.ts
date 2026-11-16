@@ -199,7 +199,8 @@ test("stickers picker supports live search, categories, favorites and recent sen
  assert.ok(app.includes('void sendQueuedText(entry)'));
  assert.ok(app.includes("<StickerArt id={readStickerId(m.content)!}"));
  assert.ok(app.includes('!isSticker(actionMessage.content)'));
- assert.ok(api.includes('message.startsWith("[sticker:v1:")'));
+ assert.ok(api.includes('const isStickerToken=/^'),"server detects sticker notification tokens");
+ assert.ok(api.includes('const isGifToken=/^'),"server detects GIF notification tokens");;
  assert.ok(api.includes("un sticker"));
  assert.ok(home.includes('quotePreview("text",last.content,85)'));
 });
