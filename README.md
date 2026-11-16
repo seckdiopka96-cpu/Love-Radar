@@ -498,3 +498,10 @@ Le plugin iOS est ajouté automatiquement à `AppDelegate.swift` par
 `scripts/configure-native.mjs ios` : une nouvelle application native
 signée et installée est nécessaire pour obtenir la détection. Mettre à
 jour seulement le site ou la PWA ne suffit pas.
+
+
+## TestFlight iPhone sans Mac
+
+Love Radar dispose maintenant d'un [workflow GitHub Actions manuel](https://github.com/seckdiopka96-cpu/Love-Radar/actions/workflows/iphone-testflight.yml) permettant de compiler une app iPhone pour simulateur ou d'archiver, signer et envoyer un fichier IPA vers TestFlight avec les identifiants Apple Developer configurés dans les secrets GitHub.
+
+**Guide complet adapté à un utilisateur sur iPhone uniquement :** [docs/TESTFLIGHT-IPHONE.md](docs/TESTFLIGHT-IPHONE.md). La compilation pour simulateur n'autorise **pas** l'installation sur un vrai iPhone ; un compte Apple Developer actif et une signature Apple sont nécessaires pour TestFlight.
