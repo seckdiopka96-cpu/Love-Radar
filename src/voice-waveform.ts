@@ -1,16 +1,21 @@
-/** Stable, compact, phone-sized voice-note waveform while audio loads. */
+/** Stable, naturally varied visual placeholder while an audio note is loading.
+ * These bars are decorative, not a measurement of the recording's amplitudes.
+ */
 export const VOICE_BARS=41;
 export function voiceBars(seed:string,count=VOICE_BARS):number[]{
  let hash=2166136261;
  for(let i=0;i<seed.length;i++){hash^=seed.charCodeAt(i);hash=Math.imul(hash,16777619)}
  const heights:number[]=[];
+ let smooth=.44;
  for(let i=0;i<count;i++){
   hash^=hash<<13;hash^=hash>>>17;hash^=hash<<5;
-  const value=(hash>>>0)/4294967295;
-  const position=i/(count-1);
-  const middle=Math.exp(-Math.pow((position-.55)/.27,2));
-  const wave=.25+.45*Math.abs(Math.sin(i*.47+.8))+.3*Math.abs(Math.cos(i*.18));
-  heights.push(Math.round(12+88*Math.min(1,(.20+value*.6)*wave*(.35+middle*.9))));
+  const noise=(hash>>>0)/4294967295;
+  // Soft clusters with scattered quieter moments look more like speech than a sine wave.
+  smooth=.60*smooth+.40*noise;
+  const phrase=.58+.25*Math.sin(i*.34+.75)+.17*Math.cos(i*.17+1.5);
+  const syllable=.72+.28*Math.abs(Math.sin(i*1.39+noise*1.8));
+  const level=Math.max(0,Math.min(1,(smooth*.48+noise*.52)*phrase*syllable));
+  heights.push(Math.round(17+78*level));
  }
  return heights;
 }
