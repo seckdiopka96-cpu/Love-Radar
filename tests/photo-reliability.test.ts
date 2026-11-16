@@ -41,18 +41,22 @@ test("invalid images are rejected rather than marked successfully fetched",()=>{
  assert.ok(media.includes('"Content-Type":record.mime'));
 });
 
-test("view once pictures are not prefetched, archived, or revealed by notification previews",()=>{
+test("normal photos stay available and the removed temporary mode cannot be sent",()=>{
  const home=readFileSync("src/HomeDashboard.tsx","utf8");
- const viewer=readFileSync("src/OneTimeMedia.tsx","utf8");
- assert.ok(app.includes("if(!token||!item.object_key||item.view_once)return"));
- assert.ok(app.includes("if(!m||!m.object_key||m.view_once)return"));
- assert.ok(app.includes('m.kind==="image"&&!m.view_once'));
- assert.ok(home.includes('m.kind==="image"&&!m.view_once'));
- assert.ok(app.includes('<OneTimeMedia key={onceTarget.id}'));
- assert.ok(viewer.includes('res.status===410'));
- assert.ok(viewer.includes('URL.revokeObjectURL(blobUrl)'));
- assert.ok(viewer.includes('visibilitychange'));
+ assert.ok(app.includes('media[m.id]?<PrivatePhoto'));
+ assert.ok(app.includes('form.append("kind",kind)'));
+ assert.ok(!app.includes('lr-view-once-toggle'));
+ assert.ok(!app.includes('OneTimeMedia'));
+ assert.ok(!app.includes('form.append("viewOnce"'));
+ assert.ok(!home.includes('Photo à vue unique'));
+ assert.ok(media.includes('form.get("viewOnce")==="true"'));
+ assert.ok(media.includes('INSERT OR IGNORE INTO messages'));
+});
+test("previously sent temporary media cannot be reopened or automatically fetched",()=>{
  assert.ok(media.includes('UPDATE message_one_time SET opened_at=?'));
  assert.ok(media.includes('if(!claimed.meta.changes)'));
  assert.ok(media.includes('message_hidden h'));
+ assert.ok(app.includes('if(!token||!item.object_key||item.view_once)return'));
+ assert.ok(app.includes('if(!m||!m.object_key||m.view_once)return'));
+ assert.ok(app.includes('Ancien média temporaire indisponible'));
 });
