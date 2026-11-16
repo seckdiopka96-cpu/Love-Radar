@@ -6,6 +6,8 @@ on:
     paths:
       - 'native/call-session/**'
       - 'scripts/configure-native.mjs'
+      - 'scripts/prepare-testflight.mjs'
+      - '.github/workflows/iphone-testflight.yml'
       - 'src/native-call-session.ts'
       - 'src/native-voip.ts'
       - 'src/native-screenshot.ts'
@@ -83,6 +85,16 @@ jobs:
           npx cap add ios --packagemanager SPM
           node scripts/configure-native.mjs ios
           npx cap sync ios
+      - name: Vérifier les icônes iPhone et les options d'export TestFlight
+        env:
+          APPSTORE_TEAM_ID: 'TESTTEAM00'
+        run: |
+          set -euo pipefail
+          node scripts/prepare-testflight.mjs
+          plutil -lint ios/App/ExportOptions-TestFlight.plist
+          sips -g pixelWidth -g pixelHeight ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
+          test "$(sips -g pixelWidth ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png | awk '/pixelWidth/{print $2}')" = '1024'
+          test "$(sips -g pixelHeight ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png | awk '/pixelHeight/{print $2}')" = '1024'
       - name: Compiler le simulateur iOS sans signature
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/love-radar-derived CODE_SIGNING_ALLOWED=NO build
