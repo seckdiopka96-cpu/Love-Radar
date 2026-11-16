@@ -1,5 +1,6 @@
 import {apiFetch,isNativeApp} from "./api";
 import {beginNativeCallSession,endNativeCallSession,nativeCallSessionRunning} from "./native-call-session";
+import {activateNativeVoip,hasNativeVoip,nativeVoipAnswered,nativeVoipEnd,type NativeVoipAction} from "./native-voip";
 import {findBuiltInSpeaker,audioRouteHelp} from "./audio-output";
 import {claimCallAudio,releaseCallAudio} from "./audio-focus";
 import {relayNeedsRefresh,RELAY_REFRESH_AFTER_MS,RELAY_RETRY_AFTER_ERROR_MS} from "./reliability-rules";
@@ -45,6 +46,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const answered=useRef(false);
  const suppressed=useRef("");
  const connectedSince=useRef(0);
+ const pendingSystemAnswer=useRef<string|null>(null);
  const queuedCandidates=useRef<RTCIceCandidateInit[]>([]);
  const sendingCandidates=useRef(false);
  const sessionDescriptionSent=useRef(false);
@@ -135,7 +137,9 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setSpeakerBusy(false);setMinimized(false);setCallPanel("none");setDialed("");
  },[]);
  const reset=useCallback(()=>{
+  const endedId=current.current?.id;
   clearAudio();
+  if(endedId)nativeVoipEnd(endedId);
   current.current=null;
   setActive(null);setBusy(false);setPhase("");setError("");
  },[clearAudio]);
@@ -365,12 +369,40 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    await api("accept",{id:c.id});
    const updated={...c,status:"active" as const};
    current.current=updated;setActive(updated);setPhase("Connexion en cours…");
+   nativeVoipAnswered(c.id);
    void sync();
   }catch(err){
    clearAudio();
    setError(err instanceof Error?err.message:"Impossible de décrocher.");
   }finally{setBusy(false)}
  }
+ useEffect(()=>{
+  if(!hasPartner||!hasNativeVoip())return;
+  let disposed=false;
+  let detach:(()=>void)|null=null;
+  const onNativeCall=(action:NativeVoipAction)=>{
+   if(action.action==="answer"){
+    pendingSystemAnswer.current=action.callId;
+    void sync();
+   }else if(action.action==="end"){
+    if(pendingSystemAnswer.current===action.callId)pendingSystemAnswer.current=null;
+    if(current.current?.id===action.callId)reset();
+   }
+  };
+  void activateNativeVoip(token,onNativeCall).then(cleanup=>{
+   if(disposed)cleanup();
+   else detach=cleanup;
+  }).catch(error=>console.warn("iOS VoIP registration is not active",error));
+  return()=>{disposed=true;detach?.();pendingSystemAnswer.current=null};
+ },[token,hasPartner,sync,reset]);
+ useEffect(()=>{
+  const callId=pendingSystemAnswer.current;
+  if(!callId||!active||active.id!==callId||active.direction!=="incoming"||local.current)return;
+  pendingSystemAnswer.current=null;
+  // Answer was selected on the system lock screen; resume the existing
+  // WebRTC call once Capacitor has restored the private room and WebView.
+  void accept();
+ },[active?.id,active?.status,active?.direction]);
  async function hangup(){
   const c=current.current;
   if(!c||busy)return;
