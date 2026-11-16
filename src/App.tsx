@@ -28,6 +28,8 @@ import VoiceMessage from "./VoiceMessage";
 import LiveVoiceWaveform from "./LiveVoiceWaveform";
 import StickerArt from "./StickerArt";
 import StickerPicker from "./StickerPicker";
+import GifMessage from "./GifMessage";
+import {encodeGif,readGifId} from "./gif-provider";
 import {encodeSticker,isSticker,readStickerId} from "./stickers";
 import {mediaRetryDelay,MEDIA_AUTO_RETRY_LIMIT} from "./reliability-rules";
 import ChatActivity from "./ChatActivity";
@@ -1086,6 +1088,21 @@ export default function LoveRadar(){
    try{chatInput.current?.setSelectionRange(position,position)}catch{/* Safari cursor fallback */}
   });
  }
+ function sendGif(id:string){
+  if(!room?.partner||busy||recording)return;
+  let text:string;
+  try{text=encodeGif(id)}catch{return}
+  const quoted=replyTarget;
+  const entry:LocalText={
+   id:crypto.randomUUID(),created_at:Date.now(),text,
+   replyToId:quoted?.id,replyKind:quoted?.kind,replyContent:quoted?.content,
+   replySenderId:quoted?.sender_id,status:"sending"
+  };
+  setTextOutbox(items=>[...items,entry]);
+  setReplyTarget(null);typingActive.current=false;setError("");
+  requestAnimationFrame(scrollToLatest);
+  void sendQueuedText(entry);
+ }
  function sendSticker(id:string){
   if(!room?.partner||busy||recording)return;
   let text:string;
@@ -1569,11 +1586,11 @@ export default function LoveRadar(){
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 10 4 14l5 4"/><path d="M4 14h9a7 7 0 0 0 7-7"/></svg>
          </span>
          <div className={"lr-bubble-stack"+(m.kind==="image"?" lr-image-stack":"")}>
-          <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":m.kind==="image"?" lr-bubble-image":m.kind==="text"&&isSticker(m.content)?" lr-bubble-sticker":"")}>
+          <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":m.kind==="image"?" lr-bubble-image":m.kind==="text"&&isSticker(m.content)?" lr-bubble-sticker":m.kind==="text"&&readGifId(m.content)?" lr-bubble-gif":"")}>
            {m.reply_to_id?<QuoteCard author={quoteAuthor(m.reply_sender_id,room.user.id,partner)}
             kind={m.reply_kind||"text"} content={m.reply_kind?m.reply_content:"Message supprimé"}
             onJump={chatMessages.some(item=>item.id===m.reply_to_id)?()=>jumpToQuote(m.reply_to_id!):undefined}/>:null}
-           {m.view_once?<div className="lr-legacy-expired" role="note">Ancien média temporaire indisponible</div>:m.kind==="text"?(readStickerId(m.content)?<StickerArt id={readStickerId(m.content)!}/>:<p>{m.content}</p>):m.kind==="image"?
+           {m.view_once?<div className="lr-legacy-expired" role="note">Ancien média temporaire indisponible</div>:m.kind==="text"?(readStickerId(m.content)?<StickerArt id={readStickerId(m.content)!}/>:readGifId(m.content)?<GifMessage id={readGifId(m.content)!}/>:<p>{m.content}</p>):m.kind==="image"?
           media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} enabled={privacyEnabled} viewer={room.user.name} variant="chat" onImageError={()=>retryMedia(m)}/>:
           <div className="lr-photo-loading" role="status">
            <span aria-hidden="true">▧</span>
@@ -1612,13 +1629,13 @@ export default function LoveRadar(){
      </div>
      {actionMessage?<div className="lr-message-action-backdrop" onClick={()=>setActionMessageId(null)}>
       <div className="lr-message-action-sheet" role="dialog" aria-modal="true" aria-label="Actions sur le message" onClick={e=>e.stopPropagation()}>
-       <div className="lr-message-action-heading">Message · {actionMessage.kind==="text"?(isSticker(actionMessage.content)?"Sticker":"Texte"):actionMessage.kind==="image"?"Photo":"Vocal"}</div>
+       <div className="lr-message-action-heading">Message · {actionMessage.kind==="text"?(isSticker(actionMessage.content)?"Sticker":readGifId(actionMessage.content)?"GIF":"Texte"):actionMessage.kind==="image"?"Photo":"Vocal"}</div>
        <div className="lr-message-reaction-picker" role="group" aria-label="Réagir au message">
         {CHAT_REACTIONS.map(emoji=><button key={emoji} type="button" aria-label={"Réagir "+emoji} onClick={()=>void reactToMessage(actionMessage,emoji)}>{emoji}</button>)}
        </div>
        <button type="button" className="lr-message-action-row" onClick={()=>{chooseReply(actionMessage);setActionMessageId(null)}}><span aria-hidden="true">↩</span> Répondre</button>
-       {actionMessage.kind==="text"&&actionMessage.content&&!isSticker(actionMessage.content)?<button type="button" className="lr-message-action-row" onClick={()=>void copyMessage(actionMessage)}><span aria-hidden="true">⧉</span> Copier</button>:null}
-       {actionMessage.sender_id===room.user.id&&actionMessage.kind==="text"&&!isSticker(actionMessage.content)?<button type="button" className="lr-message-action-row" onClick={()=>beginEditing(actionMessage)}><span aria-hidden="true">✎</span> Modifier le texte</button>:null}
+       {actionMessage.kind==="text"&&actionMessage.content&&!isSticker(actionMessage.content)&&!readGifId(actionMessage.content)?<button type="button" className="lr-message-action-row" onClick={()=>void copyMessage(actionMessage)}><span aria-hidden="true">⧉</span> Copier</button>:null}
+       {actionMessage.sender_id===room.user.id&&actionMessage.kind==="text"&&!isSticker(actionMessage.content)&&!readGifId(actionMessage.content)?<button type="button" className="lr-message-action-row" onClick={()=>beginEditing(actionMessage)}><span aria-hidden="true">✎</span> Modifier le texte</button>:null}
        <button type="button" className="lr-message-action-row" onClick={()=>{setInfoMessageId(actionMessage.id);setActionMessageId(null)}}><span aria-hidden="true">ⓘ</span> Infos du message</button>
        <button type="button" className="lr-message-action-row" onClick={()=>void deleteForMe(actionMessage)}><span aria-hidden="true">⌫</span> Supprimer pour moi</button>
        {actionMessage.sender_id===room.user.id?<button type="button" className="lr-message-action-row is-danger" onClick={()=>void deleteOwnMessage(actionMessage)}><span aria-hidden="true">⌫</span> Supprimer pour tous</button>:null}
@@ -1638,7 +1655,7 @@ export default function LoveRadar(){
      {!chatAtBottom&&!chatFocused?<button type="button" className="lr-chat-jump" onClick={scrollToLatest}>↓ Derniers messages</button>:null}
      <div className="lr-chat-compose">
        {stickerOpen&&room.partner?<StickerPicker storageKey={room.roomId+":"+room.user.id} onSend={sendSticker}
-        onSendEmoji={insertEmoji} onSendGif={file=>upload(file,"image")}
+        onSendEmoji={insertEmoji} onSendGif={sendGif}
         onClose={()=>{setStickerOpen(false);setChatFocused(false)}} onSearchFocus={()=>setChatFocused(true)} onSearchBlur={()=>setChatFocused(false)}/>:null}
       {editTarget?<div className="lr-reply-compose lr-edit-compose" role="status" aria-label="Modification du message">
        <span className="lr-edit-compose-label"><strong>✎ Modifier mon message</strong><small>{editTarget.content}</small></span>
