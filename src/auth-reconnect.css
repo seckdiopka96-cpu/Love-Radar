@@ -1,0 +1,63 @@
+/* Returning couples must not be shown "create a new space" because of a
+   temporary iOS network error. Errors live inside the auth panel, not in a
+   fixed toast translated beyond the left edge of the screen. */
+.lr-welcome-mode .lr-auth-panel .lr-inline-auth-error{
+ display:flex;align-items:flex-start;justify-content:space-between;gap:9px;
+ width:100%;min-width:0;max-width:100%;box-sizing:border-box;
+ margin:0 0 13px;padding:11px 12px;border:1px solid #c87f9e;
+ border-radius:12px;background:linear-gradient(155deg,#773d55,#552c46);
+ color:#fff0f4;font-size:13px;line-height:1.42;overflow-wrap:anywhere;
+ text-align:left;position:relative;transform:none!important;
+}
+.lr-welcome-mode .lr-inline-auth-error span{
+ display:block;flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;
+}
+.lr-welcome-mode .lr-inline-auth-error button{
+ flex:0 0 32px;display:grid;place-items:center;
+ width:32px;height:32px;min-width:32px;
+ border:0;border-radius:8px;background:#ffffff18;
+ color:#fbd6e5;font-size:22px;cursor:pointer;
+}
+.lr-welcome-mode .lr-inline-auth-error button:focus-visible{
+ outline:2px solid #fff4fa;outline-offset:2px;
+}
+.lr-welcome-mode .lr-reconnect-panel{
+ display:flex;flex-direction:column;gap:13px;
+}
+.lr-welcome-mode .lr-reconnect-panel .lr-panel-head p{margin-bottom:1px}
+.lr-welcome-mode .lr-reconnect-panel>button{
+ display:block;width:100%;min-height:48px;
+ padding:11px 13px;border-radius:13px;
+ font-size:14px;font-weight:800;cursor:pointer;
+}
+.lr-welcome-mode .lr-reconnect-retry{
+ border:1px solid #f7a1c3;color:#fff7fa;
+ background:linear-gradient(120deg,#f47eaa,#c85d8d);
+}
+.lr-welcome-mode .lr-reconnect-recovery{
+ border:1px solid #97728e;color:#ffe1ef;
+ background:#2e4657;
+}
+.lr-welcome-mode .lr-reconnect-hint{
+ margin:0!important;color:#c8d5df;
+ font-size:12px;line-height:1.5;text-align:center;
+}
+@media(max-width:700px){
+ .lr-welcome-mode .lr-auth-panel{
+  overflow-y:auto!important;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+ }
+ .lr-welcome-mode .lr-inline-auth-error{font-size:12px;padding:9px 10px;margin-bottom:8px}
+ .lr-welcome-mode .lr-reconnect-panel{gap:9px}
+ .lr-welcome-mode .lr-reconnect-panel>button{min-height:43px;font-size:12px}
+ /* Override the old, translated, wide error banner on welcome screens
+    in case another component still renders a top-level error. */
+ .lr-app.lr-welcome-mode>.lr-error{
+  position:fixed!important;top:calc(55px + env(safe-area-inset-top))!important;
+  left:12px!important;right:12px!important;
+  transform:none!important;
+  width:auto!important;max-width:none!important;
+  box-sizing:border-box!important;margin:0!important;
+  white-space:normal!important;overflow-wrap:anywhere!important;
+ }
+}
