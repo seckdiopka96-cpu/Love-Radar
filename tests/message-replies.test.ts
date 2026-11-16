@@ -164,9 +164,10 @@ test("premium native-style bottom dock replaces the old heavy navigation",()=>{
 });
 
 test("original local stickers have unique IDs and survive message encoding",()=>{
- assert.ok(STICKERS.length>=36,"Sticker gallery has a usable variety");
+ assert.ok(STICKERS.length>=150,"Sticker gallery has a diverse variety");
  assert.equal(new Set(STICKERS.map(sticker=>sticker.id)).size,STICKERS.length);
- assert.equal(STICKER_GROUPS.length,4);
+ assert.ok(STICKER_GROUPS.length>=12,"Sticker packs include comedy, animals and more");
+ assert.ok(STICKERS.length>=150,"Large diverse sticker library");
  for(const sticker of STICKERS){
   assert.equal(readStickerId(encodeSticker(sticker.id)),sticker.id);
   assert.equal(getSticker(sticker.id)?.label,sticker.label);
@@ -201,4 +202,16 @@ test("stickers picker supports live search, categories, favorites and recent sen
  assert.ok(api.includes('message.startsWith("[sticker:v1:")'));
  assert.ok(api.includes("un sticker"));
  assert.ok(home.includes('quotePreview("text",last.content,95)'));
+});
+
+test("comedy, memes and culturally varied sticker packs stay searchable and renderable",()=>{
+ const groups=new Set(STICKER_GROUPS.map(group=>group.id));
+ for(const category of ["comedie","memes","animaux","sport","food","voyage","afrique","humeur"]){
+  assert.ok(groups.has(category as typeof STICKER_GROUPS[number]["id"]),category+" is in the sticker picker");
+  assert.ok(STICKERS.filter(sticker=>sticker.category===category).length>=12,category+" has at least twelve options");
+ }
+ for(const id of ["clown-face","rofl","comic-dramatic","meme-dead","animal-cat","sn-nanga","sport-football","food-pizza"]){
+  assert.ok(getSticker(id),"sticker exists "+id);
+  assert.equal(readStickerId(encodeSticker(id)),id);
+ }
 });
