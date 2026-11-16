@@ -7,13 +7,13 @@ import "./voice-message.css";
 type Props={
  src:string;id:string;mine:boolean;time:string;delivery?:"read"|"sent";
  avatarSrc?:string;avatarName:string;onOpenProfile?:()=>void;
- onOpenActions?:()=>void;speed:VoiceSpeed;onSpeedChange:(speed:VoiceSpeed)=>void;
+ speed:VoiceSpeed;onSpeedChange:(speed:VoiceSpeed)=>void;
  autoPlay?:boolean;onFinished?:()=>void;onManualPlay?:()=>void;onAutoPlayConsumed?:()=>void
 };
 type PlayEvent=CustomEvent<string>;
 
 /** Functional audio note: actual playback, scrub, duration and one-at-a-time listening. */
-export default function VoiceMessage({src,id,mine,time,delivery,avatarSrc,avatarName,onOpenProfile,onOpenActions,speed,onSpeedChange,autoPlay=false,onFinished,onManualPlay,onAutoPlayConsumed}:Props){
+export default function VoiceMessage({src,id,mine,time,delivery,avatarSrc,avatarName,onOpenProfile,speed,onSpeedChange,autoPlay=false,onFinished,onManualPlay,onAutoPlayConsumed}:Props){
  const audio=useRef<HTMLAudioElement|null>(null);
  const fallbackAudio=useRef<HTMLAudioElement|null>(null);
  const [playing,setPlaying]=useState(false);
@@ -182,11 +182,6 @@ export default function VoiceMessage({src,id,mine,time,delivery,avatarSrc,avatar
     </div>
    </div>
    {!mine?avatarControl:null}
-   {onOpenActions?<button type="button" className="lr-voice-note-actions" aria-label="Réagir ou afficher les options du message vocal"
-    title="Réactions et options du vocal" onPointerDown={e=>e.stopPropagation()} onContextMenu={e=>e.preventDefault()}
-    onClick={e=>{e.stopPropagation();onOpenActions()}}>
-    <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
-   </button>:null}
   </div>
   {error?<div className="lr-voice-note-error" role="alert">{error}</div>:null}
   {fallback?<audio ref={fallbackAudio} data-lr-audio-owner={id} className="lr-voice-note-fallback"
