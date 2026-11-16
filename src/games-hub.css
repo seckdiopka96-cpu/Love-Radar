@@ -31,3 +31,30 @@
  .lr-games-choice.lr-games-rps{min-height:136px}
  .lr-games-rps .lr-games-copy strong{font-size:24px}
 }
+
+/* New playable couple challenges — original art, Midnight & Pale Rose palette. */
+.lr-games-choice.lr-games-rapid{
+ background:radial-gradient(circle at 12% 0,rgba(255,185,216,.15),transparent 52%),
+ linear-gradient(140deg,#594163,#2d3852 70%,#263f51)!important;
+ border-color:#d1a3c5!important;
+ box-shadow:inset 0 1px 0 #ffffff20,0 10px 24px #050b184a!important;
+}
+.lr-games-choice.lr-games-truth{
+ background:radial-gradient(circle at 100% 0,rgba(230,149,187,.19),transparent 55%),
+ linear-gradient(135deg,#57405b,#273a4e 76%)!important;
+ border-color:#c79ab5!important;
+ box-shadow:inset 0 1px 0 #ffffff18,0 10px 24px #050b184a!important;
+}
+.lr-games-rapid .lr-games-copy strong,
+.lr-games-truth .lr-games-copy strong{color:#fff4fa!important}
+.lr-games-rapid .lr-games-copy b,
+.lr-games-truth .lr-games-copy b{color:#ffc6d9!important}
+.lr-games-rapid .lr-games-art-svg,
+.lr-games-truth .lr-games-art-svg{filter:drop-shadow(0 3px 10px #fba8c133)}
+.lr-games-choice.lr-games-rapid:active,
+.lr-games-choice.lr-games-truth:active{filter:brightness(1.06)}
+@media(max-width:700px){
+ .lr-games-choice.lr-games-rapid,.lr-games-choice.lr-games-truth{min-height:135px}
+ .lr-games-choice.lr-games-rapid .lr-games-copy strong,
+ .lr-games-choice.lr-games-truth .lr-games-copy strong{font-size:24px}
+}
