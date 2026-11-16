@@ -24,7 +24,10 @@ async function ensureTables(db:D1Database){
    "CREATE TABLE IF NOT EXISTS voice_calls (id TEXT PRIMARY KEY,room_id TEXT NOT NULL,caller_id TEXT NOT NULL,callee_id TEXT NOT NULL,status TEXT NOT NULL,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,expires_at INTEGER NOT NULL);"+
    "CREATE INDEX IF NOT EXISTS idx_voice_calls_room ON voice_calls(room_id,expires_at);"+
    "CREATE TABLE IF NOT EXISTS voice_signals (id INTEGER PRIMARY KEY AUTOINCREMENT,call_id TEXT NOT NULL,room_id TEXT NOT NULL,from_member TEXT NOT NULL,to_member TEXT NOT NULL,kind TEXT NOT NULL,payload TEXT NOT NULL,created_at INTEGER NOT NULL);"+
-   "CREATE INDEX IF NOT EXISTS idx_voice_signals_next ON voice_signals(call_id,to_member,id);"
+   "CREATE INDEX IF NOT EXISTS idx_voice_signals_next ON voice_signals(call_id,to_member,id);"+
+   "CREATE TABLE IF NOT EXISTS voice_call_history ("+
+   "call_id TEXT PRIMARY KEY,room_id TEXT NOT NULL,connected_at INTEGER,ended_at INTEGER,outcome TEXT);"+
+   "CREATE INDEX IF NOT EXISTS idx_voice_call_history_room ON voice_call_history(room_id);"
   ).then(()=>{}).catch(err=>{ready=null;throw err});
   ready=initializing;
  }
@@ -43,6 +46,29 @@ export async function onRequestGet({request,env}:Context):Promise<Response>{
   const u=await authenticate(request,env.DB);
   if(!u)return fail("Session expirée.",401);
   await ensureTables(env.DB);
+  const query=new URL(request.url).searchParams;
+  if(query.get("history")==="1"){
+   const result=await env.DB.prepare(
+    "SELECT v.id,v.caller_id,v.callee_id,v.status,v.created_at,v.updated_at,v.expires_at,"+
+    "h.connected_at,h.ended_at,h.outcome FROM voice_calls v "+
+    "JOIN voice_call_history h ON h.call_id=v.id AND h.room_id=v.room_id "+
+    "WHERE v.room_id=? ORDER BY v.created_at DESC LIMIT 80"
+   ).bind(u.room_id).all<VoiceCall & {connected_at:number|null;ended_at:number|null;outcome:string|null}>();
+   const t=now();
+   const calls=(result.results||[]).map(row=>{
+    const connectedAt=Number(row.connected_at||0);
+    const expired=row.expires_at<=t&&row.status!=="ended";
+    const status=row.status==="ended"?connectedAt?"completed":row.outcome||"missed":
+     expired?connectedAt?"interrupted":"missed":row.status;
+    const endedAt=row.status==="ended"?Number(row.ended_at||row.updated_at):
+     expired?row.updated_at:0;
+    // Time begins when the recipient accepts; never count unanswered ringing.
+    const durationSeconds=connectedAt?Math.max(0,Math.floor(((endedAt||t)-connectedAt)/1000)):0;
+    return {id:row.id,callerId:row.caller_id,createdAt:row.created_at,
+     connectedAt,endedAt,status,durationSeconds};
+   }).reverse();
+   return response({ok:true,calls,serverNow:t});
+  }
   const call=await activeCall(env.DB,u.room_id);
   let signals:{id:number;kind:string;payload:string}[]=[];
   if(call){
@@ -79,6 +105,8 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
    const call=await activeCall(db,u.room_id);
    if(!call)return fail("Impossible de démarrer l’appel.",503);
    if(created.meta.changes){
+    await db.prepare("INSERT OR IGNORE INTO voice_call_history(call_id,room_id) VALUES(?,?)")
+     .bind(call.id,u.room_id).run();
     waitUntil(notifyPartner(env,u.room_id,u.id,"📞 Appel entrant",u.name+" t’appelle. Appuie pour répondre.","chat",{kind:"call",id:call.id}));
    }
    return response({ok:true,call:view(call,u),already:!created.meta.changes});
@@ -91,8 +119,13 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
   if(action==="accept"){
    if(call.callee_id!==u.id)return fail("Seul le destinataire peut répondre.",403);
    if(call.status==="ringing"){
-    await db.prepare("UPDATE voice_calls SET status='active',updated_at=?,expires_at=? WHERE id=? AND status='ringing' AND expires_at>?")
+    const accepted=await db.prepare("UPDATE voice_calls SET status='active',updated_at=?,expires_at=? WHERE id=? AND status='ringing' AND expires_at>?")
      .bind(t,t+90000,call.id,t).run();
+    if(accepted.meta.changes===1){
+     await db.prepare("INSERT OR IGNORE INTO voice_call_history(call_id,room_id) VALUES(?,?)").bind(call.id,u.room_id).run();
+     await db.prepare("UPDATE voice_call_history SET connected_at=COALESCE(connected_at,?) WHERE call_id=? AND room_id=?")
+      .bind(t,call.id,u.room_id).run();
+    }
    }
    return response({ok:true,accepted:true});
   }
@@ -104,7 +137,14 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
   }
   if(action==="decline"||action==="end"){
    if(action==="decline"&&call.callee_id!==u.id)return fail("Seul le destinataire peut refuser.",403);
-   await db.prepare("UPDATE voice_calls SET status='ended',updated_at=? WHERE id=? AND room_id=?").bind(t,call.id,u.room_id).run();
+   const ended=await db.prepare("UPDATE voice_calls SET status='ended',updated_at=? WHERE id=? AND room_id=? AND status IN ('ringing','active')")
+    .bind(t,call.id,u.room_id).run();
+   if(ended.meta.changes===1){
+    const outcome=call.status==="active"?"completed":action==="decline"?"declined":"cancelled";
+    await db.prepare("INSERT OR IGNORE INTO voice_call_history(call_id,room_id) VALUES(?,?)").bind(call.id,u.room_id).run();
+    await db.prepare("UPDATE voice_call_history SET ended_at=COALESCE(ended_at,?),outcome=COALESCE(outcome,?) WHERE call_id=? AND room_id=?")
+     .bind(t,outcome,call.id,u.room_id).run();
+   }
    await db.prepare("DELETE FROM voice_signals WHERE call_id=? AND room_id=?").bind(call.id,u.room_id).run();
    return response({ok:true,ended:true});
   }
