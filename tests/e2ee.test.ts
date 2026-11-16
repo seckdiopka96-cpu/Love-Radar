@@ -4,7 +4,7 @@ import {readFileSync} from "node:fs";
 import {webcrypto} from "node:crypto";
 import {File} from "node:buffer";
 import {deriveContext,generateIdentity,encryptText,decryptText,encryptMedia,decryptMedia,
- fingerprint,isEncryptedText,E2EE_MEDIA_MIME,validPublicKey} from "../src/e2ee";
+ fingerprint,isEncryptedText,E2EE_MEDIA_MIME,validPublicKey,generateIdentityWithBackup,decryptIdentityBackup} from "../src/e2ee";
 import {revealMessages,LOCKED_TEXT,CORRUPTED_TEXT} from "../src/e2ee-room";
 
 Object.defineProperty(globalThis,"crypto",{configurable:true,value:webcrypto});
@@ -86,4 +86,26 @@ test("server only accepts encrypted transport after two published keys and delet
  assert.match(app,/encryptMedia\(await cryptoFor\(room\)/);
  assert.match(app,/encryptText\(await cryptoFor\(rm\)/);
  assert.match(settings,/compare les 64 caractères/i);
+});
+
+test("password-wrapped backup restores the same nonextractable identity",async()=>{
+ const phrase="longue-phrase-secrete-plus-de-25";
+ const created=await generateIdentityWithBackup(phrase);
+ assert.equal(created.identity.privateKey.extractable,false);
+ assert.ok(created.encryptedBackup.includes("love-radar-key-backup-v1"));
+ assert.ok(!created.encryptedBackup.includes("PRIVATE KEY"));
+ const restored=await decryptIdentityBackup(created.encryptedBackup,phrase,created.identity.publicKey);
+ assert.equal(restored.publicKey,created.identity.publicKey);
+ assert.equal(restored.privateKey.extractable,false);
+ const other=await generateIdentity();
+ const a=await deriveContext(restored,{roomId,mineId:aliceId,partnerId:bobId,
+  minePublicKey:restored.publicKey,partnerPublicKey:other.publicKey});
+ const b=await deriveContext(other,{roomId,mineId:bobId,partnerId:aliceId,
+  minePublicKey:other.publicKey,partnerPublicKey:created.identity.publicKey});
+ assert.equal(await decryptText(b,await encryptText(a,"Recovered",msgId),msgId,aliceId),"Recovered");
+ await assert.rejects(decryptIdentityBackup(created.encryptedBackup,"wrong-password-long",created.identity.publicKey));
+ await assert.rejects(decryptIdentityBackup(created.encryptedBackup,phrase,other.publicKey));
+ const modified=created.encryptedBackup.replace(/"cipher":"([^"]+)/,
+  (_match,cipher:string)=>'"cipher":"'+cipher.slice(0,-2)+"AA");
+ await assert.rejects(decryptIdentityBackup(modified,phrase,created.identity.publicKey));
 });
