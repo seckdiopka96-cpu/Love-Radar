@@ -18,6 +18,8 @@
     "test:call": "tsx --test tests/voice-call.test.ts",
     "test:background-call": "tsx --test tests/native-background-call.test.ts",
     "test:e2ee": "tsx --test tests/e2ee.test.ts",
+    "test:server": "tsx --test tests/server-diagnostics.test.ts",
+    "test:server-scale": "node scripts/server-sql-scale-check.mjs",
     "test:reconcile": "tsx --test tests/reconcile.test.ts",
     "test:design": "tsx --test tests/redesign.test.ts",
     "test:chat": "tsx --test tests/chat-stability.test.ts tests/multi-couple.test.ts",

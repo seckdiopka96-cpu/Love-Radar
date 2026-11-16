@@ -11,6 +11,8 @@ export default function ConnectionDiagnostics({token,nativeApp}:Props){
  const [microphoneBusy,setMicrophoneBusy]=useState(false);
  const [microphone,setMicrophone]=useState<Check|null>(null);
  const [checks,setChecks]=useState<Check[]>([]);
+ const [storageBusy,setStorageBusy]=useState(false);
+ const [storageCheck,setStorageCheck]=useState<Check|null>(null);
  async function readApi(path:string,timeoutMs:number){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),timeoutMs);
@@ -58,6 +60,25 @@ export default function ConnectionDiagnostics({token,nativeApp}:Props){
   setChecks(results);
   setRunning(false);
  }
+ async function testStorage(){
+  if(storageBusy)return;
+  setStorageBusy(true);setStorageCheck(null);
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
+  try{
+   const response=await apiFetch("/api/server-diagnostics",{
+    method:"POST",headers:{Authorization:"Bearer "+token},
+    cache:"no-store",signal:controller.signal
+   });
+   const result=await response.json() as {ok?:boolean;database?:string;storage?:string;
+    cleanup?:string;latencyMs?:number;error?:string};
+   setStorageCheck(response.ok&&result.ok&&result.database==="ok"&&result.storage==="ok"&&result.cleanup==="ok"?
+    {name:"Stockage R2",state:"ok",detail:"Écriture, lecture et suppression vérifiées sur Cloudflare ("+
+     Math.round(result.latencyMs||0)+" ms). Aucune photo privée touchée."}:
+    {name:"Stockage R2",state:"error",detail:response.status===429?
+     "Limite de 3 vérifications par heure atteinte.":result.error||"Test R2 indisponible."});
+  }catch{setStorageCheck({name:"Stockage R2",state:"error",detail:"Impossible de vérifier R2 depuis ce téléphone."})}
+  finally{clearTimeout(timeout);setStorageBusy(false)}
+ }
  async function testMic(){
   if(microphoneBusy)return;
   setMicrophoneBusy(true);
@@ -74,9 +95,10 @@ export default function ConnectionDiagnostics({token,nativeApp}:Props){
   <div className="lr-diagnostics-actions">
    <button type="button" onClick={()=>void run()} disabled={running}>{running?"Vérification…":"Tester la connexion"}</button>
    <button type="button" disabled={microphoneBusy||!navigator.mediaDevices?.getUserMedia} onClick={()=>void testMic()}>{microphoneBusy?"Test…":"Tester le micro"}</button>
+   <button type="button" disabled={storageBusy} onClick={()=>void testStorage()}>{storageBusy?"Vérification R2…":"Tester le stockage R2"}</button>
   </div>
-  {checks.length||microphone?<div className="lr-diagnostics-results" role="status" aria-live="polite">
-   {[...checks,...(microphone?[microphone]:[])].map(check=><div className="lr-diagnostics-result" key={check.name}>
+  {checks.length||microphone||storageCheck?<div className="lr-diagnostics-results" role="status" aria-live="polite">
+   {[...checks,...(microphone?[microphone]:[]),...(storageCheck?[storageCheck]:[])].map(check=><div className="lr-diagnostics-result" key={check.name}>
     <span className={"lr-diagnostics-indicator is-"+check.state} aria-hidden="true">{check.state==="ok"?"✓":check.state==="warn"?"!":"×"}</span>
     <div><strong>{check.name}</strong><small>{check.detail}</small></div>
    </div>)}
