@@ -1,8 +1,9 @@
 import type { D1Database } from "@cloudflare/workers-types";
-import { notifyPartner, type PushEnv } from "../lib/push";
+import { notifyPartner } from "../lib/push";
+import {notifyIncomingVoip,type VoipEnv} from "../lib/apns-voip";
 import {consumeMemberLimit,MEMBER_LIMITS,throttled} from "../lib/abuse-limits";
 
-type Env = PushEnv;
+type Env = VoipEnv;
 type Context = {request:Request;env:Env;waitUntil:(task:Promise<unknown>)=>void};
 type Member = {id:string;room_id:string;name:string};
 type VoiceCall = {id:string;room_id:string;caller_id:string;callee_id:string;status:string;created_at:number;updated_at:number;expires_at:number};
@@ -107,7 +108,10 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
    if(created.meta.changes){
     await db.prepare("INSERT OR IGNORE INTO voice_call_history(call_id,room_id) VALUES(?,?)")
      .bind(call.id,u.room_id).run();
-    waitUntil(notifyPartner(env,u.room_id,u.id,"📞 Appel entrant",u.name+" t’appelle. Appuie pour répondre.","chat",{kind:"call",id:call.id}));
+    waitUntil(Promise.all([
+     notifyPartner(env,u.room_id,u.id,"📞 Appel entrant",u.name+" t’appelle. Appuie pour répondre.","chat",{kind:"call",id:call.id}),
+     notifyIncomingVoip(env,u.room_id,partner.id,call.id,u.name,call.expires_at)
+    ]).then(()=>{}));
    }
    return response({ok:true,call:view(call,u),already:!created.meta.changes});
   }
