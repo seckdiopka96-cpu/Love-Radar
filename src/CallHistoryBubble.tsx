@@ -1,5 +1,4 @@
 import {useEffect,useState} from "react";
-import "./call-history.css";
 
 export type CallHistoryEvent={
  id:string;callerId:string;createdAt:number;connectedAt:number;endedAt:number;
