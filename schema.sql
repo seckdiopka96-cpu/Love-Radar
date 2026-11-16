@@ -194,3 +194,15 @@ CREATE TABLE IF NOT EXISTS care_prayer_sent (
  member_id TEXT NOT NULL,room_id TEXT NOT NULL,day TEXT NOT NULL,
  prayer TEXT NOT NULL,sent_at INTEGER NOT NULL,PRIMARY KEY(member_id,day,prayer)
 );
+
+-- Screenshot alerts are metadata, not screenshot files. Shared only inside one
+-- authenticated couple room and retained for up to 30 days.
+CREATE TABLE IF NOT EXISTS screenshot_events (
+ id TEXT PRIMARY KEY,room_id TEXT NOT NULL,
+ member_id TEXT NOT NULL,created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_screenshot_room_created
+ ON screenshot_events(room_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS screenshot_throttle (
+ member_id TEXT PRIMARY KEY,last_at INTEGER NOT NULL
+);
