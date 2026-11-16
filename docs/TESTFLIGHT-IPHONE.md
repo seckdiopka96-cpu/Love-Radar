@@ -79,6 +79,12 @@ automatiser leur création) :
 | Secret | `APPSTORE_CERTIFICATES_FILE_BASE64` | Certificat de distribution `.p12` encodé en base64 |
 | Secret | `APPSTORE_CERTIFICATES_PASSWORD` | Mot de passe du certificat `.p12` |
 
+**Important :** le script tiers `setup.sh` configure les clés et le
+certificat, mais **pas** la variable `APPSTORE_TEAM_ID` utilisée par notre
+workflow. Ajoute cette variable toi-même dans GitHub Actions (ou, depuis un
+Codespace déjà authentifié, exécute
+`gh variable set APPSTORE_TEAM_ID --repo seckdiopka96-cpu/Love-Radar --body VOTRE_TEAM_ID`).
+
 Le profil doit être nommé exactement
 `AppStore com.diaotech.loveradar`. Si Apple l'a nommé autrement,
 définir aussi la **variable facultative** `APPSTORE_PROFILE_NAME` avec
