@@ -66,12 +66,15 @@ test("minimal header removes the unnecessary heart and relocates notification co
  const shell=readFileSync("src/polished-shell.css","utf8");
  assert.ok(app.includes('className="lr-header-context"'));
  assert.ok(!app.includes('className="lr-brand-emblem"'));
- assert.ok(app.includes('id="lr-settings-menu"'));
- assert.ok(app.includes('aria-expanded={menu}'));
- assert.ok(app.includes('className="lr-menu-notifications"'));
- assert.ok(!app.includes('className="lr-notification-area"'));
- assert.ok(app.includes('setMenu(false)'));
- assert.ok(shell.includes('.lr-menu-notification-actions'));
+ const settings=readFileSync("src/SettingsPage.tsx","utf8");
+ assert.ok(app.includes('tab==="settings"?<SettingsPage'));
+ assert.ok(app.includes('aria-label={tab==="settings"?"Retour à l’accueil":"Ouvrir les paramètres"}'));
+ assert.ok(settings.includes('className="lr-settings-section"'));
+ assert.ok(settings.includes('notificationsOn'));
+ assert.ok(settings.includes('onPrivacyChange'));
+ assert.ok(settings.includes('onRemovePhoto'));
+ assert.ok(settings.includes('onDeleteRoom'));
+ assert.ok(!app.includes('id="lr-settings-menu"'));
  assert.ok(shell.includes('.lr-header-context>strong'));
 });
 test("premium dock anchors to the viewport and reserves scrolling space for home content",()=>{
@@ -87,9 +90,10 @@ test("premium dock anchors to the viewport and reserves scrolling space for home
 });
 test("unchanged snapshots do not redraw the full dashboard and home requests cannot overlap",()=>{
  assert.ok(app.includes('JSON.stringify(previous)===JSON.stringify(nextRoom)?previous:nextRoom'));
- assert.ok(app.includes('tab==="chat"?1050:5000'));
+ assert.ok(app.includes('tab==="chat"?15000:30000'));
+ assert.ok(app.includes('data.revision!==roomRevisionRef.current'));
  assert.ok(app.includes('return items.filter(item=>!received.has(item.id))'));
  assert.ok(home.includes('if(!alive||pending||document.visibilityState!=="visible")return'));
- assert.ok(home.includes('if(!active||pending||document.visibilityState==="hidden")return'));
+ assert.ok(home.includes('if(!alive||pending||document.visibilityState!=="visible")return'));
  assert.ok(home.includes('finally{pending=false}'));
 });
