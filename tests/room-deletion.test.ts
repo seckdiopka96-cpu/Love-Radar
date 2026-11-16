@@ -18,7 +18,7 @@ function localD1(){
      return {meta:{changes:Number(result.changes)}};
     },
     async first(){
-     return sqlite.prepare(sql).get(...params as []) as Record<string,unknown>|null||null;
+     return (sqlite.prepare(sql).get(...params as []) as Record<string,unknown>|undefined)??null;
     },
     async all(){
      return {results:sqlite.prepare(sql).all(...params as []) as Record<string,unknown>[]};
@@ -52,6 +52,7 @@ function seed({sqlite}:{sqlite:DatabaseSync},withOptional=true){
   if(table==="messages")sqlite.exec("CREATE TABLE messages(room_id TEXT,object_key TEXT,payload TEXT);");
   else if(table==="profile_photos")sqlite.exec("CREATE TABLE profile_photos(room_id TEXT,object_key TEXT);");
   else if(table==="couple_stories")sqlite.exec("CREATE TABLE couple_stories(room_id TEXT,photo_key TEXT);");
+  else if(table==="couple_reconciliations")sqlite.exec("CREATE TABLE couple_reconciliations(room_id TEXT,id TEXT,payload TEXT);");
   else sqlite.exec("CREATE TABLE "+table+"(room_id TEXT,payload TEXT);");
   if(table==="messages"){
    const insert=sqlite.prepare("INSERT INTO messages(room_id,object_key,payload) VALUES(?,?,?)");
@@ -63,6 +64,9 @@ function seed({sqlite}:{sqlite:DatabaseSync},withOptional=true){
   }else if(table==="couple_stories"){
    sqlite.prepare("INSERT INTO couple_stories(room_id,photo_key) VALUES(?,?)").run("room-A","couple-story/room-A/photo");
    sqlite.prepare("INSERT INTO couple_stories(room_id,photo_key) VALUES(?,?)").run("room-B","couple-story/room-B/photo");
+  }else if(table==="couple_reconciliations"){
+   sqlite.prepare("INSERT INTO couple_reconciliations(room_id,id,payload) VALUES(?,?,?)").run("room-A","secret-session-A","secret");
+   sqlite.prepare("INSERT INTO couple_reconciliations(room_id,id,payload) VALUES(?,?,?)").run("room-B","session-B","keep");
   }else{
    sqlite.prepare("INSERT INTO "+table+"(room_id,payload) VALUES(?,?)").run("room-A","secret");
    sqlite.prepare("INSERT INTO "+table+"(room_id,payload) VALUES(?,?)").run("room-B","keep");
