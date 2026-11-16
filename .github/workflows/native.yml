@@ -1,12 +1,21 @@
 name: Construire Love Radar native
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/call-session/**'
+      - 'scripts/configure-native.mjs'
+      - 'src/native-call-session.ts'
+      - 'src/VoiceCall.tsx'
+      - '.github/workflows/native.yml'
   pull_request:
     paths:
       - 'package.json'
       - 'capacitor.config.ts'
       - 'src/**'
       - 'scripts/configure-native.mjs'
+      - 'native/call-session/**'
       - '.github/workflows/native.yml'
   workflow_dispatch:
 
@@ -49,7 +58,7 @@ jobs:
           retention-days: 7
 
   ios-simulator:
-    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'feature/capacitor-native-ios-android'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.head_ref == 'feature/capacitor-native-ios-android'
     runs-on: macos-26
     timeout-minutes: 40
     steps:
