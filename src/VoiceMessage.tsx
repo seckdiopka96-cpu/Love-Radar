@@ -1,13 +1,18 @@
 import {useEffect,useMemo,useRef,useState} from "react";
 import {audioDuration,formatVoiceTime,voiceBars} from "./voice-waveform";
 import {claimMessagePlayback,hasExclusiveAudioCapture,type AudioInterrupt} from "./audio-focus";
+import {nextVoiceSpeed,type VoiceSpeed} from "./voice-sequence";
 import "./voice-message.css";
 
-type Props={src:string;id:string;mine:boolean;time:string;delivery?:"read"|"sent";onOpenActions?:()=>void};
+type Props={
+ src:string;id:string;mine:boolean;time:string;delivery?:"read"|"sent";
+ onOpenActions?:()=>void;speed:VoiceSpeed;onSpeedChange:(speed:VoiceSpeed)=>void;
+ autoPlay?:boolean;onFinished?:()=>void;onManualPlay?:()=>void;onAutoPlayConsumed?:()=>void
+};
 type PlayEvent=CustomEvent<string>;
 
 /** Functional audio note: actual playback, scrub, duration and one-at-a-time listening. */
-export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:Props){
+export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions,speed,onSpeedChange,autoPlay=false,onFinished,onManualPlay,onAutoPlayConsumed}:Props){
  const audio=useRef<HTMLAudioElement|null>(null);
  const fallbackAudio=useRef<HTMLAudioElement|null>(null);
  const [playing,setPlaying]=useState(false);
@@ -20,7 +25,7 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:P
  useEffect(()=>{
   const stopOther=(event:Event)=>{
    if((event as PlayEvent).detail===id)return;
-   audio.current?.pause();
+   audio.current?.pause();fallbackAudio.current?.pause();
    setPlaying(false);
   };
   const stopOnAudioFocus=(event:Event)=>{
@@ -39,6 +44,17 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:P
  useEffect(()=>{
   setPlaying(false);setDuration(0);setPosition(0);setError("");setFallback(false);
  },[src]);
+ useEffect(()=>{
+  if(audio.current)audio.current.playbackRate=speed;
+  if(fallbackAudio.current)fallbackAudio.current.playbackRate=speed;
+ },[src,speed]);
+ useEffect(()=>{
+  if(!autoPlay)return;
+  // A queued note can mount later when its encrypted media finishes loading.
+  // Safari can reject play() without another tap; then show a clear prompt.
+  void playVoice(true);
+ },[autoPlay,src]);
+
  function updateDuration(){
   const element=audio.current;
   if(!element)return;
@@ -56,26 +72,53 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:P
   setPosition(value);
   if(duration===0)updateDuration();
  }
- async function toggle(){
+ async function playVoice(automatic=false){
   const element=audio.current;
   if(!element)return;
-  if(!element.paused){element.pause();setPlaying(false);return}
+  if(!automatic)onManualPlay?.();
   setError("");
   if(hasExclusiveAudioCapture()){
+   if(automatic)onAutoPlayConsumed?.();
    setError("Termine l'appel ou l'enregistrement en cours avant d'écouter ce vocal.");
    return;
   }
   try{
-   if(!claimMessagePlayback(id,element)){setError("Une autre activité utilise le son.");return}
+   if(!claimMessagePlayback(id,element)){
+    if(automatic)onAutoPlayConsumed?.();
+    setError("Une autre activité utilise le son.");return;
+   }
    window.dispatchEvent(new CustomEvent<string>("lr-voice-playing",{detail:id}));
-   // The call begins within the original user gesture, as required by iOS.
+   element.playbackRate=speed;
+   // On a tap the call occurs synchronously, as required by iOS audio policies.
    await element.play();
-   setPlaying(true);
+   setPlaying(!element.paused);
    updateDuration();
+   if(automatic)onAutoPlayConsumed?.();
   }catch{
-   setPlaying(false);setError("Lecture impossible. Utilise le lecteur classique.");
-   setFallback(true);
+   setPlaying(false);
+   if(automatic){
+    onAutoPlayConsumed?.();
+    setError("Lecture automatique bloquée par le téléphone. Appuie sur ▶ pour continuer.");
+   }else{
+    setError("Lecture impossible. Utilise le lecteur classique.");
+    setFallback(true);
+   }
   }
+ }
+ function toggle(){
+  const element=audio.current;
+  if(!element)return;
+  if(!element.paused){
+   element.pause();setPlaying(false);onAutoPlayConsumed?.();
+   return;
+  }
+  void playVoice(false);
+ }
+ function changeSpeed(){
+  const next=nextVoiceSpeed(speed);
+  if(audio.current)audio.current.playbackRate=next;
+  if(fallbackAudio.current)fallbackAudio.current.playbackRate=next;
+  onSpeedChange(next);
  }
  function seek(value:number){
   const element=audio.current;
@@ -90,10 +133,10 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:P
    onLoadedMetadata={updateDuration} onDurationChange={updateDuration}
    onTimeUpdate={updatePosition}
    onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)}
-   onEnded={()=>{setPlaying(false);setPosition(0);if(audio.current)audio.current.currentTime=0}}
+   onEnded={()=>{setPlaying(false);setPosition(0);if(audio.current)audio.current.currentTime=0;onFinished?.()}}
    onError={()=>{setPlaying(false);setError("Ce vocal ne peut pas être lu.");setFallback(true)}}/>
   <div className="lr-voice-note-main">
-   <button type="button" className="lr-voice-note-play" onClick={()=>void toggle()}
+   <button type="button" className="lr-voice-note-play" onClick={toggle}
     aria-label={(playing?"Mettre en pause":"Lire")+" le message vocal"} aria-pressed={playing}>
     {playing?<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4.5" height="16" rx="1.4"/><rect x="13.5" y="4" width="4.5" height="16" rx="1.4"/></svg>:
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.5 4.4c0-.9 1-1.5 1.8-1l12 7.1c.8.5.8 1.5 0 2l-12 7.1c-.8.5-1.8 0-1.8-1V4.4z"/></svg>}
@@ -114,6 +157,10 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:P
      <span className="lr-voice-note-duration" aria-label={"Progression "+progressText+" sur "+totalText}>
       {playing||position>0?progressText:totalText}
      </span>
+     <button type="button" className="lr-voice-note-speed" onClick={changeSpeed}
+      onPointerDown={e=>e.stopPropagation()}
+      aria-label={"Vitesse de lecture : "+speed+" fois. Appuyer pour accélérer"}
+      title={"Vitesse de lecture "+speed+"×"}>{speed}×</button>
      <span className="lr-voice-note-time">{time}{mine&&delivery?<span className="lr-voice-note-check" aria-label={delivery==="read"?"Lu":"Envoyé"}> {delivery==="read"?"✓✓":"✓"}</span>:null}</span>
     </div>
    </div>
@@ -124,6 +171,9 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:P
    </button>:null}
   </div>
   {error?<div className="lr-voice-note-error" role="alert">{error}</div>:null}
-  {fallback?<audio ref={fallbackAudio} data-lr-audio-owner={id} className="lr-voice-note-fallback" src={src} controls preload="metadata" aria-label="Lecteur vocal classique"/>:null}
+  {fallback?<audio ref={fallbackAudio} data-lr-audio-owner={id} className="lr-voice-note-fallback"
+  src={src} controls preload="metadata" aria-label="Lecteur vocal classique"
+  onLoadedMetadata={e=>{e.currentTarget.playbackRate=speed}}
+  onEnded={()=>onFinished?.()}/>:null}
  </div>;
 }
