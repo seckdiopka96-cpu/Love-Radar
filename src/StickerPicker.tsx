@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useState} from "react";
 import StickerArt from "./StickerArt";
+import {emojiMotionClass} from "./AnimatedEmojiText";
 import {STICKERS,MOTION_STICKERS,STICKER_GROUPS,getSticker,type StickerCategory} from "./stickers";
 import {EMOJI_CATEGORIES,EMOJIS,filterEmojis} from "./emoji-catalog";
 import {GIPHY_KEY,gifsByIds,searchGifs,type GifResult} from "./gif-provider";
@@ -199,10 +200,10 @@ export default function StickerPicker({storageKey,onSend,onSendEmoji,onSendGif,o
    <div className="lr-sticker-scroll lr-emoji-scroll" role="tabpanel" aria-label="Émojis disponibles">
     {emojis.length?<div className="lr-emoji-grid">
      {emojis.map(emoji=><button type="button" key={emoji} aria-label={"Insérer l'emoji "+emoji} title={emoji}
-      onClick={()=>sendEmoji(emoji)}>{emoji}</button>)}
+      onClick={()=>sendEmoji(emoji)}><span className={"lr-emoji-motion "+emojiMotionClass(emoji)}>{emoji}</span></button>)}
     </div>:<p className="lr-sticker-empty">{emojiCategory==="recent"?"Tes emojis récents apparaîtront ici.":"Aucun emoji trouvé."}</p>}
    </div>
-   <div className="lr-sticker-footer"><span>Émojis • touche pour insérer dans ton message</span><span>{emojis.length}</span></div>
+   <div className="lr-sticker-footer"><span>Émojis animés dans les messages</span><span>{emojis.length}</span></div>
   </>:<>
    <div className="lr-gif-categories" role="tablist" aria-label="Catégories GIF">
     {([{id:"trending",label:"Découvrir"},{id:"recent",label:"Récents"},{id:"favorite",label:"Favoris"}] as const).map(tab=>
