@@ -59,7 +59,7 @@ jobs:
 
   ios-simulator:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.head_ref == 'feature/capacitor-native-ios-android'
-    runs-on: macos-26
+    runs-on: macos-26-intel
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
