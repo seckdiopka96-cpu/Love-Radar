@@ -45,7 +45,7 @@ test("PushKit token registration is authenticated and isolated per couple",async
  assert.equal(first.status,200);
  assert.equal(first.data.registered,true);
  const rows=sqlite.prepare("SELECT member_id,room_id FROM native_voip_devices").all();
- assert.deepEqual(rows,[{member_id:"p1",room_id:"couple1"}]);
+ assert.deepEqual(rows.map(row=>({member_id:row.member_id,room_id:row.room_id})),[{member_id:"p1",room_id:"couple1"}]);
  const outsider=await request("c",{action:"unregister",deviceId});
  assert.equal(outsider.status,200);
  assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM native_voip_devices").get()?.n,1);
