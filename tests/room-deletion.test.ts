@@ -77,10 +77,11 @@ function seed({sqlite}:{sqlite:DatabaseSync},withOptional=true){
  sqlite.prepare("INSERT INTO couple_reconciliation_entries VALUES(?,?,?,?,?)").run("secret-session-A","a1","private pain","private need","private message");
  sqlite.prepare("INSERT INTO couple_reconciliation_entries VALUES(?,?,?,?,?)").run("orphaned-session-A","a2","old pain","old need","old message");
  sqlite.prepare("INSERT INTO couple_reconciliation_entries VALUES(?,?,?,?,?)").run("session-B","b1","other pain","other need","other message");
- sqlite.exec("CREATE TABLE member_recovery(member_id TEXT,code_hash TEXT);CREATE TABLE push_test_throttle(member_id TEXT,last_test_at INTEGER);CREATE TABLE abuse_counters(scope TEXT,actor TEXT);");
+ sqlite.exec("CREATE TABLE member_recovery(member_id TEXT,code_hash TEXT);CREATE TABLE push_test_throttle(member_id TEXT,last_test_at INTEGER);CREATE TABLE care_share_throttle(member_id TEXT,kind TEXT,last_at INTEGER);CREATE TABLE abuse_counters(scope TEXT,actor TEXT);");
  for(const id of ["a1","a2","b1"]){
   sqlite.prepare("INSERT INTO member_recovery VALUES(?,?)").run(id,"secret-"+id);
   sqlite.prepare("INSERT INTO push_test_throttle VALUES(?,?)").run(id,1234);
+  sqlite.prepare("INSERT INTO care_share_throttle VALUES(?,?,?)").run(id,"period",1234);
   sqlite.prepare("INSERT INTO abuse_counters VALUES(?,?)").run("message","member:"+id);
  }
  sqlite.prepare("INSERT INTO abuse_counters VALUES(?,?)").run("public","ip:unrelated");
