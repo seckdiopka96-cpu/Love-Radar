@@ -1,12 +1,14 @@
 import "./settings-page.css";
 import ConnectionDiagnostics from "./ConnectionDiagnostics";
+import {useState} from "react";
 type Props={
  name:string;code:string;owner:boolean;token:string;avatarSrc?:string;avatarVersion?:number;
  profileBusy:boolean;profileError:string;
  recoveryBusy:boolean;onGenerateRecovery:()=>void;
  e2ee?:{mine:string|null;partner:string|null;required:boolean};
- e2eeBusy:boolean;e2eeOwnCode:string;e2eePartnerCode:string;e2eeDeviceReady:boolean;e2eeVerified:boolean;
- onEnableE2EE:()=>void;onVerifyPartnerKey:()=>void;
+ e2eeBusy:boolean;e2eeBackup:string;e2eeOwnCode:string;e2eePartnerCode:string;e2eeDeviceReady:boolean;e2eeVerified:boolean;
+ onEnableE2EE:(passphrase:string)=>void;onFinishE2EE:()=>void;
+ onRestoreE2EE:(file:File,passphrase:string)=>void;onVerifyPartnerKey:()=>void;
  privacyEnabled:boolean;
  notificationsOn:boolean;notificationsBusy:boolean;notificationsTesting:boolean;notificationsHint:string;
  nativeApp:boolean;
@@ -18,10 +20,23 @@ type Props={
 export default function SettingsPage({
 name,code,owner,token,avatarSrc,avatarVersion,profileBusy,profileError,recoveryBusy,onGenerateRecovery,privacyEnabled,
  notificationsOn,notificationsBusy,notificationsTesting,notificationsHint,nativeApp,
- e2ee,e2eeBusy,e2eeOwnCode,e2eePartnerCode,e2eeDeviceReady,e2eeVerified,onEnableE2EE,onVerifyPartnerKey,
+ e2ee,e2eeBusy,e2eeBackup,e2eeOwnCode,e2eePartnerCode,e2eeDeviceReady,e2eeVerified,
+ onEnableE2EE,onFinishE2EE,onRestoreE2EE,onVerifyPartnerKey,
  onBack,onChoosePhoto,onAdjustPhoto,onRemovePhoto,onPrivacyChange,
  onEnableNotifications,onTestNotifications,onDisableNotifications,onShareInvite,onLogout,onDeleteRoom
 }:Props){
+ const [passphrase,setPassphrase]=useState("");
+ const [restorePhrase,setRestorePhrase]=useState("");
+ const [restoreFile,setRestoreFile]=useState<File|null>(null);
+ const [backupSaved,setBackupSaved]=useState(false);
+ const downloadBackup=()=>{
+  if(!e2eeBackup)return;
+  const blob=new Blob([e2eeBackup],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const anchor=document.createElement("a");anchor.href=url;anchor.download="love-radar-sauvegarde-cle-privee.json";
+  document.body.appendChild(anchor);anchor.click();anchor.remove();
+  window.setTimeout(()=>URL.revokeObjectURL(url),30000);
+ };
  return <section className="lr-settings-page" aria-label="Paramètres de mon espace">
   <header className="lr-settings-heading">
    <button type="button" onClick={onBack} className="lr-settings-back" aria-label="Retour à l’accueil">‹</button>
@@ -55,11 +70,43 @@ name,code,owner,token,avatarSrc,avatarVersion,profileBusy,profileError,recoveryB
    </div>
    {!e2ee?.mine?<>
     <p className="lr-settings-help">Non activé : les messages actuels sont lisibles par le serveur. Les anciens messages ne seront pas chiffrés rétroactivement.</p>
-    <button type="button" className="lr-settings-primary" disabled={e2eeBusy} onClick={onEnableE2EE}>
-     {e2eeBusy?"Activation…":"Créer ma clé et activer"}
-    </button>
+    {!e2eeBackup?<div className="lr-settings-recovery">
+     <strong>1. Choisir une phrase secrète pour la sauvegarde</strong>
+     <small>Au moins 12 caractères. Conserve-la hors de Love Radar : sans elle, tu ne pourras pas restaurer ta clé.</small>
+     <input type="password" autoComplete="new-password" value={passphrase} onChange={e=>setPassphrase(e.target.value)}
+      placeholder="Phrase secrète de sauvegarde" aria-label="Phrase secrète de sauvegarde E2EE"
+      style={{maxWidth:"100%",padding:12,borderRadius:8}}/>
+     <button type="button" className="lr-settings-primary" disabled={e2eeBusy||passphrase.length<12||passphrase.length>256}
+      onClick={()=>{onEnableE2EE(passphrase);setPassphrase("")}}>
+      {e2eeBusy?"Création…":"Créer ma clé avec sauvegarde chiffrée"}</button>
+    </div>:<div className="lr-settings-recovery">
+     <strong>2. Télécharger et conserver la sauvegarde</strong>
+     <small>Enregistre le fichier dans Fichiers ou ton coffre-fort privé, puis garde ta phrase secrète séparément. Ne l’envoie jamais à ton partenaire.</small>
+     <button type="button" className="lr-settings-primary" onClick={downloadBackup}>Télécharger ma sauvegarde chiffrée</button>
+     <label className="lr-settings-toggle">
+      <span><strong>J’ai enregistré le fichier et ma phrase secrète</strong></span>
+      <input type="checkbox" checked={backupSaved} onChange={e=>setBackupSaved(e.target.checked)}/>
+     </label>
+     <button type="button" className="lr-settings-primary" disabled={!backupSaved||e2eeBusy} onClick={onFinishE2EE}>
+      {e2eeBusy?"Activation…":"3. Activer le chiffrement"}
+     </button>
+    </div>}
    </>:<>
-    <p className="lr-settings-help">{e2eeDeviceReady?"✓ Clé privée présente sur ce téléphone.":"⚠ Clé privée absente de ce téléphone : les messages chiffrés ne seront pas accessibles. Ne réinitialise pas la clé sans procédure de récupération."}</p>
+    <p className="lr-settings-help">{e2eeDeviceReady?"✓ Clé privée présente sur ce téléphone.":"⚠ Clé privée absente de ce téléphone : les messages chiffrés ne seront pas accessibles. Restaure sa sauvegarde chiffrée."}</p>
+    {e2eeDeviceReady&&e2eeBackup?<button type="button" className="lr-settings-primary" onClick={downloadBackup}>Télécharger ma sauvegarde de clé</button>:null}
+    {!e2eeDeviceReady?<div className="lr-settings-recovery">
+     <strong>Restaurer ma clé privée sur ce téléphone</strong>
+     <small>Il te faut le fichier de sauvegarde et la phrase secrète que tu avais choisis. Le code de secours du compte ne remplace pas cette sauvegarde.</small>
+     <input type="file" accept=".json,application/json" aria-label="Fichier de sauvegarde chiffrée"
+      onChange={e=>setRestoreFile(e.target.files?.[0]||null)}/>
+     <input type="password" autoComplete="off" value={restorePhrase} onChange={e=>setRestorePhrase(e.target.value)}
+      placeholder="Phrase secrète de la sauvegarde" aria-label="Phrase secrète pour restaurer ma clé"
+      style={{maxWidth:"100%",padding:12,borderRadius:8}}/>
+     <button type="button" className="lr-settings-primary" disabled={!restoreFile||restorePhrase.length<12||e2eeBusy}
+      onClick={()=>{if(restoreFile)onRestoreE2EE(restoreFile,restorePhrase);setRestorePhrase("")}}>
+       {e2eeBusy?"Restauration…":"Restaurer ma clé"}
+     </button>
+    </div>:null}
     {e2eeOwnCode?<div className="lr-settings-recovery"><strong>Mon empreinte à communiquer à mon partenaire</strong><code style={{overflowWrap:"anywhere",fontSize:12}}>{e2eeOwnCode}</code></div>:null}
     {!e2ee?.partner?<p className="lr-settings-help">En attente : ton partenaire doit activer le chiffrement sur son téléphone. Tes nouveaux envois sont suspendus pour éviter un message non chiffré.</p>:
      <div className="lr-settings-recovery">
@@ -73,7 +120,7 @@ name,code,owner,token,avatarSrc,avatarVersion,profileBusy,profileError,recoveryB
      "Chiffrement actif pour les nouveaux échanges de cette conversation.":
      "Chiffrement non prêt : vérification des clés nécessaire avant l’envoi."}</p>
    </>}
-   <p className="lr-settings-help">Attention : cette première version n’a pas été auditée indépendamment. Le code de secours du compte ne restaure PAS les clés privées. Sauvegarde et multi-appareil restent à développer.</p>
+   <p className="lr-settings-help">Attention : cette première version n’a pas été auditée indépendamment. Le code de secours du compte ne restaure PAS les clés privées. La sauvegarde chiffrée reste personnelle et nécessaire pour changer de téléphone. Le multi-appareil automatique reste à développer.</p>
   </section>
   <section className="lr-settings-section" aria-labelledby="lr-notifications-settings-title">
    <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">♬</span><div><h2 id="lr-notifications-settings-title">Notifications</h2><p>Messages, appels et invitations.</p></div></div>
