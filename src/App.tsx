@@ -1471,7 +1471,7 @@ export default function LoveRadar(){
       </>}
       {!recoverMode?<button type="button" className="lr-recovery-toggle" onClick={()=>{setRecoverMode(true);setError("")}}>J’ai perdu mon accès</button>:null}
       <div className="lr-safe-copy"><span aria-hidden="true">🔒</span> Privé · Gratuit · Sur invitation</div>
-      <div className="lr-made-by">Créé par <strong>Diao-Tech</strong></div>
+      <div className="lr-made-by">Créé par <strong>Diao-Tech.com</strong></div>
      </section>
    </main>:
   <div className="lr-shell">
