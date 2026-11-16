@@ -95,7 +95,7 @@ public class LoveRadarNativeCall: CAPPlugin, CAPBridgedPlugin {
 }
 
 class LoveRadarBridgeViewController: CAPBridgeViewController {
-    override open func capacitorDidLoad() {
+    override func capacitorDidLoad() {
         super.capacitorDidLoad()
         bridge?.registerPluginInstance(LoveRadarNativeCall())
     }
