@@ -170,6 +170,12 @@ CREATE TABLE IF NOT EXISTS care_notices (
  created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,read_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_care_notice_inbox ON care_notices(recipient_id,expires_at);
+-- Period support is a per-member opt-in. No gender or medical data is inferred.
+CREATE TABLE IF NOT EXISTS care_period_preferences (
+ member_id TEXT PRIMARY KEY,room_id TEXT NOT NULL,
+ enabled INTEGER NOT NULL DEFAULT 0,updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_care_period_room ON care_period_preferences(room_id);
 CREATE TABLE IF NOT EXISTS care_share_throttle (
  member_id TEXT NOT NULL,kind TEXT NOT NULL,last_at INTEGER NOT NULL,
  PRIMARY KEY(member_id,kind)
