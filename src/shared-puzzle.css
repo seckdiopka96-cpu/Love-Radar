@@ -8,9 +8,9 @@
 .cp-brand strong span{color:#ff9dc4}
 .cp-brand small{font-size:8px;font-weight:850;letter-spacing:1px;color:#e4c3d5}
 .cp-top-symbol{font-size:21px;border:1px solid #805b7e;border-radius:11px;background:#513552;min-width:39px;min-height:39px;display:grid;place-items:center}
-.cp-online{display:flex;align-items:center;gap:9px;min-height:41px;flex:none;border:1px solid #ac7f9d;border-radius:11px;
+.cp-online{display:flex;align-items:center;gap:9px;min-height:41px;flex:none;border:1px solid #bc396c;border-radius:11px;
  background:linear-gradient(100deg,#583d5b,#392b47);padding:9px 11px;color:#efd9e8;font-size:11px;font-weight:780;line-height:1.3}
-.cp-online-dot{flex:none;width:9px;height:9px;border-radius:50%;background:#c1a0af}
+.cp-online-dot{flex:none;width:9px;height:9px;border-radius:50%;background:#bd2763}
 .cp-online-dot.on{background:#70ebac;box-shadow:0 0 0 3px #7aecc637,0 0 12px #68e3a7a0}
 .cp-body{flex:1 1 auto;min-height:0;min-width:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:11px;padding-bottom:8px}
 .cp-game-head{display:flex;align-items:end;justify-content:space-between;gap:8px}
@@ -21,10 +21,10 @@
 .cp-moves small{font-size:10px;color:#eac6dc;font-weight:700}
 .cp-grid-row{display:flex;gap:12px;align-items:flex-start;justify-content:center}
 .cp-puzzle-frame{width:min(72%,490px);flex:0 1 490px;aspect-ratio:1;position:relative;border-radius:16px;padding:6px;
- border:2px solid #efb1d2;background:linear-gradient(130deg,#b05c8d,#49315f);box-shadow:0 8px 24px #170c268c}
+ border:2px solid #bc396c;background:linear-gradient(130deg,#a82358,#49315f);box-shadow:0 8px 24px #170c268c}
 .cp-puzzle-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:3px;
  width:100%;height:100%;overflow:hidden;border-radius:10px;background:#2d2438}
-.cp-tile{position:relative;border:0;min-width:0;min-height:0;background-repeat:no-repeat;background-color:#9b608d;
+.cp-tile{position:relative;border:0;min-width:0;min-height:0;background-repeat:no-repeat;background-color:#a82358;
  border-radius:3px;padding:0;cursor:pointer;touch-action:manipulation;outline:1px solid #ffffff34;outline-offset:-1px;
  transition:filter .12s ease,transform .12s ease;user-select:none;-webkit-user-select:none}
 .cp-tile.correct{outline:1px solid #fbe7d254}
@@ -39,24 +39,24 @@
 .cp-solved-overlay span{font-size:45px;animation:cp-celebrate 1s ease-in-out infinite alternate}
 .cp-solved-overlay strong{font:800 clamp(17px,5vw,25px) Georgia,serif;color:#fff6e0;text-shadow:0 2px 6px #22102e}
 .cp-solved-overlay small{font-size:12px;color:#ffe9f1}
-.cp-solved-overlay button{pointer-events:auto;border:1px solid #ffeacb;border-radius:11px;background:linear-gradient(130deg,#e793a8,#bc598a);padding:12px 18px;color:#fff;font-size:13px;font-weight:900}
+.cp-solved-overlay button{pointer-events:auto;border:1px solid #ffeacb;border-radius:11px;background:linear-gradient(130deg,#bd2763,#a82358);padding:12px 18px;color:#fff;font-size:13px;font-weight:900}
 @keyframes cp-celebrate{to{transform:scale(1.17) rotate(5deg)}}
 .cp-side{display:flex;flex:0 1 155px;min-width:0;flex-direction:column;gap:9px}
-.cp-image-preview{display:flex;flex-direction:column;gap:5px;align-items:center;text-align:center;border:1px solid #c094b4;border-radius:12px;background:#483750;padding:7px;min-width:0}
+.cp-image-preview{display:flex;flex-direction:column;gap:5px;align-items:center;text-align:center;border:1px solid #bc396c;border-radius:12px;background:#483750;padding:7px;min-width:0}
 .cp-image-preview img{width:100%;height:auto;aspect-ratio:1;display:block;object-fit:cover;border-radius:7px}
 .cp-image-preview span{color:#ffedf8;font-size:11px;font-weight:850}
 .cp-game-status{display:flex;flex-direction:column;gap:5px;border:1px solid #956f99;border-radius:11px;background:#46354e;padding:10px}
 .cp-game-status strong{font-size:12px;color:#ffe9db}
 .cp-game-status small{font-size:10px;color:#e7cadd;line-height:1.4;overflow-wrap:anywhere}
-.cp-preview-box{display:flex;gap:10px;align-items:center;border:1px solid #d8a9bd;background:#4d3853;padding:9px;border-radius:12px}
+.cp-preview-box{display:flex;gap:10px;align-items:center;border:1px solid #bc396c;background:#4d3853;padding:9px;border-radius:12px}
 .cp-preview-box img{width:88px;height:88px;object-fit:cover;border-radius:8px}
-.cp-preview-box button{border:1px solid #e7b7ce;background:#765274;color:#fff;border-radius:9px;padding:9px;font-weight:800;font-size:11px}
-.cp-instructions{display:flex;align-items:flex-start;gap:10px;border:1px solid #ab7e9e;border-radius:13px;
+.cp-preview-box button{border:1px solid #bc396c;background:#765274;color:#fff;border-radius:9px;padding:9px;font-weight:800;font-size:11px}
+.cp-instructions{display:flex;align-items:flex-start;gap:10px;border:1px solid #bc396c;border-radius:13px;
  background:#493850;padding:11px}
 .cp-instructions>span{font-size:24px}
 .cp-instructions p{font-size:11px;line-height:1.55;color:#f3dce8;margin:0}
 .cp-instructions strong{color:#fff1e1}
-.cp-chooser{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid #9e7393;border-radius:14px;background:#38293f}
+.cp-chooser{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid #bc396c;border-radius:14px;background:#38293f}
 .cp-chooser-header{display:flex;align-items:center;justify-content:space-between;gap:9px}
 .cp-chooser-header strong{font-size:13px;color:#ffebd9}
 .cp-chooser-header span{font-size:10px;color:#dfb6d0}
@@ -67,7 +67,7 @@
 .cp-choices button img{width:100%;height:auto;aspect-ratio:1;object-fit:cover;border-radius:6px}
 .cp-choices button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;line-height:1.3}
 .cp-choices button:disabled{opacity:.6}
-.cp-restart{align-self:center;border:1px solid #f0c1d5;background:#745472;color:#fff0f5;border-radius:9px;
+.cp-restart{align-self:center;border:1px solid #bc396c;background:#745472;color:#fff0f5;border-radius:9px;
  padding:10px 15px;font-size:11px;font-weight:850}
 .cp-restart:disabled{opacity:.5}
 .cp-alert,.cp-notice{display:flex;justify-content:space-between;align-items:center;gap:8px;border-radius:10px;padding:10px;
