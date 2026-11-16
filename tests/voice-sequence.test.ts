@@ -58,7 +58,7 @@ test("Voice player autostarts only on naturally finished playback, respecting re
  assert.ok(player.includes("if(audio.current)audio.current.playbackRate=speed"));
  assert.ok(player.includes("element.playbackRate=speed"));
  assert.ok(player.includes('className="lr-voice-note-speed"'));
- assert.ok(player.includes('onPointerDown={e=>e.stopPropagation()}'));
+ assert.ok(player.includes('onPointerDown={event=>event.stopPropagation()}'),"Speed and profile controls keep their normal tap behavior");
  assert.ok(focus.includes("hasExclusiveAudioCapture()"));
 });
 test("Speed button remains readable inside compact voice bubble",()=>{
