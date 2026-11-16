@@ -52,22 +52,25 @@ test("outgoing and incoming audio remain in existing conversation order with no 
  assert.ok(app.includes('chatMessages.map((m,idx)=>'));
 });
 
-test("every playable vocal exposes reactions and message actions without hijacking playback",()=>{
+test("voice notes open the same message actions via long press without a visible three-dot button",()=>{
  const player=readFileSync("src/VoiceMessage.tsx","utf8");
  const app=readFileSync("src/App.tsx","utf8");
  const css=readFileSync("src/voice-message.css","utf8");
  const api=readFileSync("functions/api/love.ts","utf8");
- assert.ok(player.includes("onOpenActions?:()=>void"));
- assert.ok(player.includes('className="lr-voice-note-actions"'));
- assert.ok(player.includes('onClick={e=>{e.stopPropagation();onOpenActions()}}'));
- assert.ok(player.includes('onPointerDown={e=>e.stopPropagation()}'));
- assert.ok(app.includes("onOpenActions={()=>openMessageActions(m)}"));
+ assert.ok(!player.includes('className="lr-voice-note-actions"'),"no action icon over the waveform");
+ assert.ok(!player.includes("onOpenActions"),"action menu is owned by the outer chat message");
+ assert.ok(!app.includes("onOpenActions={()=>openMessageActions(m)}"));
+ assert.ok(!css.includes(".lr-voice-note-actions"),"no old floating button styles");
  assert.ok(app.includes('onPointerDown={e=>messagePointerDown(e,m)}'));
  assert.ok(app.includes('onPointerUp={e=>messagePointerUp(e,m)}'));
+ assert.ok(app.includes("window.setTimeout(()=>"),"long hold timer remains active");
+ assert.ok(app.includes("openMessageActions(message)"),"hold opens existing menu");
+ assert.ok(app.includes('const holdOnly=Boolean((e.target as HTMLElement).closest("input[type=range]"))'),"waveform is holdable");
+ assert.ok(app.includes("if(g.holdOnly){if(Math.abs(dx)>10||Math.abs(dy)>10)resetSwipe(e.currentTarget);return}"),"dragging waveform cancels long hold");
+ assert.ok(app.includes("!g.holdOnly&&dx>=62"),"waveform scrubbing never triggers swipe reply");
  assert.ok(app.includes('CHAT_REACTIONS.map(emoji=>'));
  assert.ok(app.includes('onClick={()=>void deleteOwnMessage(actionMessage)}'));
  assert.ok(api.includes("kind IN ('text','image','audio')"));
- assert.ok(css.includes(".lr-voice-note-actions"));
 });
 
 test("voice notes use live member profile photos, clickable profile and in-place playback speed",()=>{
