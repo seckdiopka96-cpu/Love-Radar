@@ -227,3 +227,28 @@ test("stickers render small and lightweight without inflating chat bubble spacin
  assert.ok(!css.includes("width:155px;height:146px"),"Old oversized sticker art is removed");
  assert.ok(!css.includes("border:4px solid #fff7f7"),"Old thick bright border is removed");
 });
+
+test("WhatsApp-style anchored chat actions keep existing handlers and work at viewport edges",()=>{
+ const css=readFileSync("src/message-context-premium.css","utf8");
+ assert.ok(app.includes("useLayoutEffect(()=>"),"popover position is measured before paint");
+ assert.ok(app.includes('querySelector(".lr-bubble-stack")'),"position follows the selected message bubble");
+ assert.ok(app.includes("window.visualViewport?.addEventListener"),"repositions after viewport changes on iPhone");
+ assert.ok(app.includes("Math.min(Math.max(topEdge,bottomEdge),desiredTop)"),"menu is clamped vertically");
+ assert.ok(app.includes('lr-message-action-backdrop lr-message-context-backdrop'),"conversation dims behind popover");
+ assert.ok(app.includes('lr-message-action-popover'),"message menu floats beside the selected message");
+ assert.ok(app.includes('lr-message-action-preview'),"selected text gets a highlighted preview");
+ assert.ok(app.includes('EXTRA_CHAT_REACTIONS.map(emoji=>'),"extra emoji picker is interactive");
+ assert.ok(app.includes('aria-expanded={extraReactionsOpen}'),"more reactions is accessible");
+ assert.ok(app.includes('onClick={()=>void reactToMessage(actionMessage,emoji)}'),"reactions still use the server");
+ assert.ok(app.includes("onClick={()=>void copyMessage(actionMessage)}"),"copy still works");
+ assert.ok(app.includes("onClick={()=>beginEditing(actionMessage)}"),"edit still works");
+ assert.ok(app.includes("onClick={()=>void deleteOwnMessage(actionMessage)}"),"delete for everyone still works");
+ assert.ok(css.includes(".lr-message-action-popover .lr-message-reaction-picker"),"reaction bar is independent");
+ assert.ok(css.includes(".lr-message-action-popover .lr-message-action-sheet"),"menu is compact");
+ assert.ok(css.includes(".lr-message-action-popover.is-own .lr-message-action-preview"),"outgoing selected preview uses the rose palette");
+ assert.ok(css.includes("prefers-reduced-motion:reduce"),"motion reduction is supported");
+ assert.ok(css.includes("calc(100vw - 24px)"),"small screen widths are respected");
+ const api=readFileSync("functions/api/love.ts","utf8");
+ for(const emoji of ["👏","🥰","😍","😘","💗","🔥","🎉","💯","🤗","😎","💐","🤲","😅"])
+  assert.ok(api.includes('"'+emoji+'"'),"server accepts selected reaction "+emoji);
+});
