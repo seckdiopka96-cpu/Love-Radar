@@ -139,3 +139,17 @@
 @media(prefers-reduced-motion:reduce){
  .lr-party button,.lr-party-timer-track>span{transition:none!important;transform:none!important}
 }
+
+/* Both partners explicitly arm the rapid round before the countdown begins. */
+.lr-party-ready{justify-content:center}
+.lr-party-ready>strong{font-size:20px;letter-spacing:-.3px}
+.lr-party-ready .lr-party-primary{max-width:365px}
+.lr-party-ready-status{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.lr-party-ready-status span{min-height:45px;display:grid;place-items:center;padding:9px 6px;
+ background:#26394c;border:1px solid #516679;border-radius:12px;
+ font-size:11px;color:#c6d4dd;font-weight:760;overflow-wrap:anywhere}
+.lr-party-ready-status span.is-ready{background:#2a504b;border-color:#6cbba7;color:#d7fff0}
+@media(max-width:700px){
+ /* Main application scroller already reserves the iPhone dock's safe area. */
+ .lr-party{padding-bottom:22px}
+}
