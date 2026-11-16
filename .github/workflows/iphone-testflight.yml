@@ -1,0 +1,199 @@
+name: Préparer Love Radar iPhone et TestFlight
+
+# Trigger manually from the GitHub Actions tab; TestFlight never uploads
+# silently on push or pull requests. All Apple credentials remain secrets.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Que veux-tu préparer ?"
+        required: true
+        type: choice
+        default: simulateur
+        options:
+          - simulateur
+          - testflight
+      version_name:
+        description: "Version visible sur iPhone (ex. 1.0.0)"
+        required: true
+        type: string
+        default: "1.0.0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: love-radar-iphone-testflight
+  cancel-in-progress: false
+
+jobs:
+  ios-iphone:
+    name: Love Radar iPhone
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-26-intel
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Vérifier la version et le mode de distribution
+        shell: bash
+        env:
+          IOS_VERSION: ${{ inputs.version_name }}
+          DISTRIBUTION_MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$IOS_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version iPhone invalide (format X.Y.Z)."
+            exit 1
+          fi
+          if [[ "$DISTRIBUTION_MODE" != "simulateur" && "$DISTRIBUTION_MODE" != "testflight" ]]; then
+            echo "::error::Mode iOS invalide."
+            exit 1
+          fi
+          echo "Love Radar iOS $IOS_VERSION ($DISTRIBUTION_MODE)"
+
+      - name: Vérifier les identifiants Apple (TestFlight uniquement)
+        if: inputs.mode == 'testflight'
+        shell: bash
+        env:
+          APPSTORE_ISSUER_ID: ${{ vars.APPSTORE_ISSUER_ID }}
+          APPSTORE_API_KEY_ID: ${{ vars.APPSTORE_API_KEY_ID }}
+          APPSTORE_TEAM_ID: ${{ vars.APPSTORE_TEAM_ID }}
+          APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+          APPSTORE_CERTIFICATES_FILE_BASE64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
+          APPSTORE_CERTIFICATES_PASSWORD: ${{ secrets.APPSTORE_CERTIFICATES_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for key in APPSTORE_ISSUER_ID APPSTORE_API_KEY_ID APPSTORE_TEAM_ID APPSTORE_API_PRIVATE_KEY APPSTORE_CERTIFICATES_FILE_BASE64 APPSTORE_CERTIFICATES_PASSWORD; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "::error::Configuration manquante : $key (voir docs/TESTFLIGHT-IPHONE.md)"
+              missing=1
+            fi
+          done
+          if [[ "$missing" -ne 0 ]]; then exit 1; fi
+          if [[ ! "$APPSTORE_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]; then
+            echo "::error::APPSTORE_TEAM_ID doit contenir 10 caractères."
+            exit 1
+          fi
+
+      - name: Générer le vrai projet iPhone Capacitor
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install
+          npm run build
+          npx cap add ios --packagemanager SPM
+          node scripts/configure-native.mjs ios
+          npx cap sync ios
+
+      - name: Installer l'icône et la configuration TestFlight
+        shell: bash
+        env:
+          APPSTORE_TEAM_ID: ${{ vars.APPSTORE_TEAM_ID || 'TESTTEAM00' }}
+          APPSTORE_PROFILE_NAME: ${{ vars.APPSTORE_PROFILE_NAME || 'AppStore com.diaotech.loveradar' }}
+        run: |
+          set -euo pipefail
+          node scripts/prepare-testflight.mjs
+
+      - name: Compiler le simulateur sans signature Apple
+        if: inputs.mode == 'simulateur'
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/love-radar-iphone" \
+            CODE_SIGNING_ALLOWED=NO build
+          cd "$RUNNER_TEMP/love-radar-iphone/Build/Products/Debug-iphonesimulator"
+          ditto -c -k --sequesterRsrc --keepParent App.app "$GITHUB_WORKSPACE/love-radar-iphone-simulator.zip"
+
+      - name: Joindre la version simulateur (pas installable directement sur iPhone)
+        if: inputs.mode == 'simulateur'
+        uses: actions/upload-artifact@v4
+        with:
+          name: love-radar-iphone-simulator
+          path: love-radar-iphone-simulator.zip
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Importer le certificat Apple Distribution
+        if: inputs.mode == 'testflight'
+        uses: Apple-Actions/import-codesign-certs@v7
+        with:
+          p12-file-base64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
+          p12-password: ${{ secrets.APPSTORE_CERTIFICATES_PASSWORD }}
+
+      - name: Télécharger le profil App Store du bon identifiant
+        if: inputs.mode == 'testflight'
+        id: profiles
+        uses: Apple-Actions/download-provisioning-profiles@v7
+        with:
+          bundle-id: com.diaotech.loveradar
+          profile-type: IOS_APP_STORE
+          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+
+      - name: Vérifier le profil de distribution reçu
+        if: inputs.mode == 'testflight'
+        shell: bash
+        env:
+          PROFILE_NAME: ${{ vars.APPSTORE_PROFILE_NAME || 'AppStore com.diaotech.loveradar' }}
+          INSTALLED_PROFILES: ${{ steps.profiles.outputs.profiles }}
+        run: |
+          set -euo pipefail
+          if ! jq -e --arg name "$PROFILE_NAME" 'any(.[]; .name == $name and .type == "IOS_APP_STORE")' <<<"$INSTALLED_PROFILES" >/dev/null; then
+            echo "::error::Profil App Store '$PROFILE_NAME' introuvable pour com.diaotech.loveradar."
+            echo "::error::Crée le profil dans Apple Developer ou adapte APPSTORE_PROFILE_NAME."
+            exit 1
+          fi
+
+      - name: Signer et archiver la vraie application iPhone
+        if: inputs.mode == 'testflight'
+        shell: bash
+        env:
+          APPSTORE_TEAM_ID: ${{ vars.APPSTORE_TEAM_ID }}
+          APPSTORE_PROFILE_NAME: ${{ vars.APPSTORE_PROFILE_NAME || 'AppStore com.diaotech.loveradar' }}
+          IOS_VERSION: ${{ inputs.version_name }}
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/LoveRadar.xcarchive" \
+            DEVELOPMENT_TEAM="$APPSTORE_TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER="$APPSTORE_PROFILE_NAME" \
+            CODE_SIGN_IDENTITY='Apple Distribution' \
+            MARKETING_VERSION="$IOS_VERSION" \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            archive
+
+      - name: Exporter le fichier IPA signé pour TestFlight
+        if: inputs.mode == 'testflight'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/love-radar-testflight"
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/LoveRadar.xcarchive" \
+            -exportOptionsPlist ios/App/ExportOptions-TestFlight.plist \
+            -exportPath "$RUNNER_TEMP/love-radar-testflight"
+          test -s "$RUNNER_TEMP/love-radar-testflight/App.ipa"
+          echo "IPA Apple Distribution généré, signature vérifiée par Xcode."
+
+      - name: Envoyer le build à Apple TestFlight
+        if: inputs.mode == 'testflight'
+        uses: Apple-Actions/upload-testflight-build@v5
+        with:
+          app-path: ${{ runner.temp }}/love-radar-testflight/App.ipa
+          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+          wait-for-processing: 'false'
+          backend: appstore-api
