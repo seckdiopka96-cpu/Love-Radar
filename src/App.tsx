@@ -66,10 +66,10 @@ type LocalText={id:string;created_at:number;text:string;wireText?:string;replyTo
 
 const NAV: {id:Tab;label:string}[] = [
  {id:"home",label:"Accueil"},
- {id:"chat",label:"Messages"},
+ {id:"memories",label:"Souvenirs"},
  {id:"together",label:"Nous deux"},
  {id:"games",label:"Jeux"},
- {id:"memories",label:"Souvenirs"},
+ {id:"chat",label:"Messages"},
 ];
 function NavGlyph({tab}:{tab:Tab}){
  return <svg className="lr-nav-glyph" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
