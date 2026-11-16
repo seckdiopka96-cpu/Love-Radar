@@ -55,3 +55,23 @@ CREATE TABLE IF NOT EXISTS ludo_games (
  last_action TEXT NOT NULL,
  updated_at INTEGER NOT NULL
 );
+
+-- Profile images are always accessed by authenticated users from the same room.
+CREATE TABLE IF NOT EXISTS profile_photos (
+ room_id TEXT NOT NULL,
+ member_id TEXT NOT NULL,
+ object_key TEXT NOT NULL,
+ updated_at INTEGER NOT NULL,
+ PRIMARY KEY (room_id,member_id)
+);
+
+-- Private room revision used by lightweight status polling.
+CREATE TABLE IF NOT EXISTS room_revisions (
+ room_id TEXT PRIMARY KEY,
+ revision INTEGER NOT NULL DEFAULT 0,
+ updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+-- Keep recent activity queries room-local as the number of couples grows.
+CREATE INDEX IF NOT EXISTS idx_messages_room_sender_time ON messages(room_id,sender_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_members_room_seat ON members(room_id,seat);
