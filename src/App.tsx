@@ -1,4 +1,6 @@
 import {apiFetch,isNativeApp,publicInviteUrl} from "./api";
+import {ensureIdentity,loadIdentity,encryptedBackupFor,restoreIdentityBackup,fingerprint,makeContext,verifyPartner,isPartnerVerified,encryptText,encryptMedia,decryptMedia,isEncryptedMedia,isEncryptedText,type CryptoContext} from "./e2ee";
+import {revealMessages} from "./e2ee-room";
 import {setNativePrivacy} from "./native-privacy";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import "./love-radar.css";
@@ -48,14 +50,15 @@ import "./together-premium.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
+type EncryptionState={mine:string|null;partner:string|null;required:boolean};
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number;
  reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null;
  edited_at?:number;reactions?:{member_id:string;emoji:string}[];view_once?:number|boolean};
 type RecentReaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
-type Room = {revision?:number;recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean;avatarVersion?:number};code:string;roomId:string;partner:string|null;partnerId?:string|null;partnerAvatarVersion?:number;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
+type Room = {revision?:number;e2ee?:EncryptionState;recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean;avatarVersion?:number};code:string;roomId:string;partner:string|null;partnerId?:string|null;partnerAvatarVersion?:number;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string;recoveryCode?:string;id?:string}&Partial<Room>;
 type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
-type LocalText={id:string;created_at:number;text:string;replyToId?:string;replyKind?:QuoteKind|null;replyContent?:string|null;replySenderId?:string|null;status:"sending"|"failed"|"sent";error?:string};
+type LocalText={id:string;created_at:number;text:string;wireText?:string;replyToId?:string;replyKind?:QuoteKind|null;replyContent?:string|null;replySenderId?:string|null;status:"sending"|"failed"|"sent";error?:string};
 
 
 const NAV: {id:Tab;label:string}[] = [
@@ -107,7 +110,34 @@ function Initials({name,size="normal",src}:{name:string;size?:"normal"|"small";s
 export default function LoveRadar(){
  const [token,setToken]=useState("");
  const [room,setRoom]=useState<Room|null>(null);
+ const [e2eeBusy,setE2eeBusy]=useState(false);
+ const [e2eeBackup,setE2eeBackup]=useState("");
+ const [e2eeOwnCode,setE2eeOwnCode]=useState("");
+ const [e2eePartnerCode,setE2eePartnerCode]=useState("");
+ const [e2eeDeviceReady,setE2eeDeviceReady]=useState(false);
+ const [e2eeVerified,setE2eeVerified]=useState(false);
  const avatars=useProfileAvatars(token,room?.user.id,room?.user.avatarVersion,room?.partnerId,room?.partnerAvatarVersion);
+ useEffect(()=>{
+  let alive=true;
+  setE2eeBackup("");
+  const memberId=room?.user.id;
+  if(memberId)void encryptedBackupFor(memberId).then(v=>{if(alive)setE2eeBackup(v||"")}).catch(()=>{});
+  return()=>{alive=false};
+ },[room?.user.id]);
+ useEffect(()=>{
+  let alive=true;const rm=room;
+  if(!rm?.e2ee?.mine){setE2eeOwnCode("");setE2eePartnerCode("");setE2eeDeviceReady(false);setE2eeVerified(false);return}
+  void (async()=>{
+   const identity=await loadIdentity(rm.user.id);
+   const own=await fingerprint(rm.e2ee!.mine!);
+   const partner=rm.e2ee!.partner?await fingerprint(rm.e2ee!.partner):"";
+   if(!alive)return;
+   setE2eeDeviceReady(Boolean(identity&&identity.publicKey===rm.e2ee!.mine));
+   setE2eeOwnCode(own);setE2eePartnerCode(partner);
+   setE2eeVerified(Boolean(partner&&rm.partnerId&&isPartnerVerified(rm.roomId,rm.partnerId,partner)));
+  })().catch(()=>{if(alive){setE2eeDeviceReady(false);setE2eeVerified(false)}});
+  return()=>{alive=false};
+ },[room?.roomId,room?.user.id,room?.partnerId,room?.e2ee?.mine,room?.e2ee?.partner]);
  const profilePicker=useRef<HTMLInputElement|null>(null);
  const [profileFile,setProfileFile]=useState<File|null>(null);
  const [profileBusy,setProfileBusy]=useState(false);
@@ -434,7 +464,12 @@ export default function LoveRadar(){
     const data=await res.json() as {ok:boolean;focusMessage?:Message|null;error?:string};
     if(!res.ok||!data.ok)throw Error(data.error||"Ce message n’est pas disponible.");
     if(!data.focusMessage)throw Error("Ce contenu n’est plus disponible dans cet espace.");
-    if(!cancelled)setFocusMessage(data.focusMessage);
+    if(!cancelled){
+     let context:CryptoContext|null=null;
+     if(room?.e2ee?.required)try{context=await cryptoFor(room)}catch{/* No key yet. */}
+     const [message]=await revealMessages([data.focusMessage],context);
+     setFocusMessage(message);
+    }
    }catch(err){if(!cancelled)setFocusError(err instanceof Error?err.message:"Impossible d’ouvrir le contenu.")}
    finally{if(!cancelled)setFocusLoading(false)}
   })();
@@ -449,6 +484,13 @@ export default function LoveRadar(){
   setFocusMedia("");
   void apiFetch("/api/media?id="+encodeURIComponent(m.object_key),{headers:{Authorization:"Bearer "+token},signal:controller.signal})
    .then(res=>{if(!res.ok)throw Error("Média indisponible");return res.blob()})
+   .then(async blob=>{
+    if(isEncryptedMedia(m.mime)){
+     if(!room)throw Error("Clé manquante");
+     blob=await decryptMedia(await cryptoFor(room),blob,m.kind as "image"|"audio",m.id,m.sender_id);
+    }
+    return blob;
+   })
    .then(blob=>{if(cancelled)return;const url=URL.createObjectURL(blob);focusAsset.current=url;setFocusMedia(url)})
    .catch(()=>{if(!cancelled)setFocusError("Ce média n’est plus disponible.")});
   return()=>{cancelled=true;controller.abort();if(focusAsset.current){URL.revokeObjectURL(focusAsset.current);focusAsset.current="";}}
@@ -582,6 +624,70 @@ export default function LoveRadar(){
    throw error;
   }finally{window.clearTimeout(timeout)}
  },[token]);
+
+ async function cryptoFor(rm:Room):Promise<CryptoContext>{
+  if(!rm.e2ee?.mine||!rm.e2ee.partner||!rm.partnerId||!rm.e2ee.required)
+   throw Error("Les deux partenaires doivent activer le chiffrement.");
+  return makeContext({roomId:rm.roomId,mineId:rm.user.id,partnerId:rm.partnerId,
+   minePublicKey:rm.e2ee.mine,partnerPublicKey:rm.e2ee.partner});
+ }
+ async function encryptedOutgoing(text:string,id:string,rm:Room):Promise<string>{
+  if(rm.e2ee?.mine&&!rm.e2ee?.required)
+   throw Error("Le chiffrement est activé pour toi. Attends que ton partenaire l’active aussi.");
+  if(!rm.e2ee?.required)return text;
+  return encryptText(await cryptoFor(rm),text,id);
+ }
+
+ async function enableE2EE(passphrase:string){
+  const rm=room;if(!rm||e2eeBusy||rm.e2ee?.mine)return;
+  setE2eeBusy(true);setError("");
+  try{
+   const created=await ensureIdentity(rm.user.id,passphrase);
+   setE2eeBackup(created.encryptedBackup);
+   setNotice("Clé privée créée. Télécharge sa sauvegarde et conserve la phrase secrète avant l’activation.");
+  }catch(e){setError(e instanceof Error?e.message:"Impossible de préparer la clé chiffrée.")}
+  finally{setE2eeBusy(false)}
+ }
+ async function completeE2EE(){
+  const rm=room;if(!rm||e2eeBusy||rm.e2ee?.mine)return;
+  setE2eeBusy(true);setError("");
+  try{
+   const identity=await loadIdentity(rm.user.id);
+   const backup=await encryptedBackupFor(rm.user.id);
+   if(!identity||!backup)throw Error("Sauvegarde préalable obligatoire.");
+   await request("enable-e2ee",{publicKey:identity.publicKey});
+   await refresh(undefined,true);
+   setNotice("Chiffrement activé sur ce téléphone. Ton partenaire doit aussi activer sa clé.");
+  }catch(e){setError(e instanceof Error?e.message:"Activation impossible.")}
+  finally{setE2eeBusy(false)}
+ }
+ async function restoreE2EE(file:File,passphrase:string){
+  const rm=room;
+  if(!rm?.e2ee?.mine||e2eeBusy)return;
+  setE2eeBusy(true);setError("");
+  try{
+   if(file.size>4000)throw Error("Sauvegarde trop volumineuse.");
+   const encrypted=await file.text();
+   await restoreIdentityBackup(rm.user.id,encrypted,passphrase,rm.e2ee.mine);
+   setE2eeBackup(encrypted);setE2eeDeviceReady(true);
+   await refresh(undefined,true);
+   setNotice("Clé privée restaurée sur ce téléphone.");
+  }catch(e){setError(e instanceof Error?e.message:"Restauration de clé impossible.")}
+  finally{setE2eeBusy(false)}
+ }
+ async function approvePartnerKey(){
+  const rm=room,code=e2eePartnerCode;
+  if(!rm?.partnerId||!code||e2eeBusy)return;
+  if(!window.confirm("As-tu comparé cette empreinte complète avec ton partenaire en personne ou lors d’un appel ? Ne confirme pas sans comparaison réelle.\\n\\n"+code))return;
+  try{verifyPartner(rm.roomId,rm.partnerId,code);setE2eeVerified(true);await refresh(undefined,true)}
+  catch{setError("Impossible de sauvegarder la vérification sur cet appareil.")}
+ }
+ async function sendBackgroundText(text:string){
+  const rm=room;if(!rm)throw Error("Espace indisponible.");
+  const id=crypto.randomUUID();
+  await request("message",{text:await encryptedOutgoing(text,id,rm),messageId:id});
+  await refresh(undefined,true);
+ }
  const refresh=useCallback(async(key?:string,silent=false)=>{
   const t=key||token;
   if(!t||snapshotInFlight.current===t)return;
@@ -605,6 +711,11 @@ export default function LoveRadar(){
    if(sequence<snapshotApplied.current)return;
    snapshotApplied.current=sequence;
    const nextRoom=data as unknown as Room;
+   let context:CryptoContext|null=null;
+   if(nextRoom.e2ee?.required)try{context=await cryptoFor(nextRoom)}catch{/* No plaintext fallback. */}
+   nextRoom.messages=await revealMessages(nextRoom.messages||[],context);
+   if(nextRoom.recentReaction?.content&&isEncryptedText(nextRoom.recentReaction.content))
+    nextRoom.recentReaction={...nextRoom.recentReaction,content:"Message chiffré"};
    // Ignore unchanged snapshots so polling cannot redraw the whole interface.
    setRoom(previous=>previous&&JSON.stringify(previous)===JSON.stringify(nextRoom)?previous:nextRoom);
   }catch(e){if(!silent)setError(controller.signal.aborted?"Connexion trop lente. Vérifie ton réseau.":e instanceof Error?e.message:"Connexion impossible.")}
@@ -722,10 +833,15 @@ export default function LoveRadar(){
     headers:{Authorization:"Bearer "+token},cache:"no-store",signal:controller.signal
    });
    if(!response.ok)throw new Error("HTTP "+response.status);
-   const mime=(response.headers.get("content-type")||"").toLowerCase();
+   let mime=(response.headers.get("content-type")||"").toLowerCase();
+   let blob=await response.blob();
+   if(isEncryptedMedia(item.mime)){
+    if(!isEncryptedMedia(mime)||!room)throw Error("Média chiffré indisponible.");
+    blob=await decryptMedia(await cryptoFor(room),blob,item.kind as "image"|"audio",item.id,item.sender_id);
+    mime=blob.type;
+   }
    if(item.kind==="image"&&!mime.startsWith("image/"))throw new Error("Incorrect photo MIME");
    if(item.kind==="audio"&&!mime.startsWith("audio/")&&!mime.startsWith("video/"))throw new Error("Incorrect sound MIME");
-   const blob=await response.blob();
    if(blob.size===0)throw new Error("Empty file");
    const url=URL.createObjectURL(blob);
    if(item.kind==="image"){
@@ -913,7 +1029,11 @@ export default function LoveRadar(){
   sendingTextIds.current.add(entry.id);
   setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"sending" as const,error:undefined}:item));
   try{
-   const result=await request("message",{text:entry.text,messageId:entry.id,...(entry.replyToId?{replyTo:entry.replyToId}:{})});
+   if(!room)throw Error("Espace indisponible.");
+   const wire=entry.wireText||await encryptedOutgoing(entry.text,entry.id,room);
+   entry.wireText=wire;
+   setTextOutbox(items=>items.map(v=>v.id===entry.id?{...v,wireText:wire}:v));
+   const result=await request("message",{text:wire,messageId:entry.id,...(entry.replyToId?{replyTo:entry.replyToId}:{})});
    if(result.id!==entry.id)throw Error("Confirmation d'envoi incorrecte.");
    setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"sent" as const}:item));
    void refresh(undefined,true);
@@ -928,7 +1048,8 @@ export default function LoveRadar(){
    const text=draft.trim(),id=editTarget.id;
    setBusy(true);setError("");
    try{
-    await request("edit-message",{id,text});
+    if(!room)throw Error("Espace indisponible.");
+    await request("edit-message",{id,text:await encryptedOutgoing(text,id,room)});
     cancelEditing();
     await refresh(undefined,true);
    }catch(err){setError(err instanceof Error?err.message:"Impossible de modifier ce message.")}
@@ -1094,7 +1215,11 @@ export default function LoveRadar(){
   if(file.size>limit){setError("Fichier trop lourd : "+(kind==="image"?"6 Mo":"5 Mo")+" maximum.");return}
   setBusy(true);setError("");
   try{
-   const form=new FormData();form.append("file",file);form.append("kind",kind);
+   if(!room)throw Error("Espace indisponible.");
+   if(room.e2ee?.mine&&!room.e2ee?.required)throw Error("Ton partenaire doit activer le chiffrement avant l’envoi.");
+   const id=crypto.randomUUID();
+   const sendFile=room.e2ee?.required?await encryptMedia(await cryptoFor(room),file,kind,id):file;
+   const form=new FormData();form.append("file",sendFile);form.append("kind",kind);form.append("messageId",id);
    const res=await apiFetch("/api/media",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
    const data=await res.json() as {ok:boolean;error?:string};
    if(!data.ok)throw new Error(data.error||"Envoi impossible.");
@@ -1110,7 +1235,10 @@ export default function LoveRadar(){
   setVoiceOutbox(items=>items.map(v=>v.id===entry.id?{...v,status:"uploading",error:undefined}:v));
   try{
    const form=new FormData();
-   form.append("file",entry.file);
+   if(!room)throw Error("Espace indisponible.");
+   if(room.e2ee?.mine&&!room.e2ee?.required)throw Error("Ton partenaire doit activer le chiffrement avant l’envoi.");
+   const sendFile=room.e2ee?.required?await encryptMedia(await cryptoFor(room),entry.file,"audio",entry.id):entry.file;
+   form.append("file",sendFile);
    form.append("kind","audio");
    form.append("messageId",entry.id);
    const response=await apiFetch("/api/media",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
@@ -1342,6 +1470,10 @@ export default function LoveRadar(){
      name={room.user.name} code={room.code} owner={room.user.owner} token={token} avatarSrc={avatars.mine} avatarVersion={room.user.avatarVersion}
      profileBusy={profileBusy} profileError={profileError} recoveryBusy={recoveryBusy} onGenerateRecovery={()=>void issueRecoveryCode()} privacyEnabled={privacyEnabled}
      notificationsOn={notificationsOn} notificationsBusy={notificationsBusy} notificationsTesting={notificationsTesting} notificationsHint={notificationsHint}
+     e2ee={room.e2ee} e2eeBusy={e2eeBusy} e2eeBackup={e2eeBackup} e2eeOwnCode={e2eeOwnCode} e2eePartnerCode={e2eePartnerCode}
+     e2eeDeviceReady={e2eeDeviceReady} e2eeVerified={e2eeVerified}
+     onEnableE2EE={phrase=>void enableE2EE(phrase)} onFinishE2EE={()=>void completeE2EE()}
+     onRestoreE2EE={(file,phrase)=>void restoreE2EE(file,phrase)} onVerifyPartnerKey={()=>void approvePartnerKey()}
      nativeApp={isNativeApp} onBack={()=>navigate("home")}
      onChoosePhoto={()=>profilePicker.current?.click()}
      onAdjustPhoto={()=>void adjustProfilePhoto()} onRemovePhoto={()=>void removeProfilePhoto()}
@@ -1354,11 +1486,11 @@ export default function LoveRadar(){
     {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenWatch={()=>navigate("watch")} onOpenPuzzle={()=>navigate("puzzle")} onOpenReconcile={()=>navigate("reconcile")} focusKind={noticeTarget?.kind==="love-signal"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"?noticeTarget.id:null}/>:null}
     {tab==="watch"?<WatchTogether token={token} myId={room.user.id} myName={room.user.name}
       partnerName={room.partner} messages={room.messages}
-      onSendText={async text=>{await request("message",{text});await refresh()}}
+      onSendText={async text=>{await sendBackgroundText(text)}}
       onOpenChat={()=>navigate("chat")} onOpenTikTok={()=>navigate("watch-tiktok")} onExit={()=>navigate("together")}/>:null}
     {tab==="watch-tiktok"?<TikTokTogether token={token} myId={room.user.id} myName={room.user.name}
       partnerName={room.partner} messages={room.messages}
-      onSendText={async text=>{await request("message",{text});await refresh()}}
+      onSendText={async text=>{await sendBackgroundText(text)}}
       onExit={()=>navigate("watch")} onOpenYouTube={()=>navigate("watch")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="story"||tab==="reunion"?<CoupleStory key={tab} token={token} mode={tab} privacyEnabled={privacyEnabled} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate(tab==="story"?"memories":"together")} onOpenStory={()=>navigate("story")} onOpenReunion={()=>navigate("reunion")}/>:null}
     {tab==="puzzle"?<SharedPuzzle token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")}/>:null}

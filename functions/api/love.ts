@@ -2,6 +2,7 @@ import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { notifyPartner, type PushEnv } from "../lib/push";
 import { ensureProfilePhotos } from "./profile";
 import {roomRevision,markRoomChanged} from "../lib/room-revision";
+import {roomPublicKeys,encryptedText,validateP256PublicKey,ENCRYPTED_TEXT_PREFIX} from "../lib/e2ee";
 import {deleteCoupleRoom} from "../lib/delete-room";
 import {generateRecoveryCode,ensureRecoveryCodes,recoveryHash} from "../lib/account-recovery";
 import {consumePublicLimit,consumeMemberLimit,PUBLIC_LIMITS,MEMBER_LIMITS,throttled} from "../lib/abuse-limits";
@@ -117,6 +118,9 @@ async function snapshot(db:D1Database,u:Member){
  ).bind(u.room_id,u.id).first<{message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null}>();
  const revision=await roomRevision(db,u.room_id);
  const otherStatus=await db.prepare("SELECT last_read_at,typing_until,recording_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1").bind(u.room_id,u.id).first<{last_read_at:number,typing_until:number,recording_until:number,last_seen_at:number}>();
+ const publicKeys=await roomPublicKeys(db,u.room_id);
+ const ownPublicKey=publicKeys.find(k=>k.member_id===u.id)?.public_key||null;
+ const partnerPublicKey=partnerMember?publicKeys.find(k=>k.member_id===partnerMember.id)?.public_key||null:null;
  const unread=await db.prepare("SELECT COUNT(*) AS n FROM messages WHERE room_id=? AND sender_id<>? AND kind IN ('text','image','audio') AND created_at>COALESCE((SELECT last_read_at FROM chat_presence WHERE room_id=? AND member_id=?),0) AND NOT EXISTS (SELECT 1 FROM message_hidden h WHERE h.room_id=messages.room_id AND h.message_id=messages.id AND h.member_id=?)")
   .bind(u.room_id,u.id,u.room_id,u.id,u.id).first<{n:number}>();
 
@@ -125,6 +129,7 @@ async function snapshot(db:D1Database,u:Member){
   .bind(u.room_id,u.id,u.room_id,u.id,u.id).first<{n:number}>();
  return {revision,user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id,avatarVersion:avatarMap.get(u.id)||0},code:u.invite,roomId:u.room_id,
   partner:partnerMember?.name||null,partnerId:partnerMember?.id||null,partnerAvatarVersion:partnerMember?avatarMap.get(partnerMember.id)||0:0,members:partners.results.length,
+  e2ee:{mine:ownPublicKey,partner:partnerPublicKey,required:Boolean(ownPublicKey&&partnerPublicKey)},
   messages:messages.results.reverse().map(row=>({...row,reactions:reactionsById.get(String(row.id))||[]})),recentReaction:recentReaction||null,unreadCount:Number(unread?.n||0)+Number(unreadReactions?.n||0),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerRecordingUntil:otherStatus?.recording_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
 }
 
@@ -163,8 +168,8 @@ async function snapshot(db:D1Database,u:Member){
   POST:async({request})=>{
    try{
     const len=Number(request.headers.get("content-length")||0);
-    if(len>8192)return fail("Demande trop volumineuse.",413);
-    const txt=await request.text();if(txt.length>8192)return fail("Demande trop volumineuse.",413);
+    if(len>16384)return fail("Demande trop volumineuse.",413);
+    const txt=await request.text();if(txt.length>16384)return fail("Demande trop volumineuse.",413);
     const body=JSON.parse(txt) as Record<string,unknown>;
     const op=body?.action;
     const db=bindings().DB as D1Database|undefined;
@@ -211,6 +216,19 @@ async function snapshot(db:D1Database,u:Member){
     }
     const session=await auth(request);if(!session)return fail("Session expirée. Rejoins ton espace.",401);
     const {user:u}=session;
+    if(op==="enable-e2ee"){
+     if(!await validateP256PublicKey(body.publicKey))return fail("Clé publique invalide.",400);
+     const current=await roomPublicKeys(db,u.room_id);
+     const prior=current.find(row=>row.member_id===u.id);
+     if(prior&&prior.public_key!==body.publicKey)return fail("Cette identité est déjà activée. La clé privée ne peut pas être remplacée silencieusement.",409);
+     if(prior)return ok({enabled:true,duplicate:true});
+     await db.prepare("INSERT INTO e2ee_keys(member_id,room_id,public_key,created_at) VALUES(?,?,?,?) ON CONFLICT(member_id) DO NOTHING")
+      .bind(u.id,u.room_id,body.publicKey,Date.now()).run();
+     const saved=await roomPublicKeys(db,u.room_id);
+     if(saved.find(row=>row.member_id===u.id)?.public_key!==body.publicKey)return fail("Identité de chiffrement différente.",409);
+     await markRoomChanged(db,u.room_id);
+     return ok({enabled:true});
+    }
     if(op==="presence"){
      await ensureChatPresence(db);
      await db.prepare("INSERT INTO chat_presence(room_id,member_id,last_seen_at) VALUES(?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET last_seen_at=excluded.last_seen_at").bind(u.room_id,u.id,Date.now()).run();
@@ -248,7 +266,13 @@ async function snapshot(db:D1Database,u:Member){
     }
     if(op==="message"){
      const message=String(body.text||"").trim();
-     if(!message||message.length>1600)return fail("Écris un message de 1 à 1 600 caractères.");
+     if(!message||message.length>12000)return fail("Message trop volumineux.",413);
+     const keys=await roomPublicKeys(db,u.room_id);
+     const ownKey=keys.some(row=>row.member_id===u.id);
+     if(ownKey&&keys.length!==2)return fail("Ton partenaire doit d’abord activer le chiffrement avant tout nouvel envoi.",409);
+     if(keys.length===2&&!encryptedText(message))return fail("Ce couple exige désormais un message chiffré.",409);
+     if(keys.length!==2&&message.startsWith(ENCRYPTED_TEXT_PREFIX))return fail("Les deux partenaires doivent activer le chiffrement.",409);
+     if(keys.length!==2&&message.length>1600)return fail("Écris un message de 1 à 1 600 caractères.");
      const replyTo=body.replyTo==null?"":String(body.replyTo);
      if(replyTo&&!/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(replyTo))return fail("Référence de réponse invalide.",400);
      if(replyTo){
@@ -294,7 +318,11 @@ async function snapshot(db:D1Database,u:Member){
      if(!validMessageId(body.id))return fail("Message invalide.",400);
      if(typeof body.text!=="string")return fail("Écris un texte valide.",400);
      const updated=body.text.trim();
-     if(!updated||updated.length>1600)return fail("Le texte doit contenir entre 1 et 1 600 caractères.",400);
+     if(!updated||updated.length>12000)return fail("Le texte est trop volumineux.",413);
+     const keys=await roomPublicKeys(db,u.room_id);
+     if(keys.length===2&&!encryptedText(updated))return fail("Modification chiffrée requise.",409);
+     if(keys.length!==2&&updated.startsWith(ENCRYPTED_TEXT_PREFIX))return fail("Le chiffrement n’est pas encore actif.",409);
+     if(keys.length!==2&&updated.length>1600)return fail("Le texte doit contenir entre 1 et 1 600 caractères.",400);
      const own=await db.prepare("SELECT content FROM messages WHERE id=? AND room_id=? AND sender_id=? AND kind='text'")
       .bind(body.id,u.room_id,u.id).first<{content:string|null}>();
      if(!own)return fail("Tu peux modifier uniquement tes propres textes.",403);
@@ -330,7 +358,7 @@ async function snapshot(db:D1Database,u:Member){
      await db.prepare("INSERT INTO message_reactions(room_id,message_id,member_id,emoji,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(room_id,message_id,member_id) DO UPDATE SET emoji=excluded.emoji,updated_at=excluded.updated_at")
       .bind(u.room_id,body.id,u.id,body.emoji,now).run();
      await markRoomChanged(db,u.room_id);
-     const raw=target.kind==="image"?"une photo":target.kind==="audio"?"un message vocal":/^\[sticker:v1:[a-z0-9-]{1,36}\]$/.test(target.content||"")?"un sticker":(target.content||"").replace(/\s+/g," ").trim();
+     const raw=target.kind==="image"?"une photo":target.kind==="audio"?"un message vocal":(target.content||"").startsWith(ENCRYPTED_TEXT_PREFIX)?"un message chiffré":/^\[sticker:v1:[a-z0-9-]{1,36}\]$/.test(target.content||"")?"un sticker":(target.content||"").replace(/\s+/g," ").trim();
      const excerpt=raw.length>65?raw.slice(0,64).trimEnd()+"…":raw||"un message";
      waitUntil(notifyPartner(env,u.room_id,u.id,"Réaction à ton message ❤️",u.name+" a réagi "+body.emoji+" à «"+excerpt+"»","chat",{kind:"message",id:body.id}));
      return ok({reaction:body.emoji});
