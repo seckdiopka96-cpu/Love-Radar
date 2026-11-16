@@ -4,6 +4,8 @@ import {readFileSync} from "node:fs";
 import {createElement} from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {quoteAuthor,quotePreview} from "../src/message-quote";
+import StickerArt from "../src/StickerArt";
+import {STICKERS,STICKER_GROUPS,encodeSticker,getSticker,readStickerId} from "../src/stickers";
 import QuoteCard from "../src/QuoteCard";
 
 const app=readFileSync("src/App.tsx","utf8");
@@ -159,4 +161,44 @@ test("premium native-style bottom dock replaces the old heavy navigation",()=>{
  assert.ok(!app.includes('Love <span>Radar'));
  assert.ok(!app.includes('Love Radar · Paramètres'));
  assert.ok(!manifest.includes('"short_name": "Love Radar"'));
+});
+
+test("original local stickers have unique IDs and survive message encoding",()=>{
+ assert.ok(STICKERS.length>=36,"Sticker gallery has a usable variety");
+ assert.equal(new Set(STICKERS.map(sticker=>sticker.id)).size,STICKERS.length);
+ assert.equal(STICKER_GROUPS.length,4);
+ for(const sticker of STICKERS){
+  assert.equal(readStickerId(encodeSticker(sticker.id)),sticker.id);
+  assert.equal(getSticker(sticker.id)?.label,sticker.label);
+  assert.ok(sticker.caption.length>0);
+ }
+ assert.equal(readStickerId("[sticker:v1:missing]"),null);
+ assert.equal(readStickerId("[sticker:v1:love-you] hello"),null);
+ assert.equal(quotePreview("text",encodeSticker("love-you")),"🎟️ Sticker · Je t’aime");
+ const markup=renderToStaticMarkup(createElement(StickerArt,{id:"love-you"}));
+ assert.ok(markup.includes("lr-sticker-art"));
+ assert.ok(markup.includes("JE T’AIME"));
+});
+test("stickers picker supports live search, categories, favorites and recent sends",()=>{
+ const picker=readFileSync("src/StickerPicker.tsx","utf8");
+ const css=readFileSync("src/stickers.css","utf8");
+ const home=readFileSync("src/HomeDashboard.tsx","utf8");
+ assert.ok(picker.includes('type="search"'));
+ assert.ok(picker.includes('role="tablist"'));
+ assert.ok(picker.includes("STICKER_GROUPS"));
+ assert.ok(picker.includes("favorites.includes(id)"));
+ assert.ok(picker.includes("RECENT_KEY+storageKey"));
+ assert.ok(picker.includes("FAV_KEY+storageKey"));
+ assert.ok(picker.includes("onSend(id)"));
+ assert.ok(css.includes(".lr-sticker-grid"));
+ assert.ok(css.includes(".lr-bubble-sticker"));
+ assert.ok(css.includes(".lr-sticker-trigger"));
+ assert.ok(app.includes("setStickerOpen(open=>!open)"));
+ assert.ok(app.includes("<StickerPicker storageKey="));
+ assert.ok(app.includes('void sendQueuedText(entry)'));
+ assert.ok(app.includes("<StickerArt id={readStickerId(m.content)!}"));
+ assert.ok(app.includes('!isSticker(actionMessage.content)'));
+ assert.ok(api.includes('message.startsWith("[sticker:v1:")'));
+ assert.ok(api.includes("un sticker"));
+ assert.ok(home.includes('quotePreview("text",last.content,95)'));
 });
