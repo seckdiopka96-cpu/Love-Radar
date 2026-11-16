@@ -1,5 +1,6 @@
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { notifyPartner, type PushEnv } from "../lib/push";
+import { ensureProfilePhotos } from "./profile";
 
 // Automatic and idempotent migration for both existing and new D1 rooms.
 let presenceReady: Promise<void> | null = null;
@@ -71,7 +72,12 @@ async function auth(request:Request):Promise<{db:D1Database,user:Member}|null>{
  return user?{db,user}:null;
 }
 async function snapshot(db:D1Database,u:Member){
+ await ensureProfilePhotos(db);
  const partners=await db.prepare("SELECT id,name,seat FROM members WHERE room_id=? ORDER BY seat").bind(u.room_id).all<{id:string,name:string,seat:number}>();
+ const avatars=await db.prepare("SELECT member_id,updated_at FROM profile_photos WHERE room_id=?")
+  .bind(u.room_id).all<{member_id:string;updated_at:number}>();
+ const avatarMap=new Map(avatars.results.map(photo=>[photo.member_id,photo.updated_at]));
+ const partnerMember=partners.results.find(person=>person.id!==u.id);
  await ensureMessageReplies(db);
  await ensureMessageActions(db);
  const messages=await db.prepare(
@@ -112,8 +118,8 @@ async function snapshot(db:D1Database,u:Member){
 
  const unreadReactions=await db.prepare("SELECT COUNT(*) AS n FROM message_reactions WHERE room_id=? AND member_id<>? AND updated_at>COALESCE((SELECT last_reaction_read_at FROM chat_presence WHERE room_id=? AND member_id=?),0) AND NOT EXISTS (SELECT 1 FROM message_hidden h WHERE h.room_id=message_reactions.room_id AND h.message_id=message_reactions.message_id AND h.member_id=?)")
   .bind(u.room_id,u.id,u.room_id,u.id,u.id).first<{n:number}>();
- return {user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id},code:u.invite,roomId:u.room_id,
-  partner:partners.results.find(a=>a.id!==u.id)?.name||null,members:partners.results.length,
+ return {user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id,avatarVersion:avatarMap.get(u.id)||0},code:u.invite,roomId:u.room_id,
+  partner:partnerMember?.name||null,partnerId:partnerMember?.id||null,partnerAvatarVersion:partnerMember?avatarMap.get(partnerMember.id)||0:0,members:partners.results.length,
   messages:messages.results.reverse().map(row=>({...row,reactions:reactionsById.get(String(row.id))||[]})),recentReaction:recentReaction||null,unreadCount:Number(unread?.n||0)+Number(unreadReactions?.n||0),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerRecordingUntil:otherStatus?.recording_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
 }
 
@@ -329,6 +335,15 @@ async function snapshot(db:D1Database,u:Member){
     }
     if(op==="delete"){
      if(u.owner_id!==u.id)return fail("Seul le créateur de l’espace peut le supprimer.",403);
+     await ensureProfilePhotos(db);
+     const profileObjects=await db.prepare("SELECT object_key FROM profile_photos WHERE room_id=?")
+      .bind(u.room_id).all<{object_key:string}>();
+     if(profileObjects.results.length&&!bindings().STORAGE)return fail("Stockage des profils indisponible.",503);
+     for(const profile of profileObjects.results){
+      try{await bindings().STORAGE?.delete(profile.object_key)}
+      catch(err){console.error("Delete profile photo",err);return fail("Suppression de photo de profil impossible.",503)}
+     }
+     await db.prepare("DELETE FROM profile_photos WHERE room_id=?").bind(u.room_id).run();
      const objects=await db.prepare("SELECT object_key FROM messages WHERE room_id=? AND object_key IS NOT NULL").bind(u.room_id).all<{object_key:string}>();
      const bucket=bindings().STORAGE;
      if(bucket)for(const row of objects.results)try{await bucket.delete(row.object_key)}catch(e){console.error("delete media",e);return fail("Suppression des médias impossible. Réessaie.",503)}
