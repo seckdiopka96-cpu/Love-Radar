@@ -10,6 +10,7 @@ export const PUBLIC_LIMITS={
  recover:{scope:"recover-account",max:8,windowMs:15*60*1000}
 } as const satisfies Record<string,LimitRule>;
 export const MEMBER_LIMITS={
+ recoveryIssue:{scope:"recovery-issue",max:4,windowMs:60*60*1000},
  message:{scope:"text-message",max:65,windowMs:60*1000},
  reaction:{scope:"message-reaction",max:90,windowMs:60*1000},
  media:{scope:"upload-media",max:20,windowMs:10*60*1000},
