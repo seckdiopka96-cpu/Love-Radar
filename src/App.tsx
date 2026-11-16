@@ -49,6 +49,7 @@ import "./refined-universe.css";
 import "./premium-dock.css";
 import "./together-premium.css";
 import "./live-voice-waveform.css";
+import "./chat-composer-signature.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
@@ -1651,15 +1652,17 @@ export default function LoveRadar(){
        </div>
       </div>:<form className={"lr-chat-form "+(chatFocused||draft.trim()?"is-writing ":"")+(recording?"is-recording":"")} onSubmit={sendMessage}>
        <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={onImageChange}/>
-       <button className="lr-attach" type="button" title="Envoyer une photo" aria-label="Ajouter une photo" onClick={()=>fileInput.current?.click()} disabled={!room.partner||busy}><span aria-hidden="true">+</span></button>
+       <button className="lr-attach" type="button" title="Ajouter une photo" aria-label="Ajouter une photo" onClick={()=>fileInput.current?.click()} disabled={!room.partner||busy}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>
+       </button>
        <input ref={chatInput} aria-label="Écrire un message" type="text" enterKeyHint="send" autoComplete="off" value={draft} onFocus={()=>{setStickerOpen(false);firstPoll.current=true;setChatFocused(true);scrollToLatest()}} onBlur={()=>{setChatFocused(false);setTyping(false)}} onChange={e=>{setDraft(e.target.value);setTyping(e.target.value.trim().length>0)}} placeholder={room.partner?"Message…":"En attente de ton partenaire…"} disabled={!room.partner} maxLength={1600}/>
               <button className={"lr-sticker-trigger"+(stickerOpen?" is-open":"")} type="button"
          aria-label={stickerOpen?"Fermer les stickers":"Ouvrir les stickers"}
          aria-expanded={stickerOpen} title="Stickers" disabled={!room.partner||busy||recording||Boolean(editTarget)}
          onClick={()=>{chatInput.current?.blur();setChatFocused(false);setStickerOpen(open=>!open);requestAnimationFrame(scrollToLatest)}}>
-         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M4 3h16v12l-6 6H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/>
-          <path d="M14 21v-6h6"/><path d="M8 9h.01M15 9h.01M8 14c2.2 2.3 4.7 2.3 7 0"/>
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M5.5 3.5h13a2 2 0 0 1 2 2V15l-5.5 5.5h-9.5a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z"/>
+          <path d="M15 20.5V15h5.5"/><circle cx="9" cy="10" r=".8" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r=".8" fill="currentColor" stroke="none"/><path d="M8.5 13c1.8 2 4.5 2 6.3 0"/>
          </svg>
         </button>
         <button className={"lr-mic "+(recording?"recording":"")} type="button" title={recording?"Arrêter le vocal":"Enregistrer un vocal"} aria-label={recording?"Arrêter le message vocal":"Enregistrer un message vocal"} onClick={toggleRecording} disabled={!room.partner||busy}>
