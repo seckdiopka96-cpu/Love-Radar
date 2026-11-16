@@ -8,7 +8,7 @@ export const RAPID_SECONDS=18;
 export const RAPID_COUNTDOWN_MS=3000;
 export const RAPID_QUESTIONS:readonly RapidQuestion[]=[
  {question:"Quel est le langage des fleurs traditionnellement associé à l'amour ?",options:["La tulipe noire","La rose rouge","Le tournesol","Le muguet"],answer:1},
- {question:"Combien de côtés a un cœur dans le jeu de cartes classique ?",options:["2","3","4","5"],answer:2},
+ {question:"Combien de couleurs ont les cartes à jouer classiques ?",options:["1","2","3","4"],answer:1},
  {question:"Quelle planète est surnommée la planète rouge ?",options:["Mars","Vénus","Jupiter","Mercure"],answer:0},
  {question:"Quel animal est célèbre pour former des couples très durables ?",options:["Le papillon","Le flamant rose","L'albatros","La libellule"],answer:2},
  {question:"Combien de minutes y a-t-il dans une heure ?",options:["50","60","70","100"],answer:1},
