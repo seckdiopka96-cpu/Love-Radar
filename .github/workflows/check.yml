@@ -27,4 +27,6 @@ jobs:
       - run: npm run test:voice-outbox
       - run: npm run test:photos
       - run: npm run test:reliability
+      - run: npm run test:security
+      - run: npm run test:load
       - run: npm run build
