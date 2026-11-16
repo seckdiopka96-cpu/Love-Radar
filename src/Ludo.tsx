@@ -499,7 +499,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
       <p><strong>⏱️ Chronomètre :</strong> chacun a 15 secondes pour agir. Après ce délai, l’ordinateur joue automatiquement à sa place dès qu’un appareil connecté interroge le serveur.</p>
       <h3>🎁 Défi cadeau facultatif</h3>
       <p>Si vous acceptez tous les deux le défi, <strong>le perdant propose d’offrir le cadeau choisi par le gagnant</strong> : crédit téléphonique, forfait Internet ou <strong>2 000 F CFA via Wave</strong>.</p>
-      <p>Ce défi est un engagement amical, pas un contrat légal ni un paiement automatique. Vous pouvez jouer sans cadeau si l’un de vous refuse. Aucun achat ou transfert Wave n’est effectué dans Love Radar.</p>
+      <p>Ce défi est un engagement amical, pas un contrat légal ni un paiement automatique. Vous pouvez jouer sans cadeau si l’un de vous refuse. Aucun achat ou transfert Wave n’est effectué dans l’application.</p>
      </div>
      <label className="ludo-agreement-read"><input type="checkbox" checked={rulesAccepted} onChange={e=>setRulesAccepted(e.target.checked)}/><span>✍️ Je coche pour confirmer avoir lu les règles et signer avec mon profil <strong>{myName}</strong>.</span></label>
      <fieldset className="ludo-agreement-choice">
@@ -541,7 +541,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
         <p className="ludo-gift-selected">{gift?.choice?giftLabel(gift.choice):"Le gagnant n’a pas encore choisi son cadeau."}</p>
         {gift?.choice?<button type="button" className="ludo-modal-primary" disabled={giftBusy||gift.given} onClick={()=>void giftAction("gift_given",true)}>{gift.given?"Déclaré offert ✓":"J’ai offert ce cadeau"}</button>:null}
       </>}
-      <p>Le cadeau se règle entre vous, en dehors de Love Radar.</p>
+      <p>Le cadeau se règle entre vous, en dehors de l’application.</p>
     </>:<p>Le défi cadeau n’a pas été accepté par vous deux avant la fin de la partie. Vous pourrez l’activer pour une prochaine manche.</p>}
     <button type="button" className="ludo-modal-text" onClick={()=>setGiftOpen(false)}>Fermer</button>
    </div>
