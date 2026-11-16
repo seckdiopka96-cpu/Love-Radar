@@ -10,7 +10,7 @@ type Props={
  storageKey:string;
  onSend:(id:string)=>void;
  onSendEmoji:(emoji:string)=>void;
- onSendGif:(file:File)=>Promise<void>;
+ onSendGif:(file:File)=>Promise<boolean>;
  onClose:()=>void;
  onSearchFocus?:()=>void;
  onSearchBlur?:()=>void;
@@ -124,7 +124,7 @@ export default function StickerPicker({storageKey,onSend,onSendEmoji,onSendGif,o
   setGifSending(item.id);setGifError("");
   try{
    const file=await fetchGifFile(item);
-   await onSendGif(file);
+   if(!await onSendGif(file))throw Error("Le GIF n’a pas pu être envoyé. Réessaie.");
    const updated=[item,...gifRecents.filter(v=>v.id!==item.id)].slice(0,22);
    setGifRecents(updated);save(GIF_RECENT_KEY+storageKey,updated);
    onClose();
