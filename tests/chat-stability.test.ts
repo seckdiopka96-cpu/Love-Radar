@@ -102,16 +102,26 @@ test("voice recording replaces the typing keyboard with a full-width iPhone comp
  assert.ok(styles.includes("@media(prefers-reduced-motion:reduce)"));
 });
 
-test("voice recorder stays a compact single row with accessible controls",()=>{
+test("voice recorder matches two-row WhatsApp layout with truly centered pause/play",()=>{
  const styles=readFileSync("src/recording-composer.css","utf8");
- assert.ok(styles.includes("grid-template-columns:minmax(0,1fr) auto"));
- assert.ok(styles.includes("align-items:center;gap:9px"));
- assert.ok(styles.includes("min-height:61px"));
- assert.ok(styles.includes(".lr-voice-recording-actions .lr-voice-rec-pause"));
- assert.ok(styles.includes(".lr-voice-recording-actions .lr-voice-rec-send"));
- assert.ok(styles.includes(".lr-voice-recording-actions .lr-voice-rec-delete"));
+ const markup=chat.slice(chat.indexOf('{recording?<div className="lr-voice-recording-composer"'));
+ assert.ok(styles.includes("grid-template-columns:minmax(0,1fr)!important"),"waveform spans full width");
+ assert.ok(styles.includes("grid-template-rows:minmax(35px,auto) 52px!important"),"controls are below the recording waveform");
+ assert.ok(styles.includes("grid-template-columns:repeat(3,minmax(0,1fr))!important"),"actions use three equal columns");
+ assert.ok(styles.includes("justify-self:start!important"),"delete goes left");
+ assert.ok(styles.includes("justify-self:center!important"),"pause/play stays screen-centered");
+ assert.ok(styles.includes("justify-self:end!important"),"send goes right");
+ assert.ok(styles.includes("place-items:center!important"),"icons are centered in circular buttons");
+ assert.ok(styles.includes("min-height:104px"),"two rows have enough height");
+ assert.ok(styles.includes("@media(max-width:700px)"),"mobile controls stay balanced");
+ assert.ok(styles.includes("@media(max-width:360px)"),"narrow iPhones remain supported");
  assert.ok(styles.includes("env(safe-area-inset-bottom)"));
- assert.ok(chat.includes('<LiveVoiceWaveform stream={recordingStream.current} paused={recordingPaused}/>'),"Waveform uses actual captured microphone data");
- assert.ok(chat.includes('aria-label="Supprimer le vocal"'));
- assert.ok(chat.includes('aria-label="Envoyer le vocal"'));
+ assert.ok(markup.indexOf('className="lr-voice-recording-status"')>=0,"waveform is visible");
+ assert.ok(markup.indexOf('className="lr-voice-recording-actions"')>markup.indexOf("lr-voice-recording-status"),"controls are in second row");
+ assert.ok(markup.indexOf('className="lr-voice-rec-delete"')<markup.indexOf('className="lr-voice-rec-pause"'));
+ assert.ok(markup.indexOf('className="lr-voice-rec-pause"')<markup.indexOf('className="lr-voice-rec-send"'));
+ assert.ok(chat.includes('<LiveVoiceWaveform stream={recordingStream.current} paused={recordingPaused}/>'),"actual microphone wave stays animated");
+ assert.ok(markup.includes('aria-label="Supprimer le vocal"'));
+ assert.ok(markup.includes('aria-label="Envoyer le vocal"'));
+ assert.ok(markup.includes("onClick={pauseOrResumeRecording}"),"pause and resume still function");
 });
