@@ -13,7 +13,7 @@ const ID=/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i;
 const SECRET=/^[0-9A-F]{32}$/;
 const TOKEN_HASH=/^[a-f0-9]{64}$/;
 const TTL=15*60_000;
-const STATUS_LIMIT={scope:"partner-recovery-poll",max:160,windowMs:15*60_000};
+const STATUS_LIMIT={scope:"partner-recovery-poll",max:320,windowMs:15*60_000};
 const CLAIM_LIMIT={scope:"partner-recovery-claim",max:8,windowMs:15*60_000};
 const START_LIMIT={scope:"partner-recovery-create",max:5,windowMs:60*60_000};
 const APPROVAL_LIMIT={scope:"partner-recovery-approve",max:10,windowMs:60*60_000};
@@ -158,11 +158,13 @@ export async function onRequestPost({request,env}:Context):Promise<Response>{
      "(SELECT 1 FROM partner_recovery WHERE id=? AND sponsor_id=? AND target_id=? AND status='claimed' AND expires_at>?)")
       .bind(grant.candidate_hash,grant.target_id,grant.room_id,id,user.id,grant.target_id,now),
     db.prepare("UPDATE partner_recovery SET status='approved',envelope=? WHERE id=? AND sponsor_id=? AND status='claimed' AND expires_at>?")
-      .bind(envelope,id,user.id,now),
-    db.prepare("DELETE FROM push_subscriptions WHERE member_id=?").bind(grant.target_id)
+      .bind(envelope,id,user.id,now)
    ]);
    if(changes[0].meta.changes!==1||changes[1].meta.changes!==1)
     return fail("Demande déjà utilisée ou expirée.",409);
+   // Optional push table must never prevent the authenticated session recovery.
+   try{await db.prepare("DELETE FROM push_subscriptions WHERE member_id=?")
+    .bind(grant.target_id).run()}catch(error){console.error("Partner recovery push cleanup",error)}
    await markRoomChanged(db,grant.room_id);
    return ok({approved:true});
   }
