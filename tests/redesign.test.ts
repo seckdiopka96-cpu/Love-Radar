@@ -28,6 +28,17 @@ test("five navigational destinations use coherent vector icons, not emoji labels
  assert.ok(app.includes('className="lr-nav-symbol"'));
  assert.equal(app.includes('n.icon'),false);
 });
+test("Souvenirs occupies the second slot and Messages the fifth on both navigation bars",()=>{
+ const block=app.match(/const NAV: \{id:Tab;label:string\}\[\] = \[([\s\S]*?)\];/)?.[1]||"";
+ const items=[...block.matchAll(/\{id:"([^"]+)",label:"([^"]+)"\}/g)].map(match=>[match[1],match[2]]);
+ assert.deepEqual(items,[
+  ["home","Accueil"],["memories","Souvenirs"],["together","Nous deux"],
+  ["games","Jeux"],["chat","Messages"]
+ ]);
+ assert.ok(app.includes("NAV.map(n=><button"),"both navigation surfaces reuse same mapping");
+ assert.ok(app.includes("onClick={()=>navigate(n.id)}"),"each tab still opens its original destination");
+ assert.ok(app.includes('n.id==="chat"&&unreadCount>0'),"unread message badge stays on Messages");
+});
 test("redesigned home provides quick access to core couple activities",()=>{
  assert.ok(home.includes('className="lr-home-welcome"'));
  assert.ok(home.includes('className="lr-home-quick"'));
