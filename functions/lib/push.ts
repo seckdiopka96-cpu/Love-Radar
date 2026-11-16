@@ -22,8 +22,8 @@ export function validPushEndpoint(raw:string):boolean{
 }
 
 type StoredSub={endpoint:string;p256dh:string;auth:string};
-export type PushTarget={kind:"message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"daily-question"|"love-signal";id:string};
-type Tab="chat"|"home"|"ludo"|"memory"|"memories"|"moment"|"together"|"puzzle"|"watch"|"watch-tiktok"|"reconcile";
+export type PushTarget={kind:"message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"rps-challenge"|"daily-question"|"love-signal";id:string};
+type Tab="chat"|"home"|"ludo"|"memory"|"rps"|"memories"|"moment"|"together"|"puzzle"|"watch"|"watch-tiktok"|"reconcile";
 function notificationRoute(tab:Tab,target?:PushTarget){
  const route=new URLSearchParams({tab});
  if(target&&(/^[a-f0-9-]{36}$/i.test(target.id)||(target.kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(target.id)))){
