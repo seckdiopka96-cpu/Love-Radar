@@ -2,6 +2,7 @@ import {useCallback,useEffect,useRef,useState,type FormEvent,type KeyboardEvent}
 import {apiFetch} from "./api";
 import {formatWatchTime,parseYouTubeId,expectedPlaybackSeconds,type WatchSnapshot} from "./watch-utils";
 import {mountYouTubePlayer,type YouTubePlayer} from "./youtube-player";
+import {claimMessagePlayback,hasExclusiveAudioCapture,type AudioInterrupt} from "./audio-focus";
 import "./watch-together.css";
 
 type TextMessage={id:string;sender_id:string;kind:string;content:string|null;created_at:number};
@@ -128,6 +129,12 @@ export default function WatchTogether({token,myId,myName,partnerName,messages,on
  // Ignore events caused by a remotely synchronized play, pause or seek.
  const onPlayerChange=useCallback((value:number)=>{
   if(!mountedRef.current)return;
+  if(value===1&&hasExclusiveAudioCapture()){
+   ignorePlayerEventsUntil.current=Date.now()+4000;
+   playerRef.current?.pauseVideo();
+   return; // Never notify the other partner about a local audio-focus pause.
+  }
+  if(value===1)claimMessagePlayback("watch-together");
   if(value===1)setNeedsTap(false);
   if(Date.now()<ignorePlayerEventsUntil.current)return;
   const current=sharedRef.current;
@@ -154,6 +161,11 @@ export default function WatchTogether({token,myId,myName,partnerName,messages,on
  const applyPlayback=useCallback((snapshot:WatchSnapshot,force=false)=>{
   const p=playerRef.current;
   if(!p||!onReadyRef.current||!snapshot.videoId)return;
+  if(hasExclusiveAudioCapture()){
+   ignorePlayerEventsUntil.current=Date.now()+4000;
+   if(p.getPlayerState()===1)p.pauseVideo();
+   return;
+  }
   if(!force&&lastAppliedVersion.current===snapshot.version)return;
   lastAppliedVersion.current=snapshot.version;
   ignorePlayerEventsUntil.current=Date.now()+2400;
@@ -169,6 +181,21 @@ export default function WatchTogether({token,myId,myName,partnerName,messages,on
    setNeedsTap(false);
   }
  },[]);
+ useEffect(()=>{
+  const stopOther=(event:Event)=>{
+   const detail=(event as CustomEvent<AudioInterrupt>).detail;
+   if(detail?.source==="playback"&&detail.owner==="watch-together")return;
+   ignorePlayerEventsUntil.current=Date.now()+4000;
+   playerRef.current?.pauseVideo();
+  };
+  const resume=()=>{const current=sharedRef.current;if(current&&onReadyRef.current)applyPlayback(current,true)};
+  window.addEventListener("lr-audio-interrupt",stopOther);
+  window.addEventListener("lr-audio-focus-released",resume);
+  return()=>{
+   window.removeEventListener("lr-audio-interrupt",stopOther);
+   window.removeEventListener("lr-audio-focus-released",resume);
+  };
+ },[applyPlayback]);
  useEffect(()=>{
   if(!videoId)return;
   let cancelled=false;
@@ -219,6 +246,8 @@ export default function WatchTogether({token,myId,myName,partnerName,messages,on
   ignorePlayerEventsUntil.current=Date.now()+2400;
   const position=expectedPlaybackSeconds(current,Date.now()+offsetRef.current);
   if(Math.abs(safeCurrent(p)-position)>1.5)p.seekTo(position,true);
+  if(hasExclusiveAudioCapture()){setToast("Termine l'appel ou le vocal avant de regarder avec le son.");return}
+  claimMessagePlayback("watch-together");
   p.playVideo(); // Called synchronously from a user tap for iOS autoplay rules.
   setNeedsTap(false);setPlayerError("");
   if(!current.playing)void post("play",position);
