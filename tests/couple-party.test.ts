@@ -1,0 +1,172 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {DatabaseSync} from "node:sqlite";
+import {createHash,webcrypto} from "node:crypto";
+import {readFileSync} from "node:fs";
+import type {D1Database} from "@cloudflare/workers-types";
+import {onRequestGet,onRequestPost} from "../functions/api/couple-party";
+import {
+ RAPID_QUESTIONS,TRUTH_PROMPTS,ACTION_PROMPTS,
+ nextPartyIndex,validChoice,partyChallenge,validChallengeKind
+} from "../src/couple-party-engine";
+
+const token=(letter:string)=>letter.repeat(64);
+const hash=(s:string)=>createHash("sha256").update(s).digest("hex");
+function harness(){
+ const sqlite=new DatabaseSync(":memory:");
+ sqlite.exec("CREATE TABLE members(id TEXT PRIMARY KEY,room_id TEXT NOT NULL,name TEXT NOT NULL,seat INTEGER NOT NULL,token_hash TEXT NOT NULL)");
+ for(const [name,room,seat,letter] of [
+  ["Alice","room-A",0,"a"],["Benoît","room-A",1,"b"],
+  ["Dina","room-B",0,"c"],["Eric","room-B",1,"d"]
+ ] as const){
+  sqlite.prepare("INSERT INTO members VALUES(?,?,?,?,?)").run(name,room,name,seat,hash(token(letter)));
+ }
+ const prepared=(sql:string,params:unknown[])=>({
+  async first(){return sqlite.prepare(sql).get(...params as [])??null},
+  async all(){return {results:sqlite.prepare(sql).all(...params as [])}},
+  async run(){const result=sqlite.prepare(sql).run(...params as []);return {meta:{changes:Number(result.changes)}}}
+ });
+ const db={
+  async exec(sql:string){sqlite.exec(sql)},
+  prepare(sql:string){
+   return {...prepared(sql,[]),bind(...params:unknown[]){return prepared(sql,params)}};
+  }
+ } as unknown as D1Database;
+ async function request(mode:"rapid"|"truth",user:string,action?:string,fields:Record<string,unknown>={}){
+  const url="https://example.org/api/couple-party?mode="+mode;
+  const body=action?JSON.stringify({action,...fields}):undefined;
+  const req=new Request(url,{method:action?"POST":"GET",
+   headers:{Authorization:"Bearer "+token(user),...(action?{"Content-Type":"application/json"}:{})},
+   ...(body?{body}:{})});
+  const ctx={request:req,env:{DB:db}};
+  const res=await(action?onRequestPost(ctx):onRequestGet(ctx));
+  return {status:res.status,data:await res.json() as any};
+ }
+ return {sqlite,db,request};
+}
+test("original question and challenge collections are substantial and safe",()=>{
+ assert.ok(RAPID_QUESTIONS.length>=30);
+ assert.ok(TRUTH_PROMPTS.length>=20);
+ assert.ok(ACTION_PROMPTS.length>=20);
+ for(const q of RAPID_QUESTIONS){
+  assert.ok(q.question.length>=12);
+  assert.equal(q.options.length,4);
+  assert.equal(new Set(q.options).size,4);
+  assert.ok(validChoice(q.answer));
+ }
+ for(let n=0;n<100;n++){
+  const next=nextPartyIndex(RAPID_QUESTIONS.length,4,n/100);
+  assert.ok(next>=0&&next<RAPID_QUESTIONS.length&&next!==4);
+ }
+ assert.ok(validChallengeKind("truth"));
+ assert.ok(validChallengeKind("action"));
+ assert.equal(validChallengeKind("private"),false);
+ assert.equal(partyChallenge("truth",0),TRUTH_PROMPTS[0]);
+ assert.equal(partyChallenge("action",0),ACTION_PROMPTS[0]);
+});
+test("server keeps quiz answers secret, scores once, rejects unauthorized moves and isolates couples",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {sqlite,request}=harness();
+ const roomA=await request("rapid","a");
+ assert.equal(roomA.status,200);
+ assert.equal(roomA.data.members,2);
+ const game=roomA.data.game;
+ assert.equal(game.phase,"question");
+ assert.equal(game.correct,null,"never reveal the correct answer before the result");
+ assert.equal(game.partnerChoice,null,"do not reveal the other player's answer");
+ assert.equal(roomA.data.seat,0);
+ const roomB=await request("rapid","c");
+ assert.equal(roomB.data.game.scores[0],0);
+ assert.notEqual(roomB.data.game.id,game.id);
+ const q=RAPID_QUESTIONS.find(item=>item.question===game.question);
+ assert.ok(q);
+ const early=await request("rapid","a","answer",{gameId:game.id,round:game.round,choice:q.answer});
+ assert.equal(early.status,409,"cannot answer before the countdown completes");
+ const now=Date.now();
+ sqlite.prepare("UPDATE couple_party_games SET started_at=?,deadline_at=? WHERE room_id='room-A' AND mode='rapid'")
+  .run(now-500,now+18000);
+ const [left,right]=await Promise.all([
+  request("rapid","a","answer",{gameId:game.id,round:game.round,choice:q.answer}),
+  request("rapid","b","answer",{gameId:game.id,round:game.round,choice:q.answer})
+ ]);
+ assert.equal([left.status,right.status].filter(x=>x===200).length,1,"only one correct request wins");
+ const outcome=(await request("rapid","a")).data.game;
+ assert.equal(outcome.phase,"result");
+ assert.equal(outcome.scores[0]+outcome.scores[1],1);
+ assert.equal(outcome.correct,q.answer,"answer becomes visible after the first score");
+ assert.ok(outcome.winner===0||outcome.winner===1);
+ assert.equal((await request("rapid","c")).data.game.scores[0],0,"other couples cannot see this score");
+ const forged=await request("rapid","c","next",{gameId:game.id,round:game.round});
+ assert.equal(forged.status,409,"a different room cannot manipulate the game");
+ const follow=await request("rapid","a","next",{gameId:game.id,round:game.round});
+ assert.equal(follow.status,200);
+ assert.equal(follow.data.game.round,2);
+ assert.equal(follow.data.game.correct,null,"new answer is hidden again");
+ assert.equal(follow.data.game.scores[0]+follow.data.game.scores[1],1);
+ const replay=await request("rapid","b","next",{gameId:game.id,round:game.round});
+ assert.equal(replay.status,409,"old-round replay must be ignored");
+});
+test("when the timer expires without a correct answer, both partners see the same result",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {sqlite,request}=harness();
+ const original=await request("rapid","a");
+ sqlite.prepare("UPDATE couple_party_games SET started_at=?,deadline_at=? WHERE room_id='room-A' AND mode='rapid'")
+  .run(Date.now()-30000,Date.now()-1000);
+ const a=await request("rapid","a"),b=await request("rapid","b");
+ assert.equal(original.data.game.phase,"question");
+ assert.equal(a.data.game.phase,"result");
+ assert.equal(b.data.game.phase,"result");
+ assert.equal(a.data.game.winner,null);
+ assert.equal(b.data.game.scores[0]+b.data.game.scores[1],0);
+});
+test("truth or action alternates turns; a pass is never scored; only active player can act",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {request}=harness();
+ const initial=(await request("truth","a")).data.game;
+ assert.equal(initial.turn,0);
+ assert.equal(initial.phase,"choose");
+ const notMyTurn=await request("truth","b","pick",{gameId:initial.id,round:1,kind:"truth"});
+ assert.equal(notMyTurn.status,409);
+ const picked=await request("truth","a","pick",{gameId:initial.id,round:1,kind:"truth"});
+ assert.equal(picked.status,200);
+ assert.equal(picked.data.game.kind,"truth");
+ assert.ok(picked.data.game.prompt?.length>12);
+ assert.equal((await request("truth","b")).data.game.prompt,picked.data.game.prompt);
+ const finished=await request("truth","a","finish",{gameId:initial.id,round:1});
+ assert.equal(finished.status,200);
+ assert.equal(finished.data.game.phase,"choose");
+ assert.equal(finished.data.game.turn,1);
+ assert.equal(finished.data.game.scores[0],1);
+ const pickedB=await request("truth","b","pick",{gameId:initial.id,round:2,kind:"action"});
+ assert.equal(pickedB.status,200);
+ assert.equal(pickedB.data.game.kind,"action");
+ const pass=await request("truth","b","pass",{gameId:initial.id,round:2});
+ assert.equal(pass.status,200);
+ assert.equal(pass.data.game.turn,0);
+ assert.equal(pass.data.game.scores[1],0);
+});
+test("both new games are accessible, authenticated, and erased with room deletion",()=>{
+ const app=readFileSync("src/App.tsx","utf8");
+ const hub=readFileSync("src/GamesHub.tsx","utf8");
+ const api=readFileSync("functions/api/couple-party.ts","utf8");
+ const push=readFileSync("functions/lib/push.ts","utf8");
+ const sw=readFileSync("public/sw.js","utf8");
+ const deletion=readFileSync("functions/lib/delete-room.ts","utf8");
+ const schema=readFileSync("schema.sql","utf8");
+ const ui=readFileSync("src/CoupleParty.tsx","utf8");
+ assert.ok(hub.includes('onOpenGame("rapid")'));
+ assert.ok(hub.includes('onOpenGame("truth")'));
+ assert.ok(app.includes('tab==="rapid"||tab==="truth"?<CoupleParty'));
+ assert.ok(api.includes("SELECT id,room_id,seat,name FROM members WHERE token_hash=?"));
+ assert.ok(api.includes("PRIMARY KEY(room_id,mode)"));
+ assert.ok(api.includes("AND phase='question' AND started_at<=?"));
+ assert.ok(api.includes("AND "+'"deadline_at>? AND "+col+" IS NULL"' ));
+ assert.ok(!api.includes("correct:q.answer"));
+ assert.ok(push.includes('"rapid"|"truth"'));
+ assert.ok(sw.includes('"rps","rapid","truth"'));
+ assert.ok(deletion.includes('"couple_party_games"'));
+ assert.ok(schema.includes("CREATE TABLE IF NOT EXISTS couple_party_games"));
+ assert.ok(ui.includes('window.setInterval(()=>void refresh(true),900)'));
+ assert.ok(ui.includes('onClick={()=>void post("finish")}'));
+ assert.ok(ui.includes('onClick={()=>void post("pass")}'));
+});
