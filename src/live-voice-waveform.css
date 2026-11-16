@@ -1,0 +1,18 @@
+/* A real, continually scrolling microphone trace: the last sound stays at the right edge. */
+.lr-chat .lr-voice-recording-wave{
+ position:relative;display:block!important;overflow:hidden;min-width:0;
+ flex:1 1 0;height:32px!important;
+ border-radius:5px;
+ -webkit-mask-image:linear-gradient(90deg,transparent 0%,black 12%,black 100%);
+ mask-image:linear-gradient(90deg,transparent 0%,black 12%,black 100%);
+}
+.lr-chat .lr-live-voice-waveform{display:block;width:100%;height:32px;max-width:100%;
+ border:0;background:transparent;opacity:1;transition:opacity .15s ease;}
+.lr-chat .lr-live-voice-waveform.is-paused{opacity:.55}
+@media(max-width:400px){
+ .lr-chat .lr-voice-recording-wave{height:28px!important}
+ .lr-chat .lr-live-voice-waveform{height:28px}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-chat .lr-live-voice-waveform{transition:none!important}
+}
