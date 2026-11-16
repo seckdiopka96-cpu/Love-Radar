@@ -24,7 +24,8 @@
     "test:replies": "tsx --test tests/message-replies.test.ts",
     "test:voice-ui": "tsx --test tests/voice-ui.test.ts",
     "test:voice-outbox": "tsx --test tests/voice-outbox.test.ts",
-    "test:photos": "tsx --test tests/photo-reliability.test.ts tests/profile-photo.test.ts"
+    "test:photos": "tsx --test tests/photo-reliability.test.ts tests/profile-photo.test.ts",
+    "test:reliability": "tsx --test tests/reliability-audit.test.ts"
   },
   "dependencies": {
     "react": "^19.2.0",
