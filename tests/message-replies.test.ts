@@ -252,3 +252,22 @@ test("WhatsApp-style anchored chat actions keep existing handlers and work at vi
  for(const emoji of ["👏","🥰","😍","😘","💗","🔥","🎉","💯","🤗","😎","💐","🤲","😅"])
   assert.ok(api.includes('"'+emoji+'"'),"server accepts selected reaction "+emoji);
 });
+
+test("long press actions always render on iOS even when chat clips or first measurement is delayed",()=>{
+ const css=readFileSync("src/message-context-premium.css","utf8");
+ assert.ok(app.includes('import {createPortal} from "react-dom"'));
+ assert.ok(app.includes('createPortal(<div className="lr-chat lr-chat-context-root">'),
+  "menu is rendered on document.body instead of inside the scrolling chat");
+ assert.ok(app.includes('document.body):null}'),"portal is actually attached to the body");
+ assert.ok(app.includes('  place();\n  window.addEventListener("resize",schedule);'),
+  "position is calculated synchronously rather than waiting on animation frames");
+ assert.ok(!app.includes('visibility:"hidden"'),
+  "popover must never become permanently invisible after a long press");
+ assert.ok(css.includes("body > .lr-chat.lr-chat-context-root"),"body portal cannot inherit clipping");
+ assert.ok(css.includes("visibility:visible!important"),"popover remains visible");
+ assert.ok(css.includes("pointer-events:auto!important"),"reaction and action buttons remain usable");
+ assert.ok(app.includes("onPointerDown={e=>messagePointerDown(e,m)}"),
+  "long press remains the gesture that opens actions");
+ assert.ok(app.includes("onPointerMove={messagePointerMove}"),
+  "swipe reply is still supported");
+});
