@@ -2,7 +2,7 @@ import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { notifyPartner, type PushEnv } from "../lib/push";
 import { ensureProfilePhotos } from "./profile";
 import {roomRevision,markRoomChanged} from "../lib/room-revision";
-import {generateRecoveryCode,ensureRecoveryCodes,saveRecoveryCode} from "../lib/account-recovery";
+import {generateRecoveryCode,ensureRecoveryCodes,recoveryHash} from "../lib/account-recovery";
 import {consumePublicLimit,consumeMemberLimit,PUBLIC_LIMITS,MEMBER_LIMITS,throttled} from "../lib/abuse-limits";
 
 // Automatic and idempotent migration for both existing and new D1 rooms.
@@ -176,27 +176,34 @@ async function snapshot(db:D1Database,u:Member){
      if(name.length<2||/[<>\u0000-\u001f]/.test(name))return fail("Choisis un prénom entre 2 et 30 caractères.");
      const secret=token(),id=crypto.randomUUID(),now=Date.now(),digest=await hash(secret);
      if(op==="create"){
-      const room=crypto.randomUUID();const code=inviteCode();
+      const room=crypto.randomUUID(),code=inviteCode();
+      const recoveryCode=generateRecoveryCode(),recoveryDigest=await recoveryHash(recoveryCode);
+      // A room without a recovery method must never be committed on a partial failure.
       try{
        await db.batch([
         db.prepare("INSERT INTO rooms(id,invite,owner_id,created_at) VALUES(?,?,?,?)").bind(room,code,id,now),
-        db.prepare("INSERT INTO members(id,room_id,name,seat,token_hash,joined_at) VALUES(?,?,?,?,?,?)").bind(id,room,name,0,digest,now)
+        db.prepare("INSERT INTO members(id,room_id,name,seat,token_hash,joined_at) VALUES(?,?,?,?,?,?)").bind(id,room,name,0,digest,now),
+        db.prepare("INSERT INTO member_recovery(member_id,code_hash,created_at) VALUES(?,?,?)").bind(id,recoveryDigest,now)
        ]);
       }catch{return fail("Impossible de créer l’espace. Réessaie.",503)}
-      const recoveryCode=generateRecoveryCode();
-      await saveRecoveryCode(db,id,recoveryCode);
       return ok({token:secret,code,recoveryCode});
      }
      const code=String(body.code||"").trim().toUpperCase().replace(/[\s-]+/g,"");
      if(!/^[A-HJ-NP-Z2-9]{10}$/.test(code))return fail("Code d’invitation invalide.");
      const room=await db.prepare("SELECT id FROM rooms WHERE invite=?").bind(code).first<{id:string}>();
      if(!room)return fail("Code inconnu. Vérifie avec ton partenaire.",404);
+     const recoveryCode=generateRecoveryCode(),recoveryDigest=await recoveryHash(recoveryCode);
+     // Both statements are committed or rolled back together; a full room
+     // must not create an orphan backup code, nor a member without a backup.
      try{
-      const inserted=await db.prepare("INSERT INTO members(id,room_id,name,seat,token_hash,joined_at) SELECT ?,?, ?,1,?,? WHERE (SELECT COUNT(*) FROM members WHERE room_id=?)=1").bind(id,room.id,name,digest,now,room.id).run();
-      if(!inserted.meta.changes)return fail("Cet espace est déjà complet.",409);
+      const inserted=await db.batch([
+       db.prepare("INSERT INTO members(id,room_id,name,seat,token_hash,joined_at) SELECT ?,?, ?,1,?,? WHERE (SELECT COUNT(*) FROM members WHERE room_id=?)=1")
+        .bind(id,room.id,name,digest,now,room.id),
+       db.prepare("INSERT INTO member_recovery(member_id,code_hash,created_at) SELECT id,?,? FROM members WHERE id=?")
+        .bind(recoveryDigest,now,id)
+      ]);
+      if(inserted[0].meta.changes!==1||inserted[1].meta.changes!==1)return fail("Cet espace est déjà complet.",409);
      }catch{return fail("Cet espace est déjà complet.",409)}
-     const recoveryCode=generateRecoveryCode();
-     await saveRecoveryCode(db,id,recoveryCode);
      await markRoomChanged(db,room.id);
      waitUntil(notifyPartner(env,room.id,id,"Votre espace ❤️","Ton partenaire vient de rejoindre votre espace !","home"));
      return ok({token:secret,code,recoveryCode});
