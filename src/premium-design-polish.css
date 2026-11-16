@@ -261,3 +261,96 @@
   transform:none!important;
  }
 }
+
+/* Conversation finishing pass: compact reply previews, legible audio, tighter
+   message rhythm. Entirely visual: swipe/long-hold, scrubbing, audio focus and
+   the approved 2-row voice grid remain untouched. */
+.lr-app .lr-chat .lr-bubble-row{
+ margin-top:8px!important;
+}
+.lr-app .lr-chat .lr-bubble-row.lr-grouped{
+ margin-top:3px!important;
+}
+.lr-app .lr-chat .lr-bubble-row .lr-message-time{
+ padding-top:2px!important;
+ line-height:1.25!important;
+}
+.lr-app .lr-chat .lr-bubble .lr-quote-card.is-bubble{
+ gap:2px!important;
+ padding:6px 9px!important;
+ margin:0 0 5px!important;
+ border-left-width:3px!important;
+ border-radius:9px!important;
+ max-width:100%!important;
+ box-sizing:border-box!important;
+}
+.lr-app .lr-chat .lr-bubble-row.mine .lr-quote-card.is-bubble{
+ background:rgba(107,35,70,.24)!important;
+ border-left-color:#fff1d3!important;
+}
+.lr-app .lr-chat .lr-bubble-row.other .lr-quote-card.is-bubble{
+ background:rgba(9,25,40,.29)!important;
+ border-left-color:#f3a3bd!important;
+}
+.lr-app .lr-chat .lr-quote-card.is-bubble .lr-quote-author{
+ font-size:11px!important;
+ font-weight:800!important;
+ line-height:1.25!important;
+ letter-spacing:.02px!important;
+}
+.lr-app .lr-chat .lr-quote-card.is-bubble .lr-quote-text{
+ font-size:11px!important;
+ line-height:1.35!important;
+ overflow:hidden!important;
+ text-overflow:ellipsis!important;
+ white-space:nowrap!important;
+}
+.lr-app .lr-chat .lr-bubble .lr-quote-card+p{
+ margin-top:2px!important;
+}
+/* Make the composer reply preview modestly shorter without reducing taps. */
+.lr-app .lr-chat .lr-reply-compose .lr-quote-card{
+ padding:5px 9px!important;
+ gap:2px!important;
+ border-radius:9px!important;
+}
+/* Waveform: stronger contrast, rounded vertical strokes and natural rhythm.
+   The transparent interactive range input still captures seeking. */
+.lr-app .lr-chat .lr-voice-note-wave{
+ height:27px!important;
+ align-items:center!important;
+ gap:1.6px!important;
+}
+.lr-app .lr-chat .lr-voice-note-wave>span{
+ min-width:1.6px!important;
+ max-width:4px!important;
+ min-height:3px!important;
+ border-radius:99px!important;
+ opacity:1!important;
+ background:#a9bdc9!important;
+ transition:background-color .12s linear!important;
+}
+.lr-app .lr-chat .lr-voice-note-wave>span.played{
+ background:#f8ffff!important;
+}
+.lr-app .lr-chat .lr-voice-note.is-own .lr-voice-note-wave>span{
+ background:#ffd0dd!important;
+ opacity:.88!important;
+}
+.lr-app .lr-chat .lr-voice-note.is-own .lr-voice-note-wave>span.played{
+ background:#fff!important;
+ opacity:1!important;
+}
+.lr-app .lr-chat .lr-voice-note-playhead{
+ width:9px!important;
+ height:9px!important;
+ box-shadow:0 0 0 2px rgba(255,255,255,.14)!important;
+}
+@media(max-width:700px){
+ .lr-app .lr-chat .lr-bubble-row{margin-top:8px!important}
+ .lr-app .lr-chat .lr-bubble-row.lr-grouped{margin-top:3px!important}
+ .lr-app .lr-chat .lr-voice-note-wave{gap:1.3px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-app .lr-chat .lr-voice-note-wave>span{transition:none!important}
+}
