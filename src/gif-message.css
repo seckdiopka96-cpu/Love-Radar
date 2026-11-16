@@ -1,0 +1,14 @@
+/* Remote GIPHY content: intentionally shown from the provider and never copied to R2. */
+.lr-chat .lr-chat-gif{display:flex;flex-direction:column;gap:4px;margin:0!important;
+ width:min(210px,55vw);max-width:100%;overflow:hidden;align-items:stretch}
+.lr-chat .lr-chat-gif img{display:block;width:100%;height:auto;max-height:230px;min-height:80px;
+ object-fit:cover;border-radius:13px;background:#243547}
+.lr-chat .lr-chat-gif figcaption{color:#d7b6e0;font-size:9px!important;letter-spacing:.3px;
+ text-align:right;padding-right:3px}
+.lr-chat .lr-chat-gif-placeholder{display:grid;place-items:center;min-height:118px;
+ padding:12px;border:1px solid #ffffff18;border-radius:14px;background:#26384a;
+ color:#d0dbe5;font-size:11px!important;text-align:center}
+.lr-chat .lr-bubble.lr-bubble-gif{width:max-content!important;max-width:100%!important;
+ padding:5px!important;background:#203346!important;border-radius:17px!important}
+.lr-chat .lr-bubble-row.mine .lr-bubble.lr-bubble-gif{background:#593a56!important}
+.lr-chat .lr-bubble-stack:has(.lr-bubble-gif){max-width:min(72%,230px)}
