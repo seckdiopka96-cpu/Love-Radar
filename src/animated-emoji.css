@@ -57,6 +57,12 @@
  35%{transform:rotate(20deg)}
  65%{transform:rotate(-7deg)}
 }
-@media(prefers-reduced-motion:reduce){
- .lr-emoji-motion{animation:none!important}
-}
+/* Motion can be explicitly paused inside Love Radar independently from iOS. */
+html.lr-animations-on .lr-emoji-motion{animation:lr-emoji-bounce 1.5s ease-in-out infinite!important}
+html.lr-animations-on .lr-emoji-motion.lr-emoji-heartbeat{animation:lr-emoji-heartbeat 1.15s ease-in-out infinite!important}
+html.lr-animations-on .lr-emoji-motion.lr-emoji-shake{animation:lr-emoji-shake 1.05s ease-in-out infinite!important}
+html.lr-animations-on .lr-emoji-motion.lr-emoji-kiss{animation:lr-emoji-kiss 1.35s ease-in-out infinite!important}
+html.lr-animations-on .lr-emoji-motion.lr-emoji-party{animation:lr-emoji-party 1.25s ease-in-out infinite!important}
+html.lr-animations-on .lr-emoji-motion.lr-emoji-wave{animation:lr-emoji-wave 1.15s ease-in-out infinite!important}
+html.lr-animations-off .lr-emoji-motion{animation:none!important;transition:none!important}
+
