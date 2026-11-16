@@ -1,8 +1,8 @@
 .lr-diagnostics{display:flex;flex-direction:column;gap:13px;padding:15px;border:1px solid #486074;border-radius:17px;background:#203547}
 .lr-diagnostics-copy{display:flex;flex-direction:column;gap:5px}.lr-diagnostics-copy strong{color:#fff0f6;font-size:15px}.lr-diagnostics-copy small{color:#bbcad4;font-size:11px;line-height:1.5}
 .lr-diagnostics-actions{display:flex;flex-wrap:wrap;gap:8px}
-.lr-diagnostics-actions button{flex:1 1 110px;min-height:42px;padding:9px 8px;color:#fff;background:#694b69;border:1px solid #ac829f;border-radius:12px;font-weight:750;font-size:12px;cursor:pointer}
-.lr-diagnostics-actions button:first-child{background:#bc668c;border-color:#e9a3c1}
+.lr-diagnostics-actions button{flex:1 1 110px;min-height:42px;padding:9px 8px;color:#fff;background:#694b69;border:1px solid #bc396c;border-radius:12px;font-weight:750;font-size:12px;cursor:pointer}
+.lr-diagnostics-actions button:first-child{background:#a82358;border-color:#bc396c}
 .lr-diagnostics-actions button:disabled{opacity:.55;cursor:not-allowed}
 .lr-diagnostics-results{display:flex;flex-direction:column;gap:8px}
 .lr-diagnostics-result{display:flex;align-items:flex-start;gap:9px;padding:10px;background:#122739;border:1px solid #435c6d;border-radius:12px}
@@ -10,6 +10,6 @@
 .lr-diagnostics-result strong{font-size:12px;color:#fcf0f5}
 .lr-diagnostics-result small{font-size:11px;line-height:1.5;color:#bbcbd6}
 .lr-diagnostics-indicator{flex:none;display:grid;place-items:center;width:19px;height:19px;border-radius:50%;font-size:12px;font-weight:800}
-.lr-diagnostics-indicator.is-ok{color:#0e3528;background:#83dfb8}.lr-diagnostics-indicator.is-warn{color:#39280a;background:#f9c97d}.lr-diagnostics-indicator.is-error{color:#451b28;background:#ffc1cb}
+.lr-diagnostics-indicator.is-ok{color:#0e3528;background:#83dfb8}.lr-diagnostics-indicator.is-warn{color:#39280a;background:#f9c97d}.lr-diagnostics-indicator.is-error{color:#451b28;background:#c8326c}
 .lr-diagnostics-note{font-size:10px!important;line-height:1.55!important;margin:0!important;color:#aebbca!important}
-.lr-diagnostics button:focus-visible{outline:2px solid #ffdbeb;outline-offset:2px}
+.lr-diagnostics button:focus-visible{outline:2px solid #bc396c;outline-offset:2px}
