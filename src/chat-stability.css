@@ -2,7 +2,7 @@
    Loaded last so keyboard safeguards take precedence over older iterations. */
 .lr-chat{position:relative}
 .lr-chat-status.recording{color:#ffb9c7!important;font-weight:800}
-.lr-chat-status.recording::before{background:#ff819d!important;box-shadow:0 0 0 3px #ff819d24!important;animation:lr-record-presence 1.15s ease-in-out infinite}
+.lr-chat-status.recording::before{background:#bd2763!important;box-shadow:0 0 0 3px #a21e5224!important;animation:lr-record-presence 1.15s ease-in-out infinite}
 .lr-typing{display:flex;align-items:center;gap:9px;align-self:flex-start;width:max-content;max-width:90%;
  background:#243f4e!important;border:1px solid #4f7280!important;border-radius:16px 16px 16px 4px;
  color:#f5e8eb!important;padding:8px 13px!important;margin:6px 0!important;font-size:11px}
@@ -12,13 +12,13 @@
 .lr-typing-dots i:nth-child(2){animation-delay:.15s}
 .lr-typing-dots i:nth-child(3){animation-delay:.3s}
 .lr-voice-wave{display:inline-flex;align-items:center;gap:3px;height:18px}
-.lr-voice-wave i{width:3px;height:5px;background:#ff94aa;border-radius:3px;animation:lr-chat-wave .85s ease-in-out infinite alternate}
+.lr-voice-wave i{width:3px;height:5px;background:#bd2763;border-radius:3px;animation:lr-chat-wave .85s ease-in-out infinite alternate}
 .lr-voice-wave i:nth-child(2){animation-delay:.18s}
 .lr-voice-wave i:nth-child(3){animation-delay:.3s}
 .lr-voice-wave i:nth-child(4){animation-delay:.42s}
 @keyframes lr-chat-wave{to{height:16px;opacity:.7}}
 @keyframes lr-chat-dot{50%{transform:translateY(-3px);opacity:.5}}
-@keyframes lr-record-presence{50%{box-shadow:0 0 0 6px #ff819d1a}}
+@keyframes lr-record-presence{50%{box-shadow:0 0 0 6px #a21e521a}}
 .lr-chat-jump{
  position:absolute;bottom:calc(72px + env(safe-area-inset-bottom));left:50%;z-index:10;
  transform:translateX(-50%);
@@ -35,7 +35,7 @@
 .lr-voice audio{max-width:100%!important;min-width:0!important;width:100%!important;height:38px!important}
 .lr-bubble-row .lr-bubble{box-sizing:border-box}
 .lr-call-mini-speaker.active{
- background:#8b586f!important;border-color:#f7a6c7!important;color:#fff6f0!important
+ background:#8b586f!important;border-color:#bc396c!important;color:#fff6f0!important
 }
 @media(max-width:700px){
  /* Do not let the full page scroll behind chat or behind the keyboard. */
@@ -122,7 +122,7 @@
 .lr-activity-recording-icon svg{width:17px;height:17px;stroke:#f58fa8;flex:none}
 .lr-activity-wave{display:inline-flex;gap:2px;align-items:center;height:19px}
 .lr-activity-wave i{
- display:block;width:3px;height:6px;border-radius:3px;background:#ff9db1;
+ display:block;width:3px;height:6px;border-radius:3px;background:#bd2763;
  animation:lr-activity-audio 0.85s infinite ease-in-out alternate
 }
 .lr-activity-wave i:nth-child(2){animation-delay:.14s}
