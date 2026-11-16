@@ -33,7 +33,9 @@ test("profile upload validates generated photo bytes and replaces previous photo
  assert.ok(server.includes('await db.prepare("DELETE FROM profile_photos'));
  assert.ok(room.includes('avatarVersion:avatarMap.get(u.id)||0'));
  assert.ok(room.includes('partnerAvatarVersion:partnerMember?avatarMap.get(partnerMember.id)||0:0'));
- assert.ok(room.includes('DELETE FROM profile_photos WHERE room_id=?'));
+ const deletion=readFileSync("functions/lib/delete-room.ts","utf8");
+ assert.ok(room.includes("deleteCoupleRoom(db,bindings().STORAGE,u.room_id)"));
+ assert.ok(deletion.includes('"profile_photos"'));
 });
 
 test("iPhone photo editor offers circular cropping, drag, zoom and rotate",()=>{
