@@ -61,6 +61,7 @@ import "./chat-composer-signature.css";
 import "./chat-readable-type.css";
 import "./comfortable-ui.css";
 import "./auth-reconnect.css";
+import "./deep-rose-finish.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
