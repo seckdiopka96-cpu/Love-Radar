@@ -97,3 +97,4 @@ CREATE TABLE IF NOT EXISTS abuse_counters (
  expires_at INTEGER NOT NULL,
  PRIMARY KEY(scope,actor)
 );
+CREATE INDEX IF NOT EXISTS idx_abuse_counters_expiry ON abuse_counters(expires_at);
