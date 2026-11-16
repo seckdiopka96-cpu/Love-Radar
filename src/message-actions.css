@@ -127,3 +127,11 @@
 .lr-chat .lr-reply-gesture:focus-visible{
  outline:2px solid #ffb2c3;outline-offset:2px;border-radius:12px
 }
+
+/* Historic temporary media stay inaccessible rather than silently becoming reusable. */
+.lr-chat .lr-legacy-expired,.lr-push-focus-content .lr-legacy-expired{
+ display:block;min-width:180px;max-width:100%;padding:14px 12px;
+ border:1px solid #526875;border-radius:13px;
+ background:#263b4a;color:#dce7eb;
+ font-size:12px;line-height:1.4;text-align:center;
+}
