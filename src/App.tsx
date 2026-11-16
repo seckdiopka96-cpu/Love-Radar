@@ -15,6 +15,7 @@ import SharedPuzzle from "./SharedPuzzle";
 import Reconcile from "./Reconcile";
 import HomeDashboard from "./HomeDashboard";
 import SettingsPage from "./SettingsPage";
+import RecoveryCodeDialog from "./RecoveryCodeDialog";
 import GamesHub from "./GamesHub";
 import RpsDuo from "./RpsDuo";
 import CoupleStory from "./CoupleStory";
@@ -52,7 +53,7 @@ type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:s
  edited_at?:number;reactions?:{member_id:string;emoji:string}[];view_once?:number|boolean};
 type RecentReaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
 type Room = {revision?:number;recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean;avatarVersion?:number};code:string;roomId:string;partner:string|null;partnerId?:string|null;partnerAvatarVersion?:number;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
-type Result = {ok:boolean;error?:string;token?:string;code?:string;id?:string}&Partial<Room>;
+type Result = {ok:boolean;error?:string;token?:string;code?:string;recoveryCode?:string;id?:string}&Partial<Room>;
 type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
 type LocalText={id:string;created_at:number;text:string;replyToId?:string;replyKind?:QuoteKind|null;replyContent?:string|null;replySenderId?:string|null;status:"sending"|"failed"|"sent";error?:string};
 
@@ -115,6 +116,10 @@ export default function LoveRadar(){
  const [joinMode,setJoinMode]=useState(false);
  const [name,setName]=useState("");
  const [code,setCode]=useState("");
+ const [recoverMode,setRecoverMode]=useState(false);
+ const [recoverInput,setRecoverInput]=useState("");
+ const [recoveryCode,setRecoveryCode]=useState("");
+ const [recoveryBusy,setRecoveryBusy]=useState(false);
  const [tab,setTab]=useState<Tab>(()=>parseNotice(window.location.search)?.tab||"home");
  const currentTab=useRef(tab);
  currentTab.current=tab;
@@ -847,6 +852,39 @@ export default function LoveRadar(){
  },[tab,chatFocused,scrollToLatest]);
  useEffect(()=>{if(tab!=="chat"&&chatFocused)setChatFocused(false)},[tab,chatFocused]);
 
+ async function issueRecoveryCode(){
+  if(!token||recoveryBusy)return;
+  setRecoveryBusy(true);setError("");
+  try{
+   const res=await apiFetch("/api/recovery",{method:"POST",
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    body:JSON.stringify({action:"issue"})});
+   const data=await res.json() as {ok:boolean;recoveryCode?:string;error?:string};
+   if(!res.ok||!data.ok||!data.recoveryCode)throw Error(data.error||"Création du code impossible.");
+   setRecoveryCode(data.recoveryCode);
+  }catch(e){setError(e instanceof Error?e.message:"Création du code impossible.")}
+  finally{setRecoveryBusy(false)}
+ }
+ async function restoreAccount(event:FormEvent){
+  event.preventDefault();
+  if(recoveryBusy||!recoverInput.trim())return;
+  setRecoveryBusy(true);setError("");
+  try{
+   const res=await apiFetch("/api/recovery",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({action:"recover",code:recoverInput})});
+   const data=await res.json() as {ok:boolean;token?:string;recoveryCode?:string;error?:string};
+   if(!res.ok||!data.ok||!data.token||!data.recoveryCode)
+    throw Error(data.error||"Ce code de secours est incorrect ou a déjà servi.");
+   localStorage.setItem("love-radar-token",data.token);
+   setToken(data.token);
+   await refresh(data.token);
+   setRecoverInput("");setRecoverMode(false);setTab("home");
+   setRecoveryCode(data.recoveryCode);
+   setNotice("Compte retrouvé ! Ton ancien appareil est déconnecté.");
+  }catch(e){setError(e instanceof Error?e.message:"Récupération impossible.")}
+  finally{setRecoveryBusy(false)}
+ }
  async function startRoom(event:FormEvent){
   event.preventDefault();if(busy)return;setBusy(true);setError("");
   try{
@@ -855,6 +893,7 @@ export default function LoveRadar(){
    localStorage.setItem("love-radar-token",newToken);
    setToken(newToken);
    await refresh(newToken);
+   if(result.recoveryCode)setRecoveryCode(result.recoveryCode);
    setNotice(joinMode?"Bienvenue dans votre espace ❤️":"Ton espace privé est créé !");
    setTab("home");
   }catch(e){setError(e instanceof Error?e.message:"Connexion impossible.")}
@@ -1229,6 +1268,7 @@ export default function LoveRadar(){
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
  return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
+  {recoveryCode?<RecoveryCodeDialog code={recoveryCode} onClose={()=>setRecoveryCode("")}/>:null}
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-header-context" aria-label="Espace privé"><span>ESPACE PRIVÉ</span><strong>{tab==="settings"?"Paramètres":room?.partner?"Notre univers":"Bienvenue"}</strong></div>
    <div className="lr-header-end">
@@ -1265,7 +1305,17 @@ export default function LoveRadar(){
       <p>Discutez, jouez et partagez vos moments à deux.</p>
      </section>
      <section className="lr-auth-panel" aria-label="Créer ou rejoindre votre espace privé">
-      <div className="lr-panel-head"><h2>{joinMode?"Rejoins ton amour ♡":"Bienvenue à deux ♡"}</h2><p>{joinMode?"Entre ton prénom et votre code privé.":"Crée ton espace et invite ton partenaire."}</p></div>
+      <div className="lr-panel-head"><h2>{recoverMode?"Retrouver mon compte 🔐":joinMode?"Rejoins ton amour ♡":"Bienvenue à deux ♡"}</h2><p>{recoverMode?"Utilise ton code personnel de secours sauvegardé.":joinMode?"Entre ton prénom et votre code privé.":"Crée ton espace et invite ton partenaire."}</p></div>
+      {recoverMode?<div className="lr-recovery-entry">
+       <p>Entre le code personnel reçu à ton inscription. Le code d’invitation de ton partenaire ne permet pas de récupérer un compte.</p>
+       <form onSubmit={restoreAccount}>
+        <label htmlFor="lr-recovery-input">Code personnel de secours</label>
+        <input id="lr-recovery-input" value={recoverInput} onChange={e=>setRecoverInput(e.target.value.toUpperCase())}
+         maxLength={40} placeholder="XXXX-XXXX-XXXX-XXXX" autoComplete="off" autoCapitalize="characters" spellCheck={false} required/>
+        <button type="submit" disabled={recoveryBusy}>{recoveryBusy?"Vérification…":"Retrouver mon compte"}</button>
+       </form>
+       <button type="button" onClick={()=>setRecoverMode(false)}>Retour à l’inscription</button>
+      </div>:<>
       <div className="lr-auth-switch" role="group" aria-label="Créer ou rejoindre un espace">
        <button type="button" className={!joinMode?"active":""} aria-pressed={!joinMode} onClick={()=>setJoinMode(false)}>Créer mon espace</button>
        <button type="button" className={joinMode?"active":""} aria-pressed={joinMode} onClick={()=>setJoinMode(true)}>J’ai un code</button>
@@ -1276,6 +1326,8 @@ export default function LoveRadar(){
        {joinMode?<><label htmlFor="lr-code">Code d’invitation</label><input id="lr-code" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} maxLength={14} placeholder="Code reçu de ton partenaire" required autoCapitalize="characters" autoCorrect="off" spellCheck={false}/></>:null}
        <button type="submit" disabled={busy}>{busy?"Connexion…":joinMode?"Rejoindre notre espace →":"Créer notre espace →"}</button>
       </form>
+      </>}
+      {!recoverMode?<button type="button" className="lr-recovery-toggle" onClick={()=>{setRecoverMode(true);setError("")}}>J’ai perdu mon accès</button>:null}
       <div className="lr-safe-copy"><span aria-hidden="true">🔒</span> Privé · Gratuit · Sur invitation</div>
       <div className="lr-made-by">Créé par <strong>Diao-Tech</strong></div>
      </section>
@@ -1288,7 +1340,7 @@ export default function LoveRadar(){
    <main className="lr-main">
     {tab==="settings"?<SettingsPage
      name={room.user.name} code={room.code} owner={room.user.owner} avatarSrc={avatars.mine} avatarVersion={room.user.avatarVersion}
-     profileBusy={profileBusy} profileError={profileError} privacyEnabled={privacyEnabled}
+     profileBusy={profileBusy} profileError={profileError} recoveryBusy={recoveryBusy} onGenerateRecovery={()=>void issueRecoveryCode()} privacyEnabled={privacyEnabled}
      notificationsOn={notificationsOn} notificationsBusy={notificationsBusy} notificationsTesting={notificationsTesting} notificationsHint={notificationsHint}
      nativeApp={isNativeApp} onBack={()=>navigate("home")}
      onChoosePhoto={()=>profilePicker.current?.click()}
