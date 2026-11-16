@@ -129,7 +129,7 @@ export default function CoupleCare({token,partnerName,myName,onExit,onOpenChat}:
      </select>
     </label>
     <div className="lr-care-status">
-     {prayerActive?<span className="lr-care-enabled">● Rappels activés</span>:
+     {prayerActive?<span className="lr-care-enabled">● Horaires de prière enregistrés</span>:
       <span>○ Rappels désactivés</span>}
      {state?.partnerPrayerEnabled?<small>Ton partenaire partage aussi ses horaires.</small>:null}
     </div>
@@ -141,7 +141,7 @@ export default function CoupleCare({token,partnerName,myName,onExit,onOpenChat}:
       if(!selected)return;
       if(window.confirm("Autoriser Love-Radar à envoyer à "+partner+" des rappels aux horaires de tes cinq prières ?"))
        void action({action:"enable-prayer",confirmed:true,...selected,method},
-        "Rappels de prière activés pour "+partner+".");
+        "Horaires de prière enregistrés. Les rappels automatiques nécessitent le service Cloudflare.");
      }}>{prayerActive?"Mettre à jour mes rappels":"Activer les rappels de prière"}</button>
     {prayerActive?<button type="button" className="lr-care-text-btn" disabled={busy}
      onClick={()=>void action({action:"disable-prayer"},"Rappels de prière désactivés.")}>
