@@ -3,6 +3,16 @@
 **Date de référence : 15 novembre 2026 (America/New_York)**  
 **Source :** branche `main` du dépôt `seckdiopka96-cpu/Love-Radar`, commit `c21199b45b38228b6c79d8e69bc04bb5b1a926eb`, documentation du dépôt, dernier workflow « Vérifier Love Radar », documentation officielle Apple/Android.
 
+## Mise à jour corrective — suppression privée (code vérifié)
+
+Le module `functions/lib/delete-room.ts` a été ajouté et appelé par `functions/api/love.ts`. Il inclut les données de Pierre–Papier–Ciseaux, du Ludo Sénégal, des puzzles, des sessions YouTube/TikTok, des réconciliations (y compris les textes identifiés par `session_id`), des jeux, des abonnements Push et des codes de secours. Les clés R2 référencées et les anciens portraits sous les préfixes privés sont supprimés avant la transaction de suppression D1.
+
+La nouvelle suite `tests/room-deletion.test.ts` utilise **SQLite réel** et un stockage R2 simulé : couverture des tables, isolation d'un second couple, données sensibles de réconciliation, échec R2 et annulation de transaction D1. La compilation et la CI du commit `5ac7871eb4e996ff92726e9b0988c1e2b9bf28fb` ont réussi ([résultats GitHub](https://github.com/seckdiopka96-cpu/Love-Radar/actions/runs/43791940937)).
+
+**Statut F-02 : corrigé dans le code, mais test de bout en bout sur Cloudflare D1/R2 et déploiement en production NON vérifiés.** Le nettoyage R2 précédant la transaction D1 peut rendre un média indisponible en cas d'échec D1 ; la session reste toutefois active pour permettre une nouvelle tentative. La concurrence des nouvelles écritures et la récupération des objets R2 historiques non référencés restent à auditer avant un lancement public.
+
+Le constat historique F-02 ci-dessous décrit la version examinée initialement ; il ne faut pas le confondre avec le statut corrigé ci-dessus.
+
 ## Verdict
 
 **Statut : NO-GO pour ouverture publique et pour « milliers de couples ».**
