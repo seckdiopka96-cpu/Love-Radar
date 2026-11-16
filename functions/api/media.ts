@@ -71,7 +71,8 @@ function sniff(bytes:Uint8Array,mime:string){
     const u=await getUser(request,db);if(!u)return no("Accès refusé.",401);
     const len=Number(request.headers.get("content-length")||0);if(len>8_000_000)return no("Fichier trop lourd.",413);
     const form=await request.formData(),file=form.get("file"),kind=form.get("kind");
-    const viewOnce=form.get("viewOnce")==="true";
+    // Old app instances must not silently send a regular file when one-time mode was selected.
+    if(form.get("viewOnce")==="true")return no("La vue unique a été retirée. Actualise Love Radar avant d’envoyer ce média.",400);
     await ensurePrivateMedia(db);
     if(!(file instanceof File)||!["image","audio"].includes(String(kind)))return no("Fichier invalide.");
     const mime=file.type.split(";")[0].toLowerCase();
@@ -96,14 +97,8 @@ function sniff(bytes:Uint8Array,mime:string){
     const now=Date.now();
     await bucket.put(id,bytes,{httpMetadata:{contentType:mime}});
     try{
-     const insert=db.prepare((viewOnce?"INSERT":"INSERT OR IGNORE")+" INTO messages(id,room_id,sender_id,kind,object_key,mime,created_at) VALUES(?,?,?,?,?,?,?)")
-      .bind(id,u.room_id,u.id,kind,id,mime,now);
-     const inserted=viewOnce?
-      (await db.batch([
-       insert,
-       db.prepare("INSERT INTO message_one_time(room_id,message_id,opened_at) VALUES(?,?,0)").bind(u.room_id,id)
-      ]))[0]:
-      await insert.run();
+     const inserted=await db.prepare("INSERT OR IGNORE INTO messages(id,room_id,sender_id,kind,object_key,mime,created_at) VALUES(?,?,?,?,?,?,?)")
+      .bind(id,u.room_id,u.id,kind,id,mime,now).run();
      if(!inserted.meta.changes){
       const same=await db.prepare("SELECT room_id,sender_id,kind,mime,created_at FROM messages WHERE id=?")
        .bind(id).first<{room_id:string;sender_id:string;kind:string;mime:string;created_at:number}>();
@@ -117,7 +112,7 @@ function sniff(bytes:Uint8Array,mime:string){
      if(!committed)await bucket.delete(id);
      throw e;
     }
-    waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",kind==="image"?(viewOnce?"Ton partenaire t’a envoyé une photo à vue unique.":"Ton partenaire t’a envoyé une photo."):(viewOnce?"Ton partenaire t’a envoyé un vocal à écoute unique.":"Ton partenaire t’a envoyé un message vocal."),"chat",{kind:kind==="image"?"photo":"audio",id}));
+    waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",kind==="image"?"Ton partenaire t’a envoyé une photo.":"Ton partenaire t’a envoyé un message vocal.","chat",{kind:kind==="image"?"photo":"audio",id}));
     return Response.json({ok:true,id,created_at:now},{headers:{"Cache-Control":"no-store"}});
    }catch(e){console.error("media upload",e);return no("Envoi impossible. Réessaie.",500)}
   }
