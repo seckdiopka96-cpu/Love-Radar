@@ -1,4 +1,5 @@
 import {apiFetch,isNativeApp,publicInviteUrl} from "./api";
+import {connectionErrorMessage} from "./network-recovery";
 import {recoverSavedSession,persistSessionToken,clearSessionToken,hadPreviousSession} from "./session-persistence";
 import {ensureIdentity,loadIdentity,loadRecoveredRoomKey,encryptedBackupFor,restoreIdentityBackup,fingerprint,makeContext,verifyPartner,isPartnerVerified,encryptText,encryptMedia,decryptMedia,isEncryptedMedia,isEncryptedText,type CryptoContext} from "./e2ee";
 import {revealMessages} from "./e2ee-room";
@@ -945,7 +946,7 @@ export default function LoveRadar(){
    // Ignore unchanged snapshots so polling cannot redraw the whole interface.
    setRoom(previous=>previous&&JSON.stringify(previous)===JSON.stringify(nextRoom)?previous:nextRoom);
    if(!silent)setError("");
-  }catch(e){if(!silent)setError(controller.signal.aborted?"Connexion trop lente. Vérifie ton réseau.":e instanceof Error?e.message:"Connexion impossible.")}
+  }catch(e){if(!silent)setError(connectionErrorMessage(e,controller.signal.aborted,typeof navigator!=="undefined"&&navigator.onLine===false))}
   finally{
    window.clearTimeout(timeout);
    if(snapshotInFlight.current===t)snapshotInFlight.current="";
@@ -971,6 +972,27 @@ export default function LoveRadar(){
   });
   return()=>{active=false};
  },[]);
+ // The saved session is valid until the server explicitly says 401.
+ // A mobile data handoff (Wi-Fi -> 4G) or iOS resume must not strand partners
+ // on a permanent "Load failed" page: retry without deleting any credentials.
+ useEffect(()=>{
+  if(!token||room||initializing||recoverMode)return;
+  const retry=()=>{
+   if(document.visibilityState==="visible")void refresh(undefined,false);
+  };
+  const startupRetry=window.setTimeout(retry,4000);
+  const interval=window.setInterval(retry,15000);
+  window.addEventListener("online",retry);
+  window.addEventListener("pageshow",retry);
+  document.addEventListener("visibilitychange",retry);
+  return()=>{
+   window.clearTimeout(startupRetry);
+   window.clearInterval(interval);
+   window.removeEventListener("online",retry);
+   window.removeEventListener("pageshow",retry);
+   document.removeEventListener("visibilitychange",retry);
+  };
+ },[token,room,initializing,recoverMode,refresh]);
  // Presence means actively viewing the application; it automatically expires
  // after 35 seconds of inactivity or when the app is backgrounded.
  useEffect(()=>{
@@ -1819,7 +1841,7 @@ export default function LoveRadar(){
       Réessayer la connexion →</button>
      <button type="button" className="lr-reconnect-recovery" onClick={()=>{setError("");setRecoverMode(true)}}>
       Utiliser mon code personnel de secours</button>
-     <p className="lr-reconnect-hint">Ne recrée pas un espace : réessaie la connexion ou utilise ton code personnel.</p>
+     <p className="lr-reconnect-hint">Ne recrée pas un espace. Love Radar réessaie automatiquement en 4G/5G et en Wi-Fi. Ton code personnel reste disponible si nécessaire.</p>
     </section>
    </main>:!room?
    <main className="lr-auth lr-auth-simple">
