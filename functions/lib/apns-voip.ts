@@ -37,7 +37,7 @@ async function authToken(env:VoipEnv):Promise<string|null>{
  if(tokenCache?.key===key&&tokenCache.validUntil>time)return tokenCache.value;
  const encoded=b64url(JSON.stringify({alg:"ES256",kid:c.kid,typ:"JWT"}))+"."+
   b64url(JSON.stringify({iss:c.team,iat:time}));
- const privateKey=await crypto.subtle.importKey("pkcs8",keyData(c.pem).buffer,
+ const privateKey=await crypto.subtle.importKey("pkcs8",keyData(c.pem).buffer as ArrayBuffer,
   {name:"ECDSA",namedCurve:"P-256"},false,["sign"]);
  const raw=new Uint8Array(await crypto.subtle.sign({name:"ECDSA",hash:"SHA-256"},
   privateKey,new TextEncoder().encode(encoded)));
