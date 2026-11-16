@@ -1779,7 +1779,8 @@ export default function LoveRadar(){
        const m=entry.message,idx=entry.index;
        const mine=m.sender_id===room.user.id;
        const previous=preceding?.type==="message"?preceding.message:undefined;
-       const next=chatTimeline[feedIndex+1]?.type==="message"?chatTimeline[feedIndex+1].message:undefined;
+       const following=chatTimeline[feedIndex+1];
+       const next=following?.type==="message"?following.message:undefined;
        const day=new Date(m.created_at).toDateString();
        const newDay=!previous||new Date(previous.created_at).toDateString()!==day;
        const groupedBefore=previous&&!newDay&&previous.sender_id===m.sender_id&&m.created_at-previous.created_at<5*60*1000;
