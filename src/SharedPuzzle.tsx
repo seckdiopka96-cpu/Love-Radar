@@ -114,7 +114,7 @@ export default function SharedPuzzle({token,myName,partnerName,onExit}:Props){
  return <section className="cp-page" aria-label="Puzzle coopératif pour couple">
   <header className="cp-top">
    <button type="button" className="cp-back" onClick={onExit}>‹ Nous deux</button>
-   <div className="cp-brand"><strong>Puzzle <span>♡</span> à deux</strong><small>LOVE RADAR · NOTRE JEU</small></div>
+   <div className="cp-brand"><strong>Puzzle <span>♡</span> à deux</strong><small>NOTRE JEU</small></div>
    <span className="cp-top-symbol" aria-hidden="true">🧩</span>
   </header>
   <div className="cp-online" role="status">
