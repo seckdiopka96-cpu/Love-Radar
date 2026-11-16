@@ -433,6 +433,10 @@ async function snapshot(db:D1Database,u:Member){
      await db.prepare("DELETE FROM message_one_time WHERE room_id=?").bind(u.room_id).run();
      await ensureRecoveryCodes(db);
      await db.prepare("DELETE FROM member_recovery WHERE member_id IN (SELECT id FROM members WHERE room_id=?)").bind(u.room_id).run();
+     // Member identifiers in security counters must not outlive room deletion.
+     try{await db.prepare("DELETE FROM abuse_counters WHERE actor IN"+
+      " (SELECT 'member:'||id FROM members WHERE room_id=?)").bind(u.room_id).run()}
+     catch(error){console.error("Optional security counter cleanup",error)}
      await db.batch([
       db.prepare("DELETE FROM messages WHERE room_id=?").bind(u.room_id),
       db.prepare("DELETE FROM members WHERE room_id=?").bind(u.room_id),
