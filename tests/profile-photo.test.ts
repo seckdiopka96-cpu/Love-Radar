@@ -61,8 +61,11 @@ test("avatars synchronize on each photo version and display in room, calls and s
  assert.ok(app.includes('useProfileAvatars(token,room?.user.id,room?.user.avatarVersion,room?.partnerId,room?.partnerAvatarVersion)'));
  assert.ok(app.includes('ref={profilePicker} type="file" hidden accept="image/*"'));
  assert.ok(app.includes('onSave={saveProfilePhoto}'));
- assert.ok(app.includes('Ajuster la photo'));
- assert.ok(app.includes('Supprimer la photo'));
+ const settings=readFileSync("src/SettingsPage.tsx","utf8");
+ assert.ok(settings.includes('>Ajuster</button>'));
+ assert.ok(settings.includes('>Supprimer</button>'));
+ assert.ok(app.includes('onAdjustPhoto={()=>void adjustProfilePhoto()}'));
+ assert.ok(app.includes('onRemovePhoto={()=>void removeProfilePhoto()}'));
  assert.ok(app.includes('src={avatars.partner}'));
  assert.ok(app.includes('avatarSrc={avatars.partner}'));
  assert.ok(home.includes('onClick={onEditProfile}'));
