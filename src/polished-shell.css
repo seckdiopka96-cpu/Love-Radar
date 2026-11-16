@@ -24,7 +24,7 @@
  font-size:10px!important;white-space:nowrap;
 }
 .lr-menu-notification-status::before{
- content:"";width:7px;height:7px;border-radius:50%;background:#bd2763;
+ content:"";width:7px;height:7px;border-radius:50%;background:#bd97a5;
 }
 .lr-menu-notification-status.is-on::before{background:#65dcad;box-shadow:0 0 0 3px #65dcad19}
 .lr-menu-notification-actions{display:flex;flex-wrap:wrap;gap:6px}
@@ -44,7 +44,7 @@
 }
 .lr-menu{max-height:min(72dvh,620px);overflow-y:auto;overscroll-behavior:contain}
 .lr-header-avatar:focus-visible,.lr-menu button:focus-visible{
- outline:2px solid #bc396c!important;outline-offset:3px!important;
+ outline:2px solid #f8c8dc!important;outline-offset:3px!important;
 }
 @media(max-width:700px){
  .lr-app.lr-app-locked>.lr-header{
@@ -106,7 +106,7 @@
   border-color:rgba(255,191,220,.13)!important;
  }
  .lr-app.lr-app-locked .lr-mobile-nav button.active .lr-nav-symbol{
-  background:linear-gradient(145deg,#bd2763,#a82358)!important;
+  background:linear-gradient(145deg,#ed9ebc,#bc6b95)!important;
   box-shadow:0 4px 12px #a63f7359,inset 0 1px 0 #fff6!important;
  }
  .lr-app.lr-app-locked .lr-mobile-nav button small{

@@ -43,7 +43,7 @@
  min-width:235px;max-width:min(92vw,390px);
  padding:10px 12px!important;
  background:linear-gradient(145deg,#273e52,#1b2e42)!important;
- border:1px solid #bc396c6b!important;
+ border:1px solid #e3a2c66b!important;
  color:#fff0f6!important;
  border-radius:17px!important;
  cursor:pointer;
@@ -51,8 +51,8 @@
 .lr-push-avatar-thumb{
  display:grid;place-items:center;overflow:hidden;flex:0 0 44px;
  width:44px;height:44px;border-radius:50%;color:#ffe2ef;
- background:linear-gradient(135deg,#a82358,#496f80);
- border:1px solid #bc396ca8;font-size:20px;font-weight:800;
+ background:linear-gradient(135deg,#ab5d84,#496f80);
+ border:1px solid #f9d3e3a8;font-size:20px;font-weight:800;
 }
 .lr-push-avatar-thumb img{
  width:100%;height:100%;display:block;object-fit:cover;

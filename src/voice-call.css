@@ -5,14 +5,14 @@
 .lr-call-sheet{width:min(100%,440px);min-height:440px;padding:35px 24px 18px;border:1px solid #69425b;border-radius:30px;background:linear-gradient(140deg,#35213a,#1b1424 80%);display:flex;align-items:center;flex-direction:column;box-shadow:0 24px 80px #0007;color:#fff;box-sizing:border-box}
 .lr-call-heart{font-size:29px;color:#f19abc}
 .lr-call-brand{font-size:10px;letter-spacing:3px;color:#d2a6bc;margin:8px 0 36px;font-weight:700}
-.lr-call-initial{width:88px;height:88px;border:2px solid #bc396c;border-radius:50%;display:grid;place-items:center;background:#67405d;color:#ffe7f1;font:700 37px Georgia,serif}
+.lr-call-initial{width:88px;height:88px;border:2px solid #b57896;border-radius:50%;display:grid;place-items:center;background:#67405d;color:#ffe7f1;font:700 37px Georgia,serif}
 .lr-call-sheet h2{font:600 29px Georgia,serif;margin:18px 0 8px;color:#ffe7f0;text-align:center}
 .lr-call-sheet p{color:#d5b8cd;font-size:15px;margin:0;min-height:28px}
 .lr-call-actions{display:flex;justify-content:center;gap:55px;margin:50px 0 32px}
 .lr-call-action{width:75px;height:75px;border:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 29px Arial,sans-serif;cursor:pointer;position:relative;color:white}
 .lr-call-action span{position:absolute;top:83px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:600;white-space:nowrap;color:#e2c6d7}
 .lr-call-answer{background:#249d70}
-.lr-call-decline{background:#df264e}
+.lr-call-decline{background:#d74766}
 .lr-call-mute{background:#6b536d}
 .lr-call-mute.is-muted{background:#916287}
 .lr-call-sheet small{margin-top:auto;color:#a99aaf;font-size:10px;text-align:center;line-height:1.6;max-width:260px}
@@ -37,7 +37,7 @@
 .lr-call-action span{top:calc(100% + 12px);font-size:12px;white-space:nowrap}
 .lr-call-speaker{background:#65546b}
 .lr-call-speaker.is-selected{background:#8a527a}
-.lr-call-speaker:focus-visible,.lr-call-action:focus-visible{outline:2px solid #bc396c;outline-offset:3px}
+.lr-call-speaker:focus-visible,.lr-call-action:focus-visible{outline:2px solid #f5b6d4;outline-offset:3px}
 .lr-call-audio-hint{font-size:12px;line-height:1.6;color:#f6d4e4;text-align:center;background:#493047;border-radius:12px;padding:11px 13px;margin:15px 0 0;max-width:305px}
 .lr-call-sheet small{font-size:11px}
 @media(max-width:390px){.lr-call-sheet{padding:30px 13px 24px}.lr-call-actions{gap:17px;margin:49px 0 36px}.lr-call-brand{margin-bottom:25px}.lr-call-initial{width:78px;height:78px}.lr-call-action{width:67px;height:67px}.lr-call-action span{font-size:10px}}
@@ -49,12 +49,12 @@
 .lr-call-minimize{
  align-self:flex-end;display:flex;align-items:center;justify-content:center;gap:7px;
  min-height:40px;padding:8px 13px;margin:-18px -2px 12px;
- border:1px solid #bc396c;border-radius:99px;
+ border:1px solid #b98ba8;border-radius:99px;
  background:#63405b;color:#ffe7f0;font:800 12px/1.2 -apple-system,BlinkMacSystemFont,Arial,sans-serif;
  cursor:pointer;white-space:nowrap;
 }
 .lr-call-minimize span{font-size:23px;line-height:0.8;font-weight:600}
-.lr-call-minimize:focus-visible,.lr-call-mini button:focus-visible{outline:3px solid #bc396c;outline-offset:3px}
+.lr-call-minimize:focus-visible,.lr-call-mini button:focus-visible{outline:3px solid #f6bad4;outline-offset:3px}
 .lr-call-mini{
  position:fixed;z-index:2147483644;
  top:calc(9px + env(safe-area-inset-top));
@@ -62,7 +62,7 @@
  display:flex;align-items:center;gap:6px;
  width:min(415px,calc(100vw - 24px));min-height:64px;padding:6px;
  box-sizing:border-box;
- border:1px solid #bc396c;border-radius:17px;
+ border:1px solid #c390ac;border-radius:17px;
  background:rgba(52,31,58,.97);backdrop-filter:blur(18px);
  box-shadow:0 9px 32px #100a1de0;
  color:#fff1fa;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;
@@ -85,8 +85,8 @@
  color:#fff;background:#674c67;font-size:17px;cursor:pointer;
 }
 .lr-call-mini-actions button:disabled{opacity:.45;cursor:not-allowed}
-.lr-call-mini-actions .lr-call-mini-mute.active{background:#a82358;border-color:#bc396c}
-.lr-call-mini-actions .lr-call-mini-end{background:#df264e;border-color:#bc396c;color:white;font-size:21px;font-weight:700}
+.lr-call-mini-actions .lr-call-mini-mute.active{background:#9c5485;border-color:#edb9db}
+.lr-call-mini-actions .lr-call-mini-end{background:#c34262;border-color:#e88498;color:white;font-size:21px;font-weight:700}
 .lr-call-mini-actions .lr-call-mini-sound{background:#446c61;border-color:#8fcdb7}
 @media(max-width:700px){
  .lr-call-minimize{margin:-9px -1px 5px;min-height:39px;font-size:11px}
@@ -155,7 +155,7 @@
  flex:0 0 86px;width:86px!important;height:86px!important;min-width:86px!important;
  border:2px solid rgba(255,213,239,.42)!important;
  border-radius:50%!important;display:grid;place-items:center;
- background:linear-gradient(135deg,#a82358,#593c75)!important;
+ background:linear-gradient(135deg,#a95c8e,#593c75)!important;
  box-shadow:0 12px 40px #170d2870!important;
  color:#fff5f9!important;font:800 37px/1 -apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif!important;
 }
@@ -225,13 +225,13 @@
 }
 .lr-call-backdrop .lr-call-action:active .lr-call-control-icon{transform:scale(.95)!important}
 .lr-call-backdrop .lr-call-action:focus-visible .lr-call-control-icon,
-.lr-call-backdrop .lr-call-info-button:focus-visible{outline:3px solid #bc396c!important;outline-offset:4px!important}
+.lr-call-backdrop .lr-call-info-button:focus-visible{outline:3px solid #ffd2ec!important;outline-offset:4px!important}
 .lr-call-backdrop .lr-call-action.lr-call-speaker.is-selected .lr-call-control-icon,
 .lr-call-backdrop .lr-call-action.lr-call-mute.is-muted .lr-call-control-icon{
  background:#fff1fc!important;border-color:#fff!important;color:#392347!important;
 }
 .lr-call-backdrop .lr-call-action.lr-call-decline .lr-call-control-icon{
- background:#df264e!important;border-color:#bc396c!important;color:#fff!important;
+ background:#df264e!important;border-color:#ff7b94!important;color:#fff!important;
  box-shadow:0 9px 25px rgba(104,9,34,.3)!important;
 }
 .lr-call-backdrop .lr-call-action.lr-call-answer .lr-call-control-icon{

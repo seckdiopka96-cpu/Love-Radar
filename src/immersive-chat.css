@@ -99,7 +99,7 @@
  animation:lr-whats-mic 1.3s ease-in-out infinite!important
 }
 .lr-chat .lr-activity-bubble.lr-activity-recording .lr-activity-wave i{
- width:3px!important;height:7px!important;background:#c8326c!important;
+ width:3px!important;height:7px!important;background:#ffc0cb!important;
  animation:lr-whats-voice .82s ease-in-out infinite alternate!important;
  will-change:transform,opacity
 }

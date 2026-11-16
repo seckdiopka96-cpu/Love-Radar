@@ -2,23 +2,23 @@
 .lr-home{max-width:930px;width:100%;padding:5px 0 33px;display:grid;gap:14px}
 .lr-home-kicker{text-align:center;color:#dfa9c6;font-size:10px;letter-spacing:2px;font-weight:900}
 .lr-home-couple{text-align:center;padding:18px 15px 23px;border-radius:24px;border:1px solid #754760;background:radial-gradient(ellipse at 50% 0,#76426655,transparent 65%),linear-gradient(160deg,#3a2440,#26182d);box-shadow:0 14px 40px #1007154d}
-.lr-home-avatar{display:inline-grid;place-items:center;height:44px;width:44px;vertical-align:middle;border:2px solid #bc396c;border-radius:50%;background:#713b60;font-size:20px;font-weight:800;color:#fff4f7}
-.lr-home-avatar-other{background:#a82358;border-color:#bc396c}
+.lr-home-avatar{display:inline-grid;place-items:center;height:44px;width:44px;vertical-align:middle;border:2px solid #e9b0c7;border-radius:50%;background:#713b60;font-size:20px;font-weight:800;color:#fff4f7}
+.lr-home-avatar-other{background:#a25f7c;border-color:#f4bbcb}
 .lr-home-heart{display:inline-grid;place-items:center;vertical-align:middle;margin:0 15px;color:#f9b6ca;font-size:25px}
 .lr-home-couple h1{font:600 clamp(22px,4vw,35px)/1.2 'Playfair Display',Georgia,serif;color:#ffedf3;margin:11px 0 7px;overflow-wrap:anywhere}
 .lr-home-couple h1 span{color:#f3b1c7}
 .lr-home-couple p{color:#c9aec2;font-size:12px;margin:0}
 .lr-home-online{display:inline-block;width:7px;height:7px;margin-right:8px;border-radius:50%;background:#9f8b9f}
 .lr-home-online.is-online{background:#57dba0;box-shadow:0 0 0 3px #57dba01c}
-.lr-home-invite{padding:16px;border:1px dashed #bc396c;border-radius:16px;background:#37253c;display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:#fff}
+.lr-home-invite{padding:16px;border:1px dashed #bd7d98;border-radius:16px;background:#37253c;display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:#fff}
 .lr-home-invite div{flex:1 1 190px}.lr-home-invite strong{font-size:13px}.lr-home-invite p{font-size:11px;color:#c7a4b9;margin:5px 0 0}.lr-home-invite code{color:#ffe0ef;background:#573550;border-radius:9px;padding:9px;letter-spacing:2px;font-weight:850}
-.lr-home-invite button{border:0;border-radius:9px;background:#a82358;color:#fff;padding:11px;font-size:11px;font-weight:850}
-.lr-home-game{width:100%;border:1px solid #bc396c;border-radius:23px;min-height:184px;background:radial-gradient(circle at 90% 12%,#a823587a,transparent 35%),linear-gradient(125deg,#8d4878,#4d315e 78%);color:#fff4fa;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;padding:22px;box-shadow:0 15px 35px #120c203b;overflow:hidden}
+.lr-home-invite button{border:0;border-radius:9px;background:#b55483;color:#fff;padding:11px;font-size:11px;font-weight:850}
+.lr-home-game{width:100%;border:1px solid #aa7097;border-radius:23px;min-height:184px;background:radial-gradient(circle at 90% 12%,#9c69847a,transparent 35%),linear-gradient(125deg,#8d4878,#4d315e 78%);color:#fff4fa;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;padding:22px;box-shadow:0 15px 35px #120c203b;overflow:hidden}
 .lr-home-game-copy{flex:1;min-width:0;position:relative;z-index:1}
 .lr-home-card-label{color:#ffccde;font-size:10px;letter-spacing:1.7px;font-weight:900}
 .lr-home-game h2{font:600 clamp(23px,3.3vw,34px)/1.15 'Playfair Display',Georgia,serif;letter-spacing:-.4px;margin:14px 0 8px;color:#fff5f7}
 .lr-home-game p{font-size:12px;line-height:1.5;color:#f0cddd;margin:0 0 17px}
-.lr-home-game-cta{display:inline-flex;align-items:center;gap:8px;border-radius:11px;background:#c8326c;color:#702e53;padding:10px 13px;font-size:12px;font-weight:850}
+.lr-home-game-cta{display:inline-flex;align-items:center;gap:8px;border-radius:11px;background:#fff0f5;color:#702e53;padding:10px 13px;font-size:12px;font-weight:850}
 .lr-home-game-cta b{font-size:17px}
 .lr-home-game-dice{display:flex;align-items:center;justify-content:center;gap:1px;padding:5px 15px 5px 0}
 .lr-home-game-dice .lr-die:nth-child(2){transform:rotate(13deg) translate(-7px,19px)}
@@ -51,7 +51,7 @@
  .lr-home-invite{padding:12px}
 }
 
-.lr-home-memory{display:flex;align-items:center;gap:20px;width:100%;min-height:120px;padding:17px 20px;margin:13px 0 20px;border:1px solid #bc396c;border-radius:18px;background:linear-gradient(120deg,#562e55,#8f446a 65%,#a82358);color:#fff1f7;text-align:left;box-shadow:0 5px 22px #4b21472c}
+.lr-home-memory{display:flex;align-items:center;gap:20px;width:100%;min-height:120px;padding:17px 20px;margin:13px 0 20px;border:1px solid #db9dbb;border-radius:18px;background:linear-gradient(120deg,#562e55,#8f446a 65%,#be6795);color:#fff1f7;text-align:left;box-shadow:0 5px 22px #4b21472c}
 .lr-home-memory-icons{font-size:35px;line-height:1.2;min-width:150px;text-align:center;letter-spacing:2px;text-shadow:0 3px 8px #350e3b}
 .lr-home-memory-copy{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
 .lr-home-memory-copy small{color:#f0c2d5;font-size:9px;font-weight:900;letter-spacing:.9px}
@@ -61,22 +61,22 @@
 @media(max-width:600px){.lr-home-memory{gap:9px;padding:14px 12px;min-height:108px}.lr-home-memory-icons{font-size:27px;min-width:86px;letter-spacing:0}.lr-home-memory-copy strong{font-size:19px}.lr-home-memory-copy>span{font-size:10px}}
 
 /* Our shared daily question deserves the first home slot. */
-.lr-home-daily{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:100%;margin:16px 0 20px;padding:18px 19px;text-align:left;border:1px solid #bc396c;border-radius:22px;background:radial-gradient(circle at top right,#bd27636b,transparent 49%),linear-gradient(135deg,#6a3865,#8f496e 66%,#70415f);box-shadow:0 12px 28px #27112861;color:#fff2f7;transition:transform .15s ease,box-shadow .15s ease}
+.lr-home-daily{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:100%;margin:16px 0 20px;padding:18px 19px;text-align:left;border:1px solid #e5a9c6;border-radius:22px;background:radial-gradient(circle at top right,#e890b56b,transparent 49%),linear-gradient(135deg,#6a3865,#8f496e 66%,#70415f);box-shadow:0 12px 28px #27112861;color:#fff2f7;transition:transform .15s ease,box-shadow .15s ease}
 .lr-home-daily:hover{transform:translateY(-2px);box-shadow:0 15px 30px #27112888}
 .lr-home-daily-kicker{font-size:9px;color:#ffe2e9;font-weight:950;letter-spacing:1.3px}
 .lr-home-daily-line{display:flex;align-items:center;gap:12px}
-.lr-home-daily-icon{height:55px;width:55px;border-radius:17px;display:grid;place-items:center;flex:none;background:#ffffff27;border:1px solid #bc396c65;font-size:30px}
+.lr-home-daily-icon{height:55px;width:55px;border-radius:17px;display:grid;place-items:center;flex:none;background:#ffffff27;border:1px solid #ffe2ea65;font-size:30px}
 .lr-home-daily-content{display:flex;flex-direction:column;gap:5px;flex:1;min-width:0}
 .lr-home-daily-content strong{font:600 clamp(21px,4vw,26px)/1.1 Georgia,serif;color:#fff5f9}
 .lr-home-daily-content>span{font-size:11px;line-height:1.5;color:#f8d9e7}
 .lr-home-daily-arrow{font-size:21px;color:#ffe0ad}
-.lr-home-daily-question{font:italic 15px/1.55 Georgia,serif;color:#fff0f6;border-left:2px solid #bc396c99;padding:4px 0 4px 12px}
+.lr-home-daily-question{font:italic 15px/1.55 Georgia,serif;color:#fff0f6;border-left:2px solid #ffd4de99;padding:4px 0 4px 12px}
 .lr-home-daily-cta{font-size:11px;font-weight:900;color:#ffe5ab}
 @media(max-width:600px){.lr-home-daily{padding:15px 13px;gap:10px}.lr-home-daily-icon{height:44px;width:44px;border-radius:13px;font-size:25px}.lr-home-daily-content strong{font-size:21px}.lr-home-daily-content>span{font-size:10px}}
 
 /* Two compact entry cards to the private "Ensemble" space. */
 .lr-home-together{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin:12px 0 19px}
-.lr-home-together button{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:15px;border:1px solid #bc396c;border-radius:17px;text-align:left;color:#ffecf7;background:linear-gradient(145deg,#743f68,#422c54);box-shadow:0 6px 18px #1e0e285e}
+.lr-home-together button{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:15px;border:1px solid #d69db5;border-radius:17px;text-align:left;color:#ffecf7;background:linear-gradient(145deg,#743f68,#422c54);box-shadow:0 6px 18px #1e0e285e}
 .lr-home-together .lr-together-puzzle-card{background:linear-gradient(145deg,#594778,#3b2e56);border-color:#bc9bd0}
 .lr-home-together .lr-together-icon{font-size:28px}
 .lr-home-together strong{font:600 22px Georgia,serif}
@@ -94,7 +94,7 @@
 
 /* Compact romantic shortcuts: two additions without enlarging the tab bar. */
 .lr-home-our-story{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:13px 0 16px}
-.lr-home-our-story button{display:flex;align-items:center;gap:11px;padding:13px;min-width:0;text-align:left;border:1px solid #bc396c;border-radius:16px;background:linear-gradient(125deg,#624362,#3c2d4d);color:#fff2f8}
+.lr-home-our-story button{display:flex;align-items:center;gap:11px;padding:13px;min-width:0;text-align:left;border:1px solid #c494ad;border-radius:16px;background:linear-gradient(125deg,#624362,#3c2d4d);color:#fff2f8}
 .lr-home-our-story button:last-child{background:linear-gradient(125deg,#624268,#42335b);border-color:#b59bc6}
 .lr-home-our-symbol{flex:none;font-size:26px;line-height:1.2}
 .lr-home-our-story button>span:nth-child(2){display:flex;flex:1;min-width:0;flex-direction:column;gap:5px}

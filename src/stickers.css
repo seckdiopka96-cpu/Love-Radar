@@ -46,7 +46,7 @@
  cursor:pointer;
 }
 .lr-chat .lr-sticker-categories button[aria-selected=true]{
- background:rgba(232,113,164,.17)!important;border-color:#bc396c57!important;color:#fff1f6!important;
+ background:rgba(232,113,164,.17)!important;border-color:#d987b457!important;color:#fff1f6!important;
 }
 .lr-chat .lr-sticker-categories button span{font-size:20px;line-height:24px}
 .lr-chat .lr-sticker-categories button small{font-size:9px;font-weight:780;line-height:12px;white-space:nowrap}
@@ -103,13 +103,13 @@
  transform:rotate(-4deg);
  text-shadow:0 1px 2px #fff3;white-space:nowrap;
 }
-.lr-sticker-sparkle{position:absolute;color:#fff8f0;font-size:11px;text-shadow:0 1px 3px #a21e5266;pointer-events:none}
+.lr-sticker-sparkle{position:absolute;color:#fff8f0;font-size:11px;text-shadow:0 1px 3px #a55c8266;pointer-events:none}
 .lr-sticker-sparkle-left{top:16%;left:8%;transform:rotate(-15deg)}
 .lr-sticker-sparkle-right{top:25%;right:7%;transform:rotate(16deg)}
 .lr-sticker-caption{
  position:relative;margin-top:-1px;
  display:block;max-width:100%;padding:4px 7px;
- background:#c8326ce8;color:#83435f;border:1px solid #fff8;
+ background:#fff9fbe8;color:#83435f;border:1px solid #fff8;
  border-radius:9px;box-shadow:0 2px 4px #15101d22;
  font:850 9.5px/1.1 -apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif!important;
  letter-spacing:.1px;white-space:nowrap;text-align:center;
@@ -145,7 +145,7 @@
  font-size:10px!important;line-height:1.15!important;
 }
 .lr-chat .lr-sticker-picker button:focus-visible,.lr-chat .lr-sticker-trigger:focus-visible{
- outline:2px solid #bc396c!important;outline-offset:2px;
+ outline:2px solid #ffcadf!important;outline-offset:2px;
 }
 .lr-chat .lr-chat-form .lr-sticker-trigger{
  flex:0 0 35px!important;width:35px!important;min-width:35px!important;
@@ -157,7 +157,7 @@
 }
 .lr-chat .lr-chat-form .lr-sticker-trigger svg{width:23px!important;height:23px!important}
 .lr-chat .lr-chat-form .lr-sticker-trigger.is-open{
- background:#a82358!important;border-color:#bc396c!important;color:#fff!important;
+ background:#ad507b!important;border-color:#efb1ca!important;color:#fff!important;
 }
 .lr-chat .lr-chat-form.is-writing .lr-sticker-trigger{display:grid!important}
 .lr-chat .lr-chat-form .lr-sticker-trigger:disabled{opacity:.42;cursor:not-allowed}

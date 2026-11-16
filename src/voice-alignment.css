@@ -1,70 +1,3 @@
-/* Deep Rose release polish.
-   Use the voice-note rose as the common accent across Love Radar;
-   keep midnight-blue surfaces and near-white readable text intact. */
-:root{
- --lr-rose:#bd2763;
- --lr-rose-light:#f5f7fa;
- --lr-deep-rose:#bd2763;
- --lr-deep-rose-shadow:#a82358;
-}
-.lr-app .lr-chat .lr-bubble-row.mine .lr-bubble,
-.lr-app .lr-chat .lr-bubble-row.mine .lr-bubble.lr-bubble-audio{
- background:#bd2763!important;
- border-color:#bd2763!important;
- color:#fff!important;
-}
-.lr-app .lr-chat .lr-bubble-row.mine .lr-bubble p,
-.lr-app .lr-chat .lr-bubble-row.mine .lr-bubble .lr-message-time{
- color:#fff!important;
-}
-.lr-app .lr-chat .lr-voice-note.is-own .lr-voice-note-wave>span{
- background:rgba(255,255,255,.50)!important;
- opacity:1;
-}
-.lr-app .lr-chat .lr-voice-note.is-own .lr-voice-note-wave>span.played{
- background:#fff!important;
- opacity:1;
-}
-.lr-app .lr-chat .lr-voice-note.is-own .lr-voice-note-playhead{
- background:#fff!important;
- box-shadow:0 0 0 1px #ffffff9c!important;
-}
-.lr-app .lr-home-welcome h2 em,
-.lr-app .lr-home-tile-icon{color:#f5f7fa!important}
-/* Previously pastel form backgrounds are now saturated, so text must not
-   inherit the original dark-rose-on-pastel contrast assumptions. */
-.lr-auth-form input:not([type=checkbox]),
-.lr-auth-form textarea,
-.lr-auth-form select{
- background:#642440!important;
- color:#fff!important;
- border:1px solid #bd2763!important;
- caret-color:#fff!important;
-}
-.lr-auth-form input::placeholder,
-.lr-auth-form textarea::placeholder{color:#f2dbe5!important;opacity:1}
-.lr-auth-form input:focus-visible,
-.lr-auth-form textarea:focus-visible,
-.lr-auth-form select:focus-visible{
- outline:2px solid #d96394!important;outline-offset:2px;
-}
-.lr-auth-switch{background:#642440!important}
-.lr-auth-switch button:not(.active){color:#f7f1f5!important}
-.lr-auth-switch button.active{color:#a82358!important}
-.lr-badge-free,.lr-menu button,.lr-code,.lr-install-btn{
- color:#fff!important;
-}
-.lr-menu button:not(.lr-danger){background:#9e2355!important}
-.lr-code{background:#a82358!important;border-color:#bd2763!important}
-.lr-error{color:#fff!important}
-.lr-error button{color:#fff!important}
-/* White controls stay legible on saturated rose and standard navy surfaces. */
-.lr-app button:focus-visible,
-.lr-app input:focus-visible{outline-offset:2px}
-@media(prefers-reduced-motion:reduce){
- .lr-app .lr-chat .lr-voice-note-playhead{transition:none!important}
-}
-
 /* Voice alignment — share a single real grid row for playback, speed and
    waveform; duration and message time occupy a separate aligned row.
    The profile photo stays vertically centered over both rows while idle.
@@ -186,4 +119,21 @@
 }
 @media(max-width:375px){
  .lr-app .lr-chat .lr-voice-note-main{column-gap:6px!important}
+}
+
+/* Restored original soft-pink chat palette; keep the aligned voice controls. */
+.lr-app .lr-chat .lr-bubble-row.mine .lr-bubble.lr-bubble-audio{
+ background:linear-gradient(135deg,#f47b99,#d85f83)!important;
+ border-color:#f48ca7!important;
+ color:#fff!important;
+}
+.lr-app .lr-chat .lr-voice-note.is-own .lr-voice-note-wave>span{
+ background:rgba(255,255,255,.50)!important;
+ opacity:1;
+}
+.lr-app .lr-chat .lr-voice-note.is-own .lr-voice-note-wave>span.played{
+ background:#fff!important;
+}
+.lr-app .lr-chat .lr-voice-note.is-own .lr-voice-note-playhead{
+ background:#fff!important;
 }

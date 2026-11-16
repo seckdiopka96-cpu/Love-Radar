@@ -28,7 +28,7 @@
  overflow:auto;overscroll-behavior:contain;padding:0 0 8px}
 .tk-video-area{display:flex;gap:10px;align-items:stretch;justify-content:center;flex:none;flex-wrap:wrap}
 .tk-video-container{position:relative;flex:1 1 250px;min-width:min(100%,260px);max-width:340px;
- height:min(58dvh,560px);min-height:340px;overflow:hidden;border:2px solid #bc396c;
+ height:min(58dvh,560px);min-height:340px;overflow:hidden;border:2px solid #c07eae;
  border-radius:17px;background:linear-gradient(145deg,#1b1626,#090d1a);
  box-shadow:0 10px 25px #0c0816ab;isolation:isolate}
 .tk-video-embed{width:100%;height:100%;border:0;display:block;background:#0b0b0e}
@@ -45,24 +45,24 @@
 .tk-playback{display:flex;gap:6px}
 .tk-playback button{flex:1 1 0;min-height:42px;border:1px solid #9b759b;border-radius:9px;background:#684b6b;
  color:#fff7fa;font-size:12px;font-weight:850;padding:8px 5px}
-.tk-playback .tk-primary-play{flex:2 1 0;background:linear-gradient(115deg,#a82358,#913e7a);border-color:#bc396c}
+.tk-playback .tk-primary-play{flex:2 1 0;background:linear-gradient(115deg,#cb5589,#913e7a);border-color:#f5b1d4}
 .tk-playback button:disabled{opacity:.5}
-.tk-unblock{border:1px solid #f9c994;background:linear-gradient(120deg,#e7a96e,#a82358);
+.tk-unblock{border:1px solid #f9c994;background:linear-gradient(120deg,#e7a96e,#cb658b);
  border-radius:9px;padding:10px;color:#321d39;font-size:12px;font-weight:850}
 .tk-timebar{display:flex;align-items:center;gap:7px}
 .tk-timebar span{font-size:11px;font-weight:800;min-width:30px;color:#edd8e8;text-align:center;font-variant-numeric:tabular-nums}
-.tk-timebar input{min-width:0;flex:1 1 auto;accent-color:#bd2763}
+.tk-timebar input{min-width:0;flex:1 1 auto;accent-color:#ff94b9}
 .tk-open-tiktok{text-align:right;font-size:10px;color:#f2bfd9}
 .tk-loading{font-size:11px;color:#f2dbef;line-height:1.4;margin:0}
-.tk-player-error{font-size:11px;line-height:1.5;padding:9px;background:#7c3456;border:1px solid #bc396c;border-radius:9px}
+.tk-player-error{font-size:11px;line-height:1.5;padding:9px;background:#7c3456;border:1px solid #dc91ad;border-radius:9px}
 .tk-player-error a{color:#ffecc9}
 .tk-share{display:flex;flex-direction:column;gap:7px;flex:none;background:linear-gradient(135deg,#47334c,#29223c);
  border:1px solid #a17c9e;border-radius:13px;padding:12px}
 .tk-share label{font-size:12px;font-weight:850;color:#fff0df}
 .tk-share>div{display:flex;gap:7px;min-width:0}
-.tk-share input{min-width:0;flex:1 1 auto;padding:10px 11px;height:41px;background:#c8326c;color:#2e2234;
- border:1px solid #bc396c;border-radius:9px;font-size:12px}
-.tk-share button{flex:none;padding:0 12px;background:linear-gradient(135deg,#a82358,#9c477c);border:1px solid #bc396c;
+.tk-share input{min-width:0;flex:1 1 auto;padding:10px 11px;height:41px;background:#fff9fb;color:#2e2234;
+ border:1px solid #bd90ad;border-radius:9px;font-size:12px}
+.tk-share button{flex:none;padding:0 12px;background:linear-gradient(135deg,#cd5f8c,#9c477c);border:1px solid #ffc4d9;
  border-radius:9px;color:#fff;font-weight:850;font-size:12px}
 .tk-share button:disabled{opacity:.45}
 .tk-share small{font-size:10px;line-height:1.5;color:#e6c7d6}
@@ -82,9 +82,9 @@
 .tk-bubble p{font-size:12px;line-height:1.5;margin:2px 0 0;color:#fff;overflow-wrap:anywhere}
 .tk-chat-empty{font-size:12px;color:#e5cbd8;align-self:center}
 .tk-chat-send{display:flex;align-items:center;gap:7px;border-top:1px solid #5e4b62;padding:10px}
-.tk-chat-send input{flex:1 1 auto;min-width:0;padding:9px 12px;height:39px;background:#c8326c;color:#36233b;
+.tk-chat-send input{flex:1 1 auto;min-width:0;padding:9px 12px;height:39px;background:#fff5f9;color:#36233b;
  border:1px solid #ad8aa6;border-radius:20px;font-size:12px}
-.tk-chat-send button{flex:none;width:39px;height:39px;border:1px solid #bc396c;border-radius:50%;background:#a82358;color:#fff}
+.tk-chat-send button{flex:none;width:39px;height:39px;border:1px solid #fac4d7;border-radius:50%;background:#c15a89;color:#fff}
 .tk-chat-send button:disabled{opacity:.5}
 .tk-alert,.tk-notice{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:9px;
  border-radius:9px;font-size:11px;line-height:1.4}

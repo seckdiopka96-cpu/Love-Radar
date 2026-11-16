@@ -13,8 +13,8 @@
 }
 .lr-chat .lr-bubble-row.mine .lr-bubble.lr-bubble-audio{
  border-radius:21px 21px 7px 21px!important;
- background:linear-gradient(137deg,#bd2763 0%,#bd2763 54%,#a82358 100%)!important;
- border:1px solid #bc396c!important;
+ background:linear-gradient(137deg,#f47e9d 0%,#e7638c 54%,#d95582 100%)!important;
+ border:1px solid #ffacc0!important;
  box-shadow:0 8px 24px #2a0e2454!important;
 }
 .lr-voice-note{width:100%;min-width:0;display:flex;flex-direction:column;gap:8px}
@@ -26,7 +26,7 @@
  color:#fff9f5!important;box-shadow:0 3px 8px #04151b16!important;
  transition:background .15s ease,transform .15s ease;cursor:pointer
 }
-.lr-voice-note.is-own .lr-voice-note-play{background:#9934535a!important;border-color:#bc396c37!important}
+.lr-voice-note.is-own .lr-voice-note-play{background:#9934535a!important;border-color:#fff7f537!important}
 .lr-voice-note-play svg{display:block;width:21px;height:21px;fill:currentColor}
 .lr-voice-note-play:active{transform:scale(.94)}
 .lr-voice-note-play:focus-visible{outline:2px solid #fff0be;outline-offset:2px}
@@ -54,8 +54,8 @@
  background:#c0d4dbbf;opacity:.88;
  transition:background-color .14s linear,opacity .14s linear
 }
-.lr-voice-note-wave>span.played{background:#c8326c!important;opacity:1}
-.lr-voice-note.is-own .lr-voice-note-wave>span{background:#c8326cb2}
+.lr-voice-note-wave>span.played{background:#fff8f0!important;opacity:1}
+.lr-voice-note.is-own .lr-voice-note-wave>span{background:#ffe1e6b2}
 .lr-voice-note.is-own .lr-voice-note-wave>span.played{background:white!important}
 .lr-voice-note-seek{
  position:absolute;inset:0!important;width:100%!important;height:100%!important;
@@ -72,7 +72,7 @@
  display:grid!important;place-items:center!important;flex:0 0 37px!important;
  min-width:37px!important;width:37px!important;height:25px!important;
  padding:0 3px!important;margin:0!important;
- border:1px solid #bc396c80!important;border-radius:10px!important;
+ border:1px solid #f7d7e480!important;border-radius:10px!important;
  background:#ffffff22!important;color:#fff7f9!important;
  font:850 12px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;
  font-variant-numeric:tabular-nums!important;white-space:nowrap!important;
@@ -130,7 +130,7 @@
 .lr-audio-send-state.failed{color:#fffbea;opacity:1}
 .lr-audio-send-state button{
  flex:none;border:1px solid #ffdfdc!important;
- background:#c8326c!important;color:#8b3454!important;
+ background:#fff3ec!important;color:#8b3454!important;
  border-radius:999px!important;padding:5px 10px!important;
  font-size:10px!important;font-weight:850!important;
  min-height:28px;cursor:pointer
@@ -141,11 +141,11 @@
 .lr-voice-note-playhead{
  position:absolute;top:50%;left:0;z-index:1;
  width:8px;height:8px;border-radius:50%;
- background:#c8326c;box-shadow:0 0 0 2px #a21e5233,0 0 9px #fff9;
+ background:#fff6f9;box-shadow:0 0 0 2px #fff4f333,0 0 9px #fff9;
  pointer-events:none;transform:translate(-50%,-50%);
  transition:left .16s linear;
 }
-.lr-voice-note-playhead.is-playing{box-shadow:0 0 0 3px #a21e522b,0 0 12px #fff7}
+.lr-voice-note-playhead.is-playing{box-shadow:0 0 0 3px #fff4f32b,0 0 12px #fff7}
 @media(prefers-reduced-motion:reduce){.lr-voice-note-playhead{transition:none}}
 
 /* Messenger-inspired layout: live private profile photo occupies the avatar
@@ -159,7 +159,7 @@
  color:#f8f9fa!important;box-shadow:0 5px 18px #0003!important;
 }
 .lr-chat .lr-bubble-row.mine .lr-bubble.lr-bubble-audio{
- background:#bd2763!important;border-color:#bc396c!important;
+ background:#bd2763!important;border-color:#cd3974!important;
  border-radius:21px 21px 7px 21px!important;
  box-shadow:0 5px 18px #3d092b38!important;
 }
@@ -225,7 +225,7 @@
 .lr-chat .lr-voice-note-wave{height:28px;gap:1.4px}
 .lr-chat .lr-voice-note-wave>span{min-width:1px;max-width:4px;background:#a6a9ac!important;opacity:.75}
 .lr-chat .lr-voice-note-wave>span.played{background:#f3f7f8!important;opacity:1}
-.lr-chat .lr-voice-note.is-own .lr-voice-note-wave>span{background:#bd2763!important}
+.lr-chat .lr-voice-note.is-own .lr-voice-note-wave>span{background:#ed9ebc!important}
 .lr-chat .lr-voice-note.is-own .lr-voice-note-wave>span.played{background:#fff!important}
 .lr-chat .lr-voice-note-playhead{
  background:#f7fafb;width:10px;height:10px;

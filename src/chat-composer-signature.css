@@ -1,7 +1,7 @@
 /* Love Radar unified chat composer — one coherent icon color and background, Midnight & Rose identity.
    Import LAST: older stylesheets contain several legacy !important button rules. */
 .lr-chat .lr-chat-form{
- --lr-composer-rose:#bd2763;
+ --lr-composer-rose:#ed96bc;
  --lr-composer-icon:#f7dce8;
  --lr-composer-icon-bg:linear-gradient(145deg,#2b4051,#223747);
  --lr-composer-icon-border:#52677c;
@@ -28,7 +28,7 @@
  transform:scale(.94);filter:brightness(1.1);
 }
 .lr-chat .lr-chat-form > button:focus-visible{
- outline:2px solid #bc396c!important;outline-offset:3px!important;
+ outline:2px solid #ffd2e4!important;outline-offset:3px!important;
 }
 .lr-chat .lr-chat-form > button svg{display:block;width:20px;height:20px}
 .lr-chat .lr-chat-form > .lr-attach{
@@ -58,10 +58,10 @@
 }
 .lr-chat .lr-chat-form > .lr-chat-textbox > .lr-sticker-trigger.is-open,
 .lr-chat .lr-chat-form > .lr-chat-textbox > .lr-sticker-trigger[aria-expanded="true"]{
- background:#bd276325!important;color:#fbd6e8!important;
+ background:#ef98bc25!important;color:#fbd6e8!important;
 }
 .lr-chat .lr-chat-form > .lr-chat-textbox > .lr-sticker-trigger:focus-visible{
- outline:2px solid #bc396c!important;outline-offset:0!important;
+ outline:2px solid #ffd2e4!important;outline-offset:0!important;
 }
 .lr-chat .lr-chat-form > .lr-chat-textbox > .lr-sticker-trigger:disabled{opacity:.42!important}
 .lr-chat .lr-chat-form > .lr-mic{
@@ -72,10 +72,10 @@
 }
 .lr-chat .lr-chat-form > .lr-mic svg{width:21px;height:21px}
 .lr-chat .lr-chat-form > .lr-mic.recording{
- border-color:#bc396c!important;
+ border-color:#ffb6d1!important;
  color:var(--lr-composer-icon)!important;
  background:var(--lr-composer-icon-bg)!important;
- box-shadow:inset 0 1px 0 #ffffff15,0 0 0 2px #a21e5237!important;
+ box-shadow:inset 0 1px 0 #ffffff15,0 0 0 2px #ed96bc37!important;
 }
 .lr-chat .lr-chat-form > .lr-send{
  border-radius:15px!important;
@@ -107,8 +107,8 @@
  overflow:hidden;box-sizing:border-box;
 }
 .lr-chat .lr-chat-form > .lr-chat-textbox:focus-within{
- border-color:#bc396c!important;
- box-shadow:inset 0 1px 2px #050c1838,0 0 0 2px #a21e522a!important;
+ border-color:#e7a1c4!important;
+ box-shadow:inset 0 1px 2px #050c1838,0 0 0 2px #ef98bc2a!important;
 }
 .lr-chat .lr-chat-form > .lr-chat-textbox > input[type="text"]{
  flex:1 1 0!important;

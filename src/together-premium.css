@@ -2,7 +2,7 @@
    Overrides the legacy tall heart center and purple full-screen variant. */
 .lr-app.lr-app-locked .tg-page.tg-page-premium{
  --tg-night:#0b1b28;--tg-card:#192c3b;--tg-line:#395365;
- --tg-pink:#bd2763;--tg-text:#f8edf2;--tg-muted:#b4c4ce;
+ --tg-pink:#e893b6;--tg-text:#f8edf2;--tg-muted:#b4c4ce;
  width:100%;max-width:800px;margin:0 auto;
  display:flex;flex-direction:column;gap:19px!important;
  color:var(--tg-text)!important;
@@ -53,8 +53,8 @@
 .lr-app.lr-app-locked .tg-page-premium .tg-watch-feature{
  display:flex!important;align-items:center;gap:15px;min-height:98px;
  padding:17px!important;border-radius:21px!important;
- background:linear-gradient(117deg,#a82358,#a82358)!important;
- border:1px solid #bc396c!important;
+ background:linear-gradient(117deg,#aa567b,#c67898)!important;
+ border:1px solid #e1a7bf!important;
  box-shadow:inset 0 1px 0 #ffffff33,0 6px 16px #070b1329!important;
 }
 .lr-app.lr-app-locked .tg-page-premium .tg-watch-symbol{
@@ -140,8 +140,8 @@
  min-width:0!important;width:auto!important;min-height:43px;
  margin:0;padding:10px 13px!important;
  border-radius:13px!important;
- border:1px solid #bc396c!important;
- background:linear-gradient(135deg,#bd2763,#a82358)!important;
+ border:1px solid #efb1c9!important;
+ background:linear-gradient(135deg,#d57da2,#b96289)!important;
  box-shadow:none!important;
  font-size:12px!important;font-weight:800!important;
  white-space:nowrap;
@@ -180,7 +180,7 @@
 }
 .lr-app.lr-app-locked .tg-page-premium .tg-signal-avatar{
  width:37px;height:37px;min-width:37px;
- border-radius:12px;background:#bd2763!important;
+ border-radius:12px;background:#e5a0b9!important;
  color:#533548!important;font-size:15px;
 }
 .lr-app.lr-app-locked .tg-page-premium .tg-signal-content{gap:4px!important}
@@ -202,7 +202,7 @@
  min-height:34px;cursor:pointer;
 }
 .lr-app.lr-app-locked .tg-page-premium button:focus-visible{
- outline:2px solid #bc396c!important;outline-offset:2px!important;
+ outline:2px solid #ffbdda!important;outline-offset:2px!important;
 }
 .lr-app.lr-app-locked .tg-page-premium .tg-shortcuts button:active,
 .lr-app.lr-app-locked .tg-page-premium .tg-send-heart:active{

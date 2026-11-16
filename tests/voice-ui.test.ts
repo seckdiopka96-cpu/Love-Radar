@@ -89,9 +89,9 @@ test("voice notes use live member profile photos, clickable profile and in-place
 
 test("voice speed, play icon and waveform sit on the same row in both directions",()=>{
  const app=readFileSync("src/App.tsx","utf8");
- const theme=readFileSync("src/deep-rose-finish.css","utf8");
+ const theme=readFileSync("src/voice-alignment.css","utf8");
  const player=readFileSync("src/VoiceMessage.tsx","utf8");
- assert.ok(app.includes('import "./deep-rose-finish.css";'),"Final alignment overrides older mobile voice rules");
+ assert.ok(app.includes('import "./voice-alignment.css";'),"Final alignment overrides older mobile voice rules");
  assert.ok(theme.includes("grid-template-rows:32px 18px;"),"Playback controls and time have separate rows");
  assert.ok(theme.includes("display:contents!important;"),"Waveform and time become direct grid children");
  assert.ok(theme.includes("grid-template-columns:42px 34px minmax(0,1fr);"),"Outgoing notes start with the avatar/speed slot");
