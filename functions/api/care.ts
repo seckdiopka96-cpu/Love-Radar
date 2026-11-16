@@ -40,6 +40,7 @@ export async function onRequestGet({request,env}:Ctx):Promise<Response>{
   const u=await member(request,env.DB);
   if(!u)return fail("Reconnecte-toi.",401);
   await ensureCareTables(env.DB);
+  await env.DB.prepare("DELETE FROM care_notices WHERE expires_at<?").bind(Date.now()).run();
   return send(await getState(env.DB,u));
  }catch(e){console.error("Care GET",e);return fail("Impossible de charger vos attentions.",503)}
 }
@@ -54,6 +55,7 @@ export async function onRequestPost({request,env,waitUntil}:Ctx):Promise<Respons
   let body:Record<string,unknown>;
   try{body=JSON.parse(raw) as Record<string,unknown>}catch{return fail("Données invalides.")}
   await ensureCareTables(db);
+  await db.prepare("DELETE FROM care_notices WHERE expires_at<?").bind(Date.now()).run();
   const action=body.action;
   const now=Date.now();
   if(action==="period"){
