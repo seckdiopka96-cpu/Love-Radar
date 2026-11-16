@@ -31,6 +31,7 @@ import "./message-replies.css";
 import "./message-actions.css";
 import "./photo-reliability.css";
 import "./premium-navigation.css";
+import "./polished-shell.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story";
@@ -119,6 +120,7 @@ export default function LoveRadar(){
  function navigate(tab:Tab){
   if(tab==="chat"&&currentTab.current!=="chat")chatReturnTab.current=currentTab.current;
   closeNotice();
+  setMenu(false);
   setTab(tab);
   if(tab==="watch"||tab==="watch-tiktok")setWatchInvite(null);
   if(tab==="reconcile")setReconcileInvite(false);
@@ -515,7 +517,9 @@ export default function LoveRadar(){
    // a newer conversation with an older response.
    if(sequence<snapshotApplied.current)return;
    snapshotApplied.current=sequence;
-   setRoom(data as unknown as Room);
+   const nextRoom=data as unknown as Room;
+   // Ignore unchanged snapshots so polling cannot redraw the whole interface.
+   setRoom(previous=>previous&&JSON.stringify(previous)===JSON.stringify(nextRoom)?previous:nextRoom);
   }catch(e){if(!silent)setError(e instanceof Error?e.message:"Connexion impossible.")}
  },[token]);
  useEffect(()=>{
@@ -538,7 +542,7 @@ export default function LoveRadar(){
  },[token,request]);
  useEffect(()=>{
   if(!token)return;
-  const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh(undefined,true)},tab==="chat"?550:4500);
+  const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh(undefined,true)},tab==="chat"?1050:5000);
   const onFocus=()=>{void refresh(undefined,true)};
   window.addEventListener("focus",onFocus);
   return()=>{clearInterval(interval);window.removeEventListener("focus",onFocus)};
@@ -670,8 +674,9 @@ export default function LoveRadar(){
   if(!room)return;
   const received=new Set(room.messages.map(message=>message.id));
   setTextOutbox(items=>{
-   if(!items.some(item=>item.status==="sent"&&received.has(item.id)))return items;
-   return items.filter(item=>item.status!=="sent"||!received.has(item.id));
+   if(!items.some(item=>received.has(item.id)))return items;
+   // Server truth supersedes even a failed local send whose acknowledgement was lost.
+   return items.filter(item=>!received.has(item.id));
   });
  },[room?.messages]);
  useEffect(()=>()=>{for(const url of Object.values(mediaCache.current)){if(url.startsWith("blob:"))URL.revokeObjectURL(url)}},[]);
@@ -1011,24 +1016,23 @@ export default function LoveRadar(){
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
  return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"?"lr-keyboard-open":"")}>
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
-  <header className="lr-header"><div className="lr-brand" aria-label="Espace privé"><span className="lr-brand-emblem" aria-hidden="true">♥</span></div>
-   <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" aria-label="Options de mon espace" onClick={()=>setMenu(!menu)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu"><b>Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span><button type="button" className="lr-privacy-toggle" aria-pressed={privacyEnabled} onClick={()=>updatePrivacy(!privacyEnabled)}>
+  <header className="lr-header"><div className="lr-header-context" aria-label="Espace privé"><span>ESPACE PRIVÉ</span><strong>{room?.partner?"Notre univers":"Bienvenue"}</strong></div>
+   <div className="lr-header-end">{canInstall?<button type="button" className="lr-install-btn" onClick={installAndroid}>↓ Installer l’app</button>:null}{room?<><span className="lr-top-status"><i/> {room.partner?"À deux, c’est mieux":"Invitation en attente"}</span><button className="lr-header-avatar" type="button" aria-label="Ouvrir les paramètres" aria-expanded={menu} aria-controls="lr-settings-menu" onClick={()=>setMenu(open=>!open)}>{room.user.name[0]?.toUpperCase()}</button>{menu?<div className="lr-menu" id="lr-settings-menu"><b>Paramètres</b><span>{room.user.name} · Espace privé {room.code}</span><button type="button" className="lr-privacy-toggle" aria-pressed={privacyEnabled} onClick={()=>updatePrivacy(!privacyEnabled)}>
      {privacyEnabled?"🔐 Mode confidentialité : activé":"🔓 Mode confidentialité : désactivé"}
     </button>
     <small className="lr-privacy-menu-note">Photos privées révélées temporairement et filigrane. Aucun écran violet ne masque la lecture vidéo.</small>
+     {!isNativeApp?<div className="lr-menu-notifications" aria-label="Réglages des notifications">
+      <div className="lr-menu-notification-title"><strong>Notifications</strong><span className={"lr-menu-notification-status "+(notificationsOn?"is-on":"")}>{notificationsOn?"Activées":"Désactivées"}</span></div>
+      <div className="lr-menu-notification-actions">
+       <button type="button" onClick={()=>void enableNotifications(notificationsOn)} disabled={notificationsBusy||notificationsTesting}>{notificationsBusy?"Vérification…":notificationsOn?"Réparer":"Activer"}</button>
+       {notificationsOn?<button type="button" onClick={()=>void testNotifications()} disabled={notificationsBusy||notificationsTesting}>{notificationsTesting?"Test…":"Tester"}</button>:null}
+       {notificationsOn?<button type="button" onClick={()=>void disableNotifications()} disabled={notificationsBusy||notificationsTesting}>Désactiver</button>:null}
+      </div>
+      {notificationsHint?<p className="lr-menu-notification-help" role="status">{notificationsHint}</p>:null}
+     </div>:null}
     <button onClick={logout}>Se déconnecter</button>{room.user.owner?<button className="lr-danger" onClick={deleteRoom}>Supprimer l’espace</button>:null}</div>:null}</>:<span className="lr-badge-free">100% gratuit</span>}</div>
   </header>
   {showInstallHelp?<div className="lr-install-backdrop" onClick={()=>setShowInstallHelp(false)}><div className="lr-install-modal" role="dialog" aria-modal="true" aria-labelledby="lr-install-title" onClick={e=>e.stopPropagation()}><div className="lr-install-symbol">♥</div><h2 id="lr-install-title">Installer sur ton téléphone</h2><p>Installe l’application pour l’ouvrir en plein écran et recevoir des notifications.</p>{/iPhone|iPad|iPod/i.test(navigator.userAgent)?<ol><li>Ouvre ce site dans <strong>Safari</strong>.</li><li>Appuie sur <strong>Partager</strong> (le carré avec une flèche).</li><li>Choisis <strong>Sur l’écran d’accueil</strong>, puis <strong>Ajouter</strong>.</li><li>Ouvre l’application depuis sa nouvelle icône.</li></ol>:<ol><li>Ouvre le site dans <strong>Chrome Android</strong>.</li><li>Appuie sur <strong>⋮</strong> dans Chrome.</li><li>Choisis <strong>Installer l’application</strong> ou « Ajouter à l’écran d’accueil ».</li></ol>}<p className="lr-install-note">L’icône de l’application apparaîtra parmi tes applications. Une connexion Internet est nécessaire pour jouer et échanger des messages.</p><button onClick={()=>setShowInstallHelp(false)}>J’ai compris ❤️</button></div></div>:null}
-  {token&&room&&!isNativeApp?<div className="lr-notification-area">
-   <div className="lr-notification-controls">
-    <button type="button" className={"lr-notification-toggle "+(notificationsOn?"is-on":"")} onClick={()=>void enableNotifications(notificationsOn)} disabled={notificationsBusy||notificationsTesting}>
-     {notificationsBusy?"Vérification…":notificationsOn?"🔔 Notifications activées · Réparer":"🔔 Activer les notifications"}
-    </button>
-    {notificationsOn?<button type="button" className="lr-notification-test" disabled={notificationsBusy||notificationsTesting} onClick={()=>void testNotifications()}>{notificationsTesting?"Test…":"Tester"}</button>:null}
-    {notificationsOn?<button type="button" className="lr-notification-disable" disabled={notificationsBusy||notificationsTesting} onClick={()=>void disableNotifications()}>Désactiver</button>:null}
-   </div>
-   {notificationsHint?<div role="status" className="lr-notification-help">{notificationsHint}</div>:null}
-  </div>:null}
   {watchInvite&&room&&tab!==watchInvite?<div className="lr-watch-invite" role="alert" aria-label="Invitation à regarder ensemble">
    <span className="lr-watch-invite-icon" aria-hidden="true">🎬</span>
    <span className="lr-watch-invite-copy"><strong>Ton amour regarde {watchInvite==="watch"?"YouTube":"TikTok"}</strong><small>Rejoins directement votre vidéo partagée ❤️</small></span>
