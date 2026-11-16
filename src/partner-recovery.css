@@ -60,3 +60,18 @@
  .lr-partner-recovery-secret code{font-size:12px}
  .lr-partner-recovery-check output{font-size:26px;letter-spacing:4px}
 }
+
+/* Historical pages remain inside the existing secure chat scroller. */
+.lr-chat .lr-history-loader{display:flex;justify-content:center;padding:12px 8px 19px}
+.lr-chat .lr-history-loader button{
+ padding:10px 16px;min-height:39px;border-radius:24px;
+ border:1px solid #6e8495;color:#e8d6e3;
+ background:linear-gradient(145deg,#294153,#213548);
+ font-size:12px;font-weight:750;cursor:pointer
+}
+.lr-chat .lr-history-loader button:disabled{opacity:.55}
+.lr-chat .lr-history-error{
+ font-size:12px;line-height:1.5;max-width:90%;
+ color:#ffe0ea;background:#7a3c535e;border-radius:11px;
+ padding:10px;margin:0 auto 8px;text-align:center
+}
