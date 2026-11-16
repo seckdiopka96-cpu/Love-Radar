@@ -7,6 +7,7 @@ import {quoteAuthor,quotePreview} from "../src/message-quote";
 import StickerArt from "../src/StickerArt";
 import {STICKERS,STICKER_GROUPS,encodeSticker,getSticker,readStickerId} from "../src/stickers";
 import QuoteCard from "../src/QuoteCard";
+import {isTransientMessageFailure,messageRetryDelayMs} from "../src/message-network";
 import {receiptState,receiptGlyph,receiptAccessibleLabel} from "../src/message-delivery";
 
 const app=readFileSync("src/App.tsx","utf8");
@@ -286,4 +287,22 @@ test("message receipts distinguish server send, actual device receipt and read",
  assert.ok(app.includes('request("delivered",{messageId:newest.id})'));
  assert.ok(api.includes('sender_id<>?'));
  assert.ok(api.includes("last_delivered_at"));
+});
+
+test("temporary mobile transport failures retry with same UUID without retrying 401/403/409",()=>{
+ assert.equal(isTransientMessageFailure(new TypeError("Load failed")),true);
+ assert.equal(isTransientMessageFailure(new TypeError("Failed to fetch")),true);
+ assert.equal(isTransientMessageFailure(new Error("La connexion prend trop de temps. Réessaie.")),true);
+ assert.equal(isTransientMessageFailure(Object.assign(new Error("Service unavailable"),{httpStatus:503})),true);
+ assert.equal(isTransientMessageFailure(Object.assign(new Error("Forbidden"),{httpStatus:403})),false);
+ assert.equal(isTransientMessageFailure(Object.assign(new Error("Session expirée"),{httpStatus:401})),false);
+ assert.equal(isTransientMessageFailure(Object.assign(new Error("Identifiant déjà utilisé"),{httpStatus:409})),false);
+ assert.equal(messageRetryDelayMs(1),5000);
+ assert.equal(messageRetryDelayMs(3),20000);
+ assert.equal(messageRetryDelayMs(100),60000);
+ assert.ok(app.includes('messageId:entry.id'));
+ assert.ok(app.includes('isTransientMessageFailure(err)'));
+ assert.ok(app.includes('window.addEventListener("online",resume)'));
+ assert.ok(app.includes('item.status==="failed"&&item.retryable'));
+ assert.ok(app.includes('Connexion instable · nouvelle tentative automatique'));
 });
