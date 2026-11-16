@@ -12,7 +12,20 @@ const sampleJava='package com.diaotech.loveradar;\nimport com.getcapacitor.Bridg
 const samplePlist='<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleName</key><string>App</string></dict></plist>';
 const sampleSwift='import UIKit\nimport Capacitor\n@UIApplicationMain\nclass AppDelegate: UIResponder, UIApplicationDelegate {\n func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {\n return true\n }\n}\n';
 const sampleStoryboard='<storyboard><viewController customClass="CAPBridgeViewController" customModule="Capacitor" customModuleProvider="target"/></storyboard>';
-const sampleProject='AA /* Debug */ = { isa = XCBuildConfiguration; buildSettings = { INFOPLIST_FILE = App/Info.plist;\\n }; name = Debug; };\\nBB /* Release */ = { isa = XCBuildConfiguration; buildSettings = { INFOPLIST_FILE = App/Info.plist;\\n }; name = Release; };';
+const sampleProject=`AA /* Debug */ = {
+ isa = XCBuildConfiguration;
+ buildSettings = {
+  INFOPLIST_FILE = App/Info.plist;
+ };
+ name = Debug;
+};
+BB /* Release */ = {
+ isa = XCBuildConfiguration;
+ buildSettings = {
+  INFOPLIST_FILE = App/Info.plist;
+ };
+ name = Release;
+};`;
 
 function write(path:string,data:string){
  mkdirSync(dirname(path),{recursive:true});writeFileSync(path,data);
