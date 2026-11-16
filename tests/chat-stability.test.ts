@@ -34,7 +34,7 @@ test("speaker is a two-way route control, with truthful iPhone fallback",()=>{
  assert.ok(voice.includes('audioSession.type="play-and-record"'));
 });
 test("chat server migrates recording presence and never exposes message drafts",()=>{
- assert.ok(api.includes('["last_seen_at","recording_until","last_reaction_read_at"]'));
+ assert.ok(api.includes('["last_seen_at","recording_until","last_reaction_read_at","last_delivered_at"]'));
  assert.ok(api.includes('op==="typing"||op==="recording"'));
  assert.ok(api.includes("recording_until INTEGER NOT NULL DEFAULT 0"));
  assert.ok(api.includes('get("status")==="1"'));
