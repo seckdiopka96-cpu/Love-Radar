@@ -201,7 +201,7 @@ test("stickers picker supports live search, categories, favorites and recent sen
  assert.ok(app.includes('!isSticker(actionMessage.content)'));
  assert.ok(api.includes('message.startsWith("[sticker:v1:")'));
  assert.ok(api.includes("un sticker"));
- assert.ok(home.includes('quotePreview("text",last.content,95)'));
+ assert.ok(home.includes('quotePreview("text",last.content,85)'));
 });
 
 test("comedy, memes and culturally varied sticker packs stay searchable and renderable",()=>{
