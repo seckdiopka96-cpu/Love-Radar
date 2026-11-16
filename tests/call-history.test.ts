@@ -12,6 +12,13 @@ function setup(){
  if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
  const sqlite=new DatabaseSync(":memory:");
  sqlite.exec("CREATE TABLE members(id TEXT PRIMARY KEY,room_id TEXT NOT NULL,name TEXT NOT NULL,token_hash TEXT NOT NULL);");
+ // Every isolated test DB mirrors the production call schema. The API also
+ // initializes these tables lazily in a real Cloudflare D1 isolate.
+ const schema=readFileSync("schema.sql","utf8");
+ const callStart=schema.indexOf("CREATE TABLE IF NOT EXISTS voice_calls (");
+ const callEnd=schema.indexOf("-- Two-player Ludo",callStart);
+ assert.ok(callStart>=0&&callEnd>callStart);
+ sqlite.exec(schema.slice(callStart,callEnd));
  const accounts:[string,string,string][]=[["alice","couple-1","a"],["bob","couple-1","b"],["carol","couple-2","c"]];
  for(const [name,room,character] of accounts){
   const digest=createHash("sha256").update(key(character)).digest("hex");
