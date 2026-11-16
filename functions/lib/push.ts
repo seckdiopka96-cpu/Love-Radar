@@ -31,10 +31,10 @@ function notificationRoute(tab:Tab,target?:PushTarget){
  }
  return "/?"+route.toString();
 }
-async function deliver(env:PushEnv,records:StoredSub[],title:string,body:string,tab:Tab,target?:PushTarget):Promise<PushDelivery>{
+async function deliver(env:PushEnv,records:StoredSub[],title:string,body:string,tab:Tab,target?:PushTarget,senderId?:string):Promise<PushDelivery>{
  if(!env.DB||!env.VAPID_PUBLIC_KEY||!env.VAPID_PRIVATE_KEY)return {registered:records.length,accepted:0,failed:records.length};
  const vapid={subject:env.VAPID_SUBJECT||"https://love-radar-acd.pages.dev/",publicKey:env.VAPID_PUBLIC_KEY,privateKey:env.VAPID_PRIVATE_KEY};
- const data=JSON.stringify({title,body,tab,url:notificationRoute(tab,target),kind:target?.kind||(tab==="chat"?"message":"notice"),id:target?.id||null});
+ const data=JSON.stringify({title,body,tab,url:notificationRoute(tab,target),kind:target?.kind||(tab==="chat"?"message":"notice"),id:target?.id||null,...(senderId?{senderId}:{})});
  let accepted=0,failed=0;
  await Promise.all(records.map(async sub=>{
   if(!validPushEndpoint(sub.endpoint)){failed++;return;}
@@ -58,7 +58,19 @@ export async function notifyPartner(
  try{
   const rows=await env.DB.prepare("SELECT endpoint,p256dh,auth FROM push_subscriptions WHERE room_id=? AND member_id<>? LIMIT 12")
    .bind(roomId,fromId).all<StoredSub>();
-  await deliver(env,rows.results||[],title,body,tab,target);
+  // Put the partner's name in the lock-screen title. The actual profile image
+  // never leaves authenticated, private device storage (Web Push stays encrypted).
+  const privateChat=tab==="chat"&&Boolean(target&&["message","photo","audio"].includes(target.kind));
+  let notificationTitle=title,notificationBody=body;
+  if(privateChat){
+   const sender=await env.DB.prepare("SELECT name FROM members WHERE room_id=? AND id=? LIMIT 1")
+    .bind(roomId,fromId).first<{name:string}>();
+   notificationTitle=String(sender?.name||"Ton partenaire").replace(/[\r\n\t]/g," ").trim().slice(0,60)||"Ton partenaire";
+   notificationBody=target!.kind==="photo"?"📷 Photo reçue":
+    target!.kind==="audio"?"🎤 Message vocal reçu":
+    body.includes("sticker")?"💗 Sticker reçu":body.includes("GIF")?"🎞️ GIF animé reçu":"💌 Nouveau message";
+  }
+  await deliver(env,rows.results||[],notificationTitle,notificationBody,tab,target,privateChat?fromId:undefined);
  }catch(e){console.error("Love Radar push lookup failed",e)}
 }
 export async function sendTestPush(env:PushEnv,roomId:string,memberId:string):Promise<PushDelivery>{
