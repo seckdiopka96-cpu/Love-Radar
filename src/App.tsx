@@ -3,7 +3,7 @@ import {recoverSavedSession,persistSessionToken,clearSessionToken,hadPreviousSes
 import {ensureIdentity,loadIdentity,loadRecoveredRoomKey,encryptedBackupFor,restoreIdentityBackup,fingerprint,makeContext,verifyPartner,isPartnerVerified,encryptText,encryptMedia,decryptMedia,isEncryptedMedia,isEncryptedText,type CryptoContext} from "./e2ee";
 import {revealMessages} from "./e2ee-room";
 import {setNativePrivacy} from "./native-privacy";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import "./love-radar.css";
 import VoiceCall from "./VoiceCall";
 import CallHistoryBubble,{type CallHistoryEvent} from "./CallHistoryBubble";
@@ -67,6 +67,7 @@ import "./auth-reconnect.css";
 import "./voice-alignment.css";
 import "./premium-design-polish.css";
 import "./call-history.css";
+import "./message-context-premium.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "rps" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
@@ -106,6 +107,7 @@ function selectedNav(tab:Tab):Tab {
 }
 const HEARTS = ["♡","♥","✦","♡","♥"];
 const CHAT_REACTIONS=["👍","❤️","😂","😮","😢","🙏","👏"];
+const EXTRA_CHAT_REACTIONS=["🥰","😍","😘","💗","🔥","🎉","💯","🤗","😎","💐","🤲","😅"];
 
 type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"rps-challenge"|"daily-question"|"love-signal";
 type NoticeTarget={tab:Tab;kind:NoticeKind|null;id:string|null};
@@ -220,6 +222,9 @@ export default function LoveRadar(){
  const [stickerOpen,setStickerOpen]=useState(false);
  const [replyTarget,setReplyTarget]=useState<Message|null>(null);
  const [actionMessageId,setActionMessageId]=useState<string|null>(null);
+ const [extraReactionsOpen,setExtraReactionsOpen]=useState(false);
+ const [actionPosition,setActionPosition]=useState<{left:number;top:number}|null>(null);
+ const actionPopoverRef=useRef<HTMLDivElement|null>(null);
  const [infoMessageId,setInfoMessageId]=useState<string|null>(null);
  const [editTarget,setEditTarget]=useState<Message|null>(null);
  const composerBeforeEdit=useRef<{draft:string;reply:Message|null}|null>(null);
@@ -308,6 +313,49 @@ export default function LoveRadar(){
    window.removeEventListener("focus",onVisible)};
  },[token,room?.roomId,tab]);
  const actionMessage=chatMessages.find(m=>m.id===actionMessageId)||null;
+ // The long-press menu follows the selected chat bubble, not the bottom dock.
+ // Measure the rendered popover so it remains fully visible near both edges
+ // of the iPhone viewport and after a rotation or keyboard dismissal.
+ useLayoutEffect(()=>{
+  if(!actionMessageId)return;
+  let frame:number|undefined;
+  const place=()=>{
+   const popup=actionPopoverRef.current;
+   const row=document.getElementById("lr-chat-message-"+actionMessageId);
+   const selected=row?.querySelector(".lr-bubble-stack") as HTMLElement|null;
+   if(!popup)return;
+   const visual=window.visualViewport;
+   const viewportLeft=visual?.offsetLeft??0;
+   const viewportTop=visual?.offsetTop??0;
+   const viewportWidth=visual?.width??window.innerWidth;
+   const viewportHeight=visual?.height??window.innerHeight;
+   const bounds=(selected||row)?.getBoundingClientRect();
+   const popupRect=popup.getBoundingClientRect();
+   const margin=12;
+   const mine=Boolean(row?.classList.contains("mine"));
+   const leftEdge=viewportLeft+margin;
+   const rightEdge=viewportLeft+viewportWidth-margin-popupRect.width;
+   const desiredLeft=bounds?(mine?bounds.right-popupRect.width:bounds.left):
+    viewportLeft+(viewportWidth-popupRect.width)/2;
+   const left=Math.max(leftEdge,Math.min(Math.max(leftEdge,rightEdge),desiredLeft));
+   const topEdge=viewportTop+Math.max(14,viewportHeight*.035);
+   const bottomEdge=viewportTop+viewportHeight-margin-popupRect.height;
+   const desiredTop=bounds?bounds.top-63:viewportTop+(viewportHeight-popupRect.height)/2;
+   const top=Math.max(topEdge,Math.min(Math.max(topEdge,bottomEdge),desiredTop));
+   setActionPosition(prev=>prev&&Math.abs(prev.left-left)<.6&&Math.abs(prev.top-top)<.6?prev:{left,top});
+  };
+  const schedule=()=>{if(frame!==undefined)cancelAnimationFrame(frame);frame=requestAnimationFrame(place)};
+  schedule();
+  window.addEventListener("resize",schedule);
+  window.visualViewport?.addEventListener("resize",schedule);
+  window.visualViewport?.addEventListener("scroll",schedule);
+  return()=>{
+   if(frame!==undefined)cancelAnimationFrame(frame);
+   window.removeEventListener("resize",schedule);
+   window.visualViewport?.removeEventListener("resize",schedule);
+   window.visualViewport?.removeEventListener("scroll",schedule);
+  };
+ },[actionMessageId,extraReactionsOpen]);
  const infoMessage=chatMessages.find(m=>m.id===infoMessageId)||null;
  const [recording,setRecording]=useState(false);
  const [recordingPaused,setRecordingPaused]=useState(false);
@@ -1331,6 +1379,8 @@ export default function LoveRadar(){
  function openMessageActions(message:Message){
   if(textOutbox.some(entry=>entry.id===message.id))return;
   chatInput.current?.blur();
+  setExtraReactionsOpen(false);
+  setActionPosition(null);
   setActionMessageId(message.id);
  }
  function chooseReply(message:Message){
@@ -1858,18 +1908,48 @@ export default function LoveRadar(){
       {partnerActivityKind?<ChatActivity kind={partnerActivityKind}/>:null}
       <div ref={tail}/>
      </div>
-     {actionMessage?<div className="lr-message-action-backdrop" onClick={()=>setActionMessageId(null)}>
-      <div className="lr-message-action-sheet" role="dialog" aria-modal="true" aria-label="Actions sur le message" onClick={e=>e.stopPropagation()}>
-       <div className="lr-message-action-heading">Message · {actionMessage.kind==="text"?(isSticker(actionMessage.content)?"Sticker":readGifId(actionMessage.content)?"GIF":"Texte"):actionMessage.kind==="image"?"Photo":"Vocal"}</div>
+     {actionMessage?<div className="lr-message-action-backdrop lr-message-context-backdrop" onClick={()=>setActionMessageId(null)}>
+      <div ref={actionPopoverRef} className={"lr-message-action-popover "+(actionMessage.sender_id===room.user.id?"is-own":"is-partner")}
+       role="dialog" aria-modal="true" aria-label="Actions sur le message"
+       style={actionPosition?{left:actionPosition.left,top:actionPosition.top}:{left:12,top:12,visibility:"hidden"}}
+       onClick={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==="Escape"){e.stopPropagation();setActionMessageId(null)}}}>
        <div className="lr-message-reaction-picker" role="group" aria-label="Réagir au message">
         {CHAT_REACTIONS.map(emoji=><button key={emoji} type="button" aria-label={"Réagir "+emoji} onClick={()=>void reactToMessage(actionMessage,emoji)}>{emoji}</button>)}
+        <button type="button" className="lr-reaction-more" aria-label={extraReactionsOpen?"Masquer les autres réactions":"Plus de réactions"}
+         aria-expanded={extraReactionsOpen} onClick={()=>setExtraReactionsOpen(v=>!v)}>
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 7v10M7 12h10" strokeLinecap="round"/></svg>
+        </button>
        </div>
-       <button type="button" className="lr-message-action-row" onClick={()=>{chooseReply(actionMessage);setActionMessageId(null)}}><span aria-hidden="true">↩</span> Répondre</button>
-       {actionMessage.kind==="text"&&actionMessage.content&&!isSticker(actionMessage.content)&&!readGifId(actionMessage.content)?<button type="button" className="lr-message-action-row" onClick={()=>void copyMessage(actionMessage)}><span aria-hidden="true">⧉</span> Copier</button>:null}
-       {actionMessage.sender_id===room.user.id&&actionMessage.kind==="text"&&!isSticker(actionMessage.content)&&!readGifId(actionMessage.content)?<button type="button" className="lr-message-action-row" onClick={()=>beginEditing(actionMessage)}><span aria-hidden="true">✎</span> Modifier le texte</button>:null}
-       <button type="button" className="lr-message-action-row" onClick={()=>{setInfoMessageId(actionMessage.id);setActionMessageId(null)}}><span aria-hidden="true">ⓘ</span> Infos du message</button>
-       <button type="button" className="lr-message-action-row" onClick={()=>void deleteForMe(actionMessage)}><span aria-hidden="true">⌫</span> Supprimer pour moi</button>
-       {actionMessage.sender_id===room.user.id?<button type="button" className="lr-message-action-row is-danger" onClick={()=>void deleteOwnMessage(actionMessage)}><span aria-hidden="true">⌫</span> Supprimer pour tous</button>:null}
+       {extraReactionsOpen?<div className="lr-message-reaction-more" role="group" aria-label="Autres réactions">
+        {EXTRA_CHAT_REACTIONS.map(emoji=><button key={emoji} type="button" aria-label={"Réagir "+emoji}
+         onClick={()=>void reactToMessage(actionMessage,emoji)}>{emoji}</button>)}
+       </div>:null}
+       <div className="lr-message-action-preview" aria-label="Message sélectionné">
+        {actionMessage.kind==="text"&&!isSticker(actionMessage.content)&&!readGifId(actionMessage.content)?
+         <span>{actionMessage.content}</span>:actionMessage.kind==="audio"?
+         <span>🎤 Message vocal</span>:actionMessage.kind==="image"?
+         <span>▧ Photo</span>:<span>{isSticker(actionMessage.content)?"💗 Sticker":"✦ GIF"}</span>}
+       </div>
+       <div className="lr-message-action-sheet">
+        <button type="button" className="lr-message-action-row" onClick={()=>{chooseReply(actionMessage);setActionMessageId(null)}}>
+         <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M10 8 4 12l6 4"/><path d="M4 12h9a7 7 0 0 1 7 7"/></svg></span>Répondre
+        </button>
+        {actionMessage.kind==="text"&&actionMessage.content&&!isSticker(actionMessage.content)&&!readGifId(actionMessage.content)?<button type="button" className="lr-message-action-row" onClick={()=>void copyMessage(actionMessage)}>
+         <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></span>Copier
+        </button>:null}
+        {actionMessage.sender_id===room.user.id&&actionMessage.kind==="text"&&!isSticker(actionMessage.content)&&!readGifId(actionMessage.content)?<button type="button" className="lr-message-action-row" onClick={()=>beginEditing(actionMessage)}>
+         <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"><path d="m13 5 6 6M4 20l4.2-1 11.1-11.1a2 2 0 0 0-2.8-2.8L5.3 16.2Z"/></svg></span>Modifier le texte
+        </button>:null}
+        <button type="button" className="lr-message-action-row" onClick={()=>{setInfoMessageId(actionMessage.id);setActionMessageId(null)}}>
+         <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></span>Infos du message
+        </button>
+        <button type="button" className="lr-message-action-row is-danger" onClick={()=>void deleteForMe(actionMessage)}>
+         <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M10 7V4h4v3M7 7l1 13h8l1-13M10 11v6M14 11v6"/></svg></span>Supprimer pour moi
+        </button>
+        {actionMessage.sender_id===room.user.id?<button type="button" className="lr-message-action-row is-danger" onClick={()=>void deleteOwnMessage(actionMessage)}>
+         <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M10 7V4h4v3M7 7l1 13h8l1-13M10 11v6M14 11v6"/></svg></span>Supprimer pour tous
+        </button>:null}
+       </div>
        <button type="button" className="lr-message-action-close" onClick={()=>setActionMessageId(null)}>Annuler</button>
       </div>
      </div>:null}
