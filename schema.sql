@@ -10,6 +10,15 @@ CREATE TABLE IF NOT EXISTS members (
  UNIQUE(room_id,seat)
 );
 CREATE INDEX IF NOT EXISTS idx_members_room ON members(room_id);
+-- Per-member public E2EE identity (private keys never leave clients).
+CREATE TABLE IF NOT EXISTS e2ee_keys (
+ member_id TEXT PRIMARY KEY,
+ room_id TEXT NOT NULL,
+ public_key TEXT NOT NULL,
+ created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_e2ee_room ON e2ee_keys(room_id);
+
 CREATE TABLE IF NOT EXISTS messages (
  id TEXT PRIMARY KEY, room_id TEXT NOT NULL, sender_id TEXT NOT NULL,
  kind TEXT NOT NULL, content TEXT, object_key TEXT, mime TEXT,
