@@ -357,3 +357,56 @@ Première intégration du runtime mobile natif, plugin officiel de protection é
 - `npm run test:security` exécute les tests de récupération et de limitation ; `npm run test:load` teste **uniquement les métriques de simulation**, sans aucun trafic. Pour un véritable test de charge, utiliser un environnement de préproduction séparé et l’outil `npm run load:staging` avec son opt-in explicite.
 
 Voir **[les critères de lancement et les tests sur deux vrais téléphones](docs/RELEASE_READINESS.md)**. Aucune validation de charge pour des milliers de couples n’est revendiquée ici.
+
+## Appels iPhone sur écran verrouillé (CallKit + PushKit) — version native uniquement
+
+Le code d'intégration est dans `native/call-session/ios-voip.swift.txt`,
+`src/native-voip.ts`, `functions/api/voip.ts` et `functions/lib/apns-voip.ts`.
+`scripts/configure-native.mjs ios` ajoute automatiquement **CallKit**, **PushKit**,
+le démarrage PushKit au lancement natif, les modes d'arrière-plan
+(`audio`, `voip`, `remote-notification`) et les droits APNs du projet Xcode.
+Aucune photo ou message privé ne figure dans les notifications VoIP ; elles
+contiennent uniquement l'identifiant de l'appel, un nom d'affichage et l'expiration.
+
+**Prérequis Apple incompressibles :** un compte Apple Developer actif, un
+profil de signature iOS compatible avec Push Notifications/VoIP, une clé APNs
+`.p8` (créée dans Apple Developer) et un **iPhone réel**. Le simulateur permet
+de compiler l'interface, pas de valider la livraison PushKit verrouillée.
+
+**Configuration serveur Cloudflare Pages (Production)**
+
+- `APNS_TEAM_ID` : Team ID Apple (10 caractères).
+- `APNS_KEY_ID` : identifiant de la clé APNs (10 caractères).
+- `APNS_PRIVATE_KEY` : contenu entier de la clé Apple `.p8`, **Secret Cloudflare**.
+- `APNS_BUNDLE_ID` : `com.diaotech.loveradar`.
+- `APNS_ENVIRONMENT` : `sandbox` pour une app de développement signée,
+  `production` (ou valeur omise) pour distribution/TestFlight.
+
+**Ne jamais placer la clé .p8 dans le dépôt, dans une application compilée ou
+dans le navigateur.** Le serveur utilise Web Crypto ES256 pour signer un JWT APNs
+et délivre uniquement les appels à des appareils appartenant au même couple.
+
+**Préparer le projet iOS sur un Mac**
+
+1. `npm install && npm run build`.
+2. Lors de la première installation : `npx cap add ios --packagemanager SPM`.
+3. `node scripts/configure-native.mjs ios && npx cap sync ios`.
+4. Ouvrir Xcode via `npx cap open ios`, sélectionner l'équipe Apple de signature
+   et vérifier les capacités **Push Notifications** et **Background Modes**.
+5. Signer, installer et tester l'application native sur deux iPhone physiques.
+   Pour les modifications suivantes : `npm run mobile:ios`.
+6. Redéployer les Pages Functions Cloudflare après avoir enregistré les secrets.
+
+Les appels utilisent toujours le WebRTC de Love-Radar : la réponse depuis
+l'écran verrouillé est relayée au serveur, puis le WebView reprend l'appel
+lorsqu'iOS permet de l'exécuter. **CallKit n'est pas à lui seul un moteur média
+natif** : l'audio continu avec téléphone verrouillé ou application totalement
+suspendue exige une intégration WebRTC native supplémentaire et des essais
+sur appareils signés. Les appels sont soumis à la connectivité et aux
+autorisations iOS. Si l'application est installée uniquement en PWA depuis
+Safari, cet écran système ne peut pas apparaître.
+
+La table `native_voip_devices` est créée automatiquement à la première
+inscription d'un appareil iOS et supprimée lors de la suppression de l'espace.
+Le jeton de session est conservé dans le trousseau chiffré de l'app native
+(Keychain, accessible après le premier déverrouillage), jamais dans les push.
