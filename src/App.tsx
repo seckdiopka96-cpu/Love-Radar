@@ -41,6 +41,7 @@ import "./premium-navigation.css";
 import "./polished-shell.css";
 import "./recording-composer.css";
 import "./refined-universe.css";
+import "./premium-dock.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
