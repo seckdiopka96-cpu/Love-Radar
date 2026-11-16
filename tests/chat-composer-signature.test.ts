@@ -13,19 +13,24 @@ test("Love Radar chat composer styles are loaded after legacy chat/voice styles"
  assert.ok(css.includes("Midnight & Rose"));
 });
 
-test("each visible chat action has its own distinct background, shape and contrast",()=>{
- const plus=css.match(/\.lr-chat \.lr-chat-form > \.lr-attach\{([^}]+)\}/)?.[1]||"";
- const sticker=css.match(/\.lr-chat \.lr-chat-form > \.lr-sticker-trigger\{([^}]+)\}/)?.[1]||"";
- const mic=css.match(/\.lr-chat \.lr-chat-form > \.lr-mic\{([^}]+)\}/)?.[1]||"";
- const send=css.match(/\.lr-chat \.lr-chat-form > \.lr-send\{([^}]+)\}/)?.[1]||"";
- const all=[plus,sticker,mic,send];
- for(const block of all)assert.ok(block.includes("background:linear-gradient"),"each action needs a distinct premium surface");
- assert.ok(new Set(all.map(block=>block.match(/background:linear-gradient\([^;]+/)?.[0])).size===4,"no reused button backgrounds");
- assert.ok(plus.includes("border-radius:50%"),"plus outlined and round");
- assert.ok(sticker.includes("border-radius:14px"),"sticker rounded square");
- assert.ok(mic.includes("border-radius:50%"),"microphone round");
- assert.ok(send.includes("border-radius:15px"),"send is distinct and visible");
- assert.ok(css.includes(".lr-chat .lr-chat-form > .lr-send:disabled"));
+test("all chat actions use one matching icon tint, background, and border",()=>{
+ const selectors=["lr-attach","lr-sticker-trigger","lr-mic","lr-send"];
+ const blocks=selectors.map(name=>css.match(new RegExp(
+  "\\.lr-chat \\.lr-chat-form > \\."+name+"\\{([^}]+)\\}"
+ ))?.[1]||"");
+ for(const block of blocks){
+  assert.ok(block.includes("color:var(--lr-composer-icon)!important"),"same icon color");
+  assert.ok(block.includes("background:var(--lr-composer-icon-bg)!important"),"same button background");
+  assert.ok(block.includes("border:1px solid var(--lr-composer-icon-border)!important"),"same outline");
+ }
+ assert.ok(css.includes("--lr-composer-icon:#f7dce8"));
+ assert.ok(css.includes("--lr-composer-icon-bg:linear-gradient(145deg,#2b4051,#223747)"));
+ assert.ok(blocks[0].includes("border-radius:50%"),"plus stays round");
+ assert.ok(blocks[1].includes("border-radius:14px"),"sticker stays easy to recognize");
+ assert.ok(blocks[2].includes("border-radius:50%"),"mic stays round");
+ assert.ok(blocks[3].includes("border-radius:15px"),"send stays easy to recognize");
+ assert.ok(css.includes(".lr-chat .lr-chat-form > .lr-send:disabled"),"disabled icon stays visibly subdued");
+ assert.ok(css.includes(".lr-chat .lr-chat-form > .lr-mic.recording"),"recording mode remains indicated");
  assert.ok(css.includes(".lr-chat .lr-chat-form > button:focus-visible"));
  assert.ok(css.includes("@media(prefers-reduced-motion:reduce)"));
 });
