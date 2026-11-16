@@ -1753,7 +1753,10 @@ export default function LoveRadar(){
            <span>{mediaErrors[m.id]||"Chargement de la photo…"}</span>
            {mediaErrors[m.id]?<button type="button" onClick={()=>retryMedia(m)}>Réessayer</button>:null}
           </div>:
-          media[m.id]?<VoiceMessage id={m.id} src={media[m.id]} mine={mine} time={time} delivery={mine&&m.id===lastOwnMessage?.id?((room.partnerReadAt||0)>=m.created_at?"read":"sent"):undefined} onOpenActions={()=>openMessageActions(m)}
+          media[m.id]?<VoiceMessage id={m.id} src={media[m.id]} mine={mine} time={time}
+           avatarSrc={mine?avatars.mine:avatars.partner} avatarName={mine?room.user.name:partner}
+           onOpenProfile={mine?()=>navigate("settings"):()=>setPartnerPhotoOpen(true)}
+           delivery={mine&&m.id===lastOwnMessage?.id?((room.partnerReadAt||0)>=m.created_at?"read":"sent"):undefined} onOpenActions={()=>openMessageActions(m)}
            speed={voiceSpeed} onSpeedChange={setVoiceSpeed}
            autoPlay={nextAutoVoiceId===m.id}
            onAutoPlayConsumed={()=>setNextAutoVoiceId(null)}
