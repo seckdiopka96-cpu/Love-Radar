@@ -9,8 +9,8 @@ type Game={turn:number;status:"playing"|"won";winner:number|null;version:number;
 type DailyOverview={ok:boolean;question:string;mine:{text:string}|null;partnerAnswered:boolean;revealed:boolean};
 type Reaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
 type Room={user:{id:string;name:string;seat:number};partner:string|null;code:string;partnerLastSeenAt?:number;messages:Message[];recentReaction?:Reaction|null};
-type Props={room:Room;token:string;media:Record<string,string>;privacyEnabled:boolean;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"watch"|"reconcile"|"puzzle"|"story"|"reunion")=>void};
-export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,onNavigate}:Props){
+type Props={room:Room;token:string;media:Record<string,string>;privacyEnabled:boolean;mineAvatar?:string;partnerAvatar?:string;onEditProfile:()=>void;onInvite:()=>void;onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"watch"|"reconcile"|"puzzle"|"story"|"reunion")=>void};
+export default function HomeDashboard({room,token,media,privacyEnabled,mineAvatar,partnerAvatar,onEditProfile,onInvite,onNavigate}:Props){
  const [game,setGame]=useState<Game|null>(null);
  const [daily,setDaily]=useState<DailyOverview|null>(null);
  const [story,setStory]=useState<StoryData|null>(null);
@@ -85,9 +85,9 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
    <div className="lr-home-welcome-date">{new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",month:"long"}).format(new Date())}</div>
   </div>
   <section className="lr-home-couple" aria-label="Votre couple">
-   <div className="lr-home-avatar">{room.user.name.trim().charAt(0).toUpperCase()}</div>
+   <button type="button" className="lr-home-avatar lr-home-photo-profile" onClick={onEditProfile} aria-label="Ajouter ou modifier ma photo de profil" title="Modifier ma photo">{mineAvatar?<img src={mineAvatar} alt="Ma photo de profil"/>:room.user.name.trim().charAt(0).toUpperCase()}</button>
    <div className="lr-home-heart" aria-hidden="true">♥</div>
-   <div className="lr-home-avatar lr-home-avatar-other">{room.partner?.trim().charAt(0).toUpperCase()||"♡"}</div>
+   <div className="lr-home-avatar lr-home-avatar-other">{partnerAvatar?<img src={partnerAvatar} alt={"Photo de "+(room.partner||"ton partenaire")}/>:room.partner?.trim().charAt(0).toUpperCase()||"♡"}</div>
    <h1>{room.user.name} <span>&</span> {room.partner||"ton amour"}</h1>
    <p><span className={"lr-home-online"+(online?" is-online":"")}/>{!room.partner?"En attente de ton partenaire":online?"Ton amour est en ligne":"Votre espace privé, toujours connecté"}</p>
   </section>
