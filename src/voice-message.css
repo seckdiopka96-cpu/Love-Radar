@@ -76,6 +76,7 @@
 .lr-voice-note-duration{font-variant-numeric:tabular-nums;font-weight:750;letter-spacing:.2px}
 .lr-voice-note-time{font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap;opacity:.9}
 .lr-voice-note-check{font-size:10px;color:#effffd;letter-spacing:-2px;padding-right:3px}
+.lr-voice-note-check.is-read{letter-spacing:0;color:#ffc0d8;font-weight:750}
 .lr-voice-note-error{font-size:10px;color:#fff8ec;background:#61394755;border-radius:8px;padding:5px 7px;line-height:1.4}
 .lr-voice-note-fallback{display:block;width:100%;max-width:100%;height:38px}
 .lr-chat .lr-bubble-row .lr-bubble.lr-bubble-audio .lr-voice-note-fallback{
