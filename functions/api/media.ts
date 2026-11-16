@@ -2,6 +2,7 @@ import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import {markRoomChanged} from "../lib/room-revision";
 import {consumeMemberLimit,MEMBER_LIMITS,throttled} from "../lib/abuse-limits";
 import { notifyPartner, type PushEnv } from "../lib/push";
+import {requiresE2EE,ENCRYPTED_MEDIA_MIME} from "../lib/e2ee";
 
 type Env = PushEnv & {STORAGE?: R2Bucket};
 type Context = { request: Request; env: Env; waitUntil:(task:Promise<unknown>)=>void };
@@ -80,11 +81,17 @@ function sniff(bytes:Uint8Array,mime:string){
     const mime=file.type.split(";")[0].toLowerCase();
     const imageTypes=["image/jpeg","image/png","image/webp","image/gif"];
     const audioTypes=["audio/webm","video/webm","audio/ogg","audio/mpeg","audio/mp4","audio/x-m4a","audio/aac"];
-    if(kind==="image"&&!imageTypes.includes(mime)||kind==="audio"&&!audioTypes.includes(mime))return no("Format non accepté.");
+    const secure=await requiresE2EE(db,u.room_id);
+    if(secure&&mime!==ENCRYPTED_MEDIA_MIME)return no("Ce couple exige des pièces jointes chiffrées.",409);
+    if(!secure&&mime===ENCRYPTED_MEDIA_MIME)return no("Activez le chiffrement sur les deux appareils.",409);
+    if(!secure&&(kind==="image"&&!imageTypes.includes(mime)||kind==="audio"&&!audioTypes.includes(mime)))return no("Format non accepté.");
     const size=kind==="image"?6_000_000:5_000_000;
-    if(file.size===0||file.size>size)return no("Fichier trop volumineux.",413);
+    if(file.size===0||file.size>size+(secure?256:0))return no("Fichier trop volumineux.",413);
     const bytes=new Uint8Array(await file.arrayBuffer());
-    if(!sniff(bytes,mime))return no("Fichier non reconnu.");
+    if(secure){
+     if(bytes.length<34||bytes[0]!==76||bytes[1]!==82||bytes[2]!==69||bytes[3]!==49)
+      return no("Média chiffré invalide.");
+    }else if(!sniff(bytes,mime))return no("Fichier non reconnu.");
     // The client may preassign a v4 UUID to show the voice message before
     // the upload finishes. Retrying the same UUID must not create duplicates.
     const requestedId=form.get("messageId");
