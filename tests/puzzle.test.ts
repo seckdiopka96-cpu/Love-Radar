@@ -53,7 +53,7 @@ test("puzzle is server-authoritative and room-isolated; removed location/drawing
  assert.ok(backend.includes('notifyPartner(ctx.env'),"invite partner on new puzzle");
  assert.ok(app.includes('tab==="puzzle"'));
  assert.ok(together.includes('onOpenPuzzle'));
- assert.ok(home.includes("Puzzle à deux"));
+ assert.ok(together.includes("Puzzle à deux"),"Puzzle remains in Nous deux after simplifying home");
  assert.ok(!home.includes("Notre position"));
  assert.ok(!together.includes("Dessiner ensemble"));
  assert.ok(!affection.includes("canvasState"));
