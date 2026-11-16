@@ -265,7 +265,7 @@ export default function WatchTogether({token,myId,myName,partnerName,messages,on
  return <section className="wt-page" aria-label="Regarder une vidéo ensemble">
   <header className="wt-header">
    <button type="button" className="wt-back" onClick={onExit}>‹ Ensemble</button>
-   <div className="wt-brand"><strong>Notre cinéma <span>♥</span></strong><small>LOVE RADAR · REGARDER ENSEMBLE</small></div>
+   <div className="wt-brand"><strong>Notre cinéma <span>♥</span></strong><small>REGARDER ENSEMBLE</small></div>
    <div className="wt-header-actions"><div id="lr-voice-button-slot" className="wt-call-slot" aria-label="Appel vocal"/>
     <button type="button" onClick={onOpenChat} className="wt-chat-open" aria-label="Ouvrir la messagerie">✉</button>
    </div>
