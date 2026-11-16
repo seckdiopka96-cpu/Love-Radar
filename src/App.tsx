@@ -1,5 +1,6 @@
 import {apiFetch,isNativeApp,publicInviteUrl} from "./api";
 import {connectionErrorMessage} from "./network-recovery";
+import {isTransientMessageFailure,messageRetryDelayMs} from "./message-network";
 import {recoverSavedSession,persistSessionToken,clearSessionToken,hadPreviousSession} from "./session-persistence";
 import {ensureIdentity,loadIdentity,loadRecoveredRoomKey,encryptedBackupFor,restoreIdentityBackup,fingerprint,makeContext,verifyPartner,isPartnerVerified,encryptText,encryptMedia,decryptMedia,isEncryptedMedia,isEncryptedText,type CryptoContext} from "./e2ee";
 import {revealMessages} from "./e2ee-room";
@@ -88,7 +89,7 @@ type RecentReaction={message_id:string;member_id:string;emoji:string;updated_at:
 type Room = {revision?:number;e2ee?:EncryptionState;recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean;avatarVersion?:number};code:string;roomId:string;partner:string|null;partnerId?:string|null;partnerAvatarVersion?:number;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerDeliveredAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string;recoveryCode?:string;id?:string}&Partial<Room>;
 type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
-type LocalText={id:string;created_at:number;text:string;wireText?:string;replyToId?:string;replyKind?:QuoteKind|null;replyContent?:string|null;replySenderId?:string|null;status:"sending"|"failed"|"sent";error?:string};
+type LocalText={id:string;created_at:number;text:string;wireText?:string;replyToId?:string;replyKind?:QuoteKind|null;replyContent?:string|null;replySenderId?:string|null;status:"sending"|"failed"|"sent";error?:string;retryable?:boolean;attempts?:number;retryAt?:number};
 
 
 const NAV: {id:Tab;label:string}[] = [
@@ -843,7 +844,11 @@ export default function LoveRadar(){
   try{
    const res=await apiFetch("/api/love",{method:"POST",headers:{"Content-Type":"application/json",...(t?{Authorization:"Bearer "+t}:{})},body:JSON.stringify({action,...body}),signal:controller.signal});
    const data=await res.json() as Result;
-   if(!res.ok||!data.ok)throw new Error(data.error||"Une erreur est survenue.");
+   if(!res.ok||!data.ok){
+    const failure=new Error(data.error||"Une erreur est survenue.") as Error&{httpStatus?:number};
+    failure.httpStatus=res.status;
+    throw failure;
+   }
    return data;
   }catch(error){
    if(controller.signal.aborted)throw Error("La connexion prend trop de temps. Réessaie.");
@@ -1354,7 +1359,7 @@ export default function LoveRadar(){
  async function sendQueuedText(entry:LocalText){
   if(sendingTextIds.current.has(entry.id))return;
   sendingTextIds.current.add(entry.id);
-  setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"sending" as const,error:undefined}:item));
+  setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"sending" as const,error:undefined,retryable:false,retryAt:undefined}:item));
   try{
    if(!room)throw Error("Espace indisponible.");
    const wire=entry.wireText||await encryptedOutgoing(entry.text,entry.id,room);
@@ -1366,9 +1371,36 @@ export default function LoveRadar(){
    void refresh(undefined,true);
   }catch(err){
    const message=err instanceof Error?err.message:"Échec de l’envoi.";
-   setTextOutbox(items=>items.map(item=>item.id===entry.id?{...item,status:"failed" as const,error:message}:item));
+   const retryable=isTransientMessageFailure(err);
+   const attempts=(entry.attempts||0)+1;
+   setTextOutbox(items=>items.map(item=>item.id===entry.id?{
+    ...item,status:"failed" as const,error:message,retryable,attempts,
+    retryAt:retryable?Date.now()+messageRetryDelayMs(attempts):undefined
+   }:item));
   }finally{sendingTextIds.current.delete(entry.id)}
  }
+ // iOS mobile connections can fail while the app stays open. Keep the UUID and
+ // encrypted wire payload intact across retries: the server deduplicates by ID.
+ useEffect(()=>{
+  if(!room||!token)return;
+  const resume=()=>{
+   if(document.visibilityState!=="visible"||navigator.onLine===false)return;
+   const now=Date.now();
+   for(const item of textOutbox)
+    if(item.status==="failed"&&item.retryable&&now>=(item.retryAt||0))
+     void sendQueuedText(item);
+  };
+  const interval=window.setInterval(resume,3500);
+  window.addEventListener("online",resume);
+  window.addEventListener("focus",resume);
+  document.addEventListener("visibilitychange",resume);
+  return()=>{
+   window.clearInterval(interval);
+   window.removeEventListener("online",resume);
+   window.removeEventListener("focus",resume);
+   document.removeEventListener("visibilitychange",resume);
+  };
+ },[token,room?.roomId,room?.user.id,textOutbox]);
  async function sendMessage(e:FormEvent){
   e.preventDefault();if(!draft.trim()||busy||!room?.partner)return;
   if(editTarget){
@@ -2043,7 +2075,7 @@ export default function LoveRadar(){
           </div>:null}
           {m.kind==="text"&&textOutbox.some(v=>v.id===m.id)?<div className={"lr-text-send-state "+(textOutbox.find(v=>v.id===m.id)?.status||"sending")} role="status">
            {textOutbox.find(v=>v.id===m.id)?.status==="failed"?<>
-            <span>Échec de l’envoi</span>
+            <span>{textOutbox.find(v=>v.id===m.id)?.retryable?"Connexion instable · nouvelle tentative automatique":"Échec de l’envoi"}</span>
             <button type="button" aria-label="Réessayer l’envoi du message" onClick={()=>{const entry=textOutbox.find(v=>v.id===m.id);if(entry)void sendQueuedText(entry)}}>Réessayer</button>
            </>:<span>{textOutbox.find(v=>v.id===m.id)?.status==="sent"?"✓":"◌ Envoi…"}</span>}
           </div>:null}
