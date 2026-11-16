@@ -56,6 +56,11 @@ export async function ensureCareTables(db:D1Database){
   "CREATE TABLE IF NOT EXISTS care_share_throttle("+
   "member_id TEXT NOT NULL,kind TEXT NOT NULL,last_at INTEGER NOT NULL,"+
   "PRIMARY KEY(member_id,kind));"+
+  // Nothing is inferred from a name or an avatar: each member opts in.
+  "CREATE TABLE IF NOT EXISTS care_period_preferences("+
+  "member_id TEXT PRIMARY KEY,room_id TEXT NOT NULL,enabled INTEGER NOT NULL DEFAULT 0,"+
+  "updated_at INTEGER NOT NULL);"+
+  "CREATE INDEX IF NOT EXISTS idx_care_period_room ON care_period_preferences(room_id);"+
   "CREATE TABLE IF NOT EXISTS care_prayer_settings("+
   "member_id TEXT PRIMARY KEY,room_id TEXT NOT NULL,latitude REAL NOT NULL,"+
   "longitude REAL NOT NULL,timezone TEXT NOT NULL,method INTEGER NOT NULL,"+
