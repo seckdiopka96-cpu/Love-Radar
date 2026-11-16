@@ -118,3 +118,27 @@ CREATE TABLE IF NOT EXISTS abuse_counters (
  PRIMARY KEY(scope,actor)
 );
 CREATE INDEX IF NOT EXISTS idx_abuse_counters_expiry ON abuse_counters(expires_at);
+
+-- Room-isolated, server-authoritative quick quiz and action/truth games.
+-- No private answers or raw auth tokens are stored here.
+CREATE TABLE IF NOT EXISTS couple_party_games (
+ room_id TEXT NOT NULL,
+ mode TEXT NOT NULL,
+ game_id TEXT NOT NULL,
+ version INTEGER NOT NULL,
+ round INTEGER NOT NULL,
+ phase TEXT NOT NULL,
+ question_index INTEGER NOT NULL,
+ prompt_kind TEXT,
+ turn INTEGER NOT NULL,
+ picked_0 INTEGER,
+ picked_1 INTEGER,
+ score_0 INTEGER NOT NULL DEFAULT 0,
+ score_1 INTEGER NOT NULL DEFAULT 0,
+ winner INTEGER,
+ started_at INTEGER NOT NULL,
+ deadline_at INTEGER NOT NULL,
+ updated_at INTEGER NOT NULL,
+ last_invite_at INTEGER NOT NULL DEFAULT 0,
+ PRIMARY KEY(room_id,mode)
+);
