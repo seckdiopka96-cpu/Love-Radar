@@ -1,6 +1,7 @@
 import "./settings-page.css";
+import ConnectionDiagnostics from "./ConnectionDiagnostics";
 type Props={
- name:string;code:string;owner:boolean;avatarSrc?:string;avatarVersion?:number;
+ name:string;code:string;owner:boolean;token:string;avatarSrc?:string;avatarVersion?:number;
  profileBusy:boolean;profileError:string;
  recoveryBusy:boolean;onGenerateRecovery:()=>void;
  privacyEnabled:boolean;
@@ -12,7 +13,7 @@ type Props={
  onShareInvite:()=>void;onLogout:()=>void;onDeleteRoom:()=>void;
 };
 export default function SettingsPage({
-name,code,owner,avatarSrc,avatarVersion,profileBusy,profileError,recoveryBusy,onGenerateRecovery,privacyEnabled,
+name,code,owner,token,avatarSrc,avatarVersion,profileBusy,profileError,recoveryBusy,onGenerateRecovery,privacyEnabled,
  notificationsOn,notificationsBusy,notificationsTesting,notificationsHint,nativeApp,
  onBack,onChoosePhoto,onAdjustPhoto,onRemovePhoto,onPrivacyChange,
  onEnableNotifications,onTestNotifications,onDisableNotifications,onShareInvite,onLogout,onDeleteRoom
@@ -54,6 +55,10 @@ name,code,owner,avatarSrc,avatarVersion,profileBusy,profileError,recoveryBusy,on
     </div>
     {notificationsHint?<p className="lr-settings-help" role="status">{notificationsHint}</p>:null}
    </>}
+  </section>
+  <section className="lr-settings-section" aria-labelledby="lr-device-settings-title">
+   <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">⚡</span><div><h2 id="lr-device-settings-title">Diagnostics</h2><p>Vérifie les services depuis ce téléphone.</p></div></div>
+   <ConnectionDiagnostics token={token} nativeApp={nativeApp}/>
   </section>
   <section className="lr-settings-section" aria-labelledby="lr-account-settings-title">
    <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">♧</span><div><h2 id="lr-account-settings-title">Compte et invitation</h2><p>Chaque couple possède son espace indépendant.</p></div></div>
