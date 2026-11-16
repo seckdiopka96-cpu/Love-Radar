@@ -1,4 +1,4 @@
-import {useEffect,useState} from "react";
+import {useEffect,useState,type FormEvent} from "react";
 import {beginPartnerClaim,finishPartnerClaim,getPartnerClaim,clearPartnerClaim} from "./partner-recovery-client";
 import "./partner-recovery.css";
 type Pending=NonNullable<Awaited<ReturnType<typeof getPartnerClaim>>>;
@@ -43,7 +43,7 @@ export default function PartnerRecoveryClaim({onRecovered}:{onRecovered:(token:s
   const handle=setInterval(()=>void poll(),4000);
   return()=>{active=false;clearInterval(handle)};
  },[pending,onRecovered]);
- async function start(event:React.FormEvent){
+ async function start(event:FormEvent){
   event.preventDefault();if(busy)return;
   setBusy(true);setError("");setSuccess("");
   try{
