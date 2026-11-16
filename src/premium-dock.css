@@ -111,7 +111,7 @@
   box-shadow:none!important;
  }
  .lr-app.lr-app-locked .lr-mobile-nav button.active .lr-nav-symbol{
-  background:linear-gradient(145deg,#dc86ab,#b75a86)!important;
+  background:linear-gradient(145deg,#bd2763,#a82358)!important;
   color:#fffaff!important;
   border:0!important;
   box-shadow:0 3px 9px rgba(159,69,115,.20)!important;
@@ -124,7 +124,7 @@
   transform:scale(.97)!important;
  }
  .lr-app.lr-app-locked .lr-mobile-nav button:focus-visible{
-  outline:2px solid #f4c0d8!important;
+  outline:2px solid #bc396c!important;
   outline-offset:-1px!important;
  }
  .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-unread{
@@ -137,7 +137,7 @@
   padding:0 4px!important;
   border:2px solid #263649!important;
   border-radius:12px!important;
-  background:#e88bb1!important;
+  background:#bd2763!important;
   color:#261c2d!important;
   box-shadow:none!important;
   font-size:10px!important;
