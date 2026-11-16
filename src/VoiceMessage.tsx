@@ -6,13 +6,14 @@ import "./voice-message.css";
 
 type Props={
  src:string;id:string;mine:boolean;time:string;delivery?:"read"|"sent";
+ avatarSrc?:string;avatarName:string;onOpenProfile?:()=>void;
  onOpenActions?:()=>void;speed:VoiceSpeed;onSpeedChange:(speed:VoiceSpeed)=>void;
  autoPlay?:boolean;onFinished?:()=>void;onManualPlay?:()=>void;onAutoPlayConsumed?:()=>void
 };
 type PlayEvent=CustomEvent<string>;
 
 /** Functional audio note: actual playback, scrub, duration and one-at-a-time listening. */
-export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions,speed,onSpeedChange,autoPlay=false,onFinished,onManualPlay,onAutoPlayConsumed}:Props){
+export default function VoiceMessage({src,id,mine,time,delivery,avatarSrc,avatarName,onOpenProfile,onOpenActions,speed,onSpeedChange,autoPlay=false,onFinished,onManualPlay,onAutoPlayConsumed}:Props){
  const audio=useRef<HTMLAudioElement|null>(null);
  const fallbackAudio=useRef<HTMLAudioElement|null>(null);
  const [playing,setPlaying]=useState(false);
@@ -128,6 +129,25 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions,sp
  }
  const progressText=formatVoiceTime(position);
  const totalText=formatVoiceTime(duration);
+ const avatarControl=<div className={"lr-voice-note-identity"+(playing?" is-active":"")}>
+  {playing?<button type="button" className="lr-voice-note-speed"
+    onClick={event=>{event.stopPropagation();changeSpeed()}}
+    onPointerDown={event=>event.stopPropagation()}
+    aria-label={"Vitesse de lecture : "+speed+" fois. Appuyer pour accélérer"}
+    title={"Vitesse de lecture "+speed+"×"}>{speed}×</button>:
+   <button type="button" className="lr-voice-note-avatar" disabled={!onOpenProfile}
+    onClick={event=>{event.stopPropagation();onOpenProfile?.()}}
+    onPointerDown={event=>event.stopPropagation()}
+    aria-label={"Voir la photo de profil de "+avatarName}
+    title={"Profil de "+avatarName}>
+    {avatarSrc?<img src={avatarSrc} alt="" loading="lazy" />:
+     <span className="lr-voice-note-avatar-initial" aria-hidden="true">{avatarName.trim().charAt(0).toUpperCase()||"♥"}</span>}
+    <span className="lr-voice-note-mic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none">
+     <rect x="5.2" y="1.4" width="5.6" height="9.2" rx="2.8" fill="currentColor"/>
+     <path d="M3.4 7.8a4.6 4.6 0 0 0 9.2 0M8 12.3v2.3m-2.5 0h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg></span>
+   </button>}
+ </div>;
  return <div className={"lr-voice-note"+(mine?" is-own":" is-partner")}>
   <audio ref={audio} data-lr-audio-owner={id} src={src} preload="metadata" playsInline
    onLoadedMetadata={updateDuration} onDurationChange={updateDuration}
@@ -136,6 +156,7 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions,sp
    onEnded={()=>{setPlaying(false);setPosition(0);if(audio.current)audio.current.currentTime=0;onFinished?.()}}
    onError={()=>{setPlaying(false);setError("Ce vocal ne peut pas être lu.");setFallback(true)}}/>
   <div className="lr-voice-note-main">
+   {mine?avatarControl:null}
    <button type="button" className="lr-voice-note-play" onClick={toggle}
     aria-label={(playing?"Mettre en pause":"Lire")+" le message vocal"} aria-pressed={playing}>
     {playing?<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4.5" height="16" rx="1.4"/><rect x="13.5" y="4" width="4.5" height="16" rx="1.4"/></svg>:
@@ -157,13 +178,10 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions,sp
      <span className="lr-voice-note-duration" aria-label={"Progression "+progressText+" sur "+totalText}>
       {playing||position>0?progressText:totalText}
      </span>
-     <button type="button" className="lr-voice-note-speed" onClick={changeSpeed}
-      onPointerDown={e=>e.stopPropagation()}
-      aria-label={"Vitesse de lecture : "+speed+" fois. Appuyer pour accélérer"}
-      title={"Vitesse de lecture "+speed+"×"}>{speed}×</button>
      <span className="lr-voice-note-time">{time}{mine&&delivery?<span className="lr-voice-note-check" aria-label={delivery==="read"?"Lu":"Envoyé"}> {delivery==="read"?"✓✓":"✓"}</span>:null}</span>
     </div>
    </div>
+   {!mine?avatarControl:null}
    {onOpenActions?<button type="button" className="lr-voice-note-actions" aria-label="Réagir ou afficher les options du message vocal"
     title="Réactions et options du vocal" onPointerDown={e=>e.stopPropagation()} onContextMenu={e=>e.preventDefault()}
     onClick={e=>{e.stopPropagation();onOpenActions()}}>
