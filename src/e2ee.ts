@@ -94,12 +94,12 @@ export async function decryptIdentityBackup(encryptedBackup:string,passphrase:st
    {name:"ECDH",namedCurve:"P-256"},false,["deriveBits"]);
   // Verify the backup's private key actually matches the advertised public key.
   const remote=await crypto.subtle.importKey("raw",buffer(unb64(expectedPublicKey)),{name:"ECDH",namedCurve:"P-256"},false,[]);
-  const ecdh=await crypto.subtle.deriveBits({name:"ECDH",public:remote},privateKey,256);
-  const check=await crypto.subtle.importKey("pkcs8",buffer(pkcs8),
-   {name:"ECDH",namedCurve:"P-256"},true,["deriveBits"]);
-  const same=await crypto.subtle.deriveBits({name:"ECDH",public:remote},check,256);
-  if(!new Uint8Array(ecdh).every((v,i)=>v===new Uint8Array(same)[i]))
-   throw Error("Clé privée incohérente.");
+  const challenge=await crypto.subtle.generateKey({name:"ECDH",namedCurve:"P-256"},false,["deriveBits"]) as CryptoKeyPair;
+  const fromPrivate=new Uint8Array(await crypto.subtle.deriveBits({name:"ECDH",public:challenge.publicKey},privateKey,256));
+  const fromAdvertisedPublic=new Uint8Array(await crypto.subtle.deriveBits({name:"ECDH",public:remote},challenge.privateKey,256));
+  let difference=0;
+  for(let i=0;i<fromPrivate.length;i++)difference|=fromPrivate[i]^fromAdvertisedPublic[i];
+  if(difference!==0)throw Error("La clé privée ne correspond pas à la clé publique enregistrée.");
   return {publicKey:expectedPublicKey,privateKey};
  }finally{pkcs8.fill(0)}
 }
