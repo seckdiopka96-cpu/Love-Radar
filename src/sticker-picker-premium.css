@@ -117,3 +117,10 @@
 @media(prefers-reduced-motion:reduce){
  .lr-chat .lr-emoji-grid button{transition:none!important}
 }
+
+/* Explicit motion preference in the expression drawer on iPhone and Android. */
+.lr-chat .lr-sticker-picker-head .lr-animation-controls{display:flex;flex-direction:row;gap:5px;align-items:center;flex:none}
+.lr-chat .lr-animation-switch{border:1px solid #eaa7c778!important;background:#744862!important;color:#fff1f7!important;
+ padding:6px 9px!important;min-height:31px;border-radius:11px!important;font-size:10px!important;font-weight:800!important;white-space:nowrap}
+.lr-chat .lr-animation-switch[aria-pressed=false]{background:#374456!important;color:#e4cbd8!important}
+@media(max-width:370px){.lr-chat .lr-animation-switch{padding:5px!important;font-size:9px!important}}
