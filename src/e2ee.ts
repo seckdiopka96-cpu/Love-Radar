@@ -235,6 +235,9 @@ export async function wrapRoomKeyForPartner(binding:RoomKeyBinding,info:Recovery
  const fingerprintCode=await fingerprint(binding.partnerPublicKey);
  if(!isPartnerVerified(binding.roomId,binding.partnerId,fingerprintCode))
   throw Error("Vérifie d'abord l'empreinte de ton partenaire dans les paramètres.");
+ return wrapRoomKeyWithIdentity(identity,binding,info);
+}
+export async function wrapRoomKeyWithIdentity(identity:Identity,binding:RoomKeyBinding,info:RecoveryWrapInfo):Promise<string>{
  const bytesToWrap=await deriveRoomKeyMaterial(identity,binding);
  try{
   const key=await recoveryWrappingKey(identity.privateKey,info.ephemeralPublic,info);
