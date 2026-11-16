@@ -29,6 +29,7 @@ import LiveVoiceWaveform from "./LiveVoiceWaveform";
 import StickerArt from "./StickerArt";
 import StickerPicker from "./StickerPicker";
 import GifMessage from "./GifMessage";
+import "./animated-stickers.css";
 import {encodeGif,readGifId} from "./gif-provider";
 import {encodeSticker,isSticker,readStickerId} from "./stickers";
 import {mediaRetryDelay,MEDIA_AUTO_RETRY_LIMIT} from "./reliability-rules";
