@@ -82,6 +82,9 @@ test("generated Android and iOS background-call installation is repeatable and p
   assert.ok(delegate.includes("LoveRadarVoipManager.shared.start()"));
   assert.ok(delegate.includes("bridge?.registerPluginInstance(LoveRadarVoipPlugin())"));
   assert.ok(delegate.includes("PKPushRegistry"));
+  assert.ok(delegate.includes("UIApplication.userDidTakeScreenshotNotification"));
+  assert.ok(delegate.includes("bridge?.registerPluginInstance(LoveRadarCapturePlugin())"));
+  assert.ok(delegate.includes("// END LOVE RADAR SCREENSHOT MONITOR"));
   assert.ok(delegate.includes("CXProvider"));
   assert.ok(delegate.includes("AVAudioSession.sharedInstance()"));
   assert.ok(delegate.includes("mode: .voiceChat"));
