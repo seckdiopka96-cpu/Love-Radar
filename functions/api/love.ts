@@ -2,6 +2,8 @@ import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { notifyPartner, type PushEnv } from "../lib/push";
 import { ensureProfilePhotos } from "./profile";
 import {roomRevision,markRoomChanged} from "../lib/room-revision";
+import {generateRecoveryCode,ensureRecoveryCodes,saveRecoveryCode} from "../lib/account-recovery";
+import {consumePublicLimit,consumeMemberLimit,PUBLIC_LIMITS,MEMBER_LIMITS,throttled} from "../lib/abuse-limits";
 
 // Automatic and idempotent migration for both existing and new D1 rooms.
 let presenceReady: Promise<void> | null = null;
@@ -167,6 +169,9 @@ async function snapshot(db:D1Database,u:Member){
     const db=bindings().DB as D1Database|undefined;
     if(!db)return fail("Stockage non disponible.",503);
     if(op==="create"||op==="join"){
+     const publicLimit=op==="create"?PUBLIC_LIMITS.create:PUBLIC_LIMITS.join;
+     if(!await consumePublicLimit(db,request,publicLimit))return throttled(publicLimit);
+     await ensureRecoveryCodes(db);
      const name=String(body.name||"").trim().slice(0,30);
      if(name.length<2||/[<>\u0000-\u001f]/.test(name))return fail("Choisis un prénom entre 2 et 30 caractères.");
      const secret=token(),id=crypto.randomUUID(),now=Date.now(),digest=await hash(secret);
@@ -178,7 +183,9 @@ async function snapshot(db:D1Database,u:Member){
         db.prepare("INSERT INTO members(id,room_id,name,seat,token_hash,joined_at) VALUES(?,?,?,?,?,?)").bind(id,room,name,0,digest,now)
        ]);
       }catch{return fail("Impossible de créer l’espace. Réessaie.",503)}
-      return ok({token:secret,code});
+      const recoveryCode=generateRecoveryCode();
+      await saveRecoveryCode(db,id,recoveryCode);
+      return ok({token:secret,code,recoveryCode});
      }
      const code=String(body.code||"").trim().toUpperCase().replace(/[\s-]+/g,"");
      if(!/^[A-HJ-NP-Z2-9]{10}$/.test(code))return fail("Code d’invitation invalide.");
@@ -188,9 +195,11 @@ async function snapshot(db:D1Database,u:Member){
       const inserted=await db.prepare("INSERT INTO members(id,room_id,name,seat,token_hash,joined_at) SELECT ?,?, ?,1,?,? WHERE (SELECT COUNT(*) FROM members WHERE room_id=?)=1").bind(id,room.id,name,digest,now,room.id).run();
       if(!inserted.meta.changes)return fail("Cet espace est déjà complet.",409);
      }catch{return fail("Cet espace est déjà complet.",409)}
+     const recoveryCode=generateRecoveryCode();
+     await saveRecoveryCode(db,id,recoveryCode);
      await markRoomChanged(db,room.id);
      waitUntil(notifyPartner(env,room.id,id,"Votre espace ❤️","Ton partenaire vient de rejoindre votre espace !","home"));
-     return ok({token:secret,code});
+     return ok({token:secret,code,recoveryCode});
     }
     const session=await auth(request);if(!session)return fail("Session expirée. Rejoins ton espace.",401);
     const {user:u}=session;
@@ -253,6 +262,7 @@ async function snapshot(db:D1Database,u:Member){
        return fail("Identifiant déjà utilisé.",409);
       return ok({sent:true,id:messageId,duplicate:true});
      }
+     if(!await consumeMemberLimit(db,u.id,MEMBER_LIMITS.message))return throttled(MEMBER_LIMITS.message);
      if(replyTo){
       // Both rows commit together: never deliver an uncited reply when a
       // server write fails partway through.
@@ -299,6 +309,7 @@ async function snapshot(db:D1Database,u:Member){
       .bind(body.id,u.room_id,u.id).first<{kind:"text"|"image"|"audio";content:string|null}>();
      if(!target)return fail("Message introuvable.",404);
      await ensureMessageActions(db);
+     if(!await consumeMemberLimit(db,u.id,MEMBER_LIMITS.reaction))return throttled(MEMBER_LIMITS.reaction);
      const existing=await db.prepare("SELECT emoji FROM message_reactions WHERE room_id=? AND message_id=? AND member_id=?")
       .bind(u.room_id,body.id,u.id).first<{emoji:string}>();
      if(existing?.emoji===body.emoji){
@@ -420,6 +431,8 @@ async function snapshot(db:D1Database,u:Member){
      await db.prepare("DELETE FROM message_edits WHERE room_id=?").bind(u.room_id).run();
      await db.prepare("DELETE FROM message_hidden WHERE room_id=?").bind(u.room_id).run();
      await db.prepare("DELETE FROM message_one_time WHERE room_id=?").bind(u.room_id).run();
+     await ensureRecoveryCodes(db);
+     await db.prepare("DELETE FROM member_recovery WHERE member_id IN (SELECT id FROM members WHERE room_id=?)").bind(u.room_id).run();
      await db.batch([
       db.prepare("DELETE FROM messages WHERE room_id=?").bind(u.room_id),
       db.prepare("DELETE FROM members WHERE room_id=?").bind(u.room_id),
