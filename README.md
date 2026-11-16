@@ -7,7 +7,7 @@ La nouvelle interface adopte une identité **bleu nuit, rose corail et champagne
 - **Messages** : nouveau fond bleu-ardoise, bulles corail pour l’expéditeur, surfaces bleu nuit pour le destinataire, meilleure hiérarchie de la zone de saisie et du statut.
 - **Ensemble, Jeux, Puzzle, YouTube/TikTok, Réconciliation et appels** : surfaces et commandes harmonisées. Les plateaux de jeux et les lecteurs officiels conservent leurs logiques et leurs couleurs fonctionnelles.
 - **iPhone et Android PWA** : l’application reste dans un cadre fixe, avec défilement interne réservé aux zones de contenu lorsque nécessaire. Les lecteurs YouTube et TikTok ne font pas défiler toute la page ; le clavier de la conversation et de la réconciliation reste accessible.
-- **Installation** : le manifeste PWA, la couleur de la barre système et les descriptions ont été mis à jour. Le cache est actualisé en version `love-radar-static-v44` pour propager les changements aux utilisateurs ayant déjà installé Love Radar.
+- **Installation** : le manifeste PWA, la couleur de la barre système et les descriptions ont été mis à jour. Le cache est actualisé dans le service worker de la version actuelle pour propager les changements aux utilisateurs ayant déjà installé Love Radar.
 - La refonte est **visuelle et de navigation uniquement** : aucune migration D1 ni modification des conversations, photos, appels ou abonnements push. Un test sur les vrais iPhone reste nécessaire pour confirmer l’ergonomie finale.
 - Tests : `npm run test:design`, `npm run test:call`, `npm run test:watch`, `npm run build`.
 
@@ -44,9 +44,9 @@ Application web **indépendante de Higgsfield** pour couples, en français. Son 
 - Cloudflare D1 : espaces, membres, messages et réponses (`schema.sql`)
 - Cloudflare R2 : médias privés. L'accès aux fichiers exige un jeton de membre authentifié.
 
-**Confidentialité :** les messages ne sont pas chiffrés de bout en bout. Chaque navigateur garde un jeton d'accès sur son appareil : effacer les données du navigateur fait perdre l'accès à l'espace, car la récupération de compte n'est pas encore prévue. L'application doit être testée sur deux téléphones avant ouverture au grand public. N'ajoutez jamais de secrets ni de photos privées au dépôt GitHub.
+**Confidentialité :** les messages ne sont pas chiffrés de bout en bout. Le navigateur garde une session locale. Chaque membre peut désormais enregistrer son **code personnel de secours**, distinct du code d’invitation, et le renouveler dans les Paramètres. La restauration sur un nouvel appareil révoque le jeton précédent. En l’absence d’un code de secours conservé, une ancienne session perdue ne peut pas être restaurée. L’application doit être testée sur deux téléphones avant ouverture au grand public. N’ajoutez jamais de secrets ni de photos privées au dépôt GitHub.
 
-**Limites de cette version :** pas de notifications push en arrière-plan, pas de système d'inscription/récupération des comptes, pas de modération automatique, pas de chiffrement de bout en bout. Le mode Radar est un jeu, jamais une preuve de fidélité ou d'infidélité.
+**Limites de cette version :** la messagerie et les appels nécessitent une configuration Cloudflare correcte ; la livraison de notifications en arrière-plan dépend de la PWA installée et des permissions du téléphone. Le système de codes de secours est opérationnel dans le code, mais il n’y a pas de récupération par e-mail/SMS. Le contrôle anti-abus couvre les créations d’espaces, essais de codes, textes, médias et appels ; il ne remplace pas un WAF ou un audit externe. Pas de chiffrement de bout en bout ni de modération automatique. Le mode Radar est un jeu, jamais une preuve de fidélité ou d’infidélité.
 
 © 2026 Diao-Tech.com. Tous droits réservés.
 
@@ -347,3 +347,13 @@ Première intégration du runtime mobile natif, plugin officiel de protection é
 - **Accessibilité** : disposition lisible sur iPhone, clavier/pions accessibles et préférence système « Réduire les animations » respectée. Les règles, signatures, consentement cadeau, dés et résultats restent autorisés **uniquement par le serveur**.
 - **Tests de géométrie** : `npm run test:ludo` contrôle les 52 cases du parcours, les 6 cases d'arrivée, les déplacements case par case et la disposition des piles.
 - **Cache PWA v34.** L'application n'a pas encore été validée par deux utilisateurs sur iPhone et Android ; un build réussi ne garantit pas l'affichage final ou la latence réelle.
+
+## Sécurité des comptes et lancement bêta
+
+- À la création d’un espace ou à l’arrivée du partenaire, chacun reçoit un **code de secours personnel** de 128 bits, différent du code d’invitation. À conserver en lieu sûr : le serveur ne stocke qu’un hachage et le code ne sera affiché qu’une seule fois. Les anciens membres peuvent générer leur propre code via **Paramètres → Compte et invitation**.
+- Sur un nouvel appareil, cliquer sur **« J’ai perdu mon accès »**, saisir son code personnel et sauvegarder le nouveau code fourni. La restauration invalide la précédente session et tente de supprimer les anciennes notifications push.
+- Des limites anti-abus en base D1 sont appliquées au serveur pour les tentatives d’inscription, de récupération, les messages, les réactions, les médias et le démarrage d’appels.
+- **Paramètres → Diagnostics** permet de tester depuis chaque téléphone l’accès à la messagerie, la disponibilité déclarée du relais TURN, la compatibilité WebRTC, les autorisations de notification et le microphone.
+- `npm run test:security` exécute les tests de récupération et de limitation ; `npm run test:load` teste **uniquement les métriques de simulation**, sans aucun trafic. Pour un véritable test de charge, utiliser un environnement de préproduction séparé et l’outil `npm run load:staging` avec son opt-in explicite.
+
+Voir **[les critères de lancement et les tests sur deux vrais téléphones](docs/RELEASE_READINESS.md)**. Aucune validation de charge pour des milliers de couples n’est revendiquée ici.
