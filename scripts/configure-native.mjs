@@ -108,6 +108,9 @@ function ios(){
  if(!swift.includes("// END LOVE RADAR VOIP CALLKIT")){
   swift+="\n"+template("ios-voip.swift.txt");
  }
+ if(!swift.includes("// END LOVE RADAR SCREENSHOT MONITOR")){
+  swift+="\n"+template("ios-screenshot.swift.txt");
+ }
  // The delegate starts PushKit before the web bridge is initialized so the
  // operating system can deliver VoIP pushes when Love Radar was terminated.
  const launch=swift.indexOf("didFinishLaunchingWithOptions");
@@ -121,6 +124,11 @@ function ios(){
   const callRegistration="bridge?.registerPluginInstance(LoveRadarNativeCall())";
   if(!swift.includes(callRegistration))throw Error("Missing existing Capacitor call bridge registration");
   swift=swift.replace(callRegistration,callRegistration+"\n        bridge?.registerPluginInstance(LoveRadarVoipPlugin())");
+ }
+ if(!swift.includes("bridge?.registerPluginInstance(LoveRadarCapturePlugin())")){
+  const callRegistration="bridge?.registerPluginInstance(LoveRadarVoipPlugin())";
+  if(!swift.includes(callRegistration))throw Error("Missing existing Capacitor VoIP bridge registration");
+  swift=swift.replace(callRegistration,callRegistration+"\n        bridge?.registerPluginInstance(LoveRadarCapturePlugin())");
  }
  put(delegate,swift);
  const entitlements="ios/App/App/App.entitlements";
