@@ -12,7 +12,7 @@
 .lr-call-action{width:75px;height:75px;border:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 29px Arial,sans-serif;cursor:pointer;position:relative;color:white}
 .lr-call-action span{position:absolute;top:83px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:600;white-space:nowrap;color:#e2c6d7}
 .lr-call-answer{background:#249d70}
-.lr-call-decline{background:#a82358}
+.lr-call-decline{background:#df264e}
 .lr-call-mute{background:#6b536d}
 .lr-call-mute.is-muted{background:#916287}
 .lr-call-sheet small{margin-top:auto;color:#a99aaf;font-size:10px;text-align:center;line-height:1.6;max-width:260px}
@@ -86,7 +86,7 @@
 }
 .lr-call-mini-actions button:disabled{opacity:.45;cursor:not-allowed}
 .lr-call-mini-actions .lr-call-mini-mute.active{background:#a82358;border-color:#bc396c}
-.lr-call-mini-actions .lr-call-mini-end{background:#a82358;border-color:#bc396c;color:white;font-size:21px;font-weight:700}
+.lr-call-mini-actions .lr-call-mini-end{background:#df264e;border-color:#bc396c;color:white;font-size:21px;font-weight:700}
 .lr-call-mini-actions .lr-call-mini-sound{background:#446c61;border-color:#8fcdb7}
 @media(max-width:700px){
  .lr-call-minimize{margin:-9px -1px 5px;min-height:39px;font-size:11px}
@@ -231,7 +231,7 @@
  background:#fff1fc!important;border-color:#fff!important;color:#392347!important;
 }
 .lr-call-backdrop .lr-call-action.lr-call-decline .lr-call-control-icon{
- background:#a82358!important;border-color:#bc396c!important;color:#fff!important;
+ background:#df264e!important;border-color:#bc396c!important;color:#fff!important;
  box-shadow:0 9px 25px rgba(104,9,34,.3)!important;
 }
 .lr-call-backdrop .lr-call-action.lr-call-answer .lr-call-control-icon{
