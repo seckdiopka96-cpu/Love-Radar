@@ -30,6 +30,7 @@ jobs:
       - run: npm run test:animation
       - run: npm run test:replies
       - run: npm run test:voice-ui
+      - run: npm run test:voice-sequence
       - run: npm run test:audio-focus
       - run: npm run test:voice-polish
       - run: npm run test:voice-outbox

@@ -27,6 +27,7 @@ import {useProfileAvatars} from "./use-profile-avatars";
 import {claimRecordingAudio,releaseRecordingAudio,isCallAudioActive,installAudioPlaybackGuard,type AudioInterrupt} from "./audio-focus";
 import PartnerProfileViewer from "./PartnerProfileViewer";
 import VoiceMessage from "./VoiceMessage";
+import {nextConsecutiveVoiceId,type VoiceSpeed} from "./voice-sequence";
 import LiveVoiceWaveform from "./LiveVoiceWaveform";
 import StickerArt from "./StickerArt";
 import StickerPicker from "./StickerPicker";
@@ -162,6 +163,10 @@ export default function LoveRadar(){
  const [recoveryCode,setRecoveryCode]=useState("");
  const [recoveryBusy,setRecoveryBusy]=useState(false);
  const [tab,setTab]=useState<Tab>(()=>parseNotice(window.location.search)?.tab||"home");
+ const [nextAutoVoiceId,setNextAutoVoiceId]=useState<string|null>(null);
+ const [voiceSpeed,setVoiceSpeed]=useState<VoiceSpeed>(1);
+ // Leave chat / switch couple: never auto-start an old private message.
+ useEffect(()=>{setNextAutoVoiceId(null)},[tab,room?.roomId]);
  const currentTab=useRef(tab);
  currentTab.current=tab;
  const chatReturnTab=useRef<Tab>("home");
@@ -1645,7 +1650,12 @@ export default function LoveRadar(){
            <span>{mediaErrors[m.id]||"Chargement de la photo…"}</span>
            {mediaErrors[m.id]?<button type="button" onClick={()=>retryMedia(m)}>Réessayer</button>:null}
           </div>:
-          media[m.id]?<VoiceMessage id={m.id} src={media[m.id]} mine={mine} time={time} delivery={mine&&m.id===lastOwnMessage?.id?((room.partnerReadAt||0)>=m.created_at?"read":"sent"):undefined} onOpenActions={()=>openMessageActions(m)}/>:
+          media[m.id]?<VoiceMessage id={m.id} src={media[m.id]} mine={mine} time={time} delivery={mine&&m.id===lastOwnMessage?.id?((room.partnerReadAt||0)>=m.created_at?"read":"sent"):undefined} onOpenActions={()=>openMessageActions(m)}
+           speed={voiceSpeed} onSpeedChange={setVoiceSpeed}
+           autoPlay={nextAutoVoiceId===m.id}
+           onAutoPlayConsumed={()=>setNextAutoVoiceId(null)}
+           onManualPlay={()=>setNextAutoVoiceId(null)}
+           onFinished={()=>setNextAutoVoiceId(nextConsecutiveVoiceId(chatMessages,idx))}/>:
           <div className="lr-media-loading">Chargement du vocal…</div>}
            {voiceOutbox.some(v=>v.id===m.id&&v.status!=="sent")?
             <div className={"lr-audio-send-state "+(voiceOutbox.find(v=>v.id===m.id)?.status==="failed"?"failed":"uploading")} role="status">

@@ -67,6 +67,25 @@
 .lr-voice-note-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;
  width:100%;font-size:11px;line-height:1.2;color:#e1e8eb}
 .lr-voice-note.is-own .lr-voice-note-meta{color:#fff7f9}
+/* Compact speed switch next to duration; playback speed follows the whole run. */
+.lr-chat .lr-voice-note .lr-voice-note-speed{
+ display:grid!important;place-items:center!important;flex:0 0 37px!important;
+ min-width:37px!important;width:37px!important;height:25px!important;
+ padding:0 3px!important;margin:0!important;
+ border:1px solid #f7d7e480!important;border-radius:10px!important;
+ background:#ffffff22!important;color:#fff7f9!important;
+ font:850 12px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;
+ font-variant-numeric:tabular-nums!important;white-space:nowrap!important;
+ cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent
+}
+.lr-chat .lr-voice-note .lr-voice-note-speed:active{background:#ffffff3c!important}
+.lr-chat .lr-voice-note .lr-voice-note-speed:focus-visible{
+ outline:2px solid #fff0d6!important;outline-offset:2px!important
+}
+.lr-chat .lr-voice-note-meta{gap:5px!important}
+.lr-chat .lr-voice-note-duration{min-width:30px}
+.lr-chat .lr-voice-note-time{margin-left:auto}
+
 .lr-voice-note-duration{font-variant-numeric:tabular-nums;font-weight:750;letter-spacing:.2px}
 .lr-voice-note-time{font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap;opacity:.9}
 .lr-voice-note-check{font-size:10px;color:#effffd;letter-spacing:-2px;padding-right:3px}
