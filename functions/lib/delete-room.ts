@@ -115,12 +115,14 @@ async function purgeReferencedObjects(db:D1Database,storage:R2Bucket|undefined,r
  // bucket but are no longer referenced by current profile/story rows.
  if(storage){
   for(const prefix of ["profile/"+roomId+"/","couple-story/"+roomId+"/"]){
-   let cursor:string|undefined;
-   do{
-    const objects=await storage.list({prefix,limit:1000,...(cursor?{cursor}:{})});
-    await remove((objects.objects||[]).map(x=>x.key));
-    cursor=objects.truncated?objects.cursor:undefined;
-   }while(cursor);
+   // Always scan the first page again after deleting it: opaque R2 cursors
+   // may skip objects if earlier entries have been removed.
+   for(let page=0;page<10000;page++){
+    const objects=await storage.list({prefix,limit:1000});
+    if(!objects.objects?.length)break;
+    await remove(objects.objects.map(x=>x.key));
+    if(page===9999)throw Error("Too many legacy R2 profile objects");
+   }
   }
  }
  return removed;
