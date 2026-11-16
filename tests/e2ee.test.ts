@@ -6,6 +6,7 @@ import {File} from "node:buffer";
 import {deriveContext,generateIdentity,encryptText,decryptText,encryptMedia,decryptMedia,
  fingerprint,isEncryptedText,E2EE_MEDIA_MIME,validPublicKey,generateIdentityWithBackup,decryptIdentityBackup} from "../src/e2ee";
 import {revealMessages,LOCKED_TEXT,CORRUPTED_TEXT} from "../src/e2ee-room";
+import {validateP256PublicKey} from "../functions/lib/e2ee";
 
 Object.defineProperty(globalThis,"crypto",{configurable:true,value:webcrypto});
 Object.defineProperty(globalThis,"File",{configurable:true,value:File});
@@ -108,4 +109,16 @@ test("password-wrapped backup restores the same nonextractable identity",async()
  const modified=created.encryptedBackup.replace(/"cipher":"([^"]+)/,
   (_match,cipher:string)=>'"cipher":"'+cipher.slice(0,-2)+"AA");
  await assert.rejects(decryptIdentityBackup(modified,phrase,created.identity.publicKey));
+});
+
+test("public ECDH identity must lie on the P-256 curve",async()=>{
+ const a=await generateIdentity();
+ assert.equal(await validateP256PublicKey(a.publicKey),true);
+ const b=await generateIdentity();
+ assert.equal(await validateP256PublicKey(b.publicKey),true);
+ const data=Buffer.from(a.publicKey.replace(/-/g,"+").replace(/_/g,"/"),"base64");
+ data[data.length-1]^=0xff;
+ const changed=data.toString("base64url");
+ assert.equal(await validateP256PublicKey(changed),false);
+ assert.equal(await validateP256PublicKey("not-a-key"),false);
 });
