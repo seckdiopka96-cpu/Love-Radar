@@ -1339,7 +1339,7 @@ export default function LoveRadar(){
    </aside>
    <main className="lr-main">
     {tab==="settings"?<SettingsPage
-     name={room.user.name} code={room.code} owner={room.user.owner} avatarSrc={avatars.mine} avatarVersion={room.user.avatarVersion}
+     name={room.user.name} code={room.code} owner={room.user.owner} token={token} avatarSrc={avatars.mine} avatarVersion={room.user.avatarVersion}
      profileBusy={profileBusy} profileError={profileError} recoveryBusy={recoveryBusy} onGenerateRecovery={()=>void issueRecoveryCode()} privacyEnabled={privacyEnabled}
      notificationsOn={notificationsOn} notificationsBusy={notificationsBusy} notificationsTesting={notificationsTesting} notificationsHint={notificationsHint}
      nativeApp={isNativeApp} onBack={()=>navigate("home")}
