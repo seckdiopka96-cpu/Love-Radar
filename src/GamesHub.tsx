@@ -1,6 +1,6 @@
 import "./games-hub.css";
 
-type Game="ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo"|"memory";
+type Game="rps"|"ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo"|"memory";
 type Props={onOpenGame:(game:Game)=>void;partnerName:string|null};
 
 /** Original, consistent vector artwork — no robot or emoji graphics. */
@@ -8,9 +8,16 @@ function GameArtwork({game}:{game:Game}){
  const senegal=game==="ludo-senegal"||game==="ludo-senegal-solo";
  const solo=game==="ludo-solo"||game==="ludo-senegal-solo";
  const memory=game==="memory";
+ const rps=game==="rps";
  return <span className={"lr-games-symbol lr-games-art lr-games-art-"+game} aria-hidden="true">
   <svg className="lr-games-art-svg" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-   {memory?<>
+   {rps?<g>
+    <circle cx="21" cy="24" r="16" fill="#76446F" stroke="#FFBFD9" strokeWidth="2"/>
+    <circle cx="51" cy="45" r="17" fill="#466A7C" stroke="#B5E8E9" strokeWidth="2"/>
+    <text x="21" y="32" textAnchor="middle" fontSize="26">✊</text>
+    <text x="51" y="52" textAnchor="middle" fontSize="27">✌</text>
+    <path d="M34 17 39 19 36 23 43 26" stroke="#FFCB91" strokeWidth="3" strokeLinecap="round"/>
+   </g>:memory?<>
     <rect x="12" y="10" width="35" height="47" rx="7" transform="rotate(-10 12 10)" fill="#284D5B" stroke="#9FC7C8" strokeWidth="2"/>
     <rect x="28" y="16" width="35" height="47" rx="7" fill="#345564" stroke="#C5DDDA" strokeWidth="2.2"/>
     <path d="M45.5 48.5 35 38c-5-5 2.3-13 8-6.7l2.5 2.7 2.5-2.7c5.7-6.3 13 1.7 8 6.7L45.5 48.5Z" fill="#FF8FAB"/>
@@ -40,7 +47,7 @@ function GameArtwork({game}:{game:Game}){
     </g>}
    </>}
   </svg>
-  <span className="lr-games-art-label">{solo?"SOLO":memory?"MEMORY":"DUO"}</span>
+  <span className="lr-games-art-label">{solo?"SOLO":memory?"MEMORY":rps?"LIVE":"DUO"}</span>
  </span>;
 }
 
@@ -52,6 +59,10 @@ export default function GamesHub({onOpenGame,partnerName}:Props){
    <p>{partnerName?"Défie "+partnerName+" ou affronte l’ordinateur quand tu veux.":"Joue contre l’ordinateur dès maintenant, même sans partenaire."}</p>
   </header>
   <div className="lr-games-grid">
+   <button type="button" className="lr-games-choice lr-games-rps" onClick={()=>onOpenGame("rps")}>
+    <GameArtwork game="rps"/>
+    <span className="lr-games-copy"><small>EN DIRECT · À DEUX</small><strong>Pierre · Papier · Ciseaux</strong><span>Choix secrets, révélation simultanée, points et revanche en temps réel.</span><b>Défier mon partenaire →</b></span>
+   </button>
    <button type="button" className="lr-games-choice lr-games-ludo" onClick={()=>onOpenGame("ludo")}>
     <GameArtwork game="ludo"/>
     <span className="lr-games-copy"><small>JEU DE PLATEAU · À DEUX</small><strong>Ludo Duo</strong><span>Une partie à deux, même à distance.</span><b>Jouer à Ludo →</b></span>
@@ -73,6 +84,6 @@ export default function GamesHub({onOpenGame,partnerName}:Props){
     <span className="lr-games-copy"><small>JEU DE MÉMOIRE</small><strong>Memory Love</strong><span>Retrouvez les paires et relevez le défi.</span><b>Jouer à Memory →</b></span>
    </button>
   </div>
-  <p className="lr-games-note">Ludo classique ou Sénégal : choisis une partie solo ou un défi à deux.</p>
+  <p className="lr-games-note">Pierre · Papier · Ciseaux, Ludo et Memory : joue avec ton partenaire, même à distance.</p>
  </section>;
 }
