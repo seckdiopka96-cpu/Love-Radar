@@ -153,18 +153,22 @@ export async function onRequestPost({request,env}:Context):Promise<Response>{
     return fail("Transfert chiffré des anciens messages obligatoire.",400);
    // A single D1 transaction: the existing member's token hash is swapped,
    // and the one-time request is consumed. Never create a new member/room.
-   const changes=await db.batch([
+   const hasPush=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='push_subscriptions'")
+    .first<{name:string}>();
+   const transaction=[
     db.prepare("UPDATE members SET token_hash=? WHERE id=? AND room_id=? AND EXISTS "+
      "(SELECT 1 FROM partner_recovery WHERE id=? AND sponsor_id=? AND target_id=? AND status='claimed' AND expires_at>?)")
       .bind(grant.candidate_hash,grant.target_id,grant.room_id,id,user.id,grant.target_id,now),
     db.prepare("UPDATE partner_recovery SET status='approved',envelope=? WHERE id=? AND sponsor_id=? AND status='claimed' AND expires_at>?")
       .bind(envelope,id,user.id,now)
-   ]);
+   ];
+   // Old-device push previews must be revoked in the SAME transaction.
+   // Historical installations may not yet have enabled push subscriptions.
+   if(hasPush)transaction.push(db.prepare("DELETE FROM push_subscriptions WHERE member_id=?")
+    .bind(grant.target_id));
+   const changes=await db.batch(transaction);
    if(changes[0].meta.changes!==1||changes[1].meta.changes!==1)
     return fail("Demande déjà utilisée ou expirée.",409);
-   // Optional push table must never prevent the authenticated session recovery.
-   try{await db.prepare("DELETE FROM push_subscriptions WHERE member_id=?")
-    .bind(grant.target_id).run()}catch(error){console.error("Partner recovery push cleanup",error)}
    await markRoomChanged(db,grant.room_id);
    return ok({approved:true});
   }
