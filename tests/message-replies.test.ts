@@ -130,3 +130,32 @@ test("delete-for-me never removes partner copies, while author delete-for-all re
  assert.ok(app.includes('Supprimer pour moi'));
  assert.ok(app.includes('Supprimer pour tous'));
 });
+
+test("text messages render immediately without waiting for HTTP and support retry with the same id",()=>{
+ assert.ok(app.includes("type LocalText="));
+ assert.ok(app.includes("setTextOutbox(items=>[...items,entry])"));
+ assert.ok(app.includes('void sendQueuedText(entry)'));
+ assert.ok(app.includes('messageId:entry.id'));
+ assert.ok(app.includes('result.id!==entry.id'));
+ assert.ok(app.includes('status:"failed" as const'));
+ assert.ok(app.includes('Réessayer l’envoi du message'));
+ assert.ok(app.includes('role="status"'));
+ assert.ok(app.includes('received.has(item.id)'));
+ assert.ok(!app.includes('setBusy(true);setError("");\n  try{\n   await request("message"'));
+ assert.ok(api.includes('const requestedId=body.messageId'));
+ assert.ok(api.includes('duplicate:true'));
+ assert.ok(api.includes('id:messageId'));
+});
+test("premium native-style bottom dock replaces the old heavy navigation",()=>{
+ const css=readFileSync("src/premium-navigation.css","utf8");
+ const manifest=readFileSync("public/manifest.webmanifest","utf8");
+ assert.ok(app.includes('import "./premium-navigation.css"'));
+ assert.ok(css.includes('backdrop-filter:blur(26px)'));
+ assert.ok(css.includes('.lr-mobile-nav button.active .lr-nav-symbol'));
+ assert.ok(css.includes('env(safe-area-inset-bottom)'));
+ assert.ok(css.includes('prefers-reduced-motion:reduce'));
+ assert.ok(css.includes('.lr-text-send-state.failed'));
+ assert.ok(!app.includes('Love <span>Radar'));
+ assert.ok(!app.includes('Love Radar · Paramètres'));
+ assert.ok(!manifest.includes('"short_name": "Love Radar"'));
+});
