@@ -31,6 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_room ON messages(room_id,created_at DESC
 CREATE TABLE IF NOT EXISTS chat_presence (
  room_id TEXT NOT NULL, member_id TEXT NOT NULL,
  last_read_at INTEGER NOT NULL DEFAULT 0,
+ last_delivered_at INTEGER NOT NULL DEFAULT 0,
  typing_until INTEGER NOT NULL DEFAULT 0,
  last_seen_at INTEGER NOT NULL DEFAULT 0,
  PRIMARY KEY(room_id,member_id)
