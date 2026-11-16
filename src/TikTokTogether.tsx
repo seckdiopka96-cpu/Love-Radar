@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useRef,useState,type FormEvent} from "react";
 import {apiFetch} from "./api";
 import {canonicalTikTokVideo,parseTikTokId,isTikTokShortLink,watchTikTokTime,formatTikTokTime,type TikTokSnapshot} from "./tiktok-utils";
+import {claimMessagePlayback,hasExclusiveAudioCapture,type AudioInterrupt} from "./audio-focus";
 import "./tiktok-together.css";
 
 type Message={id:string;sender_id:string;kind:string;content:string|null;created_at:number};
@@ -133,6 +134,10 @@ export default function TikTokTogether({token,myId,myName,partnerName,messages,o
  },[id]);
  const apply=useCallback((state:TikTokSnapshot,force=false)=>{
   if(!state.videoId||!readyRef.current)return;
+  if(hasExclusiveAudioCapture()){
+   suppressRef.current=Date.now()+4000;
+   command("pause");return;
+  }
   if(!force&&lastApplied.current===state.version)return;
   lastApplied.current=state.version;
   const expected=watchTikTokTime(state,Date.now()+offsetRef.current);
@@ -147,6 +152,25 @@ export default function TikTokTogether({token,myId,myName,partnerName,messages,o
  useEffect(()=>{
   if(snapshot&&ready)apply(snapshot);
  },[snapshot,ready,apply]);
+ useEffect(()=>{
+  const interrupt=(event:Event)=>{
+   const detail=(event as CustomEvent<AudioInterrupt>).detail;
+   if(detail?.source==="playback"&&detail.owner==="tiktok-together")return;
+   suppressRef.current=Date.now()+4000;
+   command("pause"); // Local pause only; partner's shared session stays untouched.
+  };
+  const resume=()=>{
+   const current=snapshotRef.current;
+   if(current&&readyRef.current)apply(current,true);
+  };
+  window.addEventListener("lr-audio-interrupt",interrupt);
+  window.addEventListener("lr-audio-focus-released",resume);
+  return()=>{
+   window.removeEventListener("lr-audio-interrupt",interrupt);
+   window.removeEventListener("lr-audio-focus-released",resume);
+  };
+ },[apply,command]);
+
  // Official TikTok embed postMessage events, with strict source + origin checks.
  useEffect(()=>{
   function onMessage(event:MessageEvent){
@@ -186,6 +210,10 @@ export default function TikTokTogether({token,myId,myName,partnerName,messages,o
    if(data.type==="onStateChange"){
     const value=data.value;
     if(typeof value!=="number")return;
+    if(value===1&&hasExclusiveAudioCapture()){
+     suppressRef.current=Date.now()+4000;command("pause");return;
+    }
+    if(value===1)claimMessagePlayback("tiktok-together");
     if(value===1){playerPlaying.current=true;setNeedsTap(false)}
     if(value===2||value===0)playerPlaying.current=false;
     if(Date.now()<suppressRef.current||busyRef.current)return;
@@ -227,6 +255,8 @@ export default function TikTokTogether({token,myId,myName,partnerName,messages,o
  function play(){
   const current=snapshotRef.current;
   if(!current?.videoId)return;
+  if(hasExclusiveAudioCapture()){setNotice("Termine l'appel ou le vocal avant de regarder avec le son.");return}
+  claimMessagePlayback("tiktok-together");
   suppressRef.current=Date.now()+1800;
   const resumeAt=watchTikTokTime(current,Date.now()+offsetRef.current);
   posRef.current=resumeAt;setLocalPos(resumeAt);
