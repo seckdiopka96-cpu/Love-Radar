@@ -102,6 +102,13 @@ export async function makeContext(args:{roomId:string;mineId:string;partnerId:st
  const code=await fingerprint(partnerPublicKey);
  if(!isPartnerVerified(roomId,partnerId,code))
   throw Error("Vérifie d’abord l’empreinte de la clé de ton partenaire dans les paramètres.");
+ return deriveContext(identity,args);
+}
+/** Cryptographic primitive used only after the trust-on-first-use check in makeContext. */
+export async function deriveContext(identity:Identity,args:{roomId:string;mineId:string;partnerId:string;minePublicKey:string;partnerPublicKey:string}):Promise<CryptoContext>{
+ const {roomId,mineId,partnerId,minePublicKey,partnerPublicKey}=args;
+ if(!validPublicKey(minePublicKey)||!validPublicKey(partnerPublicKey)||mineId===partnerId||identity.publicKey!==minePublicKey)
+  throw Error("Clés de chiffrement invalides.");
  const remote=await crypto.subtle.importKey("raw",buffer(unb64(partnerPublicKey)),{name:"ECDH",namedCurve:"P-256"},false,[]);
  const secret=await crypto.subtle.deriveBits({name:"ECDH",public:remote},identity.privateKey,256);
  const kdf=await crypto.subtle.importKey("raw",secret,"HKDF",false,["deriveKey"]);
