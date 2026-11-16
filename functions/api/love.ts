@@ -252,7 +252,7 @@ async function snapshot(db:D1Database,u:Member){
      }
      await ensureChatPresence(db);
      await db.prepare("UPDATE chat_presence SET typing_until=0 WHERE room_id=? AND member_id=?").bind(u.room_id,u.id).run();
-     waitUntil(notifyPartner(env,u.room_id,u.id,"Nouveau message 💌",u.name+" t’a envoyé un message.","chat",{kind:"message",id:messageId}));
+     waitUntil(notifyPartner(env,u.room_id,u.id,"Nouveau message 💌",u.name+(message.startsWith("[sticker:v1:")&&/^\[sticker:v1:[a-z0-9-]{1,36}\]$/.test(message)?" t’a envoyé un sticker.":" t’a envoyé un message."),"chat",{kind:"message",id:messageId}));
      return ok({sent:true,id:messageId});
     }
     if(op==="edit-message"){
@@ -291,7 +291,7 @@ async function snapshot(db:D1Database,u:Member){
      const now=Date.now();
      await db.prepare("INSERT INTO message_reactions(room_id,message_id,member_id,emoji,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(room_id,message_id,member_id) DO UPDATE SET emoji=excluded.emoji,updated_at=excluded.updated_at")
       .bind(u.room_id,body.id,u.id,body.emoji,now).run();
-     const raw=target.kind==="image"?"une photo":target.kind==="audio"?"un message vocal":(target.content||"").replace(/\s+/g," ").trim();
+     const raw=target.kind==="image"?"une photo":target.kind==="audio"?"un message vocal":/^\[sticker:v1:[a-z0-9-]{1,36}\]$/.test(target.content||"")?"un sticker":(target.content||"").replace(/\s+/g," ").trim();
      const excerpt=raw.length>65?raw.slice(0,64).trimEnd()+"…":raw||"un message";
      waitUntil(notifyPartner(env,u.room_id,u.id,"Réaction à ton message ❤️",u.name+" a réagi "+body.emoji+" à «"+excerpt+"»","chat",{kind:"message",id:body.id}));
      return ok({reaction:body.emoji});
