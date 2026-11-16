@@ -3,6 +3,8 @@ import {recoverSavedSession,persistSessionToken,clearSessionToken,hadPreviousSes
 import {ensureIdentity,loadIdentity,loadRecoveredRoomKey,encryptedBackupFor,restoreIdentityBackup,fingerprint,makeContext,verifyPartner,isPartnerVerified,encryptText,encryptMedia,decryptMedia,isEncryptedMedia,isEncryptedText,type CryptoContext} from "./e2ee";
 import {revealMessages} from "./e2ee-room";
 import {setNativePrivacy} from "./native-privacy";
+import {watchNativeScreenshots,screenshotDetectionAvailable} from "./native-screenshot";
+import "./screenshot-events.css";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import {createPortal} from "react-dom";
 import "./love-radar.css";
@@ -73,7 +75,8 @@ import "./message-context-premium.css";
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "rps" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
 type EncryptionState={mine:string|null;partner:string|null;required:boolean};
-type ChatTimelineItem = {type:"message";message:Message;index:number;createdAt:number}|{type:"call";call:CallHistoryEvent;createdAt:number};
+type ScreenshotEvent={id:string;member_id:string;created_at:number};
+type ChatTimelineItem = {type:"message";message:Message;index:number;createdAt:number}|{type:"call";call:CallHistoryEvent;createdAt:number}|{type:"screenshot";event:ScreenshotEvent;createdAt:number};
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number;
  reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null;
  edited_at?:number;reactions?:{member_id:string;emoji:string}[];view_once?:number|boolean};
@@ -182,9 +185,10 @@ export default function LoveRadar(){
  const [nextAutoVoiceId,setNextAutoVoiceId]=useState<string|null>(null);
  const [voiceSpeed,setVoiceSpeed]=useState<VoiceSpeed>(1);
  const [callHistory,setCallHistory]=useState<CallHistoryEvent[]>([]);
+ const [screenshotHistory,setScreenshotHistory]=useState<ScreenshotEvent[]>([]);
  const [callClockOffset,setCallClockOffset]=useState(0);
  // A recovered/different private room must never see the previous couple's call cards.
- useEffect(()=>{setCallHistory([]);setCallClockOffset(0)},[room?.roomId,token]);
+ useEffect(()=>{setCallHistory([]);setCallClockOffset(0);setScreenshotHistory([])},[room?.roomId,token]);
  // Leave chat / switch couple: never auto-start an old private message.
  useEffect(()=>{setNextAutoVoiceId(null)},[tab,room?.roomId]);
  const currentTab=useRef(tab);
@@ -280,8 +284,9 @@ export default function LoveRadar(){
  ]),[olderMessages,room?.messages,room?.user.id,voiceOutbox,textOutbox]);
  const chatTimeline=useMemo<ChatTimelineItem[]>(()=>[
   ...chatMessages.map((message,index)=>({type:"message" as const,message,index,createdAt:message.created_at})),
-  ...callHistory.map(call=>({type:"call" as const,call,createdAt:call.createdAt}))
- ].sort((a,b)=>a.createdAt-b.createdAt),[chatMessages,callHistory]);
+  ...callHistory.map(call=>({type:"call" as const,call,createdAt:call.createdAt})),
+  ...screenshotHistory.map(event=>({type:"screenshot" as const,event,createdAt:event.created_at}))
+ ].sort((a,b)=>a.createdAt-b.createdAt),[chatMessages,callHistory,screenshotHistory]);
  // These are room-scoped server events, not fabricated chat messages.
  useEffect(()=>{
   if(!token||!room?.roomId){setCallHistory([]);return}
@@ -313,6 +318,69 @@ export default function LoveRadar(){
    document.removeEventListener("visibilitychange",onVisible);
    window.removeEventListener("focus",onVisible)};
  },[token,room?.roomId,tab]);
+ // Native iPhone screenshots are observed AFTER capture. Android uses
+ // FLAG_SECURE to block captures; Safari PWA cannot report them.
+ useEffect(()=>{
+  if(!token||!room?.roomId||!screenshotDetectionAvailable())return;
+  let closed=false;
+  let stop:(()=>void)|null=null;
+  const onTaken=()=>{
+   if(closed)return;
+   const id=crypto.randomUUID();
+   void apiFetch("/api/screenshot",{
+    method:"POST",cache:"no-store",
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    body:JSON.stringify({action:"taken",id})
+   }).then(async res=>{
+    const data=await res.json() as {ok:boolean;saved?:boolean;error?:string};
+    if(closed)return;
+    if(res.ok&&data.ok&&data.saved){
+     setNotice("📸 Capture signalée à ton partenaire.");
+     if(currentTab.current==="chat")void refresh(undefined,true);
+    }else if(res.status!==429){
+     setNotice("📸 Capture détectée, mais le signalement n'a pas pu être envoyé.");
+    }
+   }).catch(()=>{
+    if(!closed)setNotice("📸 Capture détectée hors connexion : partenaire non averti.");
+   });
+  };
+  void watchNativeScreenshots(onTaken).then(cleanup=>{
+   if(closed)cleanup();
+   else stop=cleanup;
+  }).catch(err=>console.warn("Screenshot detection unavailable",err));
+  return()=>{closed=true;stop?.()};
+ },[token,room?.roomId]);
+
+ // Screenshot notices are server-owned event cards, not screenshot images and
+ // not user-editable messages. Each partner sees the same private timeline.
+ useEffect(()=>{
+  if(!token||!room?.roomId){setScreenshotHistory([]);return}
+  if(tab!=="chat")return;
+  let disposed=false,busy=false;
+  const poll=async()=>{
+   if(disposed||busy||document.visibilityState==="hidden")return;
+   busy=true;
+   try{
+    const res=await apiFetch("/api/screenshot",{
+     headers:{Authorization:"Bearer "+token},cache:"no-store"
+    });
+    if(!res.ok)return;
+    const result=await res.json() as {ok:boolean;events?:ScreenshotEvent[]};
+    if(!disposed&&result.ok&&Array.isArray(result.events)){
+     const events=result.events.filter(item=>typeof item.id==="string"&&
+      typeof item.member_id==="string"&&typeof item.created_at==="number");
+     setScreenshotHistory(prev=>JSON.stringify(prev)===JSON.stringify(events)?prev:events);
+    }
+   }catch{/* Ordinary messaging still works if private events are unavailable. */}
+   finally{busy=false}
+  };
+  void poll();
+  const id=window.setInterval(()=>void poll(),3200);
+  const onVisible=()=>{if(document.visibilityState==="visible")void poll()};
+  document.addEventListener("visibilitychange",onVisible);
+  return()=>{disposed=true;window.clearInterval(id);document.removeEventListener("visibilitychange",onVisible)};
+ },[token,room?.roomId,tab]);
+
  const actionMessage=chatMessages.find(m=>m.id===actionMessageId)||null;
  // The long-press menu follows the selected chat bubble, not the bottom dock.
  // Measure the rendered popover so it remains fully visible near both edges
@@ -1831,6 +1899,26 @@ export default function LoveRadar(){
          {showCallDay?<div className="lr-chat-day">{callDate}</div>:null}
          <CallHistoryBubble call={entry.call} mine={entry.call.callerId===room.user.id}
           partner={partner} serverOffset={callClockOffset}/>
+        </Fragment>;
+       }
+       if(entry.type==="screenshot"){
+        const date=new Date(entry.event.created_at).toDateString();
+        const showDay=!preceding||new Date(preceding.createdAt).toDateString()!==date;
+        const label=new Date(entry.event.created_at).toLocaleDateString("fr-FR",{
+         weekday:"short",day:"numeric",month:"long"
+        });
+        const mine=entry.event.member_id===room.user.id;
+        return <Fragment key={"screenshot-"+entry.event.id}>
+         {showDay?<div className="lr-chat-day">{label}</div>:null}
+         <div className="lr-chat-screenshot-event" role="note" aria-label="Alerte de capture d'écran">
+          <span className="lr-screenshot-symbol" aria-hidden="true">📸</span>
+          <div><strong>Capture d’écran</strong>
+           <p>{mine?"Tu as fait une capture d’écran dans Love-Radar.":
+            partner+" a fait une capture d’écran dans Love-Radar."}</p>
+           <time dateTime={new Date(entry.event.created_at).toISOString()}>
+            {new Date(entry.event.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+           </time></div>
+         </div>
         </Fragment>;
        }
        const m=entry.message,idx=entry.index;
