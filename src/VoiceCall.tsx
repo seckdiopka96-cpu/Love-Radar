@@ -1,4 +1,5 @@
-import {apiFetch} from "./api";
+import {apiFetch,isNativeApp} from "./api";
+import {beginNativeCallSession,endNativeCallSession,nativeCallSessionRunning} from "./native-call-session";
 import {findBuiltInSpeaker,audioRouteHelp} from "./audio-output";
 import {relayNeedsRefresh,RELAY_REFRESH_AFTER_MS,RELAY_RETRY_AFTER_ERROR_MS} from "./reliability-rules";
 import {useCallback,useEffect,useRef,useState} from "react";
@@ -116,6 +117,8 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   }finally{sendingCandidates.current=false}
  },[api]);
  const clearAudio=useCallback(()=>{
+  // Stop the native microphone service on any end, reset or room change.
+  void endNativeCallSession().catch(error=>console.warn("Native call cleanup",error));
   const p=pc.current;
   pc.current=null;
   if(p){p.ontrack=null;p.onicecandidate=null;p.onconnectionstatechange=null;p.oniceconnectionstatechange=null;p.close()}
@@ -231,7 +234,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   return false;
  },[api,createPeer,flushCandidates]);
  const sync=useCallback(async()=>{
-  if(isPolling.current||starting.current||document.visibilityState==="hidden")return;
+  if(isPolling.current||starting.current||(document.visibilityState==="hidden"&&!isNativeApp))return;
   isPolling.current=true;
   try{
    const data=await api(undefined,{},signalAfter.current);
@@ -276,8 +279,27 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   };
  },[sync,hasPartner]);
  useEffect(()=>{
+  // Prepare native background audio only once the caller/recipient explicitly
+  // started microphone capture while the Android activity was still visible.
+  if(!isNativeApp)return;
+  if(active?.status!=="active"||!local.current){
+   void endNativeCallSession().catch(()=>{});
+   return;
+  }
+  const callId=active.id;
+  void beginNativeCallSession(callId,token).catch(error=>{
+   if(current.current?.id===callId)
+    setError("Appel en arrière-plan indisponible sur ce téléphone : "+
+     (error instanceof Error?error.message:"service natif non chargé."));
+  });
+ },[active?.id,active?.status,token]);
+ useEffect(()=>{
   if(!active||active.status!=="active")return;
-  const ping=()=>{if(document.visibilityState==="visible")void api("heartbeat",{id:active.id}).catch(()=>{})};
+  const ping=()=>{
+   // Native layer keeps the server lease alive when JS timers are suspended.
+   if(nativeCallSessionRunning(active.id))return;
+   if(document.visibilityState==="visible")void api("heartbeat",{id:active.id}).catch(()=>{});
+  };
   ping();
   const interval=setInterval(ping,24000);
   return()=>clearInterval(interval);
