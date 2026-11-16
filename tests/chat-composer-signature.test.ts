@@ -16,8 +16,8 @@ test("Love Radar chat composer styles are loaded after legacy chat/voice styles"
 test("all visible chat action icons share Love Radar color, with stickers inside the text capsule",()=>{
  const selectors=["lr-attach","lr-mic","lr-send"];
  const blocks=selectors.map(name=>css.match(new RegExp(
-  "\\\\.lr-chat \\\\.lr-chat-form > \\\\."+name+"\\\\{([^}]+)\\\\}"
- ))?.[1]||"");
+  "\\.lr-chat \\.lr-chat-form > \\."+name+"\\{([^}]+)\\}"
+ ))?.[1]||"");;
  for(const block of blocks){
   assert.ok(block.includes("color:var(--lr-composer-icon)!important"),"same icon color");
   assert.ok(block.includes("background:var(--lr-composer-icon-bg)!important"),"same external button background");
