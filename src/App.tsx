@@ -49,6 +49,7 @@ import ChatActivity from "./ChatActivity";
 import QuoteCard from "./QuoteCard";
 import {quoteAuthor,type QuoteKind} from "./message-quote";
 import {mergeOptimisticMessages,shouldKeepVoiceDraft,type AudioOutboxStatus} from "./voice-outbox";
+import {formatPartnerLastSeen} from "./last-seen";
 import {receiptState,receiptGlyph,receiptAccessibleLabel} from "./message-delivery";
 import "./redesign.css";
 import "./redesign-features.css";
@@ -242,6 +243,7 @@ export default function LoveRadar(){
  const [chatAtBottom,setChatAtBottom]=useState(true);
  const chatAtBottomRef=useRef(true);
  const [partnerActivity,setPartnerActivity]=useState<{partnerTypingUntil:number;partnerRecordingUntil:number;partnerLastSeenAt:number}|null>(null);
+ const [presenceNow,setPresenceNow]=useState(()=>Date.now());
  const chatScroller=useRef<HTMLDivElement|null>(null);
  const snapshotStarted=useRef(0);
  const snapshotApplied=useRef(0);
@@ -1746,7 +1748,14 @@ export default function LoveRadar(){
  const lastSeen=partnerActivity?.partnerLastSeenAt??room?.partnerLastSeenAt??0;
  const partnerRecording=Boolean(recordingUntil>Date.now());
  const partnerTyping=Boolean(!partnerRecording&&typingUntil>Date.now());
- const partnerOnline=Boolean(lastSeen&&Date.now()-lastSeen<35000);
+ useEffect(()=>{
+  if(tab!=="chat")return;
+  setPresenceNow(Date.now());
+  const ticker=window.setInterval(()=>setPresenceNow(Date.now()),10000);
+  return()=>window.clearInterval(ticker);
+ },[tab]);
+ const partnerOnline=Boolean(lastSeen&&presenceNow-lastSeen<35000);
+ const partnerStatusText=!room?.partner?"En attente de votre partenaire…":partnerOnline?"En ligne":formatPartnerLastSeen(lastSeen,presenceNow);
  const partnerActivityKind=partnerRecording?"recording":partnerTyping?"typing":null;
  useEffect(()=>{
   if(tab!=="chat"||!partnerActivityKind)return;
@@ -1904,7 +1913,7 @@ export default function LoveRadar(){
       <div className="lr-chat-partner"><button type="button" className="lr-partner-photo-trigger"
         aria-label={"Agrandir la photo de profil de "+partner} title={"Photo de profil de "+partner}
         onClick={()=>setPartnerPhotoOpen(true)}><Initials name={partner} size="small" src={avatars.partner}/></button>
-       <div><h2>{partner}</h2><span className={"lr-chat-status "+(partnerOnline?"online":"offline")}>{!room.partner?"En attente de votre partenaire…":partnerOnline?"En ligne":"Hors ligne"}</span></div>
+       <div><h2>{partner}</h2><span className={"lr-chat-status "+(partnerOnline?"online":"offline")}>{partnerStatusText}</span></div>
       </div>
       <div id="lr-voice-button-slot"/>
      </div>
