@@ -1,6 +1,7 @@
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { notifyPartner, type PushEnv } from "../lib/push";
 import { ensureProfilePhotos } from "./profile";
+import {roomRevision,markRoomChanged} from "../lib/room-revision";
 
 // Automatic and idempotent migration for both existing and new D1 rooms.
 let presenceReady: Promise<void> | null = null;
@@ -111,6 +112,7 @@ async function snapshot(db:D1Database,u:Member){
   " (SELECT 1 FROM message_hidden h WHERE h.room_id=mr.room_id AND h.message_id=mr.message_id AND h.member_id=?)"+
   " ORDER BY mr.updated_at DESC,mr.message_id DESC LIMIT 1"
  ).bind(u.room_id,u.id).first<{message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null}>();
+ const revision=await roomRevision(db,u.room_id);
  const otherStatus=await db.prepare("SELECT last_read_at,typing_until,recording_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1").bind(u.room_id,u.id).first<{last_read_at:number,typing_until:number,recording_until:number,last_seen_at:number}>();
  const unread=await db.prepare("SELECT COUNT(*) AS n FROM messages WHERE room_id=? AND sender_id<>? AND kind IN ('text','image','audio') AND created_at>COALESCE((SELECT last_read_at FROM chat_presence WHERE room_id=? AND member_id=?),0) AND NOT EXISTS (SELECT 1 FROM message_hidden h WHERE h.room_id=messages.room_id AND h.message_id=messages.id AND h.member_id=?)")
   .bind(u.room_id,u.id,u.room_id,u.id,u.id).first<{n:number}>();
@@ -118,7 +120,7 @@ async function snapshot(db:D1Database,u:Member){
 
  const unreadReactions=await db.prepare("SELECT COUNT(*) AS n FROM message_reactions WHERE room_id=? AND member_id<>? AND updated_at>COALESCE((SELECT last_reaction_read_at FROM chat_presence WHERE room_id=? AND member_id=?),0) AND NOT EXISTS (SELECT 1 FROM message_hidden h WHERE h.room_id=message_reactions.room_id AND h.message_id=message_reactions.message_id AND h.member_id=?)")
   .bind(u.room_id,u.id,u.room_id,u.id,u.id).first<{n:number}>();
- return {user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id,avatarVersion:avatarMap.get(u.id)||0},code:u.invite,roomId:u.room_id,
+ return {revision,user:{id:u.id,name:u.name,seat:u.seat,owner:u.owner_id===u.id,avatarVersion:avatarMap.get(u.id)||0},code:u.invite,roomId:u.room_id,
   partner:partnerMember?.name||null,partnerId:partnerMember?.id||null,partnerAvatarVersion:partnerMember?avatarMap.get(partnerMember.id)||0:0,members:partners.results.length,
   messages:messages.results.reverse().map(row=>({...row,reactions:reactionsById.get(String(row.id))||[]})),recentReaction:recentReaction||null,unreadCount:Number(unread?.n||0)+Number(unreadReactions?.n||0),partnerReadAt:otherStatus?.last_read_at??0,partnerTypingUntil:otherStatus?.typing_until??0,partnerRecordingUntil:otherStatus?.recording_until??0,partnerLastSeenAt:otherStatus?.last_seen_at??0};
 }
@@ -132,7 +134,8 @@ async function snapshot(db:D1Database,u:Member){
     if(new URL(request.url).searchParams.get("status")==="1"){
      const presence=await session.db.prepare("SELECT typing_until,recording_until,last_seen_at FROM chat_presence WHERE room_id=? AND member_id<>? LIMIT 1")
       .bind(session.user.room_id,session.user.id).first<{typing_until:number,recording_until:number,last_seen_at:number}>();
-     return ok({partnerTypingUntil:presence?.typing_until??0,partnerRecordingUntil:presence?.recording_until??0,partnerLastSeenAt:presence?.last_seen_at??0});
+     const revision=await roomRevision(session.db,session.user.room_id);
+     return ok({revision,partnerTypingUntil:presence?.typing_until??0,partnerRecordingUntil:presence?.recording_until??0,partnerLastSeenAt:presence?.last_seen_at??0});
     }
     const overview=await snapshot(session.db,session.user);
     const id=new URL(request.url).searchParams.get("messageId");
@@ -185,6 +188,7 @@ async function snapshot(db:D1Database,u:Member){
       const inserted=await db.prepare("INSERT INTO members(id,room_id,name,seat,token_hash,joined_at) SELECT ?,?, ?,1,?,? WHERE (SELECT COUNT(*) FROM members WHERE room_id=?)=1").bind(id,room.id,name,digest,now,room.id).run();
       if(!inserted.meta.changes)return fail("Cet espace est déjà complet.",409);
      }catch{return fail("Cet espace est déjà complet.",409)}
+     await markRoomChanged(db,room.id);
      waitUntil(notifyPartner(env,room.id,id,"Votre espace ❤️","Ton partenaire vient de rejoindre votre espace !","home"));
      return ok({token:secret,code});
     }
@@ -214,8 +218,14 @@ async function snapshot(db:D1Database,u:Member){
      const lastReaction=await db.prepare("SELECT MAX(updated_at) AS stamp FROM message_reactions WHERE room_id=? AND member_id<>?")
       .bind(u.room_id,u.id).first<{stamp:number|null}>();
      if(last?.stamp||lastReaction?.stamp){
-      await db.prepare("INSERT INTO chat_presence(room_id,member_id,last_read_at,last_reaction_read_at) VALUES(?,?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET last_read_at=MAX(last_read_at,excluded.last_read_at),last_reaction_read_at=MAX(last_reaction_read_at,excluded.last_reaction_read_at)")
-       .bind(u.room_id,u.id,last?.stamp||0,lastReaction?.stamp||0).run();
+      const previous=await db.prepare("SELECT last_read_at,last_reaction_read_at FROM chat_presence WHERE room_id=? AND member_id=?")
+       .bind(u.room_id,u.id).first<{last_read_at:number;last_reaction_read_at:number}>();
+      const isNew=Number(last?.stamp||0)>Number(previous?.last_read_at||0)||Number(lastReaction?.stamp||0)>Number(previous?.last_reaction_read_at||0);
+      if(isNew){
+       await db.prepare("INSERT INTO chat_presence(room_id,member_id,last_read_at,last_reaction_read_at) VALUES(?,?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET last_read_at=MAX(last_read_at,excluded.last_read_at),last_reaction_read_at=MAX(last_reaction_read_at,excluded.last_reaction_read_at)")
+        .bind(u.room_id,u.id,last?.stamp||0,lastReaction?.stamp||0).run();
+       await markRoomChanged(db,u.room_id);
+      }
      }
      return ok({read:true});
     }
@@ -256,6 +266,7 @@ async function snapshot(db:D1Database,u:Member){
       await db.prepare("INSERT INTO messages(id,room_id,sender_id,kind,content,created_at) VALUES(?,?,?,'text',?,?)")
        .bind(messageId,u.room_id,u.id,message,now).run();
      }
+     await markRoomChanged(db,u.room_id);
      await ensureChatPresence(db);
      await db.prepare("UPDATE chat_presence SET typing_until=0 WHERE room_id=? AND member_id=?").bind(u.room_id,u.id).run();
      waitUntil(notifyPartner(env,u.room_id,u.id,"Nouveau message 💌",u.name+(message.startsWith("[sticker:v1:")&&/^\[sticker:v1:[a-z0-9-]{1,36}\]$/.test(message)?" t’a envoyé un sticker.":" t’a envoyé un message."),"chat",{kind:"message",id:messageId}));
@@ -278,6 +289,7 @@ async function snapshot(db:D1Database,u:Member){
       db.prepare("INSERT INTO message_edits(room_id,message_id,edited_at) VALUES(?,?,?) ON CONFLICT(message_id) DO UPDATE SET edited_at=excluded.edited_at WHERE message_edits.room_id=excluded.room_id")
        .bind(u.room_id,body.id,now)
      ]);
+     await markRoomChanged(db,u.room_id);
      return ok({edited:true,edited_at:now});
     }
     if(op==="react-message"){
@@ -292,11 +304,13 @@ async function snapshot(db:D1Database,u:Member){
      if(existing?.emoji===body.emoji){
       await db.prepare("DELETE FROM message_reactions WHERE room_id=? AND message_id=? AND member_id=?")
        .bind(u.room_id,body.id,u.id).run();
+      await markRoomChanged(db,u.room_id);
       return ok({reaction:null});
      }
      const now=Date.now();
      await db.prepare("INSERT INTO message_reactions(room_id,message_id,member_id,emoji,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(room_id,message_id,member_id) DO UPDATE SET emoji=excluded.emoji,updated_at=excluded.updated_at")
       .bind(u.room_id,body.id,u.id,body.emoji,now).run();
+     await markRoomChanged(db,u.room_id);
      const raw=target.kind==="image"?"une photo":target.kind==="audio"?"un message vocal":/^\[sticker:v1:[a-z0-9-]{1,36}\]$/.test(target.content||"")?"un sticker":(target.content||"").replace(/\s+/g," ").trim();
      const excerpt=raw.length>65?raw.slice(0,64).trimEnd()+"…":raw||"un message";
      waitUntil(notifyPartner(env,u.room_id,u.id,"Réaction à ton message ❤️",u.name+" a réagi "+body.emoji+" à «"+excerpt+"»","chat",{kind:"message",id:body.id}));
@@ -310,6 +324,7 @@ async function snapshot(db:D1Database,u:Member){
      if(!exists)return fail("Message introuvable.",404);
      await db.prepare("INSERT OR IGNORE INTO message_hidden(room_id,message_id,member_id,hidden_at) VALUES(?,?,?,?)")
       .bind(u.room_id,body.id,u.id,Date.now()).run();
+     await markRoomChanged(db,u.room_id);
      return ok({deletedForMe:true});
     }
     if(op==="delete-message"){
@@ -331,6 +346,7 @@ async function snapshot(db:D1Database,u:Member){
      // the original. A deletion never grants access across rooms.
      if(mine.object_key&&bindings().STORAGE)try{await bindings().STORAGE!.delete(mine.object_key)}
      catch(err){console.error("Orphaned media cleanup",err)}
+     await markRoomChanged(db,u.room_id);
      return ok({deletedMessage:true});
     }
     if(op==="delete"){
@@ -409,6 +425,7 @@ async function snapshot(db:D1Database,u:Member){
       db.prepare("DELETE FROM members WHERE room_id=?").bind(u.room_id),
       db.prepare("DELETE FROM rooms WHERE id=?").bind(u.room_id)
      ]);
+     try{await db.prepare("DELETE FROM room_revisions WHERE room_id=?").bind(u.room_id).run()}catch{/* Revision table may be absent in older rooms */}
      return ok({deleted:true});
     }
     return fail("Action inconnue.",404);
