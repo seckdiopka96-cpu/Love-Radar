@@ -1,8 +1,10 @@
 import "./settings-page.css";
 import ConnectionDiagnostics from "./ConnectionDiagnostics";
+import PartnerRecoverySponsor from "./PartnerRecoverySponsor";
 import {useState} from "react";
 type Props={
  name:string;code:string;owner:boolean;token:string;avatarSrc?:string;avatarVersion?:number;
+ recoveryMemberId:string;recoveryPartnerId:string|null;recoveryRoomId:string;
  profileBusy:boolean;profileError:string;
  recoveryBusy:boolean;onGenerateRecovery:()=>void;
  e2ee?:{mine:string|null;partner:string|null;required:boolean};
@@ -18,7 +20,7 @@ type Props={
  onShareInvite:()=>void;onLogout:()=>void;onDeleteRoom:()=>void;
 };
 export default function SettingsPage({
-name,code,owner,token,avatarSrc,avatarVersion,profileBusy,profileError,recoveryBusy,onGenerateRecovery,privacyEnabled,
+name,code,owner,token,avatarSrc,avatarVersion,recoveryMemberId,recoveryPartnerId,recoveryRoomId,profileBusy,profileError,recoveryBusy,onGenerateRecovery,privacyEnabled,
  notificationsOn,notificationsBusy,notificationsTesting,notificationsHint,nativeApp,
  e2ee,e2eeBusy,e2eeBackup,e2eeOwnCode,e2eePartnerCode,e2eeDeviceReady,e2eeVerified,
  onEnableE2EE,onFinishE2EE,onRestoreE2EE,onVerifyPartnerKey,
@@ -92,7 +94,7 @@ name,code,owner,token,avatarSrc,avatarVersion,profileBusy,profileError,recoveryB
      </button>
     </div>}
    </>:<>
-    <p className="lr-settings-help">{e2eeDeviceReady?"✓ Clé privée présente sur ce téléphone.":"⚠ Clé privée absente de ce téléphone : les messages chiffrés ne seront pas accessibles. Restaure sa sauvegarde chiffrée."}</p>
+    <p className="lr-settings-help">{e2eeDeviceReady?"✓ Clé de conversation disponible sur ce téléphone.":"⚠ Clé privée absente de ce téléphone : les messages chiffrés ne seront pas accessibles. Restaure sa sauvegarde ou demande l’aide de ton partenaire connecté."}</p>
     {e2eeDeviceReady&&e2eeBackup?<button type="button" className="lr-settings-primary" onClick={downloadBackup}>Télécharger ma sauvegarde de clé</button>:null}
     {!e2eeDeviceReady?<div className="lr-settings-recovery">
      <strong>Restaurer ma clé privée sur ce téléphone</strong>
@@ -120,7 +122,7 @@ name,code,owner,token,avatarSrc,avatarVersion,profileBusy,profileError,recoveryB
      "Chiffrement actif pour les nouveaux échanges de cette conversation.":
      "Chiffrement non prêt : vérification des clés nécessaire avant l’envoi."}</p>
    </>}
-   <p className="lr-settings-help">Attention : cette première version n’a pas été auditée indépendamment. Le code de secours du compte ne restaure PAS les clés privées. La sauvegarde chiffrée reste personnelle et nécessaire pour changer de téléphone. Le multi-appareil automatique reste à développer.</p>
+   <p className="lr-settings-help">Attention : ce chiffrement pilote n’a pas été audité indépendamment. Le partenaire connecté peut approuver une restauration chiffrée de votre clé de conversation. Cette opération ne reconstruit pas les clés privées d’identité perdues ; garde toute sauvegarde originale.</p>
   </section>
   <section className="lr-settings-section" aria-labelledby="lr-notifications-settings-title">
    <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">♬</span><div><h2 id="lr-notifications-settings-title">Notifications</h2><p>Messages, appels et invitations.</p></div></div>
@@ -146,6 +148,9 @@ name,code,owner,token,avatarSrc,avatarVersion,profileBusy,profileError,recoveryB
     <small>Crée ton code personnel de secours avant de changer de téléphone. Il n’est pas destiné à ton partenaire. Un nouveau code annule le précédent.</small>
     <button type="button" disabled={recoveryBusy} onClick={onGenerateRecovery}>{recoveryBusy?"Création en cours…":"Créer un nouveau code de secours"}</button>
    </div>
+   <PartnerRecoverySponsor token={token} myId={recoveryMemberId} partnerId={recoveryPartnerId}
+     roomId={recoveryRoomId} minePublic={e2ee?.mine||null}
+     partnerPublic={e2ee?.partner||null} required={!!e2ee?.required}/>
    <button type="button" className="lr-settings-logout" onClick={onLogout}>Se déconnecter</button>
    {owner?<button type="button" className="lr-settings-danger" onClick={onDeleteRoom}>Supprimer définitivement notre espace</button>:null}
   </section>
