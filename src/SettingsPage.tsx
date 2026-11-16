@@ -106,6 +106,16 @@ name,code,owner,token,avatarSrc,avatarVersion,recoveryMemberId,recoveryPartnerId
     <input type="checkbox" checked={privacyEnabled} onChange={event=>onPrivacyChange(event.target.checked)} aria-label="Protection des photos"/>
     <span className="lr-settings-switch" aria-hidden="true"/>
    </label>
+   <div className="lr-settings-screenshot-info" role="note">
+    <strong>📸 Protection des captures d’écran</strong>
+    <p>{!nativeApp?
+     "Version web / PWA : le navigateur ne peut ni bloquer ni détecter les captures. Aucun avertissement au partenaire n’est garanti.":
+     /Android/i.test(navigator.userAgent)?
+      "Application Android : les captures et enregistrements d’écran sont bloqués par le système, indépendamment de la protection des photos.":
+      "Application iPhone : une capture effectuée pendant que Love-Radar est ouvert est signalée après sa réalisation au partenaire, dans la conversation. iOS ne permet pas de la bloquer officiellement."}
+    </p>
+    <small>Les événements signalés restent visibles dans votre conversation pendant 30 jours. Aucune image capturée n’est envoyée. Une photo prise avec un autre téléphone reste indétectable.</small>
+   </div>
   </section>
   <section className="lr-settings-section" aria-labelledby="lr-e2ee-title">
    <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">🔐</span>
