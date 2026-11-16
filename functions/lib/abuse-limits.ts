@@ -25,7 +25,8 @@ async function ensureLimits(db:D1Database){
    "CREATE TABLE IF NOT EXISTS abuse_salt (id INTEGER PRIMARY KEY CHECK(id=1),secret TEXT NOT NULL);"+
    "CREATE TABLE IF NOT EXISTS abuse_counters ("+
    "scope TEXT NOT NULL,actor TEXT NOT NULL,hits INTEGER NOT NULL,expires_at INTEGER NOT NULL,"+
-   "PRIMARY KEY(scope,actor))"
+   "PRIMARY KEY(scope,actor));"+
+   "CREATE INDEX IF NOT EXISTS idx_abuse_counters_expiry ON abuse_counters(expires_at)"
   );
   const salt=Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,"0")).join("");
   await db.prepare("INSERT OR IGNORE INTO abuse_salt(id,secret) VALUES(1,?)").bind(salt).run();
@@ -52,6 +53,13 @@ export async function consumeLimit(db:D1Database,actor:string,rule:LimitRule,now
   " WHERE abuse_counters.expires_at<=? OR abuse_counters.hits<?"
  ).bind(rule.scope,actor,expiry,now,now,expiry,now,rule.max).run();
  // A capped counter has no update; legitimate clients receive HTTP 429.
+ // Opportunistic cleanup prevents expired actors accumulating indefinitely.
+ // Sampling is random, not based on user identity; cleanup errors never
+ // disable legitimate requests.
+ if(crypto.getRandomValues(new Uint8Array(1))[0]===0){
+  try{await db.prepare("DELETE FROM abuse_counters WHERE expires_at<?")
+   .bind(now-14*24*60*60*1000).run()}catch(error){console.error("Abuse counter cleanup",error)}
+ }
  return result.meta.changes===1;
 }
 export async function consumePublicLimit(db:D1Database,request:Request,rule:LimitRule){
