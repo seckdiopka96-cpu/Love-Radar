@@ -30,19 +30,6 @@
 .lr-voice-note-play svg{display:block;width:21px;height:21px;fill:currentColor}
 .lr-voice-note-play:active{transform:scale(.94)}
 .lr-voice-note-play:focus-visible{outline:2px solid #fff0be;outline-offset:2px}
-/* The three-dot button keeps reaction, reply, info and delete actions reachable
-   on vocal notes even while the waveform scrubber is in use. */
-.lr-chat .lr-voice-note-actions{
- flex:0 0 31px;align-self:center;display:grid;place-items:center;
- width:31px;height:36px;min-width:31px;min-height:36px;
- margin:0;padding:0!important;border:1px solid #ffffff33!important;
- border-radius:13px!important;background:#ffffff15!important;
- color:#fff9f5!important;cursor:pointer;touch-action:manipulation;
- -webkit-tap-highlight-color:transparent
-}
-.lr-chat .lr-voice-note-actions:active{background:#ffffff32!important;transform:scale(.96)}
-.lr-chat .lr-voice-note-actions:focus-visible{outline:2px solid #fff0be;outline-offset:2px}
-
 .lr-voice-note-content{min-width:0;flex:1;display:flex;flex-direction:column;gap:6px;overflow:hidden}
 .lr-voice-note-wave-wrap{height:36px;width:100%;position:relative;min-width:0;display:flex;align-items:center}
 .lr-voice-note-wave{
@@ -236,23 +223,11 @@
 .lr-chat .lr-voice-note-time{font-size:11px;margin-left:auto;color:#d9d9da;opacity:.9}
 .lr-chat .lr-voice-note.is-own .lr-voice-note-time{color:#ffd4e4}
 .lr-chat .lr-voice-note-check{color:#ffe9f2;font-size:12px}
-/* Long press/swipe continues to expose actions on phones, while the
-   unobtrusive actions button remains available on pointer/keyboard devices. */
-.lr-chat .lr-voice-note .lr-voice-note-actions{
- position:absolute;top:-11px;right:-7px;z-index:2;
- flex:none;width:27px;min-width:27px;height:27px;min-height:27px;
- opacity:0;pointer-events:none;transition:opacity .16s ease;
- border-radius:50%!important;
-}
-.lr-chat .lr-voice-note:hover .lr-voice-note-actions,
-.lr-chat .lr-voice-note:focus-within .lr-voice-note-actions{
- opacity:1;pointer-events:auto;
-}
 @media(max-width:700px){
  .lr-chat .lr-bubble-row .lr-bubble.lr-bubble-audio{width:min(330px,100%)!important;padding:10px 10px 9px!important}
  .lr-chat .lr-voice-note-main{gap:7px;min-height:52px}
  .lr-chat .lr-voice-note-wave{gap:1.2px}
 }
 @media(prefers-reduced-motion:reduce){
- .lr-chat .lr-voice-note-playhead,.lr-chat .lr-voice-note .lr-voice-note-actions{transition:none}
+ .lr-chat .lr-voice-note-playhead{transition:none}
 }
