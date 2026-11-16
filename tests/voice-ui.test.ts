@@ -108,3 +108,17 @@ test("voice speed, play icon and waveform sit on the same row in both directions
  assert.ok(player.includes("onClick={event=>{event.stopPropagation();changeSpeed()}}"),"Speed still changes without triggering reply");
  assert.ok(player.includes("onChange={event=>seek(Number(event.target.value))}"),"Scrubbing still works");
 });
+
+test("decorative voice waveform is legible and naturally varied without changing seek controls",()=>{
+ const source=readFileSync("src/voice-waveform.ts","utf8");
+ const style=readFileSync("src/premium-design-polish.css","utf8");
+ const player=readFileSync("src/VoiceMessage.tsx","utf8");
+ const first=voiceBars("expressive-voice");
+ assert.ok(new Set(first).size>=12,"speech-like placeholder shows many different levels");
+ assert.ok(first.some(h=>h<=32)&&first.some(h=>h>=48),"small and tall bars remain visible");
+ assert.ok(source.includes("decorative, not a measurement")||source.includes("decorative, not a measurement of the recording"),"placeholder is not mistaken for real audio amplitudes");
+ assert.ok(style.includes(".lr-app .lr-chat .lr-voice-note-wave>span"),"wave strokes have final visual polish");
+ assert.ok(style.includes("background:#ffd0dd!important;"),"rose notes retain a contrasting unplayed waveform");
+ assert.ok(style.includes("background:#fff!important;"),"played waveform remains white");
+ assert.ok(player.includes('onChange={event=>seek(Number(event.target.value))}'),"seeking remains functional");
+});
