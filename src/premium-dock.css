@@ -1,0 +1,172 @@
+/* Single-surface iOS dock: intentionally the FINAL navigation override.
+   Replaces the historic stacked capsule, inner frames and neon underlines.
+   Uses the existing five buttons and SVGs; no additional wrapper or backdrop. */
+@media (max-width:700px){
+ .lr-app.lr-app-locked .lr-mobile-nav{
+  display:flex!important;
+  position:fixed!important;
+  z-index:61!important;
+  top:auto!important;
+  left:14px!important;
+  right:14px!important;
+  bottom:calc(10px + env(safe-area-inset-bottom))!important;
+  width:calc(100% - 28px)!important;
+  max-width:480px!important;
+  margin:0 auto!important;
+  height:66px!important;
+  min-height:66px!important;
+  padding:6px!important;
+  gap:3px!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  box-sizing:border-box!important;
+  border:1px solid rgba(209,222,237,.17)!important;
+  border-radius:23px!important;
+  outline:0!important;
+  background:rgba(28,39,55,.86)!important;
+  background-image:none!important;
+  box-shadow:0 9px 26px rgba(0,9,22,.30),inset 0 1px 0 rgba(255,255,255,.075)!important;
+  -webkit-backdrop-filter:blur(19px) saturate(115%)!important;
+  backdrop-filter:blur(19px) saturate(115%)!important;
+  overflow:visible!important;
+  isolation:isolate;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav::before,
+ .lr-app.lr-app-locked .lr-mobile-nav::after{
+  content:none!important;
+  display:none!important;
+  background:none!important;
+  box-shadow:none!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button{
+  flex:1 1 0!important;
+  min-width:0!important;
+  max-width:none!important;
+  width:0!important;
+  height:54px!important;
+  min-height:54px!important;
+  padding:4px 1px 3px!important;
+  gap:2px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  align-items:center!important;
+  border:0!important;
+  border-radius:16px!important;
+  outline:0;
+  background:transparent!important;
+  background-image:none!important;
+  color:#b5c4d0!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+  transform:none;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  transition:color .16s ease,background-color .16s ease!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button::before,
+ .lr-app.lr-app-locked .lr-mobile-nav button::after{
+  content:none!important;
+  display:none!important;
+  box-shadow:none!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-symbol{
+  display:grid!important;
+  place-items:center!important;
+  flex:0 0 32px!important;
+  width:36px!important;
+  min-width:36px!important;
+  height:32px!important;
+  min-height:32px!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:12px!important;
+  background:transparent!important;
+  color:inherit!important;
+  box-shadow:none!important;
+  transition:background-color .16s ease,color .16s ease!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-symbol svg{
+  display:block!important;
+  width:21px!important;
+  height:21px!important;
+  stroke:currentColor!important;
+  stroke-width:1.9!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button small{
+  display:block!important;
+  flex:none!important;
+  margin:0!important;
+  color:inherit!important;
+  font:700 9.5px/12px -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;
+  letter-spacing:0!important;
+  white-space:nowrap!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button.active{
+  background:transparent!important;
+  background-image:none!important;
+  border:0!important;
+  color:#ffe4ee!important;
+  box-shadow:none!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button.active .lr-nav-symbol{
+  background:linear-gradient(145deg,#dc86ab,#b75a86)!important;
+  color:#fffaff!important;
+  border:0!important;
+  box-shadow:0 3px 9px rgba(159,69,115,.20)!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button.active small{
+  color:#ffe4ee!important;
+  font-weight:800!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button:active{
+  transform:scale(.97)!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button:focus-visible{
+  outline:2px solid #f4c0d8!important;
+  outline-offset:-1px!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-unread{
+  position:absolute!important;
+  z-index:4!important;
+  top:0!important;
+  left:calc(50% + 8px)!important;
+  min-width:18px!important;
+  height:18px!important;
+  padding:0 4px!important;
+  border:2px solid #263649!important;
+  border-radius:12px!important;
+  background:#e88bb1!important;
+  color:#261c2d!important;
+  box-shadow:none!important;
+  font-size:10px!important;
+ }
+ /* Only one dock occupies the bottom edge; reserve its height in scrolling
+    content without adding a second dark/footer surface. */
+ .lr-app.lr-app-locked:not(.lr-chat-mode):not(.lr-watch-mode):not(.lr-puzzle-mode):not(.lr-reconcile-mode):not(.lr-ludo-mode) .lr-shell{
+  padding-bottom:calc(88px + env(safe-area-inset-bottom))!important;
+ }
+ .lr-app.lr-app-locked:not(.lr-chat-mode):not(.lr-watch-mode):not(.lr-puzzle-mode):not(.lr-reconcile-mode):not(.lr-ludo-mode) .lr-main{
+  scroll-padding-bottom:22px!important;
+ }
+}
+@media (max-width:365px){
+ .lr-app.lr-app-locked .lr-mobile-nav{
+  left:8px!important;
+  right:8px!important;
+  width:calc(100% - 16px)!important;
+  padding:5px 4px!important;
+  gap:1px!important;
+ }
+ .lr-app.lr-app-locked .lr-mobile-nav button small{font-size:8.5px!important}
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-symbol{
+  width:34px!important;min-width:34px!important;
+ }
+}
+@media (prefers-reduced-motion:reduce){
+ .lr-app.lr-app-locked .lr-mobile-nav button,
+ .lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-symbol{
+  transition:none!important;
+ }
+}
