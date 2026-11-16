@@ -168,8 +168,8 @@ async function snapshot(db:D1Database,u:Member){
   POST:async({request})=>{
    try{
     const len=Number(request.headers.get("content-length")||0);
-    if(len>8192)return fail("Demande trop volumineuse.",413);
-    const txt=await request.text();if(txt.length>8192)return fail("Demande trop volumineuse.",413);
+    if(len>16384)return fail("Demande trop volumineuse.",413);
+    const txt=await request.text();if(txt.length>16384)return fail("Demande trop volumineuse.",413);
     const body=JSON.parse(txt) as Record<string,unknown>;
     const op=body?.action;
     const db=bindings().DB as D1Database|undefined;
