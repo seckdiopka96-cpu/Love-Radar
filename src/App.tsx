@@ -1,4 +1,5 @@
 import {apiFetch,isNativeApp,publicInviteUrl} from "./api";
+import {recoverSavedSession,persistSessionToken,clearSessionToken,hadPreviousSession} from "./session-persistence";
 import {ensureIdentity,loadIdentity,encryptedBackupFor,restoreIdentityBackup,fingerprint,makeContext,verifyPartner,isPartnerVerified,encryptText,encryptMedia,decryptMedia,isEncryptedMedia,isEncryptedText,type CryptoContext} from "./e2ee";
 import {revealMessages} from "./e2ee-room";
 import {setNativePrivacy} from "./native-privacy";
@@ -58,6 +59,7 @@ import "./live-voice-waveform.css";
 import "./chat-composer-signature.css";
 import "./chat-readable-type.css";
 import "./comfortable-ui.css";
+import "./auth-reconnect.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
@@ -739,7 +741,8 @@ export default function LoveRadar(){
    if(res.status===401){
     if(sequence>=snapshotApplied.current){
      snapshotApplied.current=sequence;
-     localStorage.removeItem("love-radar-token");setToken("");setRoom(null);setError("Ton accès a expiré. Rejoins un espace.");
+     clearSessionToken();setToken("");setRoom(null);setJoinMode(false);setRecoverMode(true);
+     setError("Cette connexion n’est plus valide. Utilise ton code personnel de secours pour retrouver TON espace, sans en créer un nouveau.");
     }
     return;
    }
@@ -757,6 +760,7 @@ export default function LoveRadar(){
     nextRoom.recentReaction={...nextRoom.recentReaction,content:"Message chiffré"};
    // Ignore unchanged snapshots so polling cannot redraw the whole interface.
    setRoom(previous=>previous&&JSON.stringify(previous)===JSON.stringify(nextRoom)?previous:nextRoom);
+   if(!silent)setError("");
   }catch(e){if(!silent)setError(controller.signal.aborted?"Connexion trop lente. Vérifie ton réseau.":e instanceof Error?e.message:"Connexion impossible.")}
   finally{
    window.clearTimeout(timeout);
@@ -764,10 +768,24 @@ export default function LoveRadar(){
   }
  },[token]);
  useEffect(()=>{
-  const saved=localStorage.getItem("love-radar-token")||"";
+  let active=true;
   const q=new URLSearchParams(window.location.search);
-  if(q.get("join")){setJoinMode(true);setCode(q.get("join")?.toUpperCase()||"")}
-  if(saved){setToken(saved);void refresh(saved).finally(()=>setInitializing(false));}else setInitializing(false);
+  const invite=q.get("join");
+  if(invite){setJoinMode(true);setCode(invite.toUpperCase())}
+  void recoverSavedSession().then(saved=>{
+   if(!active)return;
+   if(saved){
+    setToken(saved);
+    void refresh(saved).finally(()=>{if(active)setInitializing(false)});
+   }else{
+    // Returning members should NOT be encouraged to create a second couple.
+    if(hadPreviousSession()&&!invite)setRecoverMode(true);
+    setInitializing(false);
+   }
+  }).catch(()=>{
+   if(active){if(hadPreviousSession()&&!invite)setRecoverMode(true);setInitializing(false)}
+  });
+  return()=>{active=false};
  },[]);
  // Presence means actively viewing the application; it automatically expires
  // after 35 seconds of inactivity or when the app is backgrounded.
@@ -1031,7 +1049,7 @@ export default function LoveRadar(){
    const data=await res.json() as {ok:boolean;token?:string;recoveryCode?:string;error?:string};
    if(!res.ok||!data.ok||!data.token||!data.recoveryCode)
     throw Error(data.error||"Ce code de secours est incorrect ou a déjà servi.");
-   localStorage.setItem("love-radar-token",data.token);
+   persistSessionToken(data.token);
    setToken(data.token);
    await refresh(data.token);
    setRecoverInput("");setRecoverMode(false);setTab("home");
@@ -1045,7 +1063,7 @@ export default function LoveRadar(){
   try{
    const result=await request(joinMode?"join":"create",{name:name.trim(),...(joinMode?{code:code.trim().toUpperCase()}:{})},"");
    const newToken=result.token!;
-   localStorage.setItem("love-radar-token",newToken);
+   persistSessionToken(newToken);
    setToken(newToken);
    await refresh(newToken);
    if(result.recoveryCode)setRecoveryCode(result.recoveryCode);
@@ -1464,11 +1482,11 @@ export default function LoveRadar(){
  async function deleteRoom(){
   if(!window.confirm("Supprimer définitivement votre espace, toutes les conversations, photos et vocaux ? Cette action est irréversible."))return;
   setBusy(true);
-  try{await request("delete");if(token)void stopPushOnExit(token);localStorage.removeItem("love-radar-token");setToken("");setRoom(null);setTab("home");setNotice("Espace supprimé.")}
+  try{await request("delete");if(token)void stopPushOnExit(token);clearSessionToken();setToken("");setRoom(null);setTab("home");setNotice("Espace supprimé.")}
   catch(e){setError(e instanceof Error?e.message:"Suppression impossible.")}
   finally{setBusy(false)}
  }
- function logout(){if(token)void stopPushOnExit(token);localStorage.removeItem("love-radar-token");setToken("");setRoom(null);setTab("home");setNotice("Tu t’es déconnecté(e).")}
+ function logout(){if(token)void stopPushOnExit(token);clearSessionToken();setToken("");setRoom(null);setTab("home");setNotice("Tu t’es déconnecté(e).")}
  const partner=room?.partner||"Ton amour";
  const typingUntil=partnerActivity?.partnerTypingUntil??room?.partnerTypingUntil??0;
  const recordingUntil=partnerActivity?.partnerRecordingUntil??room?.partnerRecordingUntil??0;
@@ -1520,8 +1538,28 @@ export default function LoveRadar(){
     <small>{notice.endsWith(":audio")?"🎙️ Nouveau message vocal":notice.endsWith(":photo")?"📷 Nouvelle photo":"💌 Nouveau message"}</small></span></>:notice}
    <span className="lr-push-toast-x" aria-hidden="true">×</span>
   </div>:null}
-  {error?<div className="lr-error" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
-  {initializing?<main className="lr-loading">Un petit moment de magie… 💕</main>:!room?
+  {error&&room?<div className="lr-error" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
+  {initializing?<main className="lr-loading">Un petit moment de magie… 💕</main>:!room&&token&&!recoverMode?
+   <main className="lr-auth lr-auth-simple">
+    <section className="lr-auth-story" aria-label="Reconnexion à votre espace">
+     <span className="lr-auth-heart" aria-hidden="true">♥</span>
+     <span className="lr-eyebrow">VOTRE ESPACE EXISTE DÉJÀ</span>
+     <h1>On se retrouve,<br/><em>tout simplement.</em></h1>
+     <p>Vos messages et souvenirs ne sont pas effacés.</p>
+    </section>
+    <section className="lr-auth-panel lr-reconnect-panel">
+     <div className="lr-panel-head"><h2>Retrouver notre espace ♡</h2>
+      <p>Cette connexion est enregistrée sur ton téléphone.</p></div>
+     {error?<div className="lr-inline-auth-error" role="alert"><span>{error}</span>
+      <button type="button" onClick={()=>setError("")} aria-label="Fermer le message">×</button></div>:null}
+     <button type="button" className="lr-reconnect-retry" disabled={busy}
+      onClick={()=>{setError("");void refresh(token,false)}}>
+      Réessayer la connexion →</button>
+     <button type="button" className="lr-reconnect-recovery" onClick={()=>{setError("");setRecoverMode(true)}}>
+      Utiliser mon code personnel de secours</button>
+     <p className="lr-reconnect-hint">Ne recrée pas un espace : réessaie la connexion ou utilise ton code personnel.</p>
+    </section>
+   </main>:!room?
    <main className="lr-auth lr-auth-simple">
      <section className="lr-auth-story" aria-label="Bienvenue dans votre espace">
       <span className="lr-auth-heart" aria-hidden="true">♥</span>
@@ -1531,6 +1569,8 @@ export default function LoveRadar(){
      </section>
      <section className="lr-auth-panel" aria-label="Créer ou rejoindre votre espace privé">
       <div className="lr-panel-head"><h2>{recoverMode?"Retrouver mon compte 🔐":joinMode?"Rejoins ton amour ♡":"Bienvenue à deux ♡"}</h2><p>{recoverMode?"Utilise ton code personnel de secours sauvegardé.":joinMode?"Entre ton prénom et votre code privé.":"Crée ton espace et invite ton partenaire."}</p></div>
+      {error?<div className="lr-inline-auth-error" role="alert"><span>{error}</span>
+       <button type="button" onClick={()=>setError("")} aria-label="Fermer le message">×</button></div>:null}
       {recoverMode?<div className="lr-recovery-entry">
        <p>Entre le code personnel reçu à ton inscription. Le code d’invitation de ton partenaire ne permet pas de récupérer un compte.</p>
        <form onSubmit={restoreAccount}>
