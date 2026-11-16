@@ -46,7 +46,7 @@ test("iPhone photo editor offers circular cropping, drag, zoom and rotate",()=>{
  assert.ok(editor.includes('type="range" min="1" max="3"'));
  assert.ok(editor.includes('setAngle(newAngle)'));
  assert.ok(editor.includes('ctx.rotate(angle*Math.PI/180)'));
- assert.ok(editor.includes('max-height:'));
+ assert.ok(css.includes('max-height:'));
  assert.ok(css.includes('border-radius:50%'));
  assert.ok(css.includes('touch-action:none'));
  assert.ok(css.includes('env(safe-area-inset-top)'));
