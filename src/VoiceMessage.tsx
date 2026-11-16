@@ -87,6 +87,7 @@ export default function VoiceMessage({src,id,mine,time,delivery,onOpenActions}:P
       {bars.map((height,i)=><span key={i} className={i/bars.length<=progress?"played":""}
        style={{height:height+"%"}}/>)}
      </div>
+     {duration>0?<span className={"lr-voice-note-playhead"+(playing?" is-playing":"")} style={{left:(progress*100)+"%"}} aria-hidden="true"/>:null}
      <input className="lr-voice-note-seek" type="range" min="0" max={duration>0?duration:1}
       step="0.01" value={position} disabled={duration===0}
       aria-label="Déplacer la lecture du message vocal"

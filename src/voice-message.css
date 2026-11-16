@@ -117,3 +117,14 @@
  min-height:28px;cursor:pointer
 }
 .lr-audio-send-state button:focus-visible{outline:2px solid #fff5c5;outline-offset:2px}
+
+/* A visible moving playhead tracks actual voice playback and seeking. */
+.lr-voice-note-playhead{
+ position:absolute;top:50%;left:0;z-index:1;
+ width:8px;height:8px;border-radius:50%;
+ background:#fff6f9;box-shadow:0 0 0 2px #fff4f333,0 0 9px #fff9;
+ pointer-events:none;transform:translate(-50%,-50%);
+ transition:left .16s linear;
+}
+.lr-voice-note-playhead.is-playing{box-shadow:0 0 0 3px #fff4f32b,0 0 12px #fff7}
+@media(prefers-reduced-motion:reduce){.lr-voice-note-playhead{transition:none}}

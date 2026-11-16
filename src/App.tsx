@@ -25,6 +25,7 @@ import PrivatePhoto from "./PrivatePhoto";
 import ProfilePhotoEditor from "./ProfilePhotoEditor";
 import {useProfileAvatars} from "./use-profile-avatars";
 import VoiceMessage from "./VoiceMessage";
+import LiveVoiceWaveform from "./LiveVoiceWaveform";
 import StickerArt from "./StickerArt";
 import StickerPicker from "./StickerPicker";
 import {encodeSticker,isSticker,readStickerId} from "./stickers";
@@ -47,6 +48,7 @@ import "./recording-composer.css";
 import "./refined-universe.css";
 import "./premium-dock.css";
 import "./together-premium.css";
+import "./live-voice-waveform.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
@@ -236,6 +238,7 @@ export default function LoveRadar(){
  const recordingAccumulatedMs=useRef(0);
  const recorder=useRef<MediaRecorder|null>(null);
  const recordingStream=useRef<MediaStream|null>(null);
+ const recordingStarting=useRef(false);
  const recordingTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
  const mediaCache=useRef<Record<string,string>>({});
  const tail=useRef<HTMLDivElement|null>(null);
@@ -1310,8 +1313,10 @@ export default function LoveRadar(){
  },[recording]);
  async function toggleRecording(){
   if(recording&&recorder.current){finishRecording(true);return}
-  if(busy||!room?.partner)return;
+  if(busy||!room?.partner||recordingStarting.current)return;
   if(typeof navigator==="undefined"||!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined"){setError("Enregistrement vocal indisponible sur ce navigateur.");return}
+  // A rapid double tap must not create two concurrent iOS microphone permission requests.
+  recordingStarting.current=true;
   // Immediately dismiss the iPhone keyboard, before requesting microphone access.
   // Unmounting the text input while recording prevents it from stealing focus again.
   chatInput.current?.blur();
@@ -1321,7 +1326,11 @@ export default function LoveRadar(){
   setTyping(false);
   setError("");
   try{
-   const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+   // The browser/OS retains a previously granted permission when supported.
+   // Never leave a microphone stream running while the user is not recording.
+   const stream=await navigator.mediaDevices.getUserMedia({audio:{
+    echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1
+   }});
    recordingStream.current=stream;
    const mime=["audio/mp4","audio/webm;codecs=opus","audio/webm","audio/ogg"].find(type=>MediaRecorder.isTypeSupported(type));
    const rec=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);
@@ -1351,18 +1360,23 @@ export default function LoveRadar(){
     discardRecording.current=false;
    };
    discardRecording.current=false;
-   rec.start(1000);
+   rec.start(250);
    recorder.current=rec;
    recordingStartedAt.current=Date.now();
    recordingAccumulatedMs.current=0;
    setRecordingElapsed(0);setRecordingPaused(false);
    recordingActive.current=true;setRecording(true);
    void request("recording",{active:true}).catch(()=>{});
-  }catch{
+  }catch(err){
    recordingStream.current?.getTracks().forEach(track=>track.stop());
    recordingStream.current=null;
    setRecording(false);setRecordingPaused(false);
-   setError("Microphone refusé ou non disponible. Autorise le micro dans Safari.");
+   const denied=err instanceof DOMException&&(err.name==="NotAllowedError"||err.name==="PermissionDeniedError");
+   setError(denied?
+    "Microphone bloqué. Autorise le micro pour Love Radar dans les réglages Safari ou de ton téléphone.":
+    "Impossible de démarrer l’enregistrement. Vérifie le micro et réessaie.");
+  }finally{
+   recordingStarting.current=false;
   }
  }
  async function shareCode(){
@@ -1457,7 +1471,7 @@ export default function LoveRadar(){
       </>}
       {!recoverMode?<button type="button" className="lr-recovery-toggle" onClick={()=>{setRecoverMode(true);setError("")}}>J’ai perdu mon accès</button>:null}
       <div className="lr-safe-copy"><span aria-hidden="true">🔒</span> Privé · Gratuit · Sur invitation</div>
-      <div className="lr-made-by">Créé par <strong>Diao-Tech</strong></div>
+      <div className="lr-made-by">Créé par <strong>Diao-Tech.com</strong></div>
      </section>
    </main>:
   <div className="lr-shell">
@@ -1622,7 +1636,7 @@ export default function LoveRadar(){
        <div className="lr-voice-recording-status" role="status" aria-live="off">
         <span className={"lr-voice-recording-led"+(recordingPaused?" is-paused":"")} aria-hidden="true"/>
         <time className="lr-voice-recording-clock">{Math.floor(recordingElapsed/60)}:{String(recordingElapsed%60).padStart(2,"0")}</time>
-        <span className={"lr-voice-recording-wave"+(recordingPaused?" is-paused":"")} aria-label={recordingPaused?"Vocal en pause":"Vocal en cours"}>{Array.from({length:17},(_,index)=><i key={index} style={{height:(5+(index*7+index%3*9)%18)+"px",animationDelay:((index%7)*-.12)+"s"}}/>)}</span>
+        <span className={"lr-voice-recording-wave"+(recordingPaused?" is-paused":"")}><LiveVoiceWaveform stream={recordingStream.current} paused={recordingPaused}/></span>
        </div>
        <div className="lr-voice-recording-actions">
         <button type="button" className="lr-voice-rec-delete" aria-label="Supprimer le vocal" title="Supprimer le vocal" onClick={()=>finishRecording(false)}>

@@ -81,7 +81,7 @@ test("voice recording replaces the typing keyboard with a full-width iPhone comp
  assert.ok(chat.includes('import "./recording-composer.css";'));
  const start=chat.indexOf("async function toggleRecording(){");
  const blur=chat.indexOf("chatInput.current?.blur();",start);
- const startMic=chat.indexOf("navigator.mediaDevices.getUserMedia({audio:true})",start);
+ const startMic=chat.indexOf("navigator.mediaDevices.getUserMedia({audio:",start);
  assert.ok(blur>start&&blur<startMic,"Input loses focus before microphone acquisition");
  assert.ok(chat.includes("setChatFocused(false);"));
  assert.ok(chat.includes("setStickerOpen(false);"));
@@ -111,7 +111,7 @@ test("voice recorder stays a compact single row with accessible controls",()=>{
  assert.ok(styles.includes(".lr-voice-recording-actions .lr-voice-rec-send"));
  assert.ok(styles.includes(".lr-voice-recording-actions .lr-voice-rec-delete"));
  assert.ok(styles.includes("env(safe-area-inset-bottom)"));
- assert.ok(chat.includes('Array.from({length:17}'),"Waveform stays simple");
+ assert.ok(chat.includes('<LiveVoiceWaveform stream={recordingStream.current} paused={recordingPaused}/>'),"Waveform uses actual captured microphone data");
  assert.ok(chat.includes('aria-label="Supprimer le vocal"'));
  assert.ok(chat.includes('aria-label="Envoyer le vocal"'));
 });
