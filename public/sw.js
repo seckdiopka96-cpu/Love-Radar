@@ -1,5 +1,6 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
-const CACHE="love-radar-static-v57";
+const CACHE="love-radar-static-v58";
+const PRIVATE_AVATAR_CACHE="love-radar-private-notification-avatar-v1";
 const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png"];
 self.addEventListener("install",event=>{
  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
@@ -26,6 +27,45 @@ self.addEventListener("fetch",event=>{
  })));
 });
 
+/* Offline-safe, same-device avatar only; profile photos never become public.
+   The authenticated app sends a small thumbnail directly to its own service worker.
+   iOS PWA currently ignores custom notification icons, using the app icon instead. */
+const UUID=/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i;
+function avatarRequest(memberId){
+ return new Request(self.location.origin+"/__lr_private_push_avatar__/"+memberId);
+}
+self.addEventListener("message",event=>{
+ const data=event.data||{};
+ if(data.type==="love-radar-avatar-icon"){
+  if(!UUID.test(data.memberId)||typeof data.iconData!=="string"||
+   !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(data.iconData)||
+   data.iconData.length>16000)return;
+  event.waitUntil((async()=>{
+   const cache=await caches.open(PRIVATE_AVATAR_CACHE);
+   const keys=await cache.keys();
+   await Promise.all(keys.map(key=>cache.delete(key)));
+   await cache.put(avatarRequest(data.memberId),new Response(data.iconData,{
+    headers:{"Content-Type":"text/plain","X-Private-Cached-At":String(Date.now())}
+   }));
+  })());
+ }else if(data.type==="love-radar-avatar-clear"){
+  event.waitUntil(caches.delete(PRIVATE_AVATAR_CACHE));
+ }
+});
+async function notificationAvatar(memberId){
+ if(typeof memberId!=="string"||!UUID.test(memberId))return "/icons/icon-192.png";
+ try{
+  const cache=await caches.open(PRIVATE_AVATAR_CACHE);
+  const stored=await cache.match(avatarRequest(memberId));
+  if(!stored)return "/icons/icon-192.png";
+  const stamp=Number(stored.headers.get("X-Private-Cached-At")||"0");
+  if(!stamp||Date.now()-stamp>30*24*60*60*1000)return "/icons/icon-192.png";
+  const iconData=await stored.text();
+  return /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(iconData)&&iconData.length<=16000?
+   iconData:"/icons/icon-192.png";
+ }catch{return "/icons/icon-192.png"}
+}
+
 /* Notifications open their exact content, not just the app's welcome page. */
 const SUPPORTED_TABS=new Set(["home","chat","games","ludo","memory","rps","memories","moment","together","watch","watch-tiktok","puzzle","reconcile","story","reunion"]);
 const TARGET_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","rps-challenge","daily-question","love-signal"]);
@@ -51,8 +91,9 @@ self.addEventListener("push",event=>{
  const body=typeof payload.body==="string"?payload.body.slice(0,240):"Ton partenaire t’attend ❤️";
  event.waitUntil((async()=>{
   // Each text message has a distinct ID, so new alerts no longer replace older ones.
+  const avatarIcon=await notificationAvatar(payload.senderId);
   await self.registration.showNotification(title,{
-   body,icon:"/icons/icon-192.png",badge:"/icons/icon-192.png",
+   body,icon:avatarIcon,badge:"/icons/icon-192.png",
    tag:destination.id?"love-radar-"+destination.kind+"-"+destination.id:destination.tab==="chat"?"love-radar-message-"+Date.now():"love-radar-notice-"+Date.now(),
    data:destination,
    renotify:false
