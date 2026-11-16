@@ -60,7 +60,7 @@ test("typing focuses last message and keyboard remains in safe iPhone viewport",
  assert.ok(chat.includes("sequence<snapshotApplied.current"));
  assert.ok(chat.includes("const scrollToLatest=useCallback"));
  assert.ok(chat.includes('onClick={scrollToLatest}'));
- assert.ok(chat.includes('onFocus={()=>{firstPoll.current=true;setChatFocused(true);scrollToLatest()}'));
+ assert.ok(chat.includes('onFocus={()=>{setStickerOpen(false);firstPoll.current=true;setChatFocused(true);scrollToLatest()}'));
  assert.ok(chat.includes("syncWithChat"));
  assert.ok(chat.includes("new ResizeObserver"));
  assert.ok(chat.includes("chatAtBottomRef.current"));
