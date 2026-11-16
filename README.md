@@ -410,3 +410,53 @@ La table `native_voip_devices` est créée automatiquement à la première
 inscription d'un appareil iOS et supprimée lors de la suppression de l'espace.
 Le jeton de session est conservé dans le trousseau chiffré de l'app native
 (Keychain, accessible après le premier déverrouillage), jamais dans les push.
+
+## Nos petites attentions — règles et rappels de prière
+
+Les deux fonctions sont dans **Nous deux → Nos petites attentions**. Elles ne
+s'activent jamais automatiquement.
+
+**Règles.** Une personne peut choisir « J'ai mes règles → Prévenir mon amour »,
+confirmer l'envoi et, facultativement, demander une attention avec des
+protections hygiéniques. Aucune photo, analyse du cycle, calendrier médical,
+rappel automatique ni achat n'est déclenché. Le message privé est accessible
+uniquement à l'autre membre du couple, expire après 48 heures et peut être
+retiré plus tôt. Le contenu d'une notification sur écran verrouillé est
+volontairement discret. Aucune aide matérielle n'est obligatoire.
+
+**Prière.** Chacun choisit séparément d'autoriser le partage de ses
+horaires de prière avec l'autre. La localisation n'est demandée **qu'après un
+clic** et arrondie au dixième de degré (environ 10 km). Le fuseau horaire
+IANA reste celui du téléphone et seule la personne concernée peut voir sa zone.
+L'utilisateur sélectionne sa méthode de calcul, vérifie les heures affichées
+et peut désactiver le partage à tout moment. Les heures quotidiennes sont
+calculées par AlAdhan (https://aladhan.com/prayer-times-api) : la zone
+approximative et la méthode sont envoyées à ce service **seulement après
+consentement**. Les horaires peuvent différer de ceux d'une mosquée locale.
+
+**La notification automatique lorsque l'application est fermée nécessite
+un Cloudflare Worker distinct avec un déclencheur Cron.** Ce déploiement
+n'est pas automatiquement inclus dans le déploiement Pages et demande
+l'intervention du propriétaire du compte Cloudflare :
+
+1. Copier `wrangler.care.toml.example` vers `wrangler.care.toml`.
+2. Remplacer `database_id` par l'identifiant D1 de la **base de production
+   Love-Radar existante**, sans créer une deuxième base.
+3. Dans Cloudflare Workers, configurer pour ce Worker les mêmes secrets
+   `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` et `VAPID_SUBJECT` que sur Pages
+   (ne jamais les commiter dans GitHub). L'utilisateur doit activer les
+   notifications sur son appareil pour recevoir les alertes système.
+4. Déployer avec `npx wrangler deploy --config wrangler.care.toml`. Le Cron
+   `* * * * *` vérifie une fois par minute les cinq prières du jour dans le
+   fuseau de chaque membre et évite les notifications en double. Les
+   rappels restent consultables dans l'app même sans abonnement Web Push.
+5. Vérifier le Cron dans Cloudflare Workers et tester avec deux appareils.
+   Le calcul API peut être indisponible : le service doit alors éviter
+   d'envoyer une heure incorrecte.
+
+La base D1 peut être préparée avec `schema.sql` ; les tables `care_*` sont
+également créées automatiquement au premier accès. Elles sont supprimées
+avec le couple. Les préférences et leur localisation approximative ne sont
+pas publiques. La PWA et une application native n'ont pas nécessairement le
+même support de notifications ; le PushKit VoIP des appels **ne sert pas**
+à envoyer des rappels de prière.
