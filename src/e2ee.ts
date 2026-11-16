@@ -150,6 +150,8 @@ export async function ensureIdentity(memberId:string,passphrase:string):Promise<
  const existing=await loadIdentity(memberId) as StoredIdentity|null;
  if(existing){
   if(!existing.encryptedBackup)throw Error("Cette identité n’a aucune sauvegarde récupérable. Ne réinitialise pas sa clé.");
+  // If generation was interrupted, never silently accept a different phrase.
+  await decryptIdentityBackup(existing.encryptedBackup,passphrase,existing.publicKey);
   return {identity:existing,encryptedBackup:existing.encryptedBackup};
  }
  const created=await generateIdentityWithBackup(passphrase);
