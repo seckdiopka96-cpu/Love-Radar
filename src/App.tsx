@@ -1,6 +1,6 @@
 import {apiFetch,isNativeApp,publicInviteUrl} from "./api";
 import {recoverSavedSession,persistSessionToken,clearSessionToken,hadPreviousSession} from "./session-persistence";
-import {ensureIdentity,loadIdentity,encryptedBackupFor,restoreIdentityBackup,fingerprint,makeContext,verifyPartner,isPartnerVerified,encryptText,encryptMedia,decryptMedia,isEncryptedMedia,isEncryptedText,type CryptoContext} from "./e2ee";
+import {ensureIdentity,loadIdentity,loadRecoveredRoomKey,encryptedBackupFor,restoreIdentityBackup,fingerprint,makeContext,verifyPartner,isPartnerVerified,encryptText,encryptMedia,decryptMedia,isEncryptedMedia,isEncryptedText,type CryptoContext} from "./e2ee";
 import {revealMessages} from "./e2ee-room";
 import {setNativePrivacy} from "./native-privacy";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
@@ -25,6 +25,7 @@ import CoupleStory from "./CoupleStory";
 import PrivatePhoto from "./PrivatePhoto";
 import ProfilePhotoEditor from "./ProfilePhotoEditor";
 import {useProfileAvatars} from "./use-profile-avatars";
+import PartnerRecoveryClaim from "./PartnerRecoveryClaim";
 import {claimRecordingAudio,releaseRecordingAudio,isCallAudioActive,installAudioPlaybackGuard,type AudioInterrupt} from "./audio-focus";
 import PartnerProfileViewer from "./PartnerProfileViewer";
 import VoiceMessage from "./VoiceMessage";
@@ -145,7 +146,10 @@ export default function LoveRadar(){
    const own=await fingerprint(rm.e2ee!.mine!);
    const partner=rm.e2ee!.partner?await fingerprint(rm.e2ee!.partner):"";
    if(!alive)return;
-   setE2eeDeviceReady(Boolean(identity&&identity.publicKey===rm.e2ee!.mine));
+   const recovered=rm.partnerId&&rm.e2ee?.partner?
+    await loadRecoveredRoomKey({roomId:rm.roomId,mineId:rm.user.id,partnerId:rm.partnerId,
+     minePublicKey:rm.e2ee.mine!,partnerPublicKey:rm.e2ee.partner}):null;
+   setE2eeDeviceReady(Boolean(identity&&identity.publicKey===rm.e2ee!.mine||recovered));
    setE2eeOwnCode(own);setE2eePartnerCode(partner);
    setE2eeVerified(Boolean(partner&&rm.partnerId&&isPartnerVerified(rm.roomId,rm.partnerId,partner)));
   })().catch(()=>{if(alive){setE2eeDeviceReady(false);setE2eeVerified(false)}});
@@ -1025,6 +1029,13 @@ export default function LoveRadar(){
  },[tab,chatFocused,scrollToLatest]);
  useEffect(()=>{if(tab!=="chat"&&chatFocused)setChatFocused(false)},[tab,chatFocused]);
 
+ function finishApprovedPartnerRecovery(newToken:string){
+  setError("");setToken(newToken);setRecoverMode(false);setRecoverInput("");
+  setTab("chat");
+  void refresh(newToken).then(()=>{
+   setNotice("Compte retrouvé ! Tes anciens messages disponibles sur le serveur sont de nouveau accessibles.");
+  });
+ }
  async function issueRecoveryCode(){
   if(!token||recoveryBusy)return;
   setRecoveryBusy(true);setError("");
@@ -1568,7 +1579,7 @@ export default function LoveRadar(){
       <p>Discutez, jouez et partagez vos moments à deux.</p>
      </section>
      <section className="lr-auth-panel" aria-label="Créer ou rejoindre votre espace privé">
-      <div className="lr-panel-head"><h2>{recoverMode?"Retrouver mon compte 🔐":joinMode?"Rejoins ton amour ♡":"Bienvenue à deux ♡"}</h2><p>{recoverMode?"Utilise ton code personnel de secours sauvegardé.":joinMode?"Entre ton prénom et votre code privé.":"Crée ton espace et invite ton partenaire."}</p></div>
+      <div className="lr-panel-head"><h2>{recoverMode?"Retrouver mon compte 🔐":joinMode?"Rejoins ton amour ♡":"Bienvenue à deux ♡"}</h2><p>{recoverMode?"Utilise ton code personnel de secours, ou demande l’aide de ton partenaire connecté.":joinMode?"Entre ton prénom et votre code privé.":"Crée ton espace et invite ton partenaire."}</p></div>
       {error?<div className="lr-inline-auth-error" role="alert"><span>{error}</span>
        <button type="button" onClick={()=>setError("")} aria-label="Fermer le message">×</button></div>:null}
       {recoverMode?<div className="lr-recovery-entry">
@@ -1579,6 +1590,7 @@ export default function LoveRadar(){
          maxLength={40} placeholder="XXXX-XXXX-XXXX-XXXX" autoComplete="off" autoCapitalize="characters" spellCheck={false} required/>
         <button type="submit" disabled={recoveryBusy}>{recoveryBusy?"Vérification…":"Retrouver mon compte"}</button>
        </form>
+       <PartnerRecoveryClaim onRecovered={finishApprovedPartnerRecovery}/>
        <button type="button" onClick={()=>setRecoverMode(false)}>Retour à l’inscription</button>
       </div>:<>
       <div className="lr-auth-switch" role="group" aria-label="Créer ou rejoindre un espace">
@@ -1606,6 +1618,7 @@ export default function LoveRadar(){
     {tab==="settings"?<SettingsPage
      name={room.user.name} code={room.code} owner={room.user.owner} token={token} avatarSrc={avatars.mine} avatarVersion={room.user.avatarVersion}
      profileBusy={profileBusy} profileError={profileError} recoveryBusy={recoveryBusy} onGenerateRecovery={()=>void issueRecoveryCode()} privacyEnabled={privacyEnabled}
+     recoveryRoomId={room.roomId} recoveryMemberId={room.user.id} recoveryPartnerId={room.partnerId||null}
      notificationsOn={notificationsOn} notificationsBusy={notificationsBusy} notificationsTesting={notificationsTesting} notificationsHint={notificationsHint}
      e2ee={room.e2ee} e2eeBusy={e2eeBusy} e2eeBackup={e2eeBackup} e2eeOwnCode={e2eeOwnCode} e2eePartnerCode={e2eePartnerCode}
      e2eeDeviceReady={e2eeDeviceReady} e2eeVerified={e2eeVerified}
