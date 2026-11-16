@@ -79,7 +79,7 @@ test("Picker has GIF, Stickers and Emojis with search, favorites, recents and le
  const css=readFileSync("src/sticker-picker-premium.css","utf8");
  const app=readFileSync("src/App.tsx","utf8");
  for(const text of ["Émojis","GIF","Stickers","Récents","Favoris","Rechercher un GIF",
-  "Rechercher un emoji","onSendEmoji","onSendGif","fetchGifFile","Powered By GIPHY"]){
+  "Rechercher un emoji","onSendEmoji","onSendGif","gifsByIds","Powered By GIPHY"]){
   assert.ok(picker.includes(text),text);
  }
  assert.ok(picker.includes("onSend(id)"),"preserve sender transport");
