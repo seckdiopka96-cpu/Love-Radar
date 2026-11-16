@@ -4,7 +4,7 @@
  * Never send GIF media through our server as an unvalidated remote URL.
  */
 export type GifResult={id:string;title:string;preview:string;original:string};
-export const GIPHY_KEY=(import.meta.env.VITE_GIPHY_API_KEY||"").trim();
+export const GIPHY_KEY=(import.meta.env?.VITE_GIPHY_API_KEY||"").trim();
 export function validGifUrl(value:string):boolean{
  try{
   const url=new URL(value);
