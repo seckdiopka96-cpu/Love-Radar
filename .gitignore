@@ -9,3 +9,9 @@ dist/
 # Never commit staging load-test tokens or test accounts
 *.load-roster.json
 staging-accounts*.json
+
+# Private Android upload signing keys (never commit)
+*.jks
+*.keystore
+*.p12
+*.pfx
