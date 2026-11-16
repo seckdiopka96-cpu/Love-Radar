@@ -172,7 +172,7 @@ export default function Reconcile({token,myName,partnerName,onExit,onOpenChat}:P
  return <section className="rc-page" aria-label="Mode Réconciliation">
   <header className="rc-header">
    <button type="button" onClick={onExit} className="rc-back">‹ Nous deux</button>
-   <div className="rc-brand"><strong>On se comprend <span>♡</span></strong><small>LOVE RADAR · RÉCONCILIATION</small></div>
+   <div className="rc-brand"><strong>On se comprend <span>♡</span></strong><small>RÉCONCILIATION</small></div>
    <div id="lr-voice-button-slot" className="rc-call-slot" aria-label="Appel vocal"/>
   </header>
   <div className="rc-body">
@@ -191,7 +191,7 @@ export default function Reconcile({token,myName,partnerName,onExit,onOpenChat}:P
      <button type="button" onClick={()=>void start()} disabled={busy||!partnerName} className="rc-main-action">
       🕊️ Inviter {partnerName||"mon amour"} à se comprendre
      </button>
-     {!partnerName?<small>Ton partenaire doit d'abord rejoindre votre espace Love Radar.</small>:<small>Une notification discrète sera envoyée si ses alertes sont activées.</small>}
+     {!partnerName?<small>Ton partenaire doit d'abord rejoindre votre espace privé.</small>:<small>Une notification discrète sera envoyée si ses alertes sont activées.</small>}
     </div>:
     <div className="rc-session">
      <div className="rc-session-status" role="status">
