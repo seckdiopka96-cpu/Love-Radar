@@ -1370,7 +1370,7 @@ export default function LoveRadar(){
        <div className="lr-voice-recording-status" role="status" aria-live="off">
         <span className={"lr-voice-recording-led"+(recordingPaused?" is-paused":"")} aria-hidden="true"/>
         <time className="lr-voice-recording-clock">{Math.floor(recordingElapsed/60)}:{String(recordingElapsed%60).padStart(2,"0")}</time>
-        <span className={"lr-voice-recording-wave"+(recordingPaused?" is-paused":"")} aria-label={recordingPaused?"Vocal en pause":"Vocal en cours"}>{Array.from({length:24},(_,index)=><i key={index} style={{height:(6+(index*7+index%3*11)%21)+"px",animationDelay:((index%7)*-.12)+"s"}}/>)}</span>
+        <span className={"lr-voice-recording-wave"+(recordingPaused?" is-paused":"")} aria-label={recordingPaused?"Vocal en pause":"Vocal en cours"}>{Array.from({length:17},(_,index)=><i key={index} style={{height:(5+(index*7+index%3*9)%18)+"px",animationDelay:((index%7)*-.12)+"s"}}/>)}</span>
        </div>
        <div className="lr-voice-recording-actions">
         <button type="button" className="lr-voice-rec-delete" aria-label="Supprimer le vocal" title="Supprimer le vocal" onClick={()=>finishRecording(false)}>
