@@ -39,7 +39,7 @@ test("upload is asynchronous with immediate playable local blob and safe retry",
  assert.ok(app.includes("void sendQueuedVoice(entry)"));
  assert.ok(app.includes('form.append("messageId",entry.id)'));
  assert.ok(app.includes('enqueueVoice(new File([blob]'));
- assert.ok(app.includes('tab==="chat"?550:4500'));
+ assert.ok(app.includes('tab==="chat"?1050:5000'));
  assert.ok(app.includes('onClick={()=>{const entry=voiceOutbox.find(v=>v.id===m.id);if(entry)void sendQueuedVoice(entry)}'));
  assert.ok(api.includes('form.get("messageId")'));
  assert.ok(api.includes('INSERT OR IGNORE INTO messages'));
