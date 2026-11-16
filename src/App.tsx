@@ -762,7 +762,8 @@ export default function LoveRadar(){
   };
   // The bubble appears before the request starts; other messages can be typed meanwhile.
   setTextOutbox(items=>[...items,entry]);
-  setDraft("");setReplyTarget(null);setTyping(false);setError("");
+  setDraft("");setReplyTarget(null);typingActive.current=false;setError("");
+  // Sending the message also clears typing server-side; avoid a redundant POST.
   requestAnimationFrame(scrollToLatest);
   void sendQueuedText(entry);
  }
