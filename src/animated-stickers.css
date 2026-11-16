@@ -37,10 +37,24 @@
 @keyframes lr-motion-spin{0%{transform:rotate(-9deg)}50%{transform:rotate(171deg) scale(1.08)}100%{transform:rotate(351deg)}}
 @keyframes lr-motion-kiss{0%,100%{transform:rotate(-8deg) scale(1)}40%{transform:translateX(5px) scale(1.2)}65%{transform:translateX(-2px) scale(.96)}}
 @keyframes lr-motion-glow{0%,100%{transform:scale(.92) rotate(-5deg);filter:brightness(.95)}55%{transform:scale(1.12) rotate(4deg);filter:brightness(1.25)}}
-@media(prefers-reduced-motion:reduce){
- .lr-sticker-art[class*="lr-motion-"],
- .lr-sticker-art[class*="lr-motion-"] *{
-  animation:none!important;transition:none!important;will-change:auto!important;
- }
- .lr-sticker-art[class*="lr-motion-"]::before{animation:none!important}
+/* Explicit in-app preference: full motion by default, pause button in selector.
+   This makes animation work even when an iOS PWA reports reduced motion. */
+html.lr-animations-on .lr-sticker-art.lr-motion-bounce .lr-sticker-main{animation:lr-motion-bounce 1.05s cubic-bezier(.25,.75,.36,1) infinite!important}
+html.lr-animations-on .lr-sticker-art.lr-motion-heartbeat .lr-sticker-main{animation:lr-motion-heart 1.05s ease-in-out infinite!important}
+html.lr-animations-on .lr-sticker-art.lr-motion-shake .lr-sticker-main{animation:lr-motion-shake .55s ease-in-out infinite!important}
+html.lr-animations-on .lr-sticker-art.lr-motion-party .lr-sticker-main{animation:lr-motion-party 1s ease-in-out infinite!important}
+html.lr-animations-on .lr-sticker-art.lr-motion-wave .lr-sticker-main{animation:lr-motion-wave 1.25s ease-in-out infinite!important}
+html.lr-animations-on .lr-sticker-art.lr-motion-dance .lr-sticker-main{animation:lr-motion-dance 1.05s ease-in-out infinite!important}
+html.lr-animations-on .lr-sticker-art.lr-motion-spin .lr-sticker-main{animation:lr-motion-spin 2.6s linear infinite!important}
+html.lr-animations-on .lr-sticker-art.lr-motion-kiss .lr-sticker-main{animation:lr-motion-kiss 1.25s ease-in-out infinite!important}
+html.lr-animations-on .lr-sticker-art.lr-motion-glow .lr-sticker-main{animation:lr-motion-glow 1.9s ease-in-out infinite!important}
+html.lr-animations-on .lr-sticker-art[class*="lr-motion-"] .lr-sticker-sparkle{animation:lr-sparkle 1.1s ease-in-out infinite alternate!important}
+html.lr-animations-on .lr-sticker-art[class*="lr-motion-"] .lr-sticker-sparkle-right{animation-delay:-.58s!important}
+html.lr-animations-on .lr-sticker-art[class*="lr-motion-"]::before{animation:lr-motion-halo 1.8s ease-in-out infinite alternate!important}
+html.lr-animations-on .lr-sticker-art[class*="lr-motion-"] .lr-sticker-caption{animation:lr-caption-pop 1.25s ease-in-out infinite!important}
+@keyframes lr-caption-pop{0%,100%{transform:rotate(-3deg) translateY(0) scale(1)}50%{transform:rotate(2deg) translateY(-2px) scale(1.05)}}
+html.lr-animations-off .lr-sticker-art,
+html.lr-animations-off .lr-sticker-art *,
+html.lr-animations-off .lr-sticker-art::before{
+ animation:none!important;transition:none!important;will-change:auto!important
 }
