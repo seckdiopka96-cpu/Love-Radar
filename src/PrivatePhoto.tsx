@@ -45,9 +45,9 @@ export default function PrivatePhoto({src,alt,enabled,viewer,variant="chat",onIm
  return <div className={"lr-private-photo lr-private-photo-"+variant+(show?" is-revealed":" is-concealed")}>
   {show?<img src={src} alt={alt} draggable={false} onError={onImageError} onContextMenu={e=>{if(enabled)e.preventDefault()}}/>:null}
   {enabled?(show?<div className="lr-private-photo-watermarks" aria-hidden="true">
-   <span>LOVE RADAR · PRIVÉ · {viewer}</span>
-   <span>LOVE RADAR · PRIVÉ · {viewer}</span>
-   <span>LOVE RADAR · PRIVÉ · {viewer}</span>
+   <span>CONFIDENTIEL · {viewer}</span>
+   <span>CONFIDENTIEL · {viewer}</span>
+   <span>CONFIDENTIEL · {viewer}</span>
   </div>:null):null}
   {enabled?(show?<button type="button" className="lr-private-photo-hide" onClick={conceal} aria-label="Masquer cette photo">🔒 Masquer</button>:
    <button type="button" className="lr-private-photo-reveal" onClick={reveal} aria-label={"Afficher temporairement "+alt}>
