@@ -134,7 +134,7 @@ test("last seen shows local day and time, but never invents unknown presence",()
  assert.equal(formatPartnerLastSeen(Number.NaN,now),"Hors ligne");
  assert.equal(formatPartnerLastSeen(local(2026,11,16,14,24),now),"Dernière vue aujourd’hui à 14:24");
  assert.equal(formatPartnerLastSeen(local(2026,11,15,19,5),now),"Dernière vue hier à 19:05");
- assert.match(formatPartnerLastSeen(local(2026,11,12,8,9),now),/^Dernière vue le 12 nov\\.? à 08:09$/);
+ assert.match(formatPartnerLastSeen(local(2026,11,12,8,9),now),/^Dernière vue le 12 nov\.? à 08:09$/);
  assert.ok(chat.includes("formatPartnerLastSeen(lastSeen,presenceNow)"));
  assert.ok(chat.includes('partnerOnline?"En ligne"'));
  assert.ok(chat.includes("setInterval(()=>setPresenceNow(Date.now()),10000)"));
