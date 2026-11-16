@@ -12,7 +12,7 @@ import {
  */
 type Ctx={request:Request;env:PushEnv;waitUntil?:(task:Promise<unknown>)=>void};
 type Member={id:string;room_id:string;seat:number;name:string};
-type Phase="question"|"result"|"choose"|"challenge";
+type Phase="ready"|"question"|"result"|"choose"|"challenge";
 type Row={
  room_id:string;mode:PartyMode;game_id:string;version:number;round:number;
  phase:Phase;question_index:number;prompt_kind:ChallengeKind|null;
@@ -54,10 +54,9 @@ async function init(db:D1Database,room:string,mode:PartyMode){
   "INSERT OR IGNORE INTO couple_party_games(room_id,mode,game_id,version,round,phase,"+
   "question_index,prompt_kind,turn,started_at,deadline_at,updated_at)"+
   " VALUES(?,?,?,1,1,?, ?,NULL,0,?,?,?)"
- ).bind(room,mode,crypto.randomUUID(),rapid?"question":"choose",
+ ).bind(room,mode,crypto.randomUUID(),rapid?"ready":"choose",
   rapid?newIndex(RAPID_QUESTIONS.length,-1):-1,
-  rapid?now+RAPID_COUNTDOWN_MS:0,
-  rapid?now+RAPID_COUNTDOWN_MS+RAPID_SECONDS*1000:0,now).run();
+  0,0,now).run();
 }
 async function get(db:D1Database,room:string,mode:PartyMode){
  return db.prepare("SELECT * FROM couple_party_games WHERE room_id=? AND mode=?")
@@ -78,11 +77,14 @@ function visible(row:Row,seat:number){
  };
  if(row.mode==="rapid"){
   const q=partyQuestion(row.question_index),revealed=row.phase==="result";
-  return {...common,question:q.question,options:q.options,
-   // Correct choice and the other player's choice stay hidden until reveal.
+  const waiting=row.phase==="ready";
+  return {...common,question:waiting?null:q.question,options:waiting?null:q.options,
+   // Neither the question nor correct choice is visible until both players are ready.
    correct:revealed?q.answer:null,
-   myChoice:seat===0?row.picked_0:row.picked_1,
-   partnerPicked:(seat===0?row.picked_1:row.picked_0)!==null,
+   myReady:waiting?(seat===0?row.picked_0:row.picked_1)===1:false,
+   partnerReady:waiting?(seat===0?row.picked_1:row.picked_0)===1:false,
+   myChoice:waiting?null:seat===0?row.picked_0:row.picked_1,
+   partnerPicked:!waiting&&(seat===0?row.picked_1:row.picked_0)!==null,
    partnerChoice:revealed?(seat===0?row.picked_1:row.picked_0):null,
    winner:revealed?row.winner:null,
    startAt:row.started_at,deadlineAt:row.deadline_at};
@@ -136,6 +138,28 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
   if(!Number.isInteger(data.round)||data.round!==row.round)
    return fail("Ton partenaire a déjà changé de manche.",409);
   if(mode==="rapid"){
+   if(data.action==="ready"){
+    if(row.phase!=="ready")return fail("La question est déjà commencée.",409);
+    const col=member.seat===0?"picked_0":"picked_1";
+    const marked=await db.prepare(
+     "UPDATE couple_party_games SET "+col+"=1,version=version+1,updated_at=?"+
+     " WHERE room_id=? AND mode='rapid' AND game_id=? AND round=?"+
+     " AND phase='ready' AND "+col+" IS NULL"
+    ).bind(now,member.room_id,row.game_id,row.round).run();
+    if(marked.meta.changes!==1)return fail("Tu es déjà prêt(e) pour cette manche.",409);
+    const both=await get(db,member.room_id,"rapid");
+    if(both?.phase==="ready"&&both.picked_0===1&&both.picked_1===1){
+     const start=Date.now()+RAPID_COUNTDOWN_MS;
+     await db.prepare(
+      "UPDATE couple_party_games SET phase='question',picked_0=NULL,picked_1=NULL,"+
+      "started_at=?,deadline_at=?,version=version+1,updated_at=?"+
+      " WHERE room_id=? AND mode='rapid' AND game_id=? AND round=?"+
+      " AND phase='ready' AND picked_0=1 AND picked_1=1"
+     ).bind(start,start+RAPID_SECONDS*1000,Date.now(),
+      member.room_id,row.game_id,row.round).run();
+    }
+    return send(await publicState(db,member,mode,members));
+   }
    if(data.action==="answer"){
     if(!validChoice(data.choice))return fail("Choisis une réponse.",400);
     if(row.phase!=="question"||now<row.started_at||now>=row.deadline_at)
@@ -158,11 +182,10 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
     if(row.phase!=="result")return fail("Attends la fin de cette question.",409);
     const next=newIndex(RAPID_QUESTIONS.length,row.question_index);
     const changed=await db.prepare(
-     "UPDATE couple_party_games SET round=round+1,version=version+1,phase='question',"+
+     "UPDATE couple_party_games SET round=round+1,version=version+1,phase='ready',"+
      "question_index=?,picked_0=NULL,picked_1=NULL,winner=NULL,started_at=?,deadline_at=?,updated_at=?"+
      " WHERE room_id=? AND mode='rapid' AND game_id=? AND round=? AND phase='result'"
-    ).bind(next,now+RAPID_COUNTDOWN_MS,now+RAPID_COUNTDOWN_MS+RAPID_SECONDS*1000,
-     now,member.room_id,row.game_id,row.round).run();
+    ).bind(next,0,0,now,member.room_id,row.game_id,row.round).run();
     if(changed.meta.changes!==1)return fail("La prochaine question a déjà commencé.",409);
     return send(await publicState(db,member,mode,members));
    }
