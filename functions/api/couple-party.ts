@@ -192,15 +192,15 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    return fail("Action de quiz inconnue.");
   }
   if(data.action==="pick"){
-   if(row.phase!=="choose"||row.turn!==member.seat)return fail("C'est au tour de ton partenaire.",409);
+   if(row.phase!=="choose"||(row.round>1&&row.turn!==member.seat))return fail("C'est au tour de ton partenaire.",409);
    if(!validChallengeKind(data.kind))return fail("Choisis Action ou Vérité.");
    const n=data.kind==="truth"?TRUTH_PROMPTS.length:ACTION_PROMPTS.length;
    const index=newIndex(n,row.question_index);
    const changed=await db.prepare(
-    "UPDATE couple_party_games SET phase='challenge',prompt_kind=?,question_index=?,"+
+    "UPDATE couple_party_games SET phase='challenge',prompt_kind=?,question_index=?,turn=?,"+
     "version=version+1,updated_at=? WHERE room_id=? AND mode='truth' AND game_id=?"+
-    " AND round=? AND phase='choose' AND turn=?"
-   ).bind(data.kind,index,now,member.room_id,row.game_id,row.round,member.seat).run();
+    " AND round=? AND phase='choose' AND (round=1 OR turn=?)"
+   ).bind(data.kind,index,member.seat,now,member.room_id,row.game_id,row.round,member.seat).run();
    if(changed.meta.changes!==1)return fail("Une carte vient d'être tirée.",409);
    return send(await publicState(db,member,mode,members));
   }
