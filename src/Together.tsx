@@ -77,7 +77,7 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
  return <section className="tg-page" aria-label="Nous deux, votre espace privé">
   <header className="tg-top">
    <button type="button" onClick={onExit} className="tg-back">‹ Accueil</button>
-   <div className="tg-brand"><strong>Nous deux <span>♡</span></strong><small>LOVE RADAR · TOUJOURS ENSEMBLE</small></div>
+   <div className="tg-brand"><strong>Nous deux <span>♡</span></strong><small>TOUJOURS ENSEMBLE</small></div>
    <span className="tg-top-heart" aria-hidden="true">♥</span>
   </header>
   <div className="tg-activities">
