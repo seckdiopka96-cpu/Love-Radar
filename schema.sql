@@ -85,6 +85,17 @@ CREATE TABLE IF NOT EXISTS room_revisions (
 CREATE INDEX IF NOT EXISTS idx_messages_room_sender_time ON messages(room_id,sender_id,created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_members_room_seat ON members(room_id,seat);
 
+-- One-time partner-assisted account recovery: only hashes and E2EE envelopes,
+-- never plaintext access tokens or original private conversation keys.
+CREATE TABLE IF NOT EXISTS partner_recovery (
+ id TEXT PRIMARY KEY,
+ room_id TEXT NOT NULL, sponsor_id TEXT NOT NULL, target_id TEXT NOT NULL,
+ grant_hash TEXT NOT NULL UNIQUE, claim_hash TEXT, candidate_hash TEXT,
+ ephemeral_public TEXT, check_code TEXT, status TEXT NOT NULL, envelope TEXT,
+ created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_partner_recovery_sponsor ON partner_recovery(sponsor_id,status,expires_at);
+
 -- Personal lost-phone recovery: secret displayed once, only the digest is stored.
 CREATE TABLE IF NOT EXISTS member_recovery (
  member_id TEXT PRIMARY KEY,
