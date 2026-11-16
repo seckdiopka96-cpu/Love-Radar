@@ -18,7 +18,7 @@ export const ROOM_DATA_TABLES=[
  "rps_games","couple_puzzles","couple_puzzle_presence",
  "couple_watch_presence","couple_watch_sessions",
  "couple_tiktok_presence","couple_tiktok_watch",
- "couple_reconciliations","push_subscriptions","room_revisions"
+ "couple_reconciliations","push_subscriptions","room_revisions","partner_recovery"
 ] as const;
 export const MEMBER_DATA_TABLES=["member_recovery","push_test_throttle"] as const;
 
