@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {generateIdentity,deriveContext,deriveRoomKeyMaterial,wrapRoomKeyWithIdentity,
- unwrapRoomKeyFromPartner,encryptText,decryptText,type RoomKeyBinding,type RecoveryWrapInfo} from "../src/e2ee";
+ unwrapRoomKeyFromPartner,encryptText,decryptText,encryptMedia,decryptMedia,type RoomKeyBinding,type RecoveryWrapInfo} from "../src/e2ee";
 
 const read=(path:string)=>readFileSync(path,"utf8");
 const roomId="11111111-1111-4111-8111-111111111111";
@@ -31,6 +31,11 @@ test("An approved partner can restore actual OLD text history without altering c
   const recoveredContext={roomId,mineId:targetId,partnerId:sponsorId,partnerPublicKey:sponsor.publicKey,key:restored};
   assert.equal(await decryptText(recoveredContext,oldCipher,messageId,targetId),
    "Notre message envoyé avant la perte du téléphone");
+  const oldVoice=new File([new Uint8Array([79,103,103,83,1,2,3,4])],"ancien-vocal.ogg",{type:"audio/ogg"});
+  const encryptedVoice=await encryptMedia(original,oldVoice,"audio",messageId);
+  const recoveredVoice=await decryptMedia(recoveredContext,encryptedVoice,"audio",messageId,targetId);
+  assert.equal(recoveredVoice.type,"audio/ogg");
+  assert.deepEqual([...new Uint8Array(await recoveredVoice.arrayBuffer())],[79,103,103,83,1,2,3,4]);
   const newCipher=await encryptText(recoveredContext,"Un nouveau message après récupération",
    "66666666-6666-4666-8666-666666666666");
   assert.equal(await decryptText(original,newCipher,"66666666-6666-4666-8666-666666666666",targetId),
@@ -67,6 +72,7 @@ test("Backend only rotates an EXISTING member after authenticated second-seat ap
  assert.ok(server.includes('return fail("Code expiré ou déjà utilisé."'));
  assert.ok(server.includes('grant.claim_hash!==await sessionHash(claimSecret)'));
  assert.ok(server.includes('sessionHash(secret)'),"one-use grant held as digest, not plaintext");
+ assert.ok(server.includes("if(hasPush)transaction.push("),"old-device push access removed atomically if configured");
  assert.ok(!server.includes('INSERT INTO members'),"must not create a second user in same couple");
  assert.ok(!server.includes('INSERT INTO rooms'),"must not create a second private room");
  assert.ok(schema.includes("UNIQUE(room_id,seat)"));
