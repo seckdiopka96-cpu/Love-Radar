@@ -31,7 +31,7 @@
  display:flex;flex-direction:column;gap:4px;
  text-align:left;overflow:hidden;
  padding:8px 10px!important;margin:0 0 7px!important;
- border:0!important;border-left:3px solid #ffcad7!important;border-radius:8px!important;
+ border:0!important;border-left:3px solid #bc396c!important;border-radius:8px!important;
  background:#0f233046!important;color:#fff8f2!important;
  max-width:100%;box-sizing:border-box;
 }
@@ -58,7 +58,7 @@
 .lr-chat .lr-reply-compose .lr-quote-card{
  flex:1 1 auto;min-width:0;margin:0!important;
  padding:5px 10px!important;
- border-left-color:#f38fa7!important;background:#243f4d!important;
+ border-left-color:#bc396c!important;background:#243f4d!important;
 }
 .lr-chat .lr-reply-compose .lr-quote-author{color:#ffb5c6!important}
 .lr-chat .lr-reply-compose .lr-quote-text{color:#c6d7e1!important}
@@ -71,7 +71,7 @@
  cursor:pointer;
 }
 .lr-chat .lr-reply-compose-close:focus-visible,.lr-chat .lr-quote-card:focus-visible{
- outline:2px solid #ffbbce;outline-offset:2px;
+ outline:2px solid #bc396c;outline-offset:2px;
 }
 .lr-chat .lr-bubble .lr-quote-card+p{margin-top:4px!important}
 @media(max-width:700px){
