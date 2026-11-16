@@ -9,6 +9,7 @@ export const ROOM_DATA_TABLES=[
  "message_replies","message_reactions","message_edits","message_hidden",
  "message_one_time","messages","e2ee_keys","chat_presence","voice_signals","voice_calls","voice_call_history","native_voip_devices",
  "profile_photos","couple_story_events","couple_stories",
+ "care_notices","care_prayer_settings","care_prayer_cache","care_prayer_sent",
  "couple_location_requests","couple_canvas_presence","couple_canvas_events",
  "couple_canvas_invites","affection_signals","daily_moments",
  "memory_challenges","memory_gifts","memory_agreements","memory_games",
@@ -20,7 +21,7 @@ export const ROOM_DATA_TABLES=[
  "couple_tiktok_presence","couple_tiktok_watch",
  "couple_reconciliations","push_subscriptions","room_revisions","partner_recovery"
 ] as const;
-export const MEMBER_DATA_TABLES=["member_recovery","push_test_throttle"] as const;
+export const MEMBER_DATA_TABLES=["member_recovery","push_test_throttle","care_share_throttle"] as const;
 
 /**
  * Build a single D1 transaction for the entire couple, including sensitive
