@@ -1,0 +1,151 @@
+/* One design language for all couples. Built on the application's existing midnight/rose tokens. */
+.lr-app{
+ --universe-bg:var(--lr-night,#091520);
+ --universe-surface:var(--lr-panel,#142432);
+ --universe-raised:var(--lr-panel-raised,#1b2d3c);
+ --universe-line:var(--lr-line,#344957);
+ --universe-rose:var(--lr-rose,#ff7292);
+ --universe-soft-rose:var(--lr-rose-light,#ffadc0);
+ --universe-text:var(--lr-text,#fcf6f2);
+ --universe-muted:var(--lr-text-muted,#b8c4cd);
+}
+.lr-app .lr-home.lr-home-compact{max-width:790px;gap:13px;padding:7px 1px 20px;}
+.lr-home-compact .lr-home-welcome{padding:6px 3px 0!important}
+.lr-home-compact .lr-home-welcome h2{font-size:clamp(25px,5vw,35px)!important;line-height:1.16!important;letter-spacing:-.7px!important}
+.lr-home-compact .lr-home-welcome p{font-size:12px!important;color:var(--universe-muted)!important}
+.lr-home-compact .lr-home-couple{
+ display:flex!important;align-items:center!important;gap:17px!important;
+ padding:17px!important;min-height:116px;
+ text-align:left!important;background:linear-gradient(125deg,var(--universe-raised),var(--universe-surface))!important;
+ border:1px solid var(--universe-line)!important;border-radius:23px!important;
+ box-shadow:inset 0 1px 0 #ffffff0a!important;
+}
+.lr-home-compact .lr-home-couple-avatars{display:flex;align-items:center;flex:0 0 auto}
+.lr-home-compact .lr-home-couple .lr-home-avatar{width:47px!important;height:47px!important;flex:none}
+.lr-home-compact .lr-home-heart{font-size:18px!important;margin:0 7px!important;line-height:1}
+.lr-home-compact .lr-home-couple-label{flex:1;min-width:0}
+.lr-home-compact .lr-home-couple h1{font:650 clamp(18px,3.8vw,23px)/1.24 Georgia,serif!important;margin:0 0 8px!important;color:var(--universe-text)!important}
+.lr-home-compact .lr-home-couple p{font-size:11px!important;color:var(--universe-muted)!important}
+.lr-home-compact .lr-home-quick{gap:9px!important}
+.lr-home-compact .lr-home-quick button{
+ min-height:94px!important;padding:11px 5px!important;border-radius:17px!important;
+ border:1px solid var(--universe-line)!important;box-shadow:0 5px 13px #020a153b!important;
+}
+.lr-home-compact .lr-home-quick button:focus-visible,.lr-home-essentials button:focus-visible{
+ outline:3px solid var(--universe-soft-rose)!important;outline-offset:2px!important;
+}
+.lr-home-compact .lr-home-section-heading{margin-top:7px!important}
+.lr-home-essentials{display:grid;grid-template-columns:1fr;gap:9px}
+.lr-home-essentials>button{
+ display:flex;align-items:center;gap:12px;width:100%;
+ min-height:76px;padding:13px 15px;
+ text-align:left;color:var(--universe-text);background:var(--universe-surface);
+ border:1px solid var(--universe-line);border-radius:18px;
+ box-shadow:0 3px 14px #0002;
+}
+.lr-home-essentials .lr-home-essential-symbol,.lr-home-essentials .lr-home-daily-icon{
+ display:grid;place-items:center;flex:0 0 43px;height:43px;width:43px!important;
+ margin:0!important;border-radius:15px!important;
+ color:#f5c3d3;font-size:22px!important;
+ background:linear-gradient(135deg,#33475a,#263747)!important;
+ border:1px solid #5a6a7a!important;
+}
+.lr-home-essentials .lr-home-essential-copy,
+.lr-home-essentials .lr-home-daily-content{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+.lr-home-essentials .lr-home-essential-copy strong,
+.lr-home-essentials .lr-home-daily-content strong{
+ font:750 16px/1.25 -apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif!important;color:var(--universe-text)!important;
+}
+.lr-home-essentials .lr-home-essential-copy small,
+.lr-home-essentials .lr-home-daily-content>span{
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ font-size:12px!important;line-height:1.4!important;color:var(--universe-muted)!important;
+}
+.lr-home-essentials .lr-home-essential-arrow,
+.lr-home-essentials .lr-home-daily-arrow{font-size:29px;color:#e8a7bf;flex:none}
+.lr-home-essentials .lr-home-daily{
+ display:flex!important;flex-direction:row!important;align-items:center!important;
+ width:100%!important;margin:0!important;padding:13px 15px!important;
+ min-height:76px!important;gap:12px!important;border-radius:18px!important;
+ background:linear-gradient(115deg,#3e314b,var(--universe-surface))!important;
+ border-color:#765d74!important;
+ box-shadow:0 3px 14px #0002!important;
+}
+.lr-home-essentials .lr-home-daily:hover{transform:none!important}
+.lr-home-unread{display:grid;place-items:center;min-width:24px;height:24px;padding:0 5px;border-radius:12px;background:#d7729d;color:white;font-size:12px}
+.lr-home-compact-footer{
+ margin:1px 4px 0!important;text-align:center;
+ font-size:11px;line-height:1.6;color:var(--universe-muted)
+}
+.lr-home-compact-footer button{
+ display:inline;padding:0 2px;background:none;border:0;
+ color:var(--universe-soft-rose);font-weight:750;text-decoration:underline;text-underline-offset:2px;
+}
+.lr-home-compact .lr-home-invite{margin:0!important;background:var(--universe-raised)!important;border-color:var(--universe-line)!important}
+/* "Nous deux" is no longer a separate purple-themed mini-site. */
+.lr-app.lr-app-locked .tg-page{color:var(--universe-text)}
+.lr-app.lr-app-locked .tg-top,.lr-app.lr-app-locked .tg-brand{color:var(--universe-text)}
+.lr-app.lr-app-locked .tg-back,.lr-app.lr-app-locked .tg-top-heart,
+.lr-app.lr-app-locked .tg-shortcuts button,
+.lr-app.lr-app-locked .tg-reconcile-entry,
+.lr-app.lr-app-locked .tg-modes,
+.lr-app.lr-app-locked .tg-heart-feed,
+.lr-app.lr-app-locked .tg-signal,
+.lr-app.lr-app-locked .tg-draw-bottom,
+.lr-app.lr-app-locked .tg-location-link{
+ background:var(--universe-raised)!important;border:1px solid var(--universe-line)!important;
+ color:var(--universe-text)!important;
+ box-shadow:inset 0 1px 0 #ffffff09!important;
+}
+.lr-app.lr-app-locked .tg-watch-feature{
+ background:linear-gradient(115deg,#b65e84,#cc7a99)!important;
+ border:1px solid #efb5cb!important;
+ color:#fff!important;
+}
+.lr-app.lr-app-locked .tg-heart-center{
+ background:radial-gradient(ellipse at 50% 8%,#b65f8660,transparent 52%),linear-gradient(150deg,var(--universe-raised),var(--universe-surface))!important;
+ border:1px solid var(--universe-line)!important;
+}
+.lr-app.lr-app-locked .tg-heart-center p,.lr-app.lr-app-locked .tg-reconcile-copy small,
+.lr-app.lr-app-locked .tg-heart-feed>p,.lr-app.lr-app-locked .tg-signal-content small{
+ color:var(--universe-muted)!important;
+}
+.lr-app.lr-app-locked .tg-modes button.selected{
+ background:linear-gradient(130deg,#d6769e,#af547f)!important;border-radius:10px!important;
+}
+.lr-app.lr-app-locked .tg-modes button{color:var(--universe-text)}
+.lr-app.lr-app-locked .tg-signal.received{background:#2c3d4c!important;border-color:#557085!important}
+.lr-app.lr-app-locked .tg-draw-tools button,
+.lr-app.lr-app-locked .tg-bottom-actions>button{
+ background:var(--universe-raised)!important;border:1px solid var(--universe-line)!important;color:var(--universe-text)!important;
+}
+.lr-app.lr-app-locked .tg-draw-tools button.active{
+ background:#91516f!important;border-color:#e6adc7!important;
+}
+.lr-app.lr-app-locked .tg-section-label strong{color:var(--universe-soft-rose)!important}
+/* Shared surface defaults for all entry screens, without changing game mechanics. */
+.lr-app.lr-app-locked .lr-games-choice,
+.lr-app.lr-app-locked .lr-story-album-entry{
+ box-shadow:0 5px 18px #0002!important;
+}
+@media(max-width:700px){
+ .lr-app .lr-home.lr-home-compact{gap:10px!important;padding:3px 0 12px!important}
+ .lr-home-compact .lr-home-couple{min-height:88px!important;padding:13px!important;gap:10px!important;border-radius:19px!important}
+ .lr-home-compact .lr-home-couple .lr-home-avatar{width:39px!important;height:39px!important}
+ .lr-home-compact .lr-home-heart{font-size:16px!important;margin:0 4px!important}
+ .lr-home-compact .lr-home-couple h1{font-size:17px!important}
+ .lr-home-compact .lr-home-quick button{min-height:85px!important;padding:8px 4px!important}
+ .lr-home-essentials>button,.lr-home-essentials .lr-home-daily{min-height:70px!important;padding:10px 11px!important}
+ .lr-home-essentials .lr-home-essential-copy strong,
+ .lr-home-essentials .lr-home-daily-content strong{font-size:14px!important}
+ .lr-home-essentials .lr-home-essential-copy small,
+ .lr-home-essentials .lr-home-daily-content>span{font-size:11px!important}
+}
+@media(max-width:350px){
+ .lr-home-compact .lr-home-couple{flex-direction:column;text-align:center!important}
+ .lr-home-compact .lr-home-couple-label{text-align:center}
+ .lr-home-compact .lr-home-couple h1{font-size:17px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-home-compact button,.tg-heart-animation{animation:none!important;transition:none!important}
+}
