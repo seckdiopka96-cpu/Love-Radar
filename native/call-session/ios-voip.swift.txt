@@ -129,7 +129,12 @@ private enum LoveRadarSecureSession {
     }
     func markAnswered(_ id: String) {
         guard let uuid = UUID(uuidString: id), callId == uuid else { return }
-        callAnswered = true
+        // In-app Answer must also complete the system CallKit UI, rather than
+        // leaving a second ringing sheet visible behind the WebView.
+        guard !callAnswered else { return }
+        controller.request(CXTransaction(action: CXAnswerCallAction(call: uuid))) { error in
+            if error != nil { self.reportEnded(uuid, reason: .failed) }
+        }
     }
     func pushRegistry(_ registry: PKPushRegistry, didUpdate credentials: PKPushCredentials, for type: PKPushType) {
         guard type == .voIP else { return }
