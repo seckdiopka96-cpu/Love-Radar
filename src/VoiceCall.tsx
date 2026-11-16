@@ -7,13 +7,13 @@ import "./voice-call.css";
 type Call = {id:string;status:"ringing"|"active";direction:"incoming"|"outgoing";createdAt:number;updatedAt:number;expiresAt:number};
 type Signal = {id:number;kind:"offer"|"answer"|"candidate";payload:string};
 type Result = {ok:boolean;error?:string;call?:Call|null;signals?:Signal[]};
-type Props = {token:string;partner:string;hasPartner:boolean;showButton:boolean;onOpenChat:()=>void};
+type Props = {token:string;partner:string;avatarSrc?:string;hasPartner:boolean;showButton:boolean;onOpenChat:()=>void};
 
 const STUN_SERVERS:RTCIceServer[]=[
  {urls:"stun:stun.cloudflare.com:3478"},
  {urls:"stun:stun.l.google.com:19302"}
 ];
-export default function VoiceCall({token,partner,hasPartner,showButton,onOpenChat}:Props){
+export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton,onOpenChat}:Props){
  const [anchor,setAnchor]=useState<HTMLElement|null>(null);
  const [active,setActive]=useState<Call|null>(null);
  const [minimized,setMinimized]=useState(false);
@@ -424,7 +424,7 @@ export default function VoiceCall({token,partner,hasPartner,showButton,onOpenCha
       </button>
      </div>
      <div className="lr-call-identity">
-      <div className="lr-call-initial" aria-label={"Avatar de "+partner}>{partner.trim().charAt(0).toUpperCase()||"♡"}</div>
+      <div className="lr-call-initial" aria-label={"Avatar de "+partner}>{avatarSrc?<img src={avatarSrc} alt={"Photo de "+partner}/>:partner.trim().charAt(0).toUpperCase()||"♡"}</div>
       <div className="lr-call-identification">
        <div className="lr-call-brand">Appel audio</div>
        <div className="lr-call-duration" aria-label={"Durée de l’appel : "+total}>{active.status==="active"&&connectedSince.current?total:callStatus}</div>
