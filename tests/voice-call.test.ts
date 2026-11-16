@@ -19,7 +19,7 @@ test("Voice calls do not wait up to fourteen seconds for ICE gathering before si
 });
 test("Voice calls prewarm relay configuration and check signaling quickly during active calls",()=>{
  assert.ok(call.includes("if(hasPartner)void warmNetwork()"));
- assert.ok(call.includes("current.current?340:650"));
+ assert.ok(call.includes("current.current?420:1800"));
  assert.ok(call.includes("void sync();"),"caller/callee can refresh immediately");
  assert.ok(call.includes("iceCandidatePoolSize:2"));
  assert.ok(call.includes("queuedCandidates.current=[]"));
