@@ -229,6 +229,17 @@ export default function LoveRadar(){
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
+ const [olderMessages,setOlderMessages]=useState<Message[]>([]);
+ const [historyBusy,setHistoryBusy]=useState(false);
+ const [historyMore,setHistoryMore]=useState(true);
+ const [historyError,setHistoryError]=useState("");
+ const historyScrollAnchor=useRef<{height:number;top:number}|null>(null);
+ useEffect(()=>{setOlderMessages([]);setHistoryMore(true);setHistoryError("")},[token,room?.roomId]);
+ useEffect(()=>{
+  if(!historyScrollAnchor.current||!chatScroller.current)return;
+  const prior=historyScrollAnchor.current;historyScrollAnchor.current=null;
+  chatScroller.current.scrollTop=prior.top+(chatScroller.current.scrollHeight-prior.height);
+ },[olderMessages]);
  const [media,setMedia]=useState<Record<string,string>>({});
  const [mediaErrors,setMediaErrors]=useState<Record<string,string>>({});
  const mediaRetries=useRef<Record<string,number>>({});
@@ -238,7 +249,7 @@ export default function LoveRadar(){
  const [textOutbox,setTextOutbox]=useState<LocalText[]>([]);
  const sendingVoiceIds=useRef(new Set<string>());
  const sendingTextIds=useRef(new Set<string>());
- const chatMessages=useMemo(()=>mergeOptimisticMessages(room?.messages||[],[
+ const chatMessages=useMemo(()=>mergeOptimisticMessages([...olderMessages,...(room?.messages||[])],[
   ...voiceOutbox.map(entry=>({
    id:entry.id,sender_id:room?.user.id||"",kind:"audio" as const,
    content:null,object_key:entry.id,mime:entry.file.type,created_at:entry.created_at
@@ -249,7 +260,7 @@ export default function LoveRadar(){
    reply_to_id:entry.replyToId||null,reply_kind:entry.replyKind||null,
    reply_content:entry.replyContent||null,reply_sender_id:entry.replySenderId||null
   }))
- ]),[room?.messages,room?.user.id,voiceOutbox,textOutbox]);
+ ]),[olderMessages,room?.messages,room?.user.id,voiceOutbox,textOutbox]);
  const actionMessage=chatMessages.find(m=>m.id===actionMessageId)||null;
  const infoMessage=chatMessages.find(m=>m.id===infoMessageId)||null;
  const [recording,setRecording]=useState(false);
@@ -875,6 +886,34 @@ export default function LoveRadar(){
    void request("recording",{active:false}).catch(()=>{});
   }
  },[tab,request]);
+ async function loadEarlierHistory(){
+  if(!room||!token||historyBusy||!historyMore)return;
+  const all=[...olderMessages,...room.messages].sort((a,b)=>a.created_at-b.created_at||a.id.localeCompare(b.id));
+  const first=all[0];if(!first)return;
+  setHistoryBusy(true);setHistoryError("");
+  const element=chatScroller.current;
+  historyScrollAnchor.current=element?{height:element.scrollHeight,top:element.scrollTop}:null;
+  try{
+   const cursor=first.created_at+":"+first.id;
+   const res=await apiFetch("/api/love?historyBefore="+encodeURIComponent(cursor),{
+    headers:{Authorization:"Bearer "+token},cache:"no-store"
+   });
+   const data=await res.json() as {ok:boolean;error?:string;messages?:Message[];hasMore?:boolean};
+   if(!res.ok||!data.ok)throw Error(data.error||"Impossible de charger les anciens messages.");
+   let context:CryptoContext|null=null;
+   if(room.e2ee?.required)try{context=await cryptoFor(room)}catch{/* preserve locked placeholders */}
+   const decoded=await revealMessages(data.messages||[],context);
+   setOlderMessages(items=>{
+    const combined=new Map(items.map(m=>[m.id,m]));
+    for(const item of decoded)combined.set(item.id,item);
+    return [...combined.values()].sort((a,b)=>a.created_at-b.created_at||a.id.localeCompare(b.id));
+   });
+   setHistoryMore(Boolean(data.hasMore));
+  }catch(e){
+   historyScrollAnchor.current=null;
+   setHistoryError(e instanceof Error?e.message:"Chargement de l’historique impossible.");
+  }finally{setHistoryBusy(false)}
+ }
  // Verify that a media response actually contains decodable image bytes. A
  // failed photo used to disappear silently, leaving an empty narrow rectangle.
  async function fetchMedia(item:Message,force=false){
@@ -958,6 +997,12 @@ export default function LoveRadar(){
    if(item.object_key&&!item.view_once&&!mediaCache.current[item.id])void fetchMedia(item);
   }
  },[room?.messages,token]);
+ useEffect(()=>{
+  if(!room||!token)return;
+  for(const item of olderMessages){
+   if(item.object_key&&!item.view_once&&!mediaCache.current[item.id])void fetchMedia(item);
+  }
+ },[olderMessages,token]);
  useEffect(()=>{
   const resumeMedia=()=>{
    if(document.visibilityState!=="visible")return;
@@ -1665,6 +1710,11 @@ export default function LoveRadar(){
       <div id="lr-voice-button-slot"/>
      </div>
      <div className="lr-chat-messages" ref={chatScroller} onScroll={e=>{const list=e.currentTarget;const near=list.scrollHeight-list.scrollTop-list.clientHeight<120;chatAtBottomRef.current=near;setChatAtBottom(prev=>prev===near?prev:near)}} role="log" aria-label="Messages" aria-live="off">
+      {room.messages.length>=90&&historyMore?<div className="lr-history-loader">
+       <button type="button" disabled={historyBusy} onClick={()=>void loadEarlierHistory()}>
+        {historyBusy?"Chargement de l’historique…":"↑ Afficher les anciens messages"}</button>
+      </div>:null}
+      {historyError?<p className="lr-history-error" role="alert">{historyError}</p>:null}
       {chatMessages.length===0?<div className="lr-chat-empty"><span>♡</span><h3>Votre conversation</h3><p>Écris ton premier message pour commencer.</p></div>:
       chatMessages.map((m,idx)=>{
        const mine=m.sender_id===room.user.id;
