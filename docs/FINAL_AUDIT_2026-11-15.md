@@ -13,6 +13,16 @@ La nouvelle suite `tests/room-deletion.test.ts` utilise **SQLite réel** et un s
 
 Le constat historique F-02 ci-dessous décrit la version examinée initialement ; il ne faut pas le confondre avec le statut corrigé ci-dessus.
 
+## Mise à jour native — appels déjà établis en arrière-plan
+
+La base native des appels en arrière-plan a été ajoutée :
+- `src/native-call-session.ts` active/arrête le pont natif pendant un appel WebRTC accepté.
+- `scripts/configure-native.mjs` configure automatiquement l'audio `playAndRecord / voiceChat` et `UIBackgroundModes:audio` sur iPhone ; sur Android, il configure un service de microphone au premier plan avec notification persistante et permissions dédiées.
+- Les deux implémentations envoient un maintien de session au serveur toutes les 24 secondes pendant l'appel, indépendamment des intervalles React lorsqu'ils sont suspendus.
+- `tests/native-background-call.test.ts` vérifie les permissions, les enregistrements, la génération idempotente et les contrôles de cycle de vie.
+
+**Statut : la compilation Web et l'APK debug Android ont réussi. La validation d'un build iOS et les tests réels d'audio après verrouillage, changement d'application et réseaux 4G/5G restent indispensables.** Les appels entrants avec l'app fermée, CallKit/PushKit sur iPhone et les notifications natives Android ne sont pas encore implémentés. La PWA iOS ne gagne pas ces capacités natives.
+
 ## Verdict
 
 **Statut : NO-GO pour ouverture publique et pour « milliers de couples ».**
