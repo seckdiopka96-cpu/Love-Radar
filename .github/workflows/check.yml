@@ -24,6 +24,7 @@ jobs:
       - run: npm run test:reconcile
       - run: npm run test:design
       - run: npm run test:chat
+      - run: npm run test:expressions
       - run: npm run test:activity
       - run: npm run test:animation
       - run: npm run test:replies

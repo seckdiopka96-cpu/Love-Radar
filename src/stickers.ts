@@ -1,6 +1,6 @@
 /** First-party stickers: no external image API, no tracking, no copyright dependencies. */
 export type StickerCategory="amour"|"reactions"|"humour"|"fetes"|"comedie"|"memes"|"animaux"|"sport"|"food"|"voyage"|"afrique"|"humeur";
-export type Sticker={id:string;emoji:string;label:string;caption:string;category:StickerCategory;tone:"rose"|"peach"|"mint"|"lilac"|"gold"};
+export type Sticker={id:string;emoji:string;label:string;caption:string;category:StickerCategory;tone:"rose"|"peach"|"mint"|"lilac"|"gold";motion?:"bounce"|"heartbeat"|"shake"|"party"|"wave"|"dance"|"spin"|"kiss"|"glow"};
 const data:Sticker[]=[
  {id:"love-you",emoji:"🥰",label:"Je t’aime",caption:"JE T’AIME",category:"amour",tone:"rose"},
  {id:"big-kiss",emoji:"😘",label:"Bisous",caption:"BISOUS",category:"amour",tone:"peach"},
@@ -165,7 +165,43 @@ const extra:Sticker[] = [
  {id:"mood-tired",emoji:"😴",label:"Fatigué",caption:"DODO",category:"humeur",tone:"mint"},
 ];
 
-export const STICKERS:readonly Sticker[]=[...data,...extra];
+/** Original animated reactions, designed for Love Radar. They work offline for both partners. */
+const motionStickers:Sticker[]=[
+ {id:"anim-love-burst",emoji:"💖",label:"Cœur amoureux",caption:"LOVE YOU !",category:"amour",tone:"rose",motion:"heartbeat"},
+ {id:"anim-kiss",emoji:"😘",label:"Bisou qui vole",caption:"MOUAAAH",category:"amour",tone:"peach",motion:"kiss"},
+ {id:"anim-rain-hearts",emoji:"💞",label:"Pluie de cœurs",caption:"MON AMOUR",category:"amour",tone:"rose",motion:"heartbeat"},
+ {id:"anim-hug",emoji:"🤗",label:"Gros câlin",caption:"BIG HUG",category:"amour",tone:"mint",motion:"bounce"},
+ {id:"anim-goodnight",emoji:"🌙",label:"Bonne nuit animée",caption:"SWEET DREAMS",category:"fetes",tone:"lilac",motion:"glow"},
+ {id:"anim-goodmorning",emoji:"☀️",label:"Bonjour animé",caption:"GOOD MORNING",category:"fetes",tone:"gold",motion:"spin"},
+ {id:"anim-birthday",emoji:"🎂",label:"Anniversaire animé",caption:"HAPPY BIRTHDAY",category:"fetes",tone:"peach",motion:"party"},
+ {id:"anim-party",emoji:"🥳",label:"Super fête",caption:"LET'S PARTY",category:"fetes",tone:"gold",motion:"party"},
+ {id:"anim-confetti",emoji:"🎉",label:"Pluie de confettis",caption:"YAAAY !",category:"fetes",tone:"mint",motion:"party"},
+ {id:"anim-thankyou",emoji:"🙏",label:"Merci beaucoup",caption:"THANK YOU",category:"fetes",tone:"lilac",motion:"bounce"},
+ {id:"anim-cake",emoji:"🧁",label:"Petit gâteau",caption:"FOR YOU",category:"fetes",tone:"peach",motion:"heartbeat"},
+ {id:"anim-smile",emoji:"🥰",label:"Sourire heureux",caption:"SO HAPPY",category:"reactions",tone:"rose",motion:"bounce"},
+ {id:"anim-laugh",emoji:"🤣",label:"Éclat de rire",caption:"HAHAHA",category:"comedie",tone:"gold",motion:"shake"},
+ {id:"anim-rofl",emoji:"😂",label:"MDR animé",caption:"MDrrrr",category:"comedie",tone:"mint",motion:"shake"},
+ {id:"anim-shocked",emoji:"😱",label:"Choqué animé",caption:"WAAAW !",category:"reactions",tone:"lilac",motion:"bounce"},
+ {id:"anim-cry",emoji:"😭",label:"Larmes animées",caption:"NOOOON",category:"reactions",tone:"peach",motion:"shake"},
+ {id:"anim-sleep",emoji:"😴",label:"Dodo animé",caption:"ZZZ...",category:"humeur",tone:"lilac",motion:"glow"},
+ {id:"anim-hello",emoji:"👋",label:"Coucou animé",caption:"HEY YOU",category:"humour",tone:"mint",motion:"wave"},
+ {id:"anim-yes",emoji:"👍",label:"Oui animé",caption:"YESSS",category:"reactions",tone:"mint",motion:"bounce"},
+ {id:"anim-no",emoji:"🙅",label:"Non animé",caption:"NOPE",category:"humour",tone:"peach",motion:"shake"},
+ {id:"anim-cat",emoji:"😻",label:"Chat amoureux",caption:"MEOW",category:"animaux",tone:"rose",motion:"heartbeat"},
+ {id:"anim-dog",emoji:"🐶",label:"Chien joyeux",caption:"WOUAF",category:"animaux",tone:"gold",motion:"bounce"},
+ {id:"anim-panda",emoji:"🐼",label:"Panda qui danse",caption:"DANCE",category:"animaux",tone:"lilac",motion:"dance"},
+ {id:"anim-coffee",emoji:"☕",label:"Café animé",caption:"BONJOUR",category:"food",tone:"peach",motion:"glow"},
+ {id:"anim-dance",emoji:"💃",label:"Danse animée",caption:"ON DANSE",category:"humour",tone:"rose",motion:"dance"},
+ {id:"anim-fire",emoji:"🔥",label:"Trop fort",caption:"ON FIRE",category:"memes",tone:"gold",motion:"dance"},
+ {id:"anim-star",emoji:"🌟",label:"Étoile brillante",caption:"YOU SHINE",category:"amour",tone:"gold",motion:"spin"},
+ {id:"anim-dakar",emoji:"🇸🇳",label:"Dakar animé",caption:"NANGA DEF",category:"afrique",tone:"mint",motion:"wave"},
+ {id:"anim-waaw",emoji:"😎",label:"Waaw animé",caption:"WAAW !",category:"afrique",tone:"peach",motion:"bounce"},
+ {id:"anim-ataya",emoji:"🫖",label:"Ataya animé",caption:"ATAYA TIME",category:"afrique",tone:"gold",motion:"glow"},
+ {id:"anim-wow",emoji:"🤯",label:"Wow animé",caption:"OH MY GOD",category:"comedie",tone:"lilac",motion:"shake"},
+ {id:"anim-rainbow",emoji:"🌈",label:"Arc-en-ciel",caption:"SO CUTE",category:"humeur",tone:"rose",motion:"glow"}
+];
+export const MOTION_STICKERS:readonly Sticker[]=motionStickers;
+export const STICKERS:readonly Sticker[]=[...motionStickers,...data,...extra];
 const byId=new Map(STICKERS.map(item=>[item.id,item]));
 export const STICKER_PREFIX="[sticker:v1:";
 export function getSticker(id:string|null|undefined):Sticker|undefined{return id?byId.get(id):undefined}
