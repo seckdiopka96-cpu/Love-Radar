@@ -620,7 +620,7 @@ export default function LoveRadar(){
  // Lightweight status-only fetch avoids reloading 90 messages just to see
  // the typing or voice-recording indicator on the partner's iPhone.
  useEffect(()=>{
-  if(tab!=="chat"||!token||!room?.partner){setPartnerActivity(null);return}
+  if((tab!=="chat"&&tab!=="home")||!token||!room?.roomId){setPartnerActivity(null);return}
   let stopped=false,controller:AbortController|null=null,timer:number|null=null;
   const poll=async()=>{
    if(stopped)return;
@@ -643,7 +643,7 @@ export default function LoveRadar(){
      }
     }catch{/* The previous activity will expire naturally. */}
    }
-   if(!stopped)timer=window.setTimeout(poll,1750);
+   if(!stopped)timer=window.setTimeout(poll,tab==="chat"?1750:4800);
   };
   void poll();
   return()=>{stopped=true;controller?.abort();if(timer!==null)clearTimeout(timer)};
