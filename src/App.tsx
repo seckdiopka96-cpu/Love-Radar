@@ -214,7 +214,7 @@ export default function LoveRadar(){
  const [editTarget,setEditTarget]=useState<Message|null>(null);
  const composerBeforeEdit=useRef<{draft:string;reply:Message|null}|null>(null);
  const chatInput=useRef<HTMLInputElement|null>(null);
- const swipe=useRef<{id:string;x:number;y:number;cancelled:boolean;held:boolean;timer:number|null}|null>(null);
+ const swipe=useRef<{id:string;x:number;y:number;cancelled:boolean;held:boolean;holdOnly:boolean;timer:number|null}|null>(null);
  const suppressHeldClickUntil=useRef(0);
  const [chatFocused,setChatFocused]=useState(false);
  const [chatAtBottom,setChatAtBottom]=useState(true);
@@ -1309,11 +1309,14 @@ export default function LoveRadar(){
  }
  function messagePointerDown(e:ReactPointerEvent<HTMLDivElement>,message:Message){
   if(e.pointerType==="mouse"&&e.button!==0)return;
-  if((e.target as HTMLElement).closest("input[type=range],a,audio"))return;
+  if((e.target as HTMLElement).closest("a,audio"))return;
+  // Holding a waveform opens actions; dragging it must remain normal audio seeking.
+  const holdOnly=Boolean((e.target as HTMLElement).closest("input[type=range]"));
+  if(holdOnly&&message.kind!=="audio")return;
   resetSwipe();
   const row=e.currentTarget;
-  const gesture:{id:string;x:number;y:number;cancelled:boolean;held:boolean;timer:number|null}={
-   id:message.id,x:e.clientX,y:e.clientY,cancelled:false,held:false,timer:null
+  const gesture:{id:string;x:number;y:number;cancelled:boolean;held:boolean;holdOnly:boolean;timer:number|null}={
+   id:message.id,x:e.clientX,y:e.clientY,cancelled:false,held:false,holdOnly,timer:null
   };
   gesture.timer=window.setTimeout(()=>{
    if(swipe.current!==gesture||gesture.cancelled)return;
@@ -1329,6 +1332,8 @@ export default function LoveRadar(){
  function messagePointerMove(e:ReactPointerEvent<HTMLDivElement>){
   const g=swipe.current;if(!g||g.cancelled||g.held)return;
   const dx=e.clientX-g.x,dy=e.clientY-g.y;
+  // Range slider movement is a scrub, never a swipe-to-reply.
+  if(g.holdOnly){if(Math.abs(dx)>10||Math.abs(dy)>10)resetSwipe(e.currentTarget);return}
   if(Math.abs(dy)>Math.max(13,Math.abs(dx)*.9)||dx<-12){g.cancelled=true;resetSwipe(e.currentTarget);return}
   if(dx<=8)return;
   if(g.timer!==null){clearTimeout(g.timer);g.timer=null}
@@ -1342,7 +1347,7 @@ export default function LoveRadar(){
   const dx=e.clientX-g.x,dy=e.clientY-g.y;
   const wasHeld=g.held,wasCancelled=g.cancelled;
   resetSwipe(e.currentTarget);
-  if(!wasHeld&&!wasCancelled&&dx>=62&&Math.abs(dy)<34){
+  if(!wasHeld&&!wasCancelled&&!g.holdOnly&&dx>=62&&Math.abs(dy)<34){
    if("vibrate" in navigator)try{navigator.vibrate(10)}catch{/* optional */}
    chooseReply(message);
   }
@@ -1757,7 +1762,7 @@ export default function LoveRadar(){
           media[m.id]?<VoiceMessage id={m.id} src={media[m.id]} mine={mine} time={time}
            avatarSrc={mine?avatars.mine:avatars.partner} avatarName={mine?room.user.name:partner}
            onOpenProfile={mine?()=>navigate("settings"):()=>setPartnerPhotoOpen(true)}
-           delivery={mine&&m.id===lastOwnMessage?.id?((room.partnerReadAt||0)>=m.created_at?"read":"sent"):undefined} onOpenActions={()=>openMessageActions(m)}
+           delivery={mine&&m.id===lastOwnMessage?.id?((room.partnerReadAt||0)>=m.created_at?"read":"sent"):undefined}
            speed={voiceSpeed} onSpeedChange={setVoiceSpeed}
            autoPlay={nextAutoVoiceId===m.id}
            onAutoPlayConsumed={()=>setNextAutoVoiceId(null)}
