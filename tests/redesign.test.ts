@@ -119,3 +119,27 @@ test("single-surface premium dock has no doubled outlines or active tab capsule"
  const appImports=app.slice(app.indexOf('import "./premium-navigation.css";'),app.indexOf('type AndroidInstallEvent'));
  assert.ok(appImports.lastIndexOf('import "./premium-dock.css";')>appImports.indexOf('import "./polished-shell.css";'),"Single-surface dock is the final style override");
 });
+
+test("Nous deux page has a single heart action and four coherent activities",()=>{
+ const together=readFileSync("src/Together.tsx","utf8");
+ const styles=readFileSync("src/together-premium.css","utf8");
+ assert.ok(app.includes('import "./together-premium.css";'));
+ assert.ok(together.includes('className="tg-page tg-page-premium"'));
+ assert.ok(together.includes('aria-label="Retour à l’accueil"'));
+ assert.ok(!together.includes('className="tg-top-heart"'),"Large redundant heart button was removed");
+ assert.ok(!together.includes('className="tg-modes"'),"Duplicate send-heart tab was removed");
+ assert.equal((together.match(/className="tg-send-heart"/g)||[]).length,1,"Only one love-send action is visible");
+ for(const callback of ["onOpenWatch","onOpenMoment","onOpenReunion","onOpenReconcile","onOpenPuzzle"]){
+  assert.ok(together.includes("onClick={"+callback+"}"),callback+" remains available");
+ }
+ assert.ok(together.includes('className="tg-reconcile-entry"'),"Reconciliation is preserved");
+ assert.ok(together.includes('signals.slice(-1)'),"Only the most recent note is shown by default");
+ assert.ok(together.includes("setShowAll(value=>!value)"),"All notes can be expanded");
+ assert.ok(together.includes('canReply(signal)'),"Incoming hearts still support replying");
+ assert.ok(styles.includes('grid-template-columns:repeat(2,minmax(0,1fr))'));
+ assert.ok(styles.includes('background:#0c1c29!important'),"Mobile background matches main app");
+ assert.ok(styles.includes('overflow-y:auto!important'),"Page remains scrollable on iPhone");
+ assert.ok(styles.includes('.lr-mobile-nav{'),"Main bottom navigation is preserved");
+ assert.ok(styles.includes('display:flex!important'),"Bottom navigation is visible");
+ assert.ok(styles.includes('env(safe-area-inset-bottom)'),"Dock-safe page padding");
+});
