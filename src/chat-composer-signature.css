@@ -40,19 +40,30 @@
 .lr-chat .lr-chat-form > .lr-attach svg{
  width:22px;height:22px;stroke-width:2.3;
 }
-.lr-chat .lr-chat-form > .lr-sticker-trigger{
- border-radius:14px!important;
- border:1px solid var(--lr-composer-icon-border)!important;
- color:var(--lr-composer-icon)!important;
- background:var(--lr-composer-icon-bg)!important;
+/* Sticker sits INSIDE the text capsule. No separate button background or border. */
+.lr-chat .lr-chat-form > .lr-chat-textbox > .lr-sticker-trigger{
+ display:grid!important;place-items:center!important;
+ flex:0 0 38px!important;
+ width:38px!important;height:38px!important;
+ min-width:38px!important;min-height:38px!important;
+ padding:0!important;margin:0 3px 0 0!important;
+ border:0!important;border-radius:12px!important;
+ background:transparent!important;color:var(--lr-composer-icon)!important;
+ box-shadow:none!important;
+ -webkit-tap-highlight-color:transparent;
+ touch-action:manipulation;
 }
-.lr-chat .lr-chat-form > .lr-sticker-trigger.is-open,
-.lr-chat .lr-chat-form > .lr-sticker-trigger[aria-expanded="true"]{
- border-color:#ed96bc!important;
- color:var(--lr-composer-icon)!important;
- background:var(--lr-composer-icon-bg)!important;
- box-shadow:inset 0 1px 0 #ffffff15,0 0 0 2px #ed96bc2d!important;
+.lr-chat .lr-chat-form > .lr-chat-textbox > .lr-sticker-trigger svg{
+ display:block;width:22px;height:22px;
 }
+.lr-chat .lr-chat-form > .lr-chat-textbox > .lr-sticker-trigger.is-open,
+.lr-chat .lr-chat-form > .lr-chat-textbox > .lr-sticker-trigger[aria-expanded="true"]{
+ background:#ef98bc25!important;color:#fbd6e8!important;
+}
+.lr-chat .lr-chat-form > .lr-chat-textbox > .lr-sticker-trigger:focus-visible{
+ outline:2px solid #ffd2e4!important;outline-offset:0!important;
+}
+.lr-chat .lr-chat-form > .lr-chat-textbox > .lr-sticker-trigger:disabled{opacity:.42!important}
 .lr-chat .lr-chat-form > .lr-mic{
  border-radius:50%!important;
  border:1px solid var(--lr-composer-icon-border)!important;
@@ -84,39 +95,65 @@
  box-shadow:inset 0 1px 0 #ffffff0b!important;
 }
 .lr-chat .lr-chat-form > button:disabled:not(.lr-send){opacity:.44!important}
-.lr-chat .lr-chat-form > input[type="text"]{
- flex:1 1 0!important;
- width:0;min-width:76px!important;max-width:100%!important;
- height:45px!important;
- padding:10px 14px!important;
+/* The entire capsule is a single flex item. The sticker never reduces the input's outer width. */
+.lr-chat .lr-chat-form > .lr-chat-textbox{
+ display:flex!important;align-items:center!important;
+ flex:1 1 0!important;width:0;min-width:0;max-width:100%;
+ height:45px!important;min-height:45px;
  border-radius:24px!important;
  border:1px solid #4e697b!important;
  background:linear-gradient(180deg,#273e50,#213646)!important;
- color:#fff4f9!important;
  box-shadow:inset 0 1px 2px #050c1838!important;
- font-size:16px!important;
+ overflow:hidden;box-sizing:border-box;
 }
-.lr-chat .lr-chat-form > input[type="text"]::placeholder{color:#aebfcd!important;opacity:1}
-.lr-chat .lr-chat-form > input[type="text"]:focus{
+.lr-chat .lr-chat-form > .lr-chat-textbox:focus-within{
  border-color:#e7a1c4!important;
  box-shadow:inset 0 1px 2px #050c1838,0 0 0 2px #ef98bc2a!important;
 }
-.lr-chat .lr-chat-form.is-writing > input[type="text"]{flex:1 1 auto!important}
-/* Respect the existing iOS rule that hides the attachment and mic while typing.
-   These appearance rules deliberately never override their display property. */
+.lr-chat .lr-chat-form > .lr-chat-textbox > input[type="text"]{
+ flex:1 1 0!important;
+ box-sizing:border-box;
+ width:0!important;min-width:0!important;max-width:100%!important;
+ height:43px!important;min-height:43px!important;
+ padding:9px 7px 9px 14px!important;
+ border:none!important;border-radius:0!important;
+ outline:0!important;background:transparent!important;
+ box-shadow:none!important;
+ color:#fff4f9!important;font-size:16px!important;line-height:1.25;
+}
+.lr-chat .lr-chat-form > .lr-chat-textbox > input[type="text"]::placeholder{
+ color:#aebfcd!important;opacity:1;
+}
+.lr-chat .lr-chat-form > .lr-chat-textbox > input[type="text"]:focus{
+ border:none!important;outline:none!important;box-shadow:none!important;
+ background:transparent!important;
+}
+.lr-chat .lr-chat-form.is-writing > .lr-chat-textbox{
+ flex:1 1 auto!important;
+}
+/* Unlike the older layout, keep + visible while typing, including the iPhone keyboard.
+   A blank but focused field also keeps the mic usable. */
+.lr-chat .lr-chat-form.is-writing > .lr-attach,
+.lr-chat .lr-chat-form.is-writing > .lr-mic{
+ display:grid!important;
+}
+.lr-app.lr-app-locked.lr-chat-mode.lr-keyboard-open .lr-chat .lr-chat-form.is-writing > .lr-attach,
+.lr-app.lr-app-locked.lr-chat-mode.lr-keyboard-open .lr-chat .lr-chat-form.is-writing > .lr-mic{
+ display:grid!important;
+}
 @media(max-width:380px){
  .lr-chat .lr-chat-form{gap:5px!important}
  .lr-chat .lr-chat-form > button{
   flex-basis:40px!important;width:40px!important;height:42px!important;min-width:40px;
  }
- .lr-chat .lr-chat-form > input[type="text"]{min-width:69px!important;padding-inline:11px!important}
+ .lr-chat .lr-chat-form > .lr-chat-textbox > input[type="text"]{padding-left:11px!important}
 }
 @media(max-width:340px){
  .lr-chat .lr-chat-form{gap:4px!important}
  .lr-chat .lr-chat-form > button{
   flex-basis:38px!important;width:38px!important;height:42px!important;min-width:38px;
  }
- .lr-chat .lr-chat-form > input[type="text"]{min-width:63px!important}
+ .lr-chat .lr-chat-form > .lr-chat-textbox > input[type="text"]{padding-left:10px!important}
 }
 @media(prefers-reduced-motion:reduce){
  .lr-chat .lr-chat-form > button{transition:none!important}
