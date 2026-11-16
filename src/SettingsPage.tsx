@@ -2,6 +2,7 @@ import "./settings-page.css";
 type Props={
  name:string;code:string;owner:boolean;avatarSrc?:string;avatarVersion?:number;
  profileBusy:boolean;profileError:string;
+ recoveryBusy:boolean;onGenerateRecovery:()=>void;
  privacyEnabled:boolean;
  notificationsOn:boolean;notificationsBusy:boolean;notificationsTesting:boolean;notificationsHint:string;
  nativeApp:boolean;
@@ -11,7 +12,7 @@ type Props={
  onShareInvite:()=>void;onLogout:()=>void;onDeleteRoom:()=>void;
 };
 export default function SettingsPage({
- name,code,owner,avatarSrc,avatarVersion,profileBusy,profileError,privacyEnabled,
+name,code,owner,avatarSrc,avatarVersion,profileBusy,profileError,recoveryBusy,onGenerateRecovery,privacyEnabled,
  notificationsOn,notificationsBusy,notificationsTesting,notificationsHint,nativeApp,
  onBack,onChoosePhoto,onAdjustPhoto,onRemovePhoto,onPrivacyChange,
  onEnableNotifications,onTestNotifications,onDisableNotifications,onShareInvite,onLogout,onDeleteRoom
@@ -56,7 +57,12 @@ export default function SettingsPage({
   </section>
   <section className="lr-settings-section" aria-labelledby="lr-account-settings-title">
    <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">♧</span><div><h2 id="lr-account-settings-title">Compte et invitation</h2><p>Chaque couple possède son espace indépendant.</p></div></div>
-   <div className="lr-settings-invitation"><span>Code privé</span><strong>{code}</strong><button type="button" onClick={onShareInvite}>Partager</button></div>
+   <div className="lr-settings-invitation"><span>Code d’invitation</span><strong>{code}</strong><button type="button" onClick={onShareInvite}>Partager</button></div>
+   <div className="lr-settings-recovery">
+    <strong>🔐 Retrouver mon compte</strong>
+    <small>Crée ton code personnel de secours avant de changer de téléphone. Il n’est pas destiné à ton partenaire. Un nouveau code annule le précédent.</small>
+    <button type="button" disabled={recoveryBusy} onClick={onGenerateRecovery}>{recoveryBusy?"Création en cours…":"Créer un nouveau code de secours"}</button>
+   </div>
    <button type="button" className="lr-settings-logout" onClick={onLogout}>Se déconnecter</button>
    {owner?<button type="button" className="lr-settings-danger" onClick={onDeleteRoom}>Supprimer définitivement notre espace</button>:null}
   </section>
