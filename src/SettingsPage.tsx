@@ -4,6 +4,9 @@ type Props={
  name:string;code:string;owner:boolean;token:string;avatarSrc?:string;avatarVersion?:number;
  profileBusy:boolean;profileError:string;
  recoveryBusy:boolean;onGenerateRecovery:()=>void;
+ e2ee?:{mine:string|null;partner:string|null;required:boolean};
+ e2eeBusy:boolean;e2eeOwnCode:string;e2eePartnerCode:string;e2eeDeviceReady:boolean;e2eeVerified:boolean;
+ onEnableE2EE:()=>void;onVerifyPartnerKey:()=>void;
  privacyEnabled:boolean;
  notificationsOn:boolean;notificationsBusy:boolean;notificationsTesting:boolean;notificationsHint:string;
  nativeApp:boolean;
@@ -15,6 +18,7 @@ type Props={
 export default function SettingsPage({
 name,code,owner,token,avatarSrc,avatarVersion,profileBusy,profileError,recoveryBusy,onGenerateRecovery,privacyEnabled,
  notificationsOn,notificationsBusy,notificationsTesting,notificationsHint,nativeApp,
+ e2ee,e2eeBusy,e2eeOwnCode,e2eePartnerCode,e2eeDeviceReady,e2eeVerified,onEnableE2EE,onVerifyPartnerKey,
  onBack,onChoosePhoto,onAdjustPhoto,onRemovePhoto,onPrivacyChange,
  onEnableNotifications,onTestNotifications,onDisableNotifications,onShareInvite,onLogout,onDeleteRoom
 }:Props){
@@ -43,6 +47,33 @@ name,code,owner,token,avatarSrc,avatarVersion,profileBusy,profileError,recoveryB
     <input type="checkbox" checked={privacyEnabled} onChange={event=>onPrivacyChange(event.target.checked)} aria-label="Protection des photos"/>
     <span className="lr-settings-switch" aria-hidden="true"/>
    </label>
+  </section>
+  <section className="lr-settings-section" aria-labelledby="lr-e2ee-title">
+   <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">🔐</span>
+    <div><h2 id="lr-e2ee-title">Chiffrement des messages — version pilote</h2>
+     <p>Textes, photos et vocaux chiffrés sur les deux appareils, après activation et vérification.</p></div>
+   </div>
+   {!e2ee?.mine?<>
+    <p className="lr-settings-help">Non activé : les messages actuels sont lisibles par le serveur. Les anciens messages ne seront pas chiffrés rétroactivement.</p>
+    <button type="button" className="lr-settings-primary" disabled={e2eeBusy} onClick={onEnableE2EE}>
+     {e2eeBusy?"Activation…":"Créer ma clé et activer"}
+    </button>
+   </>:<>
+    <p className="lr-settings-help">{e2eeDeviceReady?"✓ Clé privée présente sur ce téléphone.":"⚠ Clé privée absente de ce téléphone : les messages chiffrés ne seront pas accessibles. Ne réinitialise pas la clé sans procédure de récupération."}</p>
+    {e2eeOwnCode?<div className="lr-settings-recovery"><strong>Mon empreinte à communiquer à mon partenaire</strong><code style={{overflowWrap:"anywhere",fontSize:12}}>{e2eeOwnCode}</code></div>:null}
+    {!e2ee?.partner?<p className="lr-settings-help">En attente : ton partenaire doit activer le chiffrement sur son téléphone. Tes nouveaux envois sont suspendus pour éviter un message non chiffré.</p>:
+     <div className="lr-settings-recovery">
+      <strong>Empreinte de mon partenaire</strong>
+      <code style={{overflowWrap:"anywhere",fontSize:12}}>{e2eePartnerCode||"Chargement…"}</code>
+      <p className="lr-settings-help">Compare les 64 caractères avec ton partenaire par un autre moyen (en personne ou lors d’un appel). Le serveur ne peut pas vérifier cette identité à votre place.</p>
+      {e2eeVerified?<p className="lr-settings-help">✓ Empreinte vérifiée sur ce téléphone.</p>:
+       <button type="button" className="lr-settings-primary" onClick={onVerifyPartnerKey} disabled={!e2eeDeviceReady||!e2eePartnerCode||e2eeBusy}>J’ai comparé et vérifié l’empreinte</button>}
+     </div>}
+    <p className="lr-settings-help">{e2ee?.required&&e2eeVerified&&e2eeDeviceReady?
+     "Chiffrement actif pour les nouveaux échanges de cette conversation.":
+     "Chiffrement non prêt : vérification des clés nécessaire avant l’envoi."}</p>
+   </>}
+   <p className="lr-settings-help">Attention : cette première version n’a pas été auditée indépendamment. Le code de secours du compte ne restaure PAS les clés privées. Sauvegarde et multi-appareil restent à développer.</p>
   </section>
   <section className="lr-settings-section" aria-labelledby="lr-notifications-settings-title">
    <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">♬</span><div><h2 id="lr-notifications-settings-title">Notifications</h2><p>Messages, appels et invitations.</p></div></div>
