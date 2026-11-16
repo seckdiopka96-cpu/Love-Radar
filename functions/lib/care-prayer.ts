@@ -71,11 +71,11 @@ export async function ensureCareTables(db:D1Database){
   "PRIMARY KEY(member_id,day,prayer));"
  );
 }
-export async function loadDayTimings(db:D1Database,settings:PrayerSettings,day:string):Promise<PrayerTimes|null>{
+export async function loadDayTimings(db:D1Database,settings:PrayerSettings,day:string,refresh=false):Promise<PrayerTimes|null>{
  const cached=await db.prepare("SELECT times_json FROM care_prayer_cache WHERE member_id=? AND day=?")
   .bind(settings.member_id,day).first<{times_json:string}>();
- if(cached){
-  try{return parseTimings(JSON.parse(cached.times_json))}catch{return null}
+ if(cached&&!refresh){
+  try{return parseTimings(JSON.parse(cached.times_json))}catch{/* Refetch invalid cache. */}
  }
  const date=day.split("-").reverse().join("-");
  const u=new URL("https://api.aladhan.com/v1/timings/"+date);
