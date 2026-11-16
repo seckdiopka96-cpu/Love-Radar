@@ -52,7 +52,8 @@ test("reply composition is cancellable and real send includes referenced message
  assert.ok(app.includes('ref={chatInput}'));
  assert.ok(app.includes('chatInput.current?.focus()'));
  assert.ok(app.includes('replyTo:entry.replyToId'));
- assert.ok(app.includes('if(quoted)setReplyTarget(quoted)'));
+ assert.ok(app.includes('replyToId:quoted?.id'));
+ assert.ok(app.includes('status:"failed" as const'));;
  assert.ok(app.includes('m.reply_to_id?<QuoteCard'));
  assert.ok(app.includes('quoteAuthor(m.reply_sender_id,room.user.id,partner)'));
  assert.ok(app.includes("jumpToQuote"));
