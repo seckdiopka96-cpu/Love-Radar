@@ -7,6 +7,11 @@ on:
       - 'native/call-session/**'
       - 'scripts/configure-native.mjs'
       - 'src/native-call-session.ts'
+      - 'src/native-voip.ts'
+      - 'functions/lib/apns-voip.ts'
+      - 'functions/api/voip.ts'
+      - 'functions/api/call.ts'
+      - 'tests/native-voip.test.ts'
       - 'src/VoiceCall.tsx'
       - '.github/workflows/native.yml'
   pull_request:
