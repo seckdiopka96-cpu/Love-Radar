@@ -23,12 +23,12 @@
 .lr-settings-section-head p{font-size:11px;line-height:1.45;margin:0;color:#b8c4cd}
 .lr-settings-icon{width:36px;height:36px;flex:none;display:grid;place-items:center;color:#ffc4dd;background:#413b52;border:1px solid #765d7a;border-radius:12px;font-size:20px}
 .lr-settings-profile{display:flex;align-items:center;gap:11px;padding:10px;border:1px solid #ffffff1b;background:#ffffff08;border-radius:15px}
-.lr-settings-avatar{width:52px;height:52px;flex:none;display:grid;place-items:center;overflow:hidden;border-radius:50%;border:2px solid #f5b8d1;background:#a55e80;font-size:23px;font-weight:850;color:white}
+.lr-settings-avatar{width:52px;height:52px;flex:none;display:grid;place-items:center;overflow:hidden;border-radius:50%;border:2px solid #bc396c;background:#a82358;font-size:23px;font-weight:850;color:white}
 .lr-settings-avatar img{height:100%;width:100%;object-fit:cover}
 .lr-settings-profile-details{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
 .lr-settings-profile-details strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
 .lr-settings-profile-details small{font-size:10px;color:var(--universe-muted,#b8c4cd)}
-.lr-settings-primary{min-height:40px;padding:8px 13px;border-radius:12px;color:white;background:#be658f;border:1px solid #e6a6c5;font-size:12px;font-weight:850;cursor:pointer}
+.lr-settings-primary{min-height:40px;padding:8px 13px;border-radius:12px;color:white;background:#a82358;border:1px solid #bc396c;font-size:12px;font-weight:850;cursor:pointer}
 .lr-settings-inline-actions{display:flex;gap:8px;flex-wrap:wrap}
 .lr-settings-inline-actions button{flex:1 1 90px;min-height:41px;padding:8px 11px;border-radius:12px;border:1px solid #536a79;background:#263c4c;color:#f0e6ef;font-weight:750;font-size:12px;cursor:pointer}
 .lr-settings-inline-actions button:first-child{background:#503d54;border-color:#96718b}
@@ -40,9 +40,9 @@
 .lr-settings-toggle input{position:absolute;opacity:0;width:1px;height:1px}
 .lr-settings-switch{display:block;position:relative;flex:none;width:48px;height:28px;border-radius:20px;background:#3b4e5c;border:1px solid #657987;transition:background .15s}
 .lr-settings-switch::before{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#e1e9ed;transition:transform .15s}
-.lr-settings-toggle input:checked+.lr-settings-switch{background:#b95e90;border-color:#efb2d2}
+.lr-settings-toggle input:checked+.lr-settings-switch{background:#a82358;border-color:#bc396c}
 .lr-settings-toggle input:checked+.lr-settings-switch::before{transform:translateX(19px);background:white}
-.lr-settings-toggle input:focus-visible+.lr-settings-switch{outline:3px solid #ffd6e5;outline-offset:3px}
+.lr-settings-toggle input:focus-visible+.lr-settings-switch{outline:3px solid #bc396c;outline-offset:3px}
 .lr-settings-notification-status{display:flex;align-items:center;gap:9px;margin:0;font-size:12px;color:#d4c3d0}
 .lr-settings-notification-status>span{width:8px;height:8px;border-radius:50%;background:#9c8997}
 .lr-settings-notification-status .lr-settings-online{background:#74d5a7;box-shadow:0 0 0 3px #74d5a729}
@@ -53,9 +53,9 @@
 .lr-settings-invitation button{padding:8px 9px;border-radius:9px;color:#fff;background:#705072;border:1px solid #ad83a5;cursor:pointer}
 .lr-settings-logout,.lr-settings-danger{width:100%;text-align:center;min-height:45px;border-radius:12px;padding:10px;font-size:12px;font-weight:800;cursor:pointer}
 .lr-settings-logout{background:#2c4051;color:#f8edf5;border:1px solid #5f7484}
-.lr-settings-danger{background:#422734;color:#ffd4df;border:1px solid #97647b}
+.lr-settings-danger{background:#422734;color:#ffd4df;border:1px solid #bc396c}
 .lr-settings-footer{text-align:center;font-size:10px;line-height:1.6;color:#9fb0bf}
-.lr-settings-page button:focus-visible{outline:3px solid #ffd1df;outline-offset:3px}
+.lr-settings-page button:focus-visible{outline:3px solid #bc396c;outline-offset:3px}
 .lr-settings-page button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:700px){.lr-settings-page{padding:4px 1px 40px;gap:11px}.lr-settings-section{padding:14px;border-radius:18px;gap:12px}.lr-settings-heading{padding:4px 0}.lr-settings-heading h1{font-size:26px}}
 @media(max-width:355px){.lr-settings-profile{flex-wrap:wrap}.lr-settings-primary{margin-left:auto}.lr-settings-invitation{flex-wrap:wrap}}
