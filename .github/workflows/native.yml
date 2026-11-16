@@ -137,7 +137,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent Payload "$GITHUB_WORKSPACE/Love-Radar-iPhone-UNSIGNED.ipa"
           test -s "$GITHUB_WORKSPACE/Love-Radar-iPhone-UNSIGNED.ipa"
 
-      - name: Joindre l'IPA non signé (NE PAS INSTALLER : signature Apple requise)
+      - name: "Joindre l’IPA non signé — signature Apple requise pour installer"
         uses: actions/upload-artifact@v4
         with:
           name: love-radar-iphone-unsigned-ipa-NOT-INSTALLABLE
