@@ -152,7 +152,7 @@ export default function MemoryLove({token,mySeat,myName,partnerName,onExit,chall
     <p>Quand toutes les paires sont trouvées, le joueur qui en a le plus gagne. En cas d’égalité, personne ne doit de cadeau.</p>
     <h3>🎁 Défi cadeau — facultatif</h3>
     <p>Si vous acceptez tous les deux avant la partie, le perdant offrira le cadeau choisi par le gagnant : crédit téléphonique, forfait Internet ou 2 000 F CFA via Wave.</p>
-    <p>C’est un accord amical entre vous, non une obligation légale. Love Radar ne réalise aucun paiement et ne demande aucune donnée bancaire.</p>
+    <p>C’est un accord amical entre vous, non une obligation légale. L’application ne réalise aucun paiement et ne demande aucune donnée bancaire.</p>
    </div>
    <label className="memory-sign-read"><input type="checkbox" checked={rulesAccepted} onChange={e=>setRulesAccepted(e.target.checked)}/><span>✍️ Je coche pour confirmer avoir lu les règles et signer avec mon profil <strong>{myName}</strong>.</span></label>
    <fieldset className="memory-gift-consent"><legend>Acceptes-tu le défi cadeau si tu perds ?</legend>
@@ -181,7 +181,7 @@ export default function MemoryLove({token,mySeat,myName,partnerName,onExit,chall
    </>:<><p>{gift?.choice?giftName(gift.choice):"Ton partenaire choisit son cadeau."}</p>
     {gift?.choice?<button className="memory-primary" type="button" disabled={gift.given} onClick={()=>void post("gift_given",{given:true})}>{gift.given?"Déclaré offert ✓":"J’ai offert le cadeau"}</button>:null}
    </>:<><p>Le cadeau est facultatif. Il ne s’applique que si les deux partenaires l’ont accepté en signant avant le début de la manche.</p><p>{agreed?"✅ Défi accepté par les deux partenaires.":"Cette manche n’a pas de cadeau obligatoire."}</p></>}
-   <p>Aucun paiement automatique par Love Radar.</p>
+   <p>Aucun paiement automatique dans l’application.</p>
    {error?<p role="alert">{error}</p>:null}
    <button type="button" className="memory-muted" onClick={()=>setGiftOpen(false)}>Fermer</button>
    </div></div>:null}
