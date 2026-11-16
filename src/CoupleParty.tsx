@@ -4,7 +4,8 @@ import type {PartyMode,ChallengeKind} from "./couple-party-engine";
 import "./couple-party.css";
 
 type Base={id:string;mode:PartyMode;version:number;round:number;phase:string;turn:number;scores:[number,number];updatedAt:number};
-type RapidGame=Base&{mode:"rapid";phase:"question"|"result";question:string;options:[string,string,string,string];correct:number|null;
+type RapidGame=Base&{mode:"rapid";phase:"ready"|"question"|"result";question:string|null;options:[string,string,string,string]|null;correct:number|null;
+ myReady:boolean;partnerReady:boolean;
  myChoice:number|null;partnerPicked:boolean;partnerChoice:number|null;winner:number|null;startAt:number;deadlineAt:number};
 type TruthGame=Base&{mode:"truth";phase:"choose"|"challenge";kind:ChallengeKind|null;prompt:string|null};
 type Game=RapidGame|TruthGame;
@@ -63,7 +64,7 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
   const timeout=window.setTimeout(()=>setNotice(""),2800);
   return()=>window.clearTimeout(timeout);
  },[notice]);
- async function post(action:"invite"|"answer"|"next"|"pick"|"finish"|"pass",extra:Record<string,unknown>={}){
+ async function post(action:"invite"|"ready"|"answer"|"next"|"pick"|"finish"|"pass",extra:Record<string,unknown>={}){
   const game=last.current;
   if(!game||busyRef.current)return;
   busyRef.current=true;setBusy(true);setError("");
@@ -90,6 +91,7 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
  const motto=isRapid?"La première bonne réponse marque le point.":"Vos secrets, vos rires, vos défis.";
  const rapid=game?.mode==="rapid"?game:null;
  const truth=game?.mode==="truth"?game:null;
+ const truthMyTurn=Boolean(truth&&((truth.phase==="choose"&&truth.round===1)||truth.turn===seat));
  const secondsToStart=rapid?Math.max(0,Math.ceil((rapid.startAt-now)/1000)):0;
  const secondsLeft=rapid?Math.max(0,Math.ceil((rapid.deadlineAt-now)/1000)):0;
  const canAnswer=Boolean(rapid&&rapid.phase==="question"&&secondsToStart===0&&secondsLeft>0&&rapid.myChoice===null&&!busy);
@@ -119,6 +121,17 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
     <p>Rejoignez tous les deux votre espace privé pour jouer ensemble, même à distance.</p>
     <button type="button" className="lr-party-primary" onClick={onOpenChat}>Ouvrir notre conversation</button>
    </div>:
+   rapid?.phase==="ready"?<div className="lr-party-panel lr-party-wait lr-party-ready">
+    <span className="lr-party-big-icon" aria-hidden="true">⚡</span>
+    <strong>Prêts pour la manche {rapid.round} ?</strong>
+    <p>Le chrono ne démarre que lorsque vous êtes tous les deux prêts. Répondez le plus vite possible après 3, 2, 1…</p>
+    <div className="lr-party-ready-status" role="status">
+     <span className={rapid.myReady?"is-ready":""}>Toi {rapid.myReady?"✓ Prêt(e)":"· En attente"}</span>
+     <span className={rapid.partnerReady?"is-ready":""}>{name} {rapid.partnerReady?"✓ Prêt(e)":"· En attente"}</span>
+    </div>
+    <button type="button" className="lr-party-primary" disabled={rapid.myReady||busy}
+     onClick={()=>void post("ready")}>{rapid.myReady?"✓ Tu es prêt(e)":"Je suis prêt(e) →"}</button>
+   </div>:
    rapid?<div className="lr-party-panel">
     <div className="lr-party-question-meta">
      <span>QUESTION {rapid.round}</span>
@@ -127,9 +140,9 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
     <div className="lr-party-timer-track" aria-hidden="true">
      <span style={{width:rapid.phase==="result"?"0%":secondsToStart>0?"100%":Math.max(0,Math.min(100,(rapid.deadlineAt-now)/180))+"%"}}/>
     </div>
-    <h2>{rapid.question}</h2>
+    <h2>{rapid.question||"Question en préparation…"}</h2>
     <div className="lr-party-answers" role="group" aria-label="Choisir une réponse">
-     {rapid.options.map((choice,index)=>{
+     {(rapid.options||[]).map((choice,index)=>{
       const revealed=rapid.phase==="result";
       const correct=revealed&&rapid.correct===index;
       const wrong=revealed&&rapid.myChoice===index&&!correct;
@@ -142,7 +155,7 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
     </div>
     {rapid.phase==="result"?<div className="lr-party-result" role="status">
      <strong>{rapid.winner===seat?"🎉 Tu marques le point !":rapid.winner===null?"⌛ Personne n'a marqué cette fois.":"💗 "+name+" marque le point !"}</strong>
-     <span>Bonne réponse : {rapid.options[rapid.correct??0]}</span>
+     <span>Bonne réponse : {rapid.options?.[rapid.correct??0]||"—"}</span>
      <button type="button" className="lr-party-primary" disabled={busy} onClick={()=>void post("next")}>Question suivante →</button>
     </div>:<p className="lr-party-hint" role="status">{secondsToStart>0?"3… 2… 1… Soyez prêts !":
      secondsLeft===0?"Calcul du résultat en cours…":
@@ -150,15 +163,15 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
      rapid.partnerPicked?"Ton partenaire a déjà tenté sa chance. À toi !":"Réponds avant la fin du chrono pour marquer."}</p>}
    </div>:
    truth?<div className="lr-party-panel lr-party-truth-board">
-    <span className="lr-party-turn">{truth.turn===seat?"C’EST TON TOUR":"AU TOUR DE "+name.toUpperCase()}</span>
+    <span className="lr-party-turn">{truth.phase==="choose"&&truth.round===1?"À VOUS DE COMMENCER":truth.turn===seat?"C’EST TON TOUR":"AU TOUR DE "+name.toUpperCase()}</span>
     {truth.phase==="choose"?<>
-     <h2>{truth.turn===seat?"Que choisis-tu ?":"En attente du choix…"}</h2>
-     <p>{truth.turn===seat?"Prends une carte et relève ton défi. Tu peux toujours passer.":name+" choisit sa carte. Tu verras la même question sur ton téléphone."}</p>
+     <h2>{truthMyTurn?"Que choisis-tu ?":"En attente du choix…"}</h2>
+     <p>{truthMyTurn?"Prends une carte et relève ton défi. Tu peux toujours passer.":name+" choisit sa carte. Tu verras la même question sur ton téléphone."}</p>
      <div className="lr-party-deck">
-      <button type="button" className="lr-party-deck-truth" disabled={busy||truth.turn!==seat} onClick={()=>void post("pick",{kind:"truth"})}>
+      <button type="button" className="lr-party-deck-truth" disabled={busy||!truthMyTurn} onClick={()=>void post("pick",{kind:"truth"})}>
        <span>♥</span><strong>Vérité</strong><small>Une question sincère</small>
       </button>
-      <button type="button" className="lr-party-deck-action" disabled={busy||truth.turn!==seat} onClick={()=>void post("pick",{kind:"action"})}>
+      <button type="button" className="lr-party-deck-action" disabled={busy||!truthMyTurn} onClick={()=>void post("pick",{kind:"action"})}>
        <span>✦</span><strong>Action</strong><small>Un défi complice</small>
       </button>
      </div>
