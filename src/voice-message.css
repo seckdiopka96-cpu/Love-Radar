@@ -147,3 +147,112 @@
 }
 .lr-voice-note-playhead.is-playing{box-shadow:0 0 0 3px #fff4f32b,0 0 12px #fff7}
 @media(prefers-reduced-motion:reduce){.lr-voice-note-playhead{transition:none}}
+
+/* Messenger-inspired layout: live private profile photo occupies the avatar
+   position, then gives way to the speed control during playback. */
+.lr-chat .lr-bubble-row .lr-bubble.lr-bubble-audio{
+ box-sizing:border-box!important;width:min(330px,100%)!important;
+ min-width:min(265px,calc(100vw - 65px))!important;
+ padding:11px 12px 10px!important;
+ background:#242729!important;border:1px solid #33393b!important;
+ border-radius:21px 21px 21px 7px!important;
+ color:#f8f9fa!important;box-shadow:0 5px 18px #0003!important;
+}
+.lr-chat .lr-bubble-row.mine .lr-bubble.lr-bubble-audio{
+ background:#bd2763!important;border-color:#cd3974!important;
+ border-radius:21px 21px 7px 21px!important;
+ box-shadow:0 5px 18px #3d092b38!important;
+}
+.lr-chat .lr-voice-note{position:relative;gap:6px}
+.lr-chat .lr-voice-note-main{gap:8px;min-width:0;min-height:54px}
+.lr-chat .lr-voice-note-content{gap:5px;min-width:0;flex:1 1 0}
+.lr-chat .lr-voice-note-identity{
+ position:relative;flex:0 0 42px;width:42px;height:44px;
+ display:grid;place-items:center;align-self:center;min-width:0;
+}
+.lr-chat .lr-voice-note .lr-voice-note-avatar{
+ position:relative;display:grid!important;place-items:center!important;
+ padding:0!important;margin:0!important;border:0!important;
+ width:42px!important;height:42px!important;min-width:42px!important;
+ min-height:42px!important;max-width:42px!important;
+ background:#14645e!important;color:#d6fff0!important;
+ border-radius:50%!important;overflow:visible!important;
+ cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+ box-shadow:none!important;
+}
+.lr-chat .lr-voice-note .lr-voice-note-avatar img{
+ display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;
+}
+.lr-chat .lr-voice-note-avatar-initial{
+ display:grid;place-items:center;width:100%;height:100%;font-size:19px;
+ font-weight:850;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
+}
+.lr-chat .lr-voice-note-avatar:focus-visible,
+.lr-chat .lr-voice-note .lr-voice-note-speed:focus-visible{
+ outline:2px solid #fff!important;outline-offset:3px!important;
+}
+.lr-chat .lr-voice-note .lr-voice-note-avatar:disabled{cursor:default}
+.lr-chat .lr-voice-note-mic{
+ position:absolute;right:-3px;bottom:-3px;width:17px;height:21px;
+ display:grid;place-items:center;color:#74d6ff;
+ filter:drop-shadow(0 1px 1px #161616b0);pointer-events:none;
+}
+.lr-chat .lr-voice-note-mic svg{width:15px;height:18px;display:block}
+.lr-chat .lr-voice-note.is-own .lr-voice-note-mic{color:#ffb1d3}
+.lr-chat .lr-voice-note .lr-voice-note-speed{
+ display:grid!important;place-items:center!important;
+ flex:0 0 42px!important;width:42px!important;min-width:37px!important;
+ height:30px!important;min-height:30px!important;max-width:42px!important;
+ margin:0!important;padding:0 2px!important;
+ border:0!important;border-radius:999px!important;
+ background:#4c5053!important;color:#fff!important;
+ font:850 12px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;
+ font-variant-numeric:tabular-nums;letter-spacing:-.3px;
+ box-shadow:none!important;cursor:pointer;
+ touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.lr-chat .lr-voice-note.is-own .lr-voice-note-speed{background:#79143f!important}
+.lr-chat .lr-voice-note .lr-voice-note-play{
+ flex:0 0 34px!important;min-width:34px!important;width:34px!important;
+ height:42px!important;min-height:42px!important;
+ padding:7px!important;margin:0!important;
+ background:transparent!important;border:0!important;
+ border-radius:50%!important;box-shadow:none!important;
+ color:#fff!important;
+}
+.lr-chat .lr-voice-note .lr-voice-note-play svg{width:24px!important;height:24px!important}
+.lr-chat .lr-voice-note-wave-wrap{height:33px;min-width:0}
+.lr-chat .lr-voice-note-wave{height:28px;gap:1.4px}
+.lr-chat .lr-voice-note-wave>span{min-width:1px;max-width:4px;background:#a6a9ac!important;opacity:.75}
+.lr-chat .lr-voice-note-wave>span.played{background:#f3f7f8!important;opacity:1}
+.lr-chat .lr-voice-note.is-own .lr-voice-note-wave>span{background:#ed9ebc!important}
+.lr-chat .lr-voice-note.is-own .lr-voice-note-wave>span.played{background:#fff!important}
+.lr-chat .lr-voice-note-playhead{
+ background:#f7fafb;width:10px;height:10px;
+ box-shadow:0 0 0 1px #ffffff4a;transition:left .10s linear;
+}
+.lr-chat .lr-voice-note-meta{gap:5px!important;min-height:15px;line-height:1.3}
+.lr-chat .lr-voice-note-duration{font-size:12px;font-weight:700;min-width:33px}
+.lr-chat .lr-voice-note-time{font-size:11px;margin-left:auto;color:#d9d9da;opacity:.9}
+.lr-chat .lr-voice-note.is-own .lr-voice-note-time{color:#ffd4e4}
+.lr-chat .lr-voice-note-check{color:#ffe9f2;font-size:12px}
+/* Long press/swipe continues to expose actions on phones, while the
+   unobtrusive actions button remains available on pointer/keyboard devices. */
+.lr-chat .lr-voice-note .lr-voice-note-actions{
+ position:absolute;top:-11px;right:-7px;z-index:2;
+ flex:none;width:27px;min-width:27px;height:27px;min-height:27px;
+ opacity:0;pointer-events:none;transition:opacity .16s ease;
+ border-radius:50%!important;
+}
+.lr-chat .lr-voice-note:hover .lr-voice-note-actions,
+.lr-chat .lr-voice-note:focus-within .lr-voice-note-actions{
+ opacity:1;pointer-events:auto;
+}
+@media(max-width:700px){
+ .lr-chat .lr-bubble-row .lr-bubble.lr-bubble-audio{width:min(330px,100%)!important;padding:10px 10px 9px!important}
+ .lr-chat .lr-voice-note-main{gap:7px;min-height:52px}
+ .lr-chat .lr-voice-note-wave{gap:1.2px}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-chat .lr-voice-note-playhead,.lr-chat .lr-voice-note .lr-voice-note-actions{transition:none}
+}
