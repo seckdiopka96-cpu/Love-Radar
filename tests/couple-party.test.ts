@@ -15,6 +15,11 @@ const hash=(s:string)=>createHash("sha256").update(s).digest("hex");
 function harness(){
  const sqlite=new DatabaseSync(":memory:");
  sqlite.exec("CREATE TABLE members(id TEXT PRIMARY KEY,room_id TEXT NOT NULL,name TEXT NOT NULL,seat INTEGER NOT NULL,token_hash TEXT NOT NULL)");
+ // Each isolated fake D1 database starts with the deployed table schema.
+ const schema=readFileSync("schema.sql","utf8");
+ const start=schema.indexOf("CREATE TABLE IF NOT EXISTS couple_party_games");
+ assert.ok(start>=0);
+ sqlite.exec(schema.slice(start,schema.indexOf(";",start)+1));
  for(const [name,room,seat,letter] of [
   ["Alice","room-A",0,"a"],["Benoît","room-A",1,"b"],
   ["Dina","room-B",0,"c"],["Eric","room-B",1,"d"]
@@ -160,7 +165,7 @@ test("both new games are accessible, authenticated, and erased with room deletio
  assert.ok(api.includes("SELECT id,room_id,seat,name FROM members WHERE token_hash=?"));
  assert.ok(api.includes("PRIMARY KEY(room_id,mode)"));
  assert.ok(api.includes("AND phase='question' AND started_at<=?"));
- assert.ok(api.includes("AND "+'"deadline_at>? AND "+col+" IS NULL"' ));
+ assert.ok(api.includes('deadline_at>? AND "+col+" IS NULL'),"a player can only submit once before the deadline");
  assert.ok(!api.includes("correct:q.answer"));
  assert.ok(push.includes('"rapid"|"truth"'));
  assert.ok(sw.includes('"rps","rapid","truth"'));
