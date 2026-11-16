@@ -19,7 +19,7 @@ test("Voice calls do not wait up to fourteen seconds for ICE gathering before si
 });
 test("Voice calls prewarm relay configuration and check signaling quickly during active calls",()=>{
  assert.ok(call.includes("if(hasPartner)void warmNetwork()"));
- assert.ok(call.includes("current.current?650:1100"));
+ assert.ok(call.includes("current.current?340:650"));
  assert.ok(call.includes("void sync();"),"caller/callee can refresh immediately");
  assert.ok(call.includes("iceCandidatePoolSize:2"));
  assert.ok(call.includes("queuedCandidates.current=[]"));
@@ -81,4 +81,14 @@ test("FaceTime-style call is audio-only with functional six-button controls and 
  assert.ok(css.includes('grid-template-columns:repeat(3,minmax(0,1fr))'));
  assert.ok(css.includes('background:#df264e'));
  assert.ok(css.includes('.lr-call-mini'));
+});
+
+test("call signaling and microphone initialize in parallel to reduce time before ringing",()=>{
+ assert.ok(call.includes("const micTask=microphone()"));
+ assert.ok(call.includes('const callTask=api("start")'));
+ assert.ok(call.includes("Promise.all([callTask,micTask])"));
+ assert.ok(call.includes("Promise.all([microphone(),warmNetwork()])"));
+ assert.ok(call.includes('void api("end",{id:created.call.id})'));
+ assert.ok(!call.includes('await microphone(); // Called immediately after the tap'));
+ assert.ok(!call.includes('Love Radar audio'));
 });
