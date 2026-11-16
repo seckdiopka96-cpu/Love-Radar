@@ -1,0 +1,14 @@
+# Copy to wrangler.care.toml and replace the real D1 database_id from
+# Cloudflare Dashboard > D1 > love-radar-db > Settings.
+# Deploy separately: npx wrangler deploy --config wrangler.care.toml
+name = "love-radar-care-reminders"
+main = "workers/care-scheduler.ts"
+compatibility_date = "2026-11-16"
+
+[triggers]
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "love-radar-db"
+database_id = "REPLACE_WITH_YOUR_EXISTING_LOVE_RADAR_D1_DATABASE_ID"
