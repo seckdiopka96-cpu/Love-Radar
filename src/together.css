@@ -10,9 +10,9 @@
 .tg-top-heart{font-size:24px;color:#ffaccb;border:1px solid #805e82;border-radius:12px;background:#503754;padding:6px 9px}
 .tg-modes{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px;border-radius:14px;border:1px solid #785478;background:#302239;flex:0 0 auto}
 .tg-modes button{border:0;border-radius:10px;background:transparent;color:#e8cce2;padding:11px 4px;font-size:12px;font-weight:800}
-.tg-modes button.selected{background:linear-gradient(125deg,#b35b87,#784b84);color:#fff;box-shadow:0 5px 14px #210d236b}
+.tg-modes button.selected{background:linear-gradient(125deg,#a82358,#784b84);color:#fff;box-shadow:0 5px 14px #210d236b}
 .tg-heart-screen{display:flex;flex-direction:column;align-items:center;gap:13px;min-height:0;flex:1 1 auto}
-.tg-heart-center{width:100%;min-height:245px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;text-align:center;position:relative;border:1px solid #c58fae;border-radius:23px;padding:18px;background:radial-gradient(ellipse at 55% 38%,#ad567c9e,transparent 46%),linear-gradient(135deg,#57315c,#3a294b 90%);overflow:hidden}
+.tg-heart-center{width:100%;min-height:245px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;text-align:center;position:relative;border:1px solid #bc396c;border-radius:23px;padding:18px;background:radial-gradient(ellipse at 55% 38%,#a823589e,transparent 46%),linear-gradient(135deg,#57315c,#3a294b 90%);overflow:hidden}
 .tg-heart-kicker{font-size:9px;font-weight:900;letter-spacing:1.5px;color:#ffcddf}
 .tg-heart-animation{font-size:83px;line-height:1.1;color:#f392b8;text-shadow:0 10px 22px #431e47;animation:tg-heartbeat 1.6s ease-in-out infinite alternate}
 @keyframes tg-heartbeat{to{transform:scale(1.12);filter:brightness(1.1)}}
@@ -20,7 +20,7 @@
 .tg-heart-center h1 em{color:#ffbbd8}
 .tg-heart-center p{font-size:12px;line-height:1.5;max-width:285px;margin:0;color:#f1d4e7}
 .tg-heart-center small{font-size:11px;color:#efd2e1}
-.tg-send-heart{min-width:230px;border:0;border-radius:14px;background:linear-gradient(130deg,#fa86ad,#ca4e89);padding:13px 18px;color:#fff;font-size:14px;font-weight:950;box-shadow:0 8px 22px #320a2d66}
+.tg-send-heart{min-width:230px;border:0;border-radius:14px;background:linear-gradient(130deg,#bd2763,#a82358);padding:13px 18px;color:#fff;font-size:14px;font-weight:950;box-shadow:0 8px 22px #320a2d66}
 .tg-send-heart:disabled{opacity:.5}
 .tg-heart-feed{width:100%;display:flex;flex-direction:column;gap:9px;border:1px solid #765a80;background:#382944;padding:13px;border-radius:19px;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .tg-heart-feed-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -28,16 +28,16 @@
 .tg-heart-feed-title span{color:#f5a7d0;font-size:24px}
 .tg-heart-feed>p{font-size:12px;color:#dabfd2;margin:2px 0}
 .tg-signal{display:flex;gap:9px;border:1px solid #775a76;border-radius:13px;padding:10px;background:#463450}
-.tg-signal.received{background:#754161;border-color:#cf87a9}
-.tg-signal-avatar{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:11px;background:#efa2c1;color:#382542;font-weight:950}
+.tg-signal.received{background:#754161;border-color:#bc396c}
+.tg-signal-avatar{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:11px;background:#bd2763;color:#382542;font-weight:950}
 .tg-signal.sent .tg-signal-avatar{background:#d3a4e9}
 .tg-signal-content{display:flex;flex-direction:column;gap:7px;flex:1;min-width:0}
 .tg-signal-content small{font-size:10px;color:#e0c6db}
 .tg-signal-content strong{font-size:13px;color:#fff6f7;overflow-wrap:anywhere}
 .tg-reply-options{display:flex;gap:6px;flex-wrap:wrap}
-.tg-reply-options button{border:1px solid #f0bfd6;background:#a15f82;color:#fff8fa;border-radius:9px;padding:8px 7px;font-size:10px;font-weight:800}
+.tg-reply-options button{border:1px solid #bc396c;background:#a82358;color:#fff8fa;border-radius:9px;padding:8px 7px;font-size:10px;font-weight:800}
 .tg-vocal-hint{font-size:10px!important;color:#e3ccdc!important}
-.tg-direct-notice{width:100%;display:flex;flex-direction:column;gap:5px;padding:11px 13px;background:#8a5278;border:1px solid #e6b6d1;border-radius:13px}
+.tg-direct-notice{width:100%;display:flex;flex-direction:column;gap:5px;padding:11px 13px;background:#8a5278;border:1px solid #bc396c;border-radius:13px}
 .tg-direct-notice>span{font-size:9px;letter-spacing:1px;color:#f1cfe6}
 .tg-direct-notice strong{font-size:12px}
 .tg-direct-notice button{font-size:11px;color:#ffe4ad;border:0;text-align:left;background:transparent;padding:3px 0}
@@ -50,29 +50,29 @@
 .tg-invite:disabled{opacity:.5}
 .tg-draw-tools{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;flex:0 0 auto}
 .tg-draw-tools button{border:1px solid #815a80;background:#53395d;color:#f6e3f0;border-radius:10px;padding:10px 4px;font-size:12px;font-weight:850}
-.tg-draw-tools button.active{border-color:#f1b8d0;background:#9e5a83;color:#fff}
+.tg-draw-tools button.active{border-color:#bc396c;background:#a82358;color:#fff}
 .tg-board-wrap{position:relative;min-height:0;flex:1 1 auto;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:4px}
-.tg-board{touch-action:none;user-select:none;-webkit-user-select:none;display:block;aspect-ratio:1/1;width:min(100%,480px);height:auto;max-height:100%;background:#fff9f3;border:6px solid #c98ead;border-radius:21px;box-shadow:0 8px 30px #0e071999;cursor:crosshair}
+.tg-board{touch-action:none;user-select:none;-webkit-user-select:none;display:block;aspect-ratio:1/1;width:min(100%,480px);height:auto;max-height:100%;background:#c8326c;border:6px solid #bc396c;border-radius:21px;box-shadow:0 8px 30px #0e071999;cursor:crosshair}
 .tg-board-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;color:#573f58;font-weight:800;font-size:12px}
 .tg-draw-bottom{display:flex;flex-direction:column;gap:9px;flex:0 0 auto;background:#362943;border:1px solid #755678;border-radius:16px;padding:11px}
 .tg-draw-colors{display:flex;align-items:center;justify-content:center;gap:10px}
 .tg-draw-colors button{width:31px;height:31px;border:2px solid #ffffff75;border-radius:50%;padding:0}
-.tg-draw-colors button.active{border:3px solid #fff;box-shadow:0 0 0 2px #eaa4c6}
+.tg-draw-colors button.active{border:3px solid #fff;box-shadow:0 0 0 2px #a21e52}
 .tg-draw-note{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:800}
-.tg-draw-note input{width:100%;padding:8px 11px;border:1px solid #cba0bd;border-radius:10px;background:#fff9fc;color:#38243d;font-size:14px}
+.tg-draw-note input{width:100%;padding:8px 11px;border:1px solid #bc396c;border-radius:10px;background:#c8326c;color:#38243d;font-size:14px}
 .tg-bottom-actions{display:flex;align-items:center;justify-content:space-between;gap:6px}
 .tg-bottom-actions>button{border:1px solid #8e6b91;background:#644a6b;color:#fff0fa;border-radius:10px;padding:9px;font-size:11px;font-weight:800}
 .tg-stroke-widths{display:flex;gap:3px}
 .tg-stroke-widths button{min-width:30px;min-height:31px;border:1px solid #745671;border-radius:9px;background:#4b3658;color:#ffe7f7;font-size:16px}
-.tg-stroke-widths button.active{border-color:#ffd0e5;background:#955e89}
+.tg-stroke-widths button.active{border-color:#bc396c;background:#955e89}
 .tg-draw-bottom>small{font-size:9px;line-height:1.35;text-align:center;color:#d1b6ca}
-.tg-floating-alert{position:absolute;z-index:12;bottom:8px;left:8px;right:8px;max-width:650px;margin:0 auto;border:1px solid #faa3aa;border-radius:10px;padding:11px;background:#7d344f;color:#fff;font-size:11px;line-height:1.4;text-align:center;box-shadow:0 5px 18px #100b1780}
+.tg-floating-alert{position:absolute;z-index:12;bottom:8px;left:8px;right:8px;max-width:650px;margin:0 auto;border:1px solid #bc396c;border-radius:10px;padding:11px;background:#7d344f;color:#fff;font-size:11px;line-height:1.4;text-align:center;box-shadow:0 5px 18px #100b1780}
 .tg-floating-success{background:#39664b;border-color:#a8e7bb}
 .tg-modal-backdrop{position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:#130b1bda;padding:18px}
-.tg-modal{width:min(100%,370px);display:flex;flex-direction:column;gap:12px;padding:22px;background:#483154;border:1px solid #c58eb7;border-radius:21px;text-align:center}
+.tg-modal{width:min(100%,370px);display:flex;flex-direction:column;gap:12px;padding:22px;background:#483154;border:1px solid #bc396c;border-radius:21px;text-align:center}
 .tg-modal h2{font:600 23px Georgia,serif;margin:0}
 .tg-modal p{font-size:12px;line-height:1.5;color:#e0c5d9;margin:0}
-.tg-modal button{border:0;padding:12px;border-radius:11px;background:#c26689;color:#fff;font-size:12px;font-weight:850}
+.tg-modal button{border:0;padding:12px;border-radius:11px;background:#a82358;color:#fff;font-size:12px;font-weight:850}
 .tg-modal button.tg-cancel{background:#62486d}
 @media(max-width:950px){
  html:has(.lr-app.lr-together-mode),body:has(.lr-app.lr-together-mode),#root:has(.lr-app.lr-together-mode){height:100dvh!important;max-height:100dvh!important;overflow:hidden!important}
@@ -112,7 +112,7 @@
 .tg-draw-tools button{font-size:11px;white-space:nowrap;min-width:0}
 @media(max-width:400px){.tg-draw-tools button{font-size:10px;padding:7px 1px}}
 
-.tg-location-link{flex:0 0 auto;text-align:center;width:100%;border:1px solid #c79eaf;border-radius:11px;background:#60465f;color:#ffe0ec;padding:9px;font-size:11px;font-weight:850}
+.tg-location-link{flex:0 0 auto;text-align:center;width:100%;border:1px solid #bc396c;border-radius:11px;background:#60465f;color:#ffe0ec;padding:9px;font-size:11px;font-weight:850}
 @media(max-width:700px){.tg-location-link{font-size:10px;padding:8px}}
 
 /* Both phones show an honest live-connection status. */
@@ -122,21 +122,21 @@
 
 /* Small shortcuts keep both romantic moment and consent-based location visible. */
 .tg-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:7px;flex:0 0 auto;min-width:0}
-.tg-shortcuts button{width:100%;min-width:0;border:1px solid #c79eaf;border-radius:11px;background:#60465f;color:#ffe0ec;padding:9px 4px;font-size:11px;line-height:1.25;font-weight:850;white-space:nowrap}
-.tg-shortcuts .tg-moment-link{background:#70435d;border-color:#dbacc4}
+.tg-shortcuts button{width:100%;min-width:0;border:1px solid #bc396c;border-radius:11px;background:#60465f;color:#ffe0ec;padding:9px 4px;font-size:11px;line-height:1.25;font-weight:850;white-space:nowrap}
+.tg-shortcuts .tg-moment-link{background:#70435d;border-color:#bc396c}
 @media(max-width:360px){.tg-shortcuts button{font-size:10px;padding:8px 2px}}
 
 /* Three concise links make room for reunions without hiding the drawing board. */
 .tg-shortcuts{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
 .tg-shortcuts button{font-size:10px;padding:9px 2px;white-space:normal}
-.tg-shortcuts .tg-reunion-link{background:#694565;border-color:#ddabc9}
+.tg-shortcuts .tg-reunion-link{background:#694565;border-color:#bc396c}
 @media(max-width:360px){.tg-shortcuts button{font-size:9px;padding:8px 1px}}
 
 /* Cinema is the fourth Together shortcut. Prevent four buttons from cramping phones. */
 .tg-shortcuts{grid-template-columns:repeat(4,minmax(0,1fr))}
 .tg-shortcuts .tg-watch-link{
- background:linear-gradient(130deg,#b46483,#745080);
- border-color:#f1a7ce;color:#fff5e8
+ background:linear-gradient(130deg,#a82358,#745080);
+ border-color:#bc396c;color:#fff5e8
 }
 @media(max-width:540px){
  .tg-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
@@ -152,12 +152,12 @@
 .tg-section-label small{font-size:10px;color:#d6b5c8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tg-watch-feature{position:relative;display:flex;align-items:center;gap:13px;width:100%;min-width:0;min-height:84px;
  text-align:left;padding:12px 15px;background:linear-gradient(112deg,#8e466a 0%,#62446f 59%,#483159 100%);
- border:1px solid #f0a2c9;border-radius:17px;box-shadow:inset 0 1px #ffcee94d,0 7px 16px #160c2052;
+ border:1px solid #bc396c;border-radius:17px;box-shadow:inset 0 1px #a21e524d,0 7px 16px #160c2052;
  color:#fff5f9;touch-action:manipulation}
 .tg-watch-feature:active{transform:scale(.992)}
-.tg-watch-feature:focus-visible{outline:2px solid #ffe0ee;outline-offset:2px}
+.tg-watch-feature:focus-visible{outline:2px solid #bc396c;outline-offset:2px}
 .tg-watch-symbol{display:grid;place-items:center;flex:none;width:52px;height:52px;border-radius:16px;
- color:#fff3fa;background:linear-gradient(145deg,#ee89a7,#bd508a);border:1px solid #ffcee7a5;
+ color:#fff3fa;background:linear-gradient(145deg,#bd2763,#a82358);border:1px solid #bc396ca5;
  box-shadow:0 4px 16px #35152d85;font-size:23px;text-shadow:0 2px 4px #622b50}
 .tg-watch-copy{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
 .tg-watch-copy small{font-size:8px;font-weight:950;letter-spacing:1.05px;color:#ffdae8}
@@ -171,16 +171,16 @@
  font-size:11px;font-weight:800;color:#fceaf3;white-space:normal}
 .tg-shortcuts button>span{font-size:16px;line-height:1.1;flex:none}
 .tg-shortcuts button>strong{font-weight:850;font-size:clamp(10px,2.7vw,12px);white-space:nowrap}
-.tg-shortcuts .tg-moment-link{background:linear-gradient(125deg,#69445d,#543552);border-color:#b486a3}
+.tg-shortcuts .tg-moment-link{background:linear-gradient(125deg,#69445d,#543552);border-color:#bc396c}
 .tg-shortcuts .tg-reunion-link{background:linear-gradient(125deg,#55415f,#483552);border-color:#977f9d}
 .tg-shortcuts .tg-location-link{background:linear-gradient(125deg,#4a435f,#3b3554);border-color:#827fa0}
 .tg-between-label{margin-top:1px}
 .tg-modes{border:1px solid #785878;border-radius:12px;background:#31243c;padding:4px;gap:5px}
 .tg-modes button{min-height:38px;padding:9px 5px;font-size:11px;border-radius:9px}
-.tg-modes button.selected{background:linear-gradient(120deg,#b95389,#834878);box-shadow:0 2px 8px #1d112d63}
+.tg-modes button.selected{background:linear-gradient(120deg,#a82358,#834878);box-shadow:0 2px 8px #1d112d63}
 .tg-heart-screen{align-items:stretch;gap:9px;overflow-y:auto;overscroll-behavior:contain;padding-bottom:4px}
 .tg-heart-center{min-height:0;flex:0 0 auto;gap:6px;padding:15px 15px 17px;border-radius:17px;
- background:radial-gradient(ellipse at 50% 10%,#b35a817d,transparent 52%),linear-gradient(125deg,#543259,#342745)}
+ background:radial-gradient(ellipse at 50% 10%,#a823587d,transparent 52%),linear-gradient(125deg,#543259,#342745)}
 .tg-heart-kicker{font-size:8px;letter-spacing:1.6px}
 .tg-heart-animation{font-size:43px;line-height:1;color:#f29fc0}
 .tg-heart-center h1{font-size:clamp(24px,5.2vw,31px);line-height:1.12}
@@ -235,20 +235,20 @@
 /* With drawing and location removed, this row now has two even shortcuts.
    The former drawing tab becomes the highlighted co-operative puzzle entry. */
 .tg-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}
-.tg-modes .tg-puzzle-open{background:linear-gradient(125deg,#78518e,#9e5987);border:1px solid #cf9fbf;
+.tg-modes .tg-puzzle-open{background:linear-gradient(125deg,#78518e,#a82358);border:1px solid #bc396c;
  color:#fff5fb;box-shadow:0 3px 12px #21122c60}
 .tg-modes .tg-puzzle-open:active{transform:scale(.98)}
-.tg-modes .tg-puzzle-open:focus-visible{outline:2px solid #ffe6ec;outline-offset:2px}
+.tg-modes .tg-puzzle-open:focus-visible{outline:2px solid #bc396c;outline-offset:2px}
 @media(max-width:540px){.tg-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* A calm, non-game alternative for partners who need to be heard. */
 .tg-reconcile-entry{display:flex;align-items:center;gap:11px;text-align:left;flex:none;
- width:100%;min-width:0;border:1px solid #d6a6be;border-radius:14px;
+ width:100%;min-width:0;border:1px solid #bc396c;border-radius:14px;
  background:linear-gradient(110deg,#624660,#463453);color:#fff1f6;
- box-shadow:inset 0 1px #ffe9ec26;padding:11px 13px;min-height:66px}
+ box-shadow:inset 0 1px #a21e5226;padding:11px 13px;min-height:66px}
 .tg-reconcile-entry:focus-visible{outline:2px solid #ffe4db;outline-offset:2px}
 .tg-reconcile-icon{width:42px;height:42px;flex:none;display:grid;place-items:center;
- border-radius:12px;border:1px solid #ffcfdfa1;background:#955d83;font-size:23px}
+ border-radius:12px;border:1px solid #bc396ca1;background:#a82358;font-size:23px}
 .tg-reconcile-copy{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
 .tg-reconcile-copy strong{font:700 17px Georgia,serif}
 .tg-reconcile-copy small{font-size:10px;line-height:1.35;color:#e9cbdc}
@@ -323,8 +323,8 @@
  .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-send-heart{
   flex:none!important;width:auto!important;min-width:105px!important;
   margin:0!important;padding:11px 14px!important;font-size:12px!important;
-  background:#d4779f!important;color:white!important;
-  border:1px solid #f4b5d0!important;border-radius:13px!important;
+  background:#bd2763!important;color:white!important;
+  border:1px solid #bc396c!important;border-radius:13px!important;
  }
  .lr-app.lr-together-mode.lr-app-locked .tg-page-premium .tg-heart-feed{
   padding:14px!important;gap:12px!important;
