@@ -1,5 +1,4 @@
 import {getSticker} from "./stickers";
-import "./animated-stickers.css";
 type Props={id:string;compact?:boolean;animated?:boolean};
 export default function StickerArt({id,compact=false,animated=false}:Props){
  const sticker=getSticker(id);
