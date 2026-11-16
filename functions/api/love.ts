@@ -49,7 +49,7 @@ async function ensureMessageActions(db:D1Database){
  })().catch(err=>{actionsReady=null;throw err});
  await actionsReady;
 }
-const MESSAGE_REACTIONS=new Set(["👍","❤️","😂","😮","😢","🙏","👏"]);
+const MESSAGE_REACTIONS=new Set(["👍","❤️","😂","😮","😢","🙏","👏","🥰","😍","😘","💗","🔥","🎉","💯","🤗","😎","💐","🤲","😅"]);
 const validMessageId=(id:unknown):id is string=>typeof id==="string"&&/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(id);
 
 
