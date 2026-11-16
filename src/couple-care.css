@@ -74,3 +74,7 @@
  .lr-care-header h1{font-size:24px}
 }
 @media(prefers-reduced-motion:reduce){.lr-care button{transition:none!important}}
+
+/* When menstrual care is not explicitly enabled, prayer takes full card width.
+   Incoming partner care notices remain available below. */
+.lr-care-grid>.lr-care-card:only-child{grid-column:1/-1;max-width:100%}
