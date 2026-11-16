@@ -74,7 +74,7 @@ export default function HomeDashboard({room,token,media,privacyEnabled,onInvite,
  const reactionIsLatest=Boolean(reaction&&(!last||reaction.updated_at>=last.created_at));
  const reactionAuthor=reaction?.member_id===room.user.id?"Vous":room.partner||"Ton partenaire";
  const reactionPreview=reaction?(reaction?.member_id===room.user.id?"Vous avez réagi par ":reactionAuthor+" a réagi par ")+reaction.emoji+" à «"+quotePreview(reaction.kind,reaction.content,65)+"»":"";
- const latest=reactionIsLatest?reactionPreview:last?.kind==="text"?(last.content||""):last?.kind==="audio"?(last.view_once?"Média temporaire ancien":"🎤 Message vocal"):last?.kind==="image"?(last.view_once?"Média temporaire ancien":"📸 Photo partagée"):"Votre premier message vous attend";
+ const latest=reactionIsLatest?reactionPreview:last?.kind==="text"?quotePreview("text",last.content,95):last?.kind==="audio"?(last.view_once?"Média temporaire ancien":"🎤 Message vocal"):last?.kind==="image"?(last.view_once?"Média temporaire ancien":"📸 Photo partagée"):"Votre premier message vous attend";
  const from=reactionIsLatest?(reaction?.member_id===room.user.id?"Toi":room.partner||"Ton partenaire"):last?(last.sender_id===room.user.id?"Toi":room.partner||"Ton partenaire"):"Votre conversation";
  const online=Boolean(room.partner&&room.partnerLastSeenAt&&Date.now()-room.partnerLastSeenAt<35000);
  const gameHeadline=game?.status==="won"?"Une partie terminée !":game?"Reprendre notre partie":"Jouons ensemble ?";
