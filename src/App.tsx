@@ -1007,7 +1007,8 @@ export default function LoveRadar(){
   const tick=()=>{
    const live=recordingStartedAt.current===null?0:Date.now()-recordingStartedAt.current;
    const ms=recordingAccumulatedMs.current+live;
-   setRecordingElapsed(Math.floor(ms/1000));
+   const seconds=Math.floor(ms/1000);
+   setRecordingElapsed(previous=>previous===seconds?previous:seconds);
    if(ms>=45000&&recorder.current&&recorder.current.state!=="inactive")finishRecording(true);
   };
   tick();
@@ -1064,7 +1065,12 @@ export default function LoveRadar(){
    setRecordingElapsed(0);setRecordingPaused(false);
    recordingActive.current=true;setRecording(true);
    void request("recording",{active:true}).catch(()=>{});
-  }catch{setError("Microphone refusé ou non disponible. Autorise le micro dans Safari.")}
+  }catch{
+   recordingStream.current?.getTracks().forEach(track=>track.stop());
+   recordingStream.current=null;
+   setRecording(false);setRecordingPaused(false);
+   setError("Microphone refusé ou non disponible. Autorise le micro dans Safari.");
+  }
  }
  async function shareCode(){
   const invite=publicInviteUrl(room?.code||"");
