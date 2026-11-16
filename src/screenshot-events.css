@@ -1,0 +1,48 @@
+/* Private screenshot alerts appear as compact, neutral system notices in
+   the conversation. Never display a screenshot thumbnail or private pixels. */
+.lr-chat .lr-chat-screenshot-event{
+ width:min(90%,370px);
+ min-width:0;
+ margin:12px auto 13px;
+ padding:11px 13px;
+ display:flex;
+ align-items:flex-start;
+ gap:10px;
+ border:1px solid rgba(245,168,199,.37);
+ border-radius:17px;
+ background:linear-gradient(135deg,rgba(66,48,69,.96),rgba(29,47,61,.98));
+ box-shadow:0 5px 15px rgba(0,10,22,.25);
+ color:#fff5f9;
+ text-align:left;
+}
+.lr-chat .lr-screenshot-symbol{
+ display:grid;place-items:center;
+ width:37px;height:37px;flex:none;
+ background:rgba(247,163,194,.16);
+ border:1px solid rgba(252,178,206,.2);
+ border-radius:12px;
+ font-size:20px;
+}
+.lr-chat .lr-chat-screenshot-event>div{
+ min-width:0;
+ flex:1;
+ display:flex;
+ flex-direction:column;
+ gap:4px;
+}
+.lr-chat .lr-chat-screenshot-event strong{
+ font-size:13px;line-height:1.35;color:#ffcadc;
+ font-weight:820;
+}
+.lr-chat .lr-chat-screenshot-event p{
+ margin:0;font-size:12px;line-height:1.5;
+ color:#e2d7e3;
+}
+.lr-chat .lr-chat-screenshot-event time{
+ align-self:flex-end;
+ font-size:10px;line-height:1.3;
+ color:#bbc5d4;font-variant-numeric:tabular-nums;
+}
+@media(max-width:700px){
+ .lr-chat .lr-chat-screenshot-event{width:min(90%,340px);margin:9px auto 10px}
+}
