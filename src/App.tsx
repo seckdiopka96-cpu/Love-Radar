@@ -1,5 +1,5 @@
 import {apiFetch,isNativeApp,publicInviteUrl} from "./api";
-import {ensureIdentity,loadIdentity,fingerprint,makeContext,verifyPartner,isPartnerVerified,encryptText,encryptMedia,decryptMedia,isEncryptedMedia,isEncryptedText,type CryptoContext} from "./e2ee";
+import {ensureIdentity,loadIdentity,encryptedBackupFor,restoreIdentityBackup,fingerprint,makeContext,verifyPartner,isPartnerVerified,encryptText,encryptMedia,decryptMedia,isEncryptedMedia,isEncryptedText,type CryptoContext} from "./e2ee";
 import {revealMessages} from "./e2ee-room";
 import {setNativePrivacy} from "./native-privacy";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
@@ -111,11 +111,19 @@ export default function LoveRadar(){
  const [token,setToken]=useState("");
  const [room,setRoom]=useState<Room|null>(null);
  const [e2eeBusy,setE2eeBusy]=useState(false);
+ const [e2eeBackup,setE2eeBackup]=useState("");
  const [e2eeOwnCode,setE2eeOwnCode]=useState("");
  const [e2eePartnerCode,setE2eePartnerCode]=useState("");
  const [e2eeDeviceReady,setE2eeDeviceReady]=useState(false);
  const [e2eeVerified,setE2eeVerified]=useState(false);
  const avatars=useProfileAvatars(token,room?.user.id,room?.user.avatarVersion,room?.partnerId,room?.partnerAvatarVersion);
+ useEffect(()=>{
+  let alive=true;
+  setE2eeBackup("");
+  const memberId=room?.user.id;
+  if(memberId)void encryptedBackupFor(memberId).then(v=>{if(alive)setE2eeBackup(v||"")}).catch(()=>{});
+  return()=>{alive=false};
+ },[room?.user.id]);
  useEffect(()=>{
   let alive=true;const rm=room;
   if(!rm?.e2ee?.mine){setE2eeOwnCode("");setE2eePartnerCode("");setE2eeDeviceReady(false);setE2eeVerified(false);return}
@@ -629,16 +637,42 @@ export default function LoveRadar(){
   if(!rm.e2ee?.required)return text;
   return encryptText(await cryptoFor(rm),text,id);
  }
- async function enableE2EE(){
+
+ async function enableE2EE(passphrase:string){
   const rm=room;if(!rm||e2eeBusy||rm.e2ee?.mine)return;
-  if(!window.confirm("Activer le chiffrement sur cet appareil ? Sans sauvegarde, un changement de téléphone peut rendre les nouveaux messages illisibles. Les anciens messages resteront en clair."))return;
   setE2eeBusy(true);setError("");
   try{
-   const identity=await ensureIdentity(rm.user.id);
+   const created=await ensureIdentity(rm.user.id,passphrase);
+   setE2eeBackup(created.encryptedBackup);
+   setNotice("Clé privée créée. Télécharge sa sauvegarde et conserve la phrase secrète avant l’activation.");
+  }catch(e){setError(e instanceof Error?e.message:"Impossible de préparer la clé chiffrée.")}
+  finally{setE2eeBusy(false)}
+ }
+ async function completeE2EE(){
+  const rm=room;if(!rm||e2eeBusy||rm.e2ee?.mine)return;
+  setE2eeBusy(true);setError("");
+  try{
+   const identity=await loadIdentity(rm.user.id);
+   const backup=await encryptedBackupFor(rm.user.id);
+   if(!identity||!backup)throw Error("Sauvegarde préalable obligatoire.");
    await request("enable-e2ee",{publicKey:identity.publicKey});
    await refresh(undefined,true);
-   setNotice("Clé activée sur cet appareil. Ton partenaire doit aussi activer la sienne.");
-  }catch(e){setError(e instanceof Error?e.message:"Activation du chiffrement impossible.")}
+   setNotice("Chiffrement activé sur ce téléphone. Ton partenaire doit aussi activer sa clé.");
+  }catch(e){setError(e instanceof Error?e.message:"Activation impossible.")}
+  finally{setE2eeBusy(false)}
+ }
+ async function restoreE2EE(file:File,passphrase:string){
+  const rm=room;
+  if(!rm?.e2ee?.mine||e2eeBusy)return;
+  setE2eeBusy(true);setError("");
+  try{
+   if(file.size>4000)throw Error("Sauvegarde trop volumineuse.");
+   const encrypted=await file.text();
+   await restoreIdentityBackup(rm.user.id,encrypted,passphrase,rm.e2ee.mine);
+   setE2eeBackup(encrypted);setE2eeDeviceReady(true);
+   await refresh(undefined,true);
+   setNotice("Clé privée restaurée sur ce téléphone.");
+  }catch(e){setError(e instanceof Error?e.message:"Restauration de clé impossible.")}
   finally{setE2eeBusy(false)}
  }
  async function approvePartnerKey(){
@@ -1436,9 +1470,10 @@ export default function LoveRadar(){
      name={room.user.name} code={room.code} owner={room.user.owner} token={token} avatarSrc={avatars.mine} avatarVersion={room.user.avatarVersion}
      profileBusy={profileBusy} profileError={profileError} recoveryBusy={recoveryBusy} onGenerateRecovery={()=>void issueRecoveryCode()} privacyEnabled={privacyEnabled}
      notificationsOn={notificationsOn} notificationsBusy={notificationsBusy} notificationsTesting={notificationsTesting} notificationsHint={notificationsHint}
-     e2ee={room.e2ee} e2eeBusy={e2eeBusy} e2eeOwnCode={e2eeOwnCode} e2eePartnerCode={e2eePartnerCode}
+     e2ee={room.e2ee} e2eeBusy={e2eeBusy} e2eeBackup={e2eeBackup} e2eeOwnCode={e2eeOwnCode} e2eePartnerCode={e2eePartnerCode}
      e2eeDeviceReady={e2eeDeviceReady} e2eeVerified={e2eeVerified}
-     onEnableE2EE={()=>void enableE2EE()} onVerifyPartnerKey={()=>void approvePartnerKey()}
+     onEnableE2EE={phrase=>void enableE2EE(phrase)} onFinishE2EE={()=>void completeE2EE()}
+     onRestoreE2EE={(file,phrase)=>void restoreE2EE(file,phrase)} onVerifyPartnerKey={()=>void approvePartnerKey()}
      nativeApp={isNativeApp} onBack={()=>navigate("home")}
      onChoosePhoto={()=>profilePicker.current?.click()}
      onAdjustPhoto={()=>void adjustProfilePhoto()} onRemovePhoto={()=>void removeProfilePhoto()}
