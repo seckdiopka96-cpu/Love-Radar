@@ -460,3 +460,41 @@ avec le couple. Les préférences et leur localisation approximative ne sont
 pas publiques. La PWA et une application native n'ont pas nécessairement le
 même support de notifications ; le PushKit VoIP des appels **ne sert pas**
 à envoyer des rappels de prière.
+
+
+## Protection des captures d’écran : native iPhone et Android
+
+Love-Radar informe le couple de sa politique de confidentialité dans **Paramètres**.
+Ce comportement est lié au système d'exploitation et non à un simple effet CSS.
+
+- **iPhone / application native Capacitor :** `NativeCapture` observe
+  `UIApplication.userDidTakeScreenshotNotification` lorsque l'application est
+  ouverte. Après la capture, l'utilisateur authentifié peut signaler l'événement
+  au serveur ; les deux partenaires retrouvent une carte « Capture d'écran »
+  dans leur conversation. Un Web Push est envoyé au partenaire uniquement si
+  une souscription de notifications valide existe. iOS ne fournit **pas**
+  d'API officielle garantissant le blocage des captures.
+- **Android / application native :** le plugin `@capacitor/privacy-screen`
+  applique `FLAG_SECURE`, empêchant les captures et l'enregistrement natifs
+  de l'écran de l'application. La désactivation du filigrane photo ne désactive
+  pas cette protection. Une capture bloquée ne crée pas d'alerte.
+- **Safari, PWA, navigateur web :** il n'existe pas de détection fiable
+  des captures d'écran. Ne jamais promettre un avertissement à l'autre membre
+  pour cette version.
+- **Limites universelles :** un autre appareil peut photographier l'écran ;
+  aucune protection n'est absolue. iOS n'avertit qu'après une capture.
+  Les notifications push exigent une connexion et une souscription valide,
+  et leur réception en arrière-plan peut dépendre du type d'installation.
+
+`functions/api/screenshot.ts` authentifie l'auteur et conserve seulement
+l'identifiant de l'événement, l'ID du membre, l'espace et l'horodatage.
+**Aucun fichier image, texte de conversation ou contenu multimédia n'est envoyé.**
+Les événements sont visibles dans l'historique jusqu'à 30 jours, avec
+suppression opportuniste des entrées anciennes. Les notifications répétées
+sont limitées pour prévenir les abus. Toutes les métadonnées sont effacées
+lors de la suppression de l'espace privé.
+
+Le plugin iOS est ajouté automatiquement à `AppDelegate.swift` par
+`scripts/configure-native.mjs ios` : une nouvelle application native
+signée et installée est nécessaire pour obtenir la détection. Mettre à
+jour seulement le site ou la PWA ne suffit pas.
