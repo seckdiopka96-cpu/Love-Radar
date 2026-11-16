@@ -53,18 +53,26 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
 
  useEffect(()=>setAnchor(showButton?document.getElementById("lr-voice-button-slot"):null),[showButton]);
  const api=useCallback(async(action?:string,extra:Record<string,unknown>={},after=0):Promise<Result>=>{
-  const res=await apiFetch("/api/call"+(!action?"?after="+after:""),{
-   method:action?"POST":"GET",
-   headers:{Authorization:"Bearer "+token,...(action?{"Content-Type":"application/json"}:{})},
-   ...(action?{body:JSON.stringify({action,...extra})}:{cache:"no-store" as RequestCache})
-  });
-  const data=await res.json() as Result;
-  if(!res.ok||!data.ok)throw Error(data.error||"Le service d’appel ne répond pas.");
-  return data;
+  const controller=new AbortController();
+  // A stuck signaling GET must not freeze incoming calls or WebRTC ICE updates.
+  const timeout=!action?window.setTimeout(()=>controller.abort(),8000):null;
+  try{
+   const res=await apiFetch("/api/call"+(!action?"?after="+after:""),{
+    method:action?"POST":"GET",
+    headers:{Authorization:"Bearer "+token,...(action?{"Content-Type":"application/json"}:{})},
+    ...(action?{body:JSON.stringify({action,...extra})}:{cache:"no-store" as RequestCache}),
+    signal:controller.signal
+   });
+   const data=await res.json() as Result;
+   if(!res.ok||!data.ok)throw Error(data.error||"Le service d’appel ne répond pas.");
+   return data;
+  }finally{if(timeout!==null)window.clearTimeout(timeout)}
  },[token]);
  const loadNetwork=useCallback(async()=>{
+  const controller=new AbortController();
+  const timeout=window.setTimeout(()=>controller.abort(),5000);
   try{
-   const response=await apiFetch("/api/call-config",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+   const response=await apiFetch("/api/call-config",{headers:{Authorization:"Bearer "+token},cache:"no-store",signal:controller.signal});
    const data=await response.json() as {ok?:boolean;relay?:boolean;iceServers?:RTCIceServer[];warning?:string};
    if(!response.ok||!data.ok)throw Error("Configuration audio inaccessible.");
    if(Array.isArray(data.iceServers)&&data.iceServers.length)iceServers.current=data.iceServers;
@@ -77,7 +85,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    iceServers.current=STUN_SERVERS;
    setRelayEnabled(false);
    setNetworkHint("Le serveur relais audio n’a pas pu être contacté.");
-  }
+  }finally{window.clearTimeout(timeout)}
  },[token]);
  const warmNetwork=useCallback(()=>{
   // TURN credentials expire; refresh before a new call rather than reusing an
@@ -253,7 +261,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   let stopped=false,timer:number|null=null;
   const tick=async()=>{
    await sync();
-   if(!stopped)timer=window.setTimeout(tick,current.current?340:650);
+   if(!stopped)timer=window.setTimeout(tick,current.current?420:1800);
   };
   void tick();
   const visible=()=>{if(document.visibilityState==="visible")void sync()};
