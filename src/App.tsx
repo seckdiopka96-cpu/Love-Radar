@@ -1,4 +1,6 @@
 import {apiFetch,isNativeApp,publicInviteUrl} from "./api";
+import {ensureIdentity,loadIdentity,fingerprint,makeContext,verifyPartner,isPartnerVerified,encryptText,encryptMedia,decryptMedia,isEncryptedMedia,isEncryptedText,type CryptoContext} from "./e2ee";
+import {revealMessages} from "./e2ee-room";
 import {setNativePrivacy} from "./native-privacy";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import "./love-radar.css";
@@ -48,14 +50,15 @@ import "./together-premium.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
+type EncryptionState={mine:string|null;partner:string|null;required:boolean};
 type Message = {id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;object_key:string|null;mime:string|null;created_at:number;
  reply_to_id?:string|null;reply_kind?:QuoteKind|null;reply_content?:string|null;reply_sender_id?:string|null;
  edited_at?:number;reactions?:{member_id:string;emoji:string}[];view_once?:number|boolean};
 type RecentReaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
-type Room = {revision?:number;recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean;avatarVersion?:number};code:string;roomId:string;partner:string|null;partnerId?:string|null;partnerAvatarVersion?:number;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
+type Room = {revision?:number;e2ee?:EncryptionState;recentReaction?:RecentReaction|null;user:{id:string;name:string;seat:number;owner:boolean;avatarVersion?:number};code:string;roomId:string;partner:string|null;partnerId?:string|null;partnerAvatarVersion?:number;members:number;messages:Message[];unreadCount?:number;partnerReadAt?:number;partnerTypingUntil?:number;partnerRecordingUntil?:number;partnerLastSeenAt?:number};
 type Result = {ok:boolean;error?:string;token?:string;code?:string;recoveryCode?:string;id?:string}&Partial<Room>;
 type LocalVoice={id:string;created_at:number;file:File;status:AudioOutboxStatus;error?:string};
-type LocalText={id:string;created_at:number;text:string;replyToId?:string;replyKind?:QuoteKind|null;replyContent?:string|null;replySenderId?:string|null;status:"sending"|"failed"|"sent";error?:string};
+type LocalText={id:string;created_at:number;text:string;wireText?:string;replyToId?:string;replyKind?:QuoteKind|null;replyContent?:string|null;replySenderId?:string|null;status:"sending"|"failed"|"sent";error?:string};
 
 
 const NAV: {id:Tab;label:string}[] = [
@@ -107,7 +110,26 @@ function Initials({name,size="normal",src}:{name:string;size?:"normal"|"small";s
 export default function LoveRadar(){
  const [token,setToken]=useState("");
  const [room,setRoom]=useState<Room|null>(null);
+ const [e2eeBusy,setE2eeBusy]=useState(false);
+ const [e2eeOwnCode,setE2eeOwnCode]=useState("");
+ const [e2eePartnerCode,setE2eePartnerCode]=useState("");
+ const [e2eeDeviceReady,setE2eeDeviceReady]=useState(false);
+ const [e2eeVerified,setE2eeVerified]=useState(false);
  const avatars=useProfileAvatars(token,room?.user.id,room?.user.avatarVersion,room?.partnerId,room?.partnerAvatarVersion);
+ useEffect(()=>{
+  let alive=true;const rm=room;
+  if(!rm?.e2ee?.mine){setE2eeOwnCode("");setE2eePartnerCode("");setE2eeDeviceReady(false);setE2eeVerified(false);return}
+  void (async()=>{
+   const identity=await loadIdentity(rm.user.id);
+   const own=await fingerprint(rm.e2ee!.mine!);
+   const partner=rm.e2ee!.partner?await fingerprint(rm.e2ee!.partner):"";
+   if(!alive)return;
+   setE2eeDeviceReady(Boolean(identity&&identity.publicKey===rm.e2ee!.mine));
+   setE2eeOwnCode(own);setE2eePartnerCode(partner);
+   setE2eeVerified(Boolean(partner&&rm.partnerId&&isPartnerVerified(rm.roomId,rm.partnerId,partner)));
+  })().catch(()=>{if(alive){setE2eeDeviceReady(false);setE2eeVerified(false)}});
+  return()=>{alive=false};
+ },[room?.roomId,room?.user.id,room?.partnerId,room?.e2ee?.mine,room?.e2ee?.partner]);
  const profilePicker=useRef<HTMLInputElement|null>(null);
  const [profileFile,setProfileFile]=useState<File|null>(null);
  const [profileBusy,setProfileBusy]=useState(false);
@@ -582,6 +604,44 @@ export default function LoveRadar(){
    throw error;
   }finally{window.clearTimeout(timeout)}
  },[token]);
+
+ async function cryptoFor(rm:Room):Promise<CryptoContext>{
+  if(!rm.e2ee?.mine||!rm.e2ee.partner||!rm.partnerId||!rm.e2ee.required)
+   throw Error("Les deux partenaires doivent activer le chiffrement.");
+  return makeContext({roomId:rm.roomId,mineId:rm.user.id,partnerId:rm.partnerId,
+   minePublicKey:rm.e2ee.mine,partnerPublicKey:rm.e2ee.partner});
+ }
+ async function encryptedOutgoing(text:string,id:string,rm:Room):Promise<string>{
+  if(rm.e2ee?.mine&&!rm.e2ee?.required)
+   throw Error("Le chiffrement est activé pour toi. Attends que ton partenaire l’active aussi.");
+  if(!rm.e2ee?.required)return text;
+  return encryptText(await cryptoFor(rm),text,id);
+ }
+ async function enableE2EE(){
+  const rm=room;if(!rm||e2eeBusy||rm.e2ee?.mine)return;
+  if(!window.confirm("Activer le chiffrement sur cet appareil ? Sans sauvegarde, un changement de téléphone peut rendre les nouveaux messages illisibles. Les anciens messages resteront en clair."))return;
+  setE2eeBusy(true);setError("");
+  try{
+   const identity=await ensureIdentity(rm.user.id);
+   await request("enable-e2ee",{publicKey:identity.publicKey});
+   await refresh(undefined,true);
+   setNotice("Clé activée sur cet appareil. Ton partenaire doit aussi activer la sienne.");
+  }catch(e){setError(e instanceof Error?e.message:"Activation du chiffrement impossible.")}
+  finally{setE2eeBusy(false)}
+ }
+ async function approvePartnerKey(){
+  const rm=room,code=e2eePartnerCode;
+  if(!rm?.partnerId||!code||e2eeBusy)return;
+  if(!window.confirm("As-tu comparé cette empreinte complète avec ton partenaire en personne ou lors d’un appel ? Ne confirme pas sans comparaison réelle.\\n\\n"+code))return;
+  try{verifyPartner(rm.roomId,rm.partnerId,code);setE2eeVerified(true);await refresh(undefined,true)}
+  catch{setError("Impossible de sauvegarder la vérification sur cet appareil.")}
+ }
+ async function sendBackgroundText(text:string){
+  const rm=room;if(!rm)throw Error("Espace indisponible.");
+  const id=crypto.randomUUID();
+  await request("message",{text:await encryptedOutgoing(text,id,rm),messageId:id});
+  await refresh(undefined,true);
+ }
  const refresh=useCallback(async(key?:string,silent=false)=>{
   const t=key||token;
   if(!t||snapshotInFlight.current===t)return;
@@ -605,6 +665,11 @@ export default function LoveRadar(){
    if(sequence<snapshotApplied.current)return;
    snapshotApplied.current=sequence;
    const nextRoom=data as unknown as Room;
+   let context:CryptoContext|null=null;
+   if(nextRoom.e2ee?.required)try{context=await cryptoFor(nextRoom)}catch{/* No plaintext fallback. */}
+   nextRoom.messages=await revealMessages(nextRoom.messages||[],context);
+   if(nextRoom.recentReaction?.content&&isEncryptedText(nextRoom.recentReaction.content))
+    nextRoom.recentReaction={...nextRoom.recentReaction,content:"Message chiffré"};
    // Ignore unchanged snapshots so polling cannot redraw the whole interface.
    setRoom(previous=>previous&&JSON.stringify(previous)===JSON.stringify(nextRoom)?previous:nextRoom);
   }catch(e){if(!silent)setError(controller.signal.aborted?"Connexion trop lente. Vérifie ton réseau.":e instanceof Error?e.message:"Connexion impossible.")}
