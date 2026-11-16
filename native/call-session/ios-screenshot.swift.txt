@@ -1,0 +1,40 @@
+// Generated inside AppDelegate.swift by scripts/configure-native.mjs.
+// This listener does not access or upload any screenshot image.
+// Apple only emits this notification AFTER a screenshot has been taken.
+import UIKit
+
+@objc(LoveRadarCapturePlugin)
+public final class LoveRadarCapturePlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "LoveRadarCapturePlugin"
+    public let jsName = "NativeCapture"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "availability", returnType: CAPPluginReturnPromise)
+    ]
+
+    public override func load() {
+        super.load()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onScreenshot(_:)),
+            name: UIApplication.userDidTakeScreenshotNotification,
+            object: nil
+        )
+    }
+
+    @objc private func onScreenshot(_ notification: Notification) {
+        // No photo data, message contents, or clipboard access.
+        // The authenticated WebView decides whether to notify its partner.
+        notifyListeners("screenshotTaken", data: [
+            "capturedAt": Date().timeIntervalSince1970 * 1000
+        ])
+    }
+
+    @objc public func availability(_ call: CAPPluginCall) {
+        call.resolve(["detectsAfterCapture": true, "preventsCapture": false])
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+}
+// END LOVE RADAR SCREENSHOT MONITOR
