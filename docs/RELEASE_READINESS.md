@@ -13,6 +13,14 @@
 - Paramètres → Diagnostics : consultation du serveur de messagerie, disponibilité déclarée TURN, compatibilité WebRTC, permission de notifications et test explicite du microphone. Le diagnostic ne capte ni n'envoie de voix.
 - Contrôles automatisés : `npm run test:security`, `npm run test:reliability`, `npm run test:load` et `npm run build`.
 
+## Effacement complet des espaces — mise à jour du code
+
+- Le parcours de suppression passe par `functions/lib/delete-room.ts` ; il efface les tables de jeux, de puzzle, de réconciliation, de sessions vidéo, les autres données propres au couple et les jetons d'accès.
+- Les fichiers R2 liés au salon (médias, photos de profil, portrait du couple) sont purgés ; les anciens fichiers placés sous `profile/<roomId>/` et `couple-story/<roomId>/` sont recherchés dans R2.
+- Le nettoyage des tables D1 est réalisé par `db.batch()`, transactionnel, et s'adapte aux anciennes bases où des tables optionnelles n'existent pas.
+- Test automatisé : `npm run test:deletion`. Il utilise SQLite réel et un stockage R2 simulé, sans toucher aux espaces de production.
+- **À confirmer** sur une préproduction Cloudflare isolée : suppression/échec R2, restauration de sauvegardes, effacement des anciens objets orphelins, et absence de nouvelles écritures concurrentes pendant la suppression. Aucune purge des anciennes données déjà orphelines en production n'a été effectuée.
+
 ## Conditions nécessaires à la mise en ligne
 
 1. Confirmer le déploiement Cloudflare Pages avec les bindings D1 `DB` et R2 privé `STORAGE`. Sur une nouvelle base, exécuter `schema.sql` ; pour les bases existantes, les nouvelles tables de récupération et de limitation se créent automatiquement.
