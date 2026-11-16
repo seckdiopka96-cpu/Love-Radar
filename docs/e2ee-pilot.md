@@ -9,7 +9,7 @@
 - Les métadonnées (identifiants des membres, horodatages, types de message, taille des médias, statut de lecture, réactions, invitations) restent visibles pour le serveur. Les réactions emoji ne sont pas chiffrées. Les notifications doivent rester génériques.
 
 ## Activation
-1. Dans Paramètres, chaque partenaire choisit **Créer ma clé et activer**.
+1. Dans Paramètres, chaque partenaire choisit une phrase secrète, crée sa clé, télécharge la sauvegarde chiffrée puis confirme son enregistrement avant d'activer le mode.
 2. Chaque appareil crée une identité ECDH P-256, chiffre immédiatement la clé privée avec une phrase secrète via PBKDF2-SHA-256 (600 000 itérations) et AES-GCM, puis conserve une clé privée **non exportable** dans IndexedDB. L'utilisateur doit télécharger le fichier de sauvegarde chiffrée et confirmer l'avoir conservé avant d'enregistrer la clé publique sur le serveur. Le serveur stocke uniquement la clé publique.
 3. Une fois les deux clés publiques présentes, l'API refuse les textes et médias non chiffrés, ainsi que les modifications non chiffrées, et les clients anciens échouent *fermés*.
 4. Les deux personnes comparent l'empreinte SHA-256 complète de l'autre via un canal extérieur (en personne ou appel). Après vérification, la clé publique est épinglée localement. Toute substitution rend les nouveaux échanges illisibles jusqu'à une nouvelle vérification explicite.
@@ -32,6 +32,6 @@
 - Ne pas activer sur des couples réels tant que les tests de migrations, mode hors ligne, import/export de sauvegarde sur iPhone, deux appareils physiques et audits sécurité ne sont pas terminés.
 
 ## Tests
-`npm run test:e2ee` exécute les tests de dérivation, protection des messages et médias, séparation des espaces, détection de manipulation et non-affichage du ciphertext.
+`npm run test:e2ee` exécute les tests de dérivation, protection des messages et médias, sauvegarde/restauration de clé, séparation des espaces, détection de manipulation et non-affichage du ciphertext.
 `npm run build` vérifie TypeScript.
 **Tests manquants :** intégration D1/R2 de bout en bout et iPhone/Android réels; concurrence d'envoi, appareils restaurés et attaques de serveur.
