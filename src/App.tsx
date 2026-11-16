@@ -25,7 +25,7 @@ import VoiceMessage from "./VoiceMessage";
 import StickerArt from "./StickerArt";
 import StickerPicker from "./StickerPicker";
 import {encodeSticker,isSticker,readStickerId} from "./stickers";
-import {mediaRetryDelay} from "./reliability-rules";
+import {mediaRetryDelay,MEDIA_AUTO_RETRY_LIMIT} from "./reliability-rules";
 import ChatActivity from "./ChatActivity";
 import QuoteCard from "./QuoteCard";
 import {quoteAuthor,type QuoteKind} from "./message-quote";
@@ -703,6 +703,9 @@ export default function LoveRadar(){
  async function fetchMedia(item:Message,force=false){
   if(!token||!item.object_key||item.view_once)return;
   const id=item.id;
+  // A permanently missing file is retried only when the user explicitly taps
+  // Retry. New messages must not restart an exhausted background retry loop.
+  if(!force&&(mediaFailures.current[id]||0)>MEDIA_AUTO_RETRY_LIMIT)return;
   if(mediaCache.current[id])return;
   if(!force&&Date.now()<(mediaRetries.current[id]||0))return;
   mediaCache.current[id]="pending";
