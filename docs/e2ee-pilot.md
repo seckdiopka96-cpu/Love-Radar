@@ -10,7 +10,7 @@
 
 ## Activation
 1. Dans Paramètres, chaque partenaire choisit **Créer ma clé et activer**.
-2. Chaque appareil conserve sa clé privée ECDH P-256 **non exportable** dans son IndexedDB. Le serveur stocke uniquement la clé publique.
+2. Chaque appareil crée une identité ECDH P-256, chiffre immédiatement la clé privée avec une phrase secrète via PBKDF2-SHA-256 (600 000 itérations) et AES-GCM, puis conserve une clé privée **non exportable** dans IndexedDB. L'utilisateur doit télécharger le fichier de sauvegarde chiffrée et confirmer l'avoir conservé avant d'enregistrer la clé publique sur le serveur. Le serveur stocke uniquement la clé publique.
 3. Une fois les deux clés publiques présentes, l'API refuse les textes et médias non chiffrés, ainsi que les modifications non chiffrées, et les clients anciens échouent *fermés*.
 4. Les deux personnes comparent l'empreinte SHA-256 complète de l'autre via un canal extérieur (en personne ou appel). Après vérification, la clé publique est épinglée localement. Toute substitution rend les nouveaux échanges illisibles jusqu'à une nouvelle vérification explicite.
 
@@ -25,11 +25,11 @@
 ## Limites majeures et risques
 - **Pas de protocole Signal / Double Ratchet** : pas de forward secrecy ni post-compromise security. Une clé privée compromise peut déchiffrer les anciens messages conservés.
 - Le serveur distribue les clés publiques. Une attaque de substitution lors du premier contact est possible sans comparaison *hors bande*. L'empreinte de clé ne s'authentifie pas d'elle-même.
-- **Pas de sauvegarde, restauration ni synchronisation des clés.** Un nouveau téléphone, la suppression des données du navigateur, ou l'installation de la version native (stockage séparé) peut rendre les anciens messages chiffrés illisibles. Les codes de secours de compte **n'assurent pas la récupération E2EE**.
+- **Sauvegarde manuelle chiffrée uniquement.** En cas de changement de téléphone ou de réinstallation, l'utilisateur doit récupérer son compte puis importer son fichier chiffré avec sa phrase secrète. Sans ce fichier ou cette phrase, les anciens messages E2EE deviennent illisibles. Les codes de secours de compte **ne restaurent pas la clé privée**. Pas de synchronisation multi-appareil automatique.
 - Une clé d'identité enregistrée sur le serveur est volontairement immuable. Aucun flux de rotation/perte de clé n'est encore disponible.
 - Le chiffrement ne protège pas contre un appareil compromis ni contre un serveur capable de modifier le JavaScript livré au navigateur. Audit indépendant et signatures / client natif vérifié à envisager.
 - Pas de sauvegarde cloud de données chiffrées ni de migration automatique des textes et médias existants.
-- Ne pas activer sur des couples réels tant que les tests de migrations, mode hors ligne, récupération, deux appareils physiques et audits sécurité ne sont pas terminés.
+- Ne pas activer sur des couples réels tant que les tests de migrations, mode hors ligne, import/export de sauvegarde sur iPhone, deux appareils physiques et audits sécurité ne sont pas terminés.
 
 ## Tests
 `npm run test:e2ee` exécute les tests de dérivation, protection des messages et médias, séparation des espaces, détection de manipulation et non-affichage du ciphertext.
