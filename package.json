@@ -15,7 +15,7 @@
     "test:watch": "tsx --test tests/watch-together.test.ts tests/watch-notify.test.ts",
     "test:privacy": "tsx --test tests/privacy-overlay.test.ts",
     "test:puzzle": "tsx --test tests/puzzle.test.ts",
-    "test:call": "tsx --test tests/voice-call.test.ts",
+    "test:call": "tsx --test tests/voice-call.test.ts tests/call-history.test.ts",
     "test:background-call": "tsx --test tests/native-background-call.test.ts",
     "test:e2ee": "tsx --test tests/e2ee.test.ts",
     "test:server": "tsx --test tests/server-diagnostics.test.ts",
