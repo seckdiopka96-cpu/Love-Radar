@@ -1,0 +1,267 @@
+// Injected after the Capacitor AppDelegate by scripts/configure-native.mjs.
+// A real installed iOS binary is required; a PWA cannot implement PushKit.
+import Foundation
+import PushKit
+import CallKit
+import Security
+import UIKit
+
+private enum LoveRadarSecureSession {
+    static let account = "love-radar-native-voip"
+    static let service = "com.diaotech.loveradar.call-auth"
+    static func token() -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: account,
+            kSecAttrService as String: service,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+    static func save(_ token: String?) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: account,
+            kSecAttrService as String: service
+        ]
+        SecItemDelete(query as CFDictionary)
+        guard let token = token else { return }
+        var add = query
+        add[kSecValueData as String] = Data(token.utf8)
+        add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        SecItemAdd(add as CFDictionary, nil)
+    }
+}
+
+@objc public final class LoveRadarVoipManager: NSObject, PKPushRegistryDelegate, CXProviderDelegate {
+    @objc public static let shared = LoveRadarVoipManager()
+    private let provider: CXProvider
+    private let controller = CXCallController()
+    private var registry: PKPushRegistry?
+    private var callId: UUID?
+    private var callAnswered = false
+    private var pending: [String: Any]?
+    weak var plugin: LoveRadarVoipPlugin?
+    private let endpoint = URL(string: "https://love-radar-acd.pages.dev/api/call")!
+    private let defaults = UserDefaults.standard
+    private override init() {
+        let config = CXProviderConfiguration(localizedName: "Love Radar audio")
+        config.supportsVideo = false
+        config.maximumCallsPerCallGroup = 1
+        config.maximumCallGroups = 1
+        config.supportedHandleTypes = [.generic]
+        config.includesCallsInRecents = false
+        provider = CXProvider(configuration: config)
+        super.init()
+        provider.setDelegate(self, queue: .main)
+    }
+    @objc public func start() {
+        // This must happen on native process launch, before the Capacitor bridge.
+        DispatchQueue.main.async {
+            guard self.registry == nil else { return }
+            #if !targetEnvironment(simulator)
+            let registry = PKPushRegistry(queue: DispatchQueue.main)
+            registry.delegate = self
+            registry.desiredPushTypes = [.voIP]
+            self.registry = registry
+            #endif
+        }
+    }
+    var deviceId: String {
+        if let current = defaults.string(forKey: "lr.voip.device.id"),
+           UUID(uuidString: current) != nil { return current }
+        let id = UUID().uuidString.lowercased()
+        defaults.set(id, forKey: "lr.voip.device.id")
+        return id
+    }
+    var deviceToken: String { defaults.string(forKey: "lr.voip.push.token") ?? "" }
+    func authenticate(_ token: String) { LoveRadarSecureSession.save(token) }
+    func logout() {
+        LoveRadarSecureSession.save(nil)
+        pending = nil
+        // Keep the APNs token: the next authenticated member can register it.
+        if let id = callId { reportEnded(id, reason: .failed) }
+    }
+    func pendingAction() -> [String: Any]? {
+        guard let action = pending, let time = action["timestamp"] as? TimeInterval,
+              Date().timeIntervalSince1970 - time < 150 else { pending = nil; return nil }
+        return action
+    }
+    func acknowledge(_ id: String) {
+        if pending?["callId"] as? String == id { pending = nil }
+    }
+    func isManaging(_ id: String) -> Bool { callId?.uuidString.lowercased() == id.lowercased() }
+    private func event(_ action: String, id: UUID) {
+        let body: [String: Any] = [
+            "action": action, "callId": id.uuidString.lowercased(),
+            "timestamp": Date().timeIntervalSince1970
+        ]
+        pending = body
+        plugin?.notifyCallEvent(body)
+    }
+    private func server(_ action: String, id: UUID, completion: @escaping (Bool) -> Void) {
+        guard let token = LoveRadarSecureSession.token(),
+              token.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil else {
+            completion(false); return
+        }
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 9
+        request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "action": action, "id": id.uuidString.lowercased()
+        ])
+        URLSession.shared.dataTask(with: request) { _, response, _ in
+            let ok = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? false
+            DispatchQueue.main.async { completion(ok) }
+        }.resume()
+    }
+    func reportEnded(_ id: UUID, reason: CXCallEndedReason) {
+        guard callId == id else { return }
+        provider.reportCall(with: id, endedAt: Date(), reason: reason)
+        callId = nil
+        callAnswered = false
+    }
+    func markAnswered(_ id: String) {
+        guard let uuid = UUID(uuidString: id), callId == uuid else { return }
+        callAnswered = true
+    }
+    func pushRegistry(_ registry: PKPushRegistry, didUpdate credentials: PKPushCredentials, for type: PKPushType) {
+        guard type == .voIP else { return }
+        let token = credentials.token.map { String(format: "%02x", $0) }.joined()
+        defaults.set(token, forKey: "lr.voip.push.token")
+        plugin?.notifyTokenChanged()
+    }
+    func pushRegistry(_ registry: PKPushRegistry, didInvalidatePushTokenFor type: PKPushType) {
+        guard type == .voIP else { return }
+        defaults.removeObject(forKey: "lr.voip.push.token")
+        plugin?.notifyTokenChanged()
+    }
+    func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload,
+                      for type: PKPushType, completion: @escaping () -> Void) {
+        guard type == .voIP else { completion(); return }
+        // Apple requires every real VoIP push to be reported to CallKit promptly.
+        let values = payload.dictionaryPayload
+        let id = (values["callId"] as? String).flatMap(UUID.init(uuidString:)) ?? UUID()
+        let caller = (values["callerName"] as? String)?.prefix(60) ?? "Ton amour"
+        let expires = values["expiresAt"] as? Double ?? 0
+        let update = CXCallUpdate()
+        update.localizedCallerName = String(caller)
+        update.remoteHandle = CXHandle(type: .generic, value: "Love Radar")
+        update.hasVideo = false
+        update.supportsHolding = false
+        update.supportsGrouping = false
+        update.supportsUngrouping = false
+        provider.reportNewIncomingCall(with: id, update: update) { error in
+            defer { completion() }
+            guard error == nil else { return }
+            self.callId = id
+            self.callAnswered = false
+            if expires > 0 && expires <= Date().timeIntervalSince1970 * 1000 {
+                self.reportEnded(id, reason: .unanswered)
+            } else if LoveRadarSecureSession.token() == nil {
+                self.reportEnded(id, reason: .failed)
+            }
+        }
+    }
+    public func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
+        guard callId == action.callUUID else { action.fail(); return }
+        server("accept", id: action.callUUID) { ok in
+            if ok {
+                self.callAnswered = true
+                self.event("answer", id: action.callUUID)
+                action.fulfill()
+            } else {
+                action.fail()
+                self.reportEnded(action.callUUID, reason: .failed)
+            }
+        }
+    }
+    public func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
+        let id = action.callUUID
+        let method = callAnswered ? "end" : "decline"
+        server(method, id: id) { _ in
+            self.event("end", id: id)
+            if self.callId == id { self.callId = nil; self.callAnswered = false }
+            action.fulfill()
+        }
+    }
+    public func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
+        // CallKit owns audio activation. Existing WebRTC runs when WebView resumes.
+    }
+    public func provider(_ provider: CXProvider, didDeactivate audioSession: AVAudioSession) {}
+    public func providerDidReset(_ provider: CXProvider) {
+        if let id = callId { event("end", id: id) }
+        callId = nil
+        callAnswered = false
+    }
+}
+
+@objc(LoveRadarVoipPlugin)
+public class LoveRadarVoipPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "LoveRadarVoipPlugin"
+    public let jsName = "NativeVoip"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "setSession", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearSession", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getDevice", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getPendingAction", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "ackAction", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "markAnswered", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "finishCall", returnType: CAPPluginReturnPromise)
+    ]
+    public override func load() {
+        super.load()
+        LoveRadarVoipManager.shared.plugin = self
+        LoveRadarVoipManager.shared.start()
+    }
+    func notifyCallEvent(_ event: [String: Any]) { notifyListeners("callAction", data: event) }
+    func notifyTokenChanged() {
+        notifyListeners("tokenChanged", data: [
+            "deviceId": LoveRadarVoipManager.shared.deviceId,
+            "voipToken": LoveRadarVoipManager.shared.deviceToken
+        ])
+    }
+    @objc public func setSession(_ call: CAPPluginCall) {
+        guard let token = call.getString("token"),
+              token.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil else {
+            call.reject("Session invalide."); return
+        }
+        LoveRadarVoipManager.shared.authenticate(token)
+        call.resolve(["ready": true])
+    }
+    @objc public func clearSession(_ call: CAPPluginCall) {
+        LoveRadarVoipManager.shared.logout()
+        call.resolve()
+    }
+    @objc public func getDevice(_ call: CAPPluginCall) {
+        call.resolve([
+            "deviceId": LoveRadarVoipManager.shared.deviceId,
+            "voipToken": LoveRadarVoipManager.shared.deviceToken
+        ])
+    }
+    @objc public func getPendingAction(_ call: CAPPluginCall) {
+        call.resolve(LoveRadarVoipManager.shared.pendingAction() ?? [:])
+    }
+    @objc public func ackAction(_ call: CAPPluginCall) {
+        guard let id = call.getString("callId") else { call.reject("Appel manquant."); return }
+        LoveRadarVoipManager.shared.acknowledge(id)
+        call.resolve()
+    }
+    @objc public func markAnswered(_ call: CAPPluginCall) {
+        if let id = call.getString("callId") { LoveRadarVoipManager.shared.markAnswered(id) }
+        call.resolve()
+    }
+    @objc public func finishCall(_ call: CAPPluginCall) {
+        if let id = call.getString("callId"), let uuid = UUID(uuidString: id) {
+            LoveRadarVoipManager.shared.reportEnded(uuid, reason: .remoteEnded)
+        }
+        call.resolve()
+    }
+}
+// END LOVE RADAR VOIP CALLKIT
