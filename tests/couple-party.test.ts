@@ -76,14 +76,22 @@ test("server keeps quiz answers secret, scores once, rejects unauthorized moves 
  assert.equal(roomA.status,200);
  assert.equal(roomA.data.members,2);
  const game=roomA.data.game;
- assert.equal(game.phase,"question");
+ assert.equal(game.phase,"ready");
+ assert.equal(game.question,null,"the question stays secret until both players are ready");
  assert.equal(game.correct,null,"never reveal the correct answer before the result");
  assert.equal(game.partnerChoice,null,"do not reveal the other player's answer");
  assert.equal(roomA.data.seat,0);
  const roomB=await request("rapid","c");
  assert.equal(roomB.data.game.scores[0],0);
  assert.notEqual(roomB.data.game.id,game.id);
- const q=RAPID_QUESTIONS.find(item=>item.question===game.question);
+ const firstReady=await request("rapid","a","ready",{gameId:game.id,round:game.round});
+ assert.equal(firstReady.status,200);
+ assert.equal(firstReady.data.game.phase,"ready","one ready player cannot trigger the countdown");
+ assert.equal(firstReady.data.game.myReady,true);
+ const secondReady=await request("rapid","b","ready",{gameId:game.id,round:game.round});
+ assert.equal(secondReady.status,200);
+ assert.equal(secondReady.data.game.phase,"question");
+ const q=RAPID_QUESTIONS.find(item=>item.question===secondReady.data.game.question);
  assert.ok(q);
  const early=await request("rapid","a","answer",{gameId:game.id,round:game.round,choice:q.answer});
  assert.equal(early.status,409,"cannot answer before the countdown completes");
@@ -106,6 +114,8 @@ test("server keeps quiz answers secret, scores once, rejects unauthorized moves 
  const follow=await request("rapid","a","next",{gameId:game.id,round:game.round});
  assert.equal(follow.status,200);
  assert.equal(follow.data.game.round,2);
+ assert.equal(follow.data.game.phase,"ready","the next question requires both players ready again");
+ assert.equal(follow.data.game.question,null);
  assert.equal(follow.data.game.correct,null,"new answer is hidden again");
  assert.equal(follow.data.game.scores[0]+follow.data.game.scores[1],1);
  const replay=await request("rapid","b","next",{gameId:game.id,round:game.round});
@@ -114,7 +124,10 @@ test("server keeps quiz answers secret, scores once, rejects unauthorized moves 
 test("when the timer expires without a correct answer, both partners see the same result",async()=>{
  if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
  const {sqlite,request}=harness();
- const original=await request("rapid","a");
+ const initial=await request("rapid","a");
+ await request("rapid","a","ready",{gameId:initial.data.game.id,round:1});
+ const original=await request("rapid","b","ready",{gameId:initial.data.game.id,round:1});
+ assert.equal(original.data.game.phase,"question");
  sqlite.prepare("UPDATE couple_party_games SET started_at=?,deadline_at=? WHERE room_id='room-A' AND mode='rapid'")
   .run(Date.now()-30000,Date.now()-1000);
  const a=await request("rapid","a"),b=await request("rapid","b");
@@ -130,11 +143,12 @@ test("truth or action alternates turns; a pass is never scored; only active play
  const initial=(await request("truth","a")).data.game;
  assert.equal(initial.turn,0);
  assert.equal(initial.phase,"choose");
- const notMyTurn=await request("truth","b","pick",{gameId:initial.id,round:1,kind:"truth"});
- assert.equal(notMyTurn.status,409);
+ // Either member may begin round one, so a distant partner does not wait needlessly.
  const picked=await request("truth","a","pick",{gameId:initial.id,round:1,kind:"truth"});
  assert.equal(picked.status,200);
  assert.equal(picked.data.game.kind,"truth");
+ const duplicate=await request("truth","b","pick",{gameId:initial.id,round:1,kind:"action"});
+ assert.equal(duplicate.status,409,"the first selected card is authoritative");
  assert.ok(picked.data.game.prompt?.length>12);
  assert.equal((await request("truth","b")).data.game.prompt,picked.data.game.prompt);
  const finished=await request("truth","a","finish",{gameId:initial.id,round:1});
@@ -142,6 +156,8 @@ test("truth or action alternates turns; a pass is never scored; only active play
  assert.equal(finished.data.game.phase,"choose");
  assert.equal(finished.data.game.turn,1);
  assert.equal(finished.data.game.scores[0],1);
+ const wrongTurn=await request("truth","a","pick",{gameId:initial.id,round:2,kind:"action"});
+ assert.equal(wrongTurn.status,409,"later rounds alternate turns");
  const pickedB=await request("truth","b","pick",{gameId:initial.id,round:2,kind:"action"});
  assert.equal(pickedB.status,200);
  assert.equal(pickedB.data.game.kind,"action");
@@ -172,6 +188,8 @@ test("both new games are accessible, authenticated, and erased with room deletio
  assert.ok(deletion.includes('"couple_party_games"'));
  assert.ok(schema.includes("CREATE TABLE IF NOT EXISTS couple_party_games"));
  assert.ok(ui.includes('window.setInterval(()=>void refresh(true),900)'));
+ assert.ok(ui.includes('onClick={()=>void post("ready")}'));
+ assert.ok(api.includes('AND phase=\'ready\' AND picked_0=1 AND picked_1=1'));
  assert.ok(ui.includes('onClick={()=>void post("finish")}'));
  assert.ok(ui.includes('onClick={()=>void post("pass")}'));
 });
