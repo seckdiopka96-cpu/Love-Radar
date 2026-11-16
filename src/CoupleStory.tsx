@@ -166,7 +166,7 @@ export default function CoupleStory({token,mode,privacyEnabled,myName,partnerNam
  return <section className={"cs-page "+(mode==="reunion"?"cs-reunion-page":"")} aria-label={mode==="story"?"Notre histoire de couple":"Compte à rebours de nos retrouvailles"}>
   <header className="cs-header">
    <button type="button" onClick={onExit} className="cs-back">{mode==="story"?"‹ Souvenirs":"‹ Ensemble"}</button>
-   <strong>LOVE RADAR <span>♡</span></strong>
+   <strong>NOTRE HISTOIRE <span>♡</span></strong>
    <span aria-hidden="true">{mode==="story"?"💑":"📅"}</span>
   </header>
   {loadingText?<p className="cs-loading">{loadingText}</p>:null}
