@@ -53,6 +53,7 @@ import "./premium-dock.css";
 import "./together-premium.css";
 import "./live-voice-waveform.css";
 import "./chat-composer-signature.css";
+import "./chat-readable-type.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "games" | "rps" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
