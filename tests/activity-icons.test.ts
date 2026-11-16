@@ -28,10 +28,10 @@ test("voice recording activity is microphone plus animated waveform, no label te
  assert.equal((markup.match(/<i(?:\s[^>]*)?><\/i>/g)||[]).length,4);
  assert.doesNotMatch(markup,/>.*enregistre un vocal/i);
 });
-test("header keeps presence online or offline while activity stays in latest messages",()=>{
+test("header shows online or last-seen presence while activity stays in latest messages",()=>{
  assert.ok(app.includes('partnerRecording?"recording":partnerTyping?"typing":null'));
  assert.ok(app.includes('<ChatActivity kind={partnerActivityKind}/>'));
- assert.ok(app.includes('"En ligne":"Hors ligne"'));
+ assert.ok(app.includes('partnerOnline?"En ligne":formatPartnerLastSeen(lastSeen,presenceNow)'));
  assert.ok(!app.includes('En train d’écrire…'));
  assert.ok(!app.includes('Enregistre un vocal…'));
  assert.ok(app.includes('room.messages'));
