@@ -179,7 +179,7 @@ async function snapshot(db:D1Database,u:Member){
       const inserted=await db.prepare("INSERT INTO members(id,room_id,name,seat,token_hash,joined_at) SELECT ?,?, ?,1,?,? WHERE (SELECT COUNT(*) FROM members WHERE room_id=?)=1").bind(id,room.id,name,digest,now,room.id).run();
       if(!inserted.meta.changes)return fail("Cet espace est déjà complet.",409);
      }catch{return fail("Cet espace est déjà complet.",409)}
-     waitUntil(notifyPartner(env,room.id,id,"Love Radar ❤️","Ton partenaire vient de rejoindre votre espace !","home"));
+     waitUntil(notifyPartner(env,room.id,id,"Votre espace ❤️","Ton partenaire vient de rejoindre votre espace !","home"));
      return ok({token:secret,code});
     }
     const session=await auth(request);if(!session)return fail("Session expirée. Rejoins ton espace.",401);
@@ -252,7 +252,7 @@ async function snapshot(db:D1Database,u:Member){
      }
      await ensureChatPresence(db);
      await db.prepare("UPDATE chat_presence SET typing_until=0 WHERE room_id=? AND member_id=?").bind(u.room_id,u.id).run();
-     waitUntil(notifyPartner(env,u.room_id,u.id,"Love Radar 💌",u.name+" t’a envoyé un message.","chat",{kind:"message",id:messageId}));
+     waitUntil(notifyPartner(env,u.room_id,u.id,"Nouveau message 💌",u.name+" t’a envoyé un message.","chat",{kind:"message",id:messageId}));
      return ok({sent:true,id:messageId});
     }
     if(op==="edit-message"){
