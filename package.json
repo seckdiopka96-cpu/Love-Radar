@@ -23,6 +23,7 @@
     "test:reconcile": "tsx --test tests/reconcile.test.ts",
     "test:design": "tsx --test tests/redesign.test.ts",
     "test:chat": "tsx --test tests/chat-stability.test.ts tests/multi-couple.test.ts tests/chat-composer-signature.test.ts",
+    "test:expressions": "tsx --test tests/expressions.test.ts",
     "test:activity": "tsx --test tests/activity-icons.test.ts",
     "test:animation": "tsx --test tests/activity-frames.test.ts",
     "test:replies": "tsx --test tests/message-replies.test.ts",
