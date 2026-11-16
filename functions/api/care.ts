@@ -101,8 +101,9 @@ export async function onRequestPost({request,env,waitUntil}:Ctx):Promise<Respons
   }
   if(action==="enable-prayer"){
    if(body.confirmed!==true)return fail("Active le partage volontaire de tes horaires.",400);
-   if(!validTimezone(body.timezone)||!validLocation(body.latitude,body.longitude)||
-    !validMethod(body.method))return fail("Vérifie ta position, ton fuseau horaire et la méthode de calcul.");
+   if(typeof body.longitude!=="number"||!validTimezone(body.timezone)||
+    !validLocation(body.latitude,body.longitude)||!validMethod(body.method))
+    return fail("Vérifie ta position, ton fuseau horaire et la méthode de calcul.");
    const settings:PrayerSettings={member_id:u.id,room_id:u.room_id,
     latitude:roundLocation(body.latitude),longitude:roundLocation(body.longitude),
     timezone:body.timezone,method:body.method,enabled:1,updated_at:now};
