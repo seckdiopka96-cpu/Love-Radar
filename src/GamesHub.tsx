@@ -1,6 +1,6 @@
 import "./games-hub.css";
 
-type Game="rps"|"ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo"|"memory";
+type Game="rapid"|"truth"|"rps"|"ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo"|"memory";
 type Props={onOpenGame:(game:Game)=>void;partnerName:string|null};
 
 /** Original, consistent vector artwork — no robot or emoji graphics. */
@@ -9,9 +9,20 @@ function GameArtwork({game}:{game:Game}){
  const solo=game==="ludo-solo"||game==="ludo-senegal-solo";
  const memory=game==="memory";
  const rps=game==="rps";
+ const rapid=game==="rapid";
+ const truth=game==="truth";
  return <span className={"lr-games-symbol lr-games-art lr-games-art-"+game} aria-hidden="true">
   <svg className="lr-games-art-svg" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-   {rps?<g>
+   {rapid?<g>
+    <rect x="10" y="9" width="51" height="54" rx="12" fill="#344d6a" stroke="#f1c1d7" strokeWidth="2.5"/>
+    <path d="M22 23h27M22 33h19M22 43h23" stroke="#f9eff4" strokeWidth="3.5" strokeLinecap="round"/>
+    <path d="m47 43-4 10h7l-3 8 13-16h-9l4-9" fill="#ffc483" stroke="#ffe3ad" strokeWidth="1.2" strokeLinejoin="round"/>
+   </g>:truth?<g>
+    <rect x="13" y="11" width="39" height="51" rx="9" transform="rotate(-9 13 11)" fill="#925371" stroke="#f6bbd5" strokeWidth="2.2"/>
+    <rect x="26" y="12" width="39" height="51" rx="9" fill="#405a70" stroke="#a9c8d6" strokeWidth="2.2"/>
+    <path d="M46 48c-6.8-5.5-13-10-13-16a7 7 0 0 1 13-3 7 7 0 0 1 13 3c0 6-6 10.5-13 16Z" fill="#ff9fbc"/>
+    <path d="M39 24l2-6M51 24l3-6" stroke="#fff2da" strokeWidth="2.4" strokeLinecap="round"/>
+   </g>:rps?<g>
     <circle cx="21" cy="24" r="16" fill="#76446F" stroke="#FFBFD9" strokeWidth="2"/>
     <circle cx="51" cy="45" r="17" fill="#466A7C" stroke="#B5E8E9" strokeWidth="2"/>
     <text x="21" y="32" textAnchor="middle" fontSize="26">✊</text>
@@ -47,7 +58,7 @@ function GameArtwork({game}:{game:Game}){
     </g>}
    </>}
   </svg>
-  <span className="lr-games-art-label">{solo?"SOLO":memory?"MEMORY":rps?"LIVE":"DUO"}</span>
+  <span className="lr-games-art-label">{rapid?"QUIZ":truth?"À DEUX":solo?"SOLO":memory?"MEMORY":rps?"LIVE":"DUO"}</span>
  </span>;
 }
 
@@ -59,6 +70,14 @@ export default function GamesHub({onOpenGame,partnerName}:Props){
    <p>{partnerName?"Défie "+partnerName+" ou affronte l’ordinateur quand tu veux.":"Joue contre l’ordinateur dès maintenant, même sans partenaire."}</p>
   </header>
   <div className="lr-games-grid">
+   <button type="button" className="lr-games-choice lr-games-rapid" onClick={()=>onOpenGame("rapid")}>
+    <GameArtwork game="rapid"/>
+    <span className="lr-games-copy"><small>QUIZ CHRONOMÉTRÉ · À DEUX</small><strong>Questions rapides</strong><span>3, 2, 1… Répondez vite ! La première bonne réponse remporte le point.</span><b>Lancer le quiz →</b></span>
+   </button>
+   <button type="button" className="lr-games-choice lr-games-truth" onClick={()=>onOpenGame("truth")}>
+    <GameArtwork game="truth"/>
+    <span className="lr-games-copy"><small>CARTES & DÉFIS · À DEUX</small><strong>Action ou vérité</strong><span>Des questions tendres et des défis amusants, chacun à son tour.</span><b>Tirer une carte →</b></span>
+   </button>
    <button type="button" className="lr-games-choice lr-games-rps" onClick={()=>onOpenGame("rps")}>
     <GameArtwork game="rps"/>
     <span className="lr-games-copy"><small>EN DIRECT · À DEUX</small><strong>Pierre · Papier · Ciseaux</strong><span>Choix secrets, révélation simultanée, points et revanche en temps réel.</span><b>Défier mon partenaire →</b></span>
@@ -84,6 +103,6 @@ export default function GamesHub({onOpenGame,partnerName}:Props){
     <span className="lr-games-copy"><small>JEU DE MÉMOIRE</small><strong>Memory Love</strong><span>Retrouvez les paires et relevez le défi.</span><b>Jouer à Memory →</b></span>
    </button>
   </div>
-  <p className="lr-games-note">Pierre · Papier · Ciseaux, Ludo et Memory : joue avec ton partenaire, même à distance.</p>
+  <p className="lr-games-note">Questions rapides, Action ou vérité, Pierre · Papier · Ciseaux, Ludo et Memory : jouez ensemble, même à distance.</p>
  </section>;
 }
