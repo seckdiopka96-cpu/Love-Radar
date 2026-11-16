@@ -101,3 +101,17 @@ test("voice recording replaces the typing keyboard with a full-width iPhone comp
  assert.ok(styles.includes("env(safe-area-inset-bottom)"));
  assert.ok(styles.includes("@media(prefers-reduced-motion:reduce)"));
 });
+
+test("voice recorder stays a compact single row with accessible controls",()=>{
+ const styles=readFileSync("src/recording-composer.css","utf8");
+ assert.ok(styles.includes("grid-template-columns:minmax(0,1fr) auto"));
+ assert.ok(styles.includes("align-items:center;gap:9px"));
+ assert.ok(styles.includes("min-height:61px"));
+ assert.ok(styles.includes(".lr-voice-recording-actions .lr-voice-rec-pause"));
+ assert.ok(styles.includes(".lr-voice-recording-actions .lr-voice-rec-send"));
+ assert.ok(styles.includes(".lr-voice-recording-actions .lr-voice-rec-delete"));
+ assert.ok(styles.includes("env(safe-area-inset-bottom)"));
+ assert.ok(chat.includes('Array.from({length:17}'),"Waveform stays simple");
+ assert.ok(chat.includes('aria-label="Supprimer le vocal"'));
+ assert.ok(chat.includes('aria-label="Envoyer le vocal"'));
+});
