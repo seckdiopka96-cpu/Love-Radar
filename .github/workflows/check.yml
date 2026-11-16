@@ -28,6 +28,7 @@ jobs:
       - run: npm run test:animation
       - run: npm run test:replies
       - run: npm run test:voice-ui
+      - run: npm run test:voice-polish
       - run: npm run test:voice-outbox
       - run: npm run test:photos
       - run: npm run test:reliability
