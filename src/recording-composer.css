@@ -1,9 +1,11 @@
 /* WhatsApp-inspired full-width recorder: replaces the keyboard/input while audio captures.
    Scoped to chat and recording mode so ordinary composer remains unchanged. */
 .lr-chat .lr-voice-recording-composer{
- display:grid!important;grid-template-columns:minmax(0,1fr) auto;
- align-items:center;gap:9px;
- width:100%;min-width:0;min-height:61px;padding:6px 9px 6px 12px;
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ grid-template-rows:minmax(35px,auto) 52px!important;
+ align-items:center;justify-items:stretch;row-gap:5px;column-gap:0;
+ width:100%;min-width:0;min-height:104px;padding:8px 13px 9px;
  border-radius:19px;background:#192735;
  color:#f6ebf2;box-sizing:border-box;
  border:1px solid #46556a80;
@@ -11,7 +13,7 @@
 }
 .lr-chat .lr-voice-recording-status{
  display:flex;align-items:center;gap:7px;
- width:100%;min-width:0;min-height:40px;
+ width:100%;min-width:0;min-height:35px;
 }
 .lr-chat .lr-voice-recording-led{
  display:inline-block;flex:none;
@@ -39,35 +41,36 @@
  animation-play-state:paused;opacity:.45;
 }
 .lr-chat .lr-voice-recording-actions{
- display:grid;grid-template-columns:36px 36px 43px;
- align-items:center;justify-items:center;flex:none;
- gap:6px;width:auto;min-width:0;min-height:43px;
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ align-items:center!important;justify-items:center!important;
+ width:100%!important;min-width:0;min-height:52px;gap:0!important;
 }
 .lr-chat .lr-voice-recording-actions button{
- display:grid;place-items:center;
- padding:0!important;
- width:36px;height:40px;min-width:36px;min-height:40px;
- border-radius:13px!important;
+ display:grid!important;place-items:center!important;
+ align-self:center!important;margin:0!important;padding:0!important;
+ width:46px!important;height:46px!important;min-width:46px!important;min-height:46px!important;
+ border-radius:50%!important;
  cursor:pointer;
  transition:transform .16s,filter .16s;
 }
 .lr-chat .lr-voice-recording-actions button:active{transform:scale(.93)}
 .lr-chat .lr-voice-recording-actions button svg{
- display:block;width:20px;height:20px;
+ display:block;width:21px;height:21px;
 }
 .lr-chat .lr-voice-recording-actions .lr-voice-rec-delete{
- justify-self:center;
+ justify-self:start!important;
  color:#dfb7c9!important;background:transparent!important;
  border:1px solid transparent!important;
 }
 .lr-chat .lr-voice-recording-actions .lr-voice-rec-pause{
- justify-self:center;
+ justify-self:center!important;
  color:#f7c4d6!important;background:#3f2a43!important;
  border:1px solid #895d7c!important;
 }
 .lr-chat .lr-voice-recording-actions .lr-voice-rec-send{
- justify-self:end;
- width:43px!important;height:43px!important;min-width:43px!important;
+ justify-self:end!important;
+ width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;
+ border-radius:50%!important;
  color:#321c32!important;background:#f387b4!important;
  border:1px solid #ffd2e5!important;
 }
@@ -102,21 +105,20 @@
   padding:5px 8px max(7px,env(safe-area-inset-bottom))!important;
  }
  .lr-chat .lr-voice-recording-composer{
-  border-radius:17px;padding:6px 8px 6px 10px;gap:6px;min-height:57px
+  border-radius:18px;padding:7px 12px 9px;row-gap:4px;min-height:98px
  }
- .lr-chat .lr-voice-recording-status{min-height:40px}
- .lr-chat .lr-voice-recording-actions{grid-template-columns:33px 33px 41px;gap:4px}
- .lr-chat .lr-voice-recording-actions button{height:39px;width:33px;min-width:33px}
- .lr-chat .lr-voice-recording-actions .lr-voice-rec-send{height:41px!important;width:41px!important;min-width:41px!important}
+ .lr-chat .lr-voice-recording-status{min-height:34px}
+ .lr-chat .lr-voice-recording-actions{min-height:50px}
+ .lr-chat .lr-voice-recording-actions button{height:44px!important;width:44px!important;min-width:44px!important;min-height:44px!important}
+ .lr-chat .lr-voice-recording-actions .lr-voice-rec-send{height:50px!important;width:50px!important;min-width:50px!important;min-height:50px!important}
 }
 @media(max-width:360px){
- .lr-chat .lr-voice-recording-composer{gap:4px}
+ .lr-chat .lr-voice-recording-composer{padding:7px 10px 8px;row-gap:3px}
  .lr-chat .lr-voice-recording-status{gap:5px}
  .lr-chat .lr-voice-recording-wave{gap:1.5px}
  .lr-chat .lr-voice-recording-clock{font-size:16px!important;min-width:35px}
- .lr-chat .lr-voice-recording-actions{grid-template-columns:31px 31px 38px;gap:3px}
- .lr-chat .lr-voice-recording-actions button{width:31px;min-width:31px}
- .lr-chat .lr-voice-recording-actions .lr-voice-rec-send{height:40px!important;width:38px!important;min-width:38px!important}
+ .lr-chat .lr-voice-recording-actions button{height:42px!important;width:42px!important;min-width:42px!important;min-height:42px!important}
+ .lr-chat .lr-voice-recording-actions .lr-voice-rec-send{height:48px!important;width:48px!important;min-width:48px!important;min-height:48px!important}
 }
 @media(prefers-reduced-motion:reduce){
  .lr-chat .lr-voice-recording-led,
