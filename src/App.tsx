@@ -40,6 +40,7 @@ import LiveVoiceWaveform from "./LiveVoiceWaveform";
 import StickerArt from "./StickerArt";
 import StickerPicker from "./StickerPicker";
 import GifMessage from "./GifMessage";
+import AnimatedEmojiText,{emojiOnlyText} from "./AnimatedEmojiText";
 import "./animated-stickers.css";
 import {encodeGif,readGifId} from "./gif-provider";
 import {encodeSticker,isSticker,readStickerId} from "./stickers";
@@ -1949,11 +1950,11 @@ export default function LoveRadar(){
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 10 4 14l5 4"/><path d="M4 14h9a7 7 0 0 0 7-7"/></svg>
          </span>
          <div className={"lr-bubble-stack"+(m.kind==="image"?" lr-image-stack":"")}>
-          <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":m.kind==="image"?" lr-bubble-image":m.kind==="text"&&isSticker(m.content)?" lr-bubble-sticker":m.kind==="text"&&readGifId(m.content)?" lr-bubble-gif":"")}>
+          <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":m.kind==="image"?" lr-bubble-image":m.kind==="text"&&isSticker(m.content)?" lr-bubble-sticker":m.kind==="text"&&readGifId(m.content)?" lr-bubble-gif":m.kind==="text"&&emojiOnlyText(m.content)?" lr-bubble-emoji":"")}>
            {m.reply_to_id?<QuoteCard author={quoteAuthor(m.reply_sender_id,room.user.id,partner)}
             kind={m.reply_kind||"text"} content={m.reply_kind?m.reply_content:"Message supprimé"}
             onJump={chatMessages.some(item=>item.id===m.reply_to_id)?()=>jumpToQuote(m.reply_to_id!):undefined}/>:null}
-           {m.view_once?<div className="lr-legacy-expired" role="note">Ancien média temporaire indisponible</div>:m.kind==="text"?(readStickerId(m.content)?<StickerArt id={readStickerId(m.content)!}/>:readGifId(m.content)?<GifMessage id={readGifId(m.content)!}/>:<p>{m.content}</p>):m.kind==="image"?
+           {m.view_once?<div className="lr-legacy-expired" role="note">Ancien média temporaire indisponible</div>:m.kind==="text"?(readStickerId(m.content)?<StickerArt id={readStickerId(m.content)!}/>:readGifId(m.content)?<GifMessage id={readGifId(m.content)!}/>:<p><AnimatedEmojiText content={m.content||""}/></p>):m.kind==="image"?
           media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} enabled={privacyEnabled} viewer={room.user.name} variant="chat" onImageError={()=>retryMedia(m)}/>:
           <div className="lr-photo-loading" role="status">
            <span aria-hidden="true">▧</span>
