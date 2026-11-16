@@ -77,7 +77,7 @@ export default function DailyMoment({token,myName,partnerName,onExit,focusDay}:P
  return <section className="dm-experience" aria-label="Notre moment du jour">
   <header className="dm-top">
    <button type="button" className="dm-back" onClick={onExit} aria-label="Retour à l’accueil">‹ Accueil</button>
-   <div className="dm-brand"><strong>Notre moment <span>♡</span></strong><small>LOVE RADAR · À DEUX</small></div>
+   <div className="dm-brand"><strong>Notre moment <span>♡</span></strong><small>À DEUX</small></div>
    <span className="dm-top-star" aria-hidden="true">✦</span>
   </header>
   <div className="dm-main">
