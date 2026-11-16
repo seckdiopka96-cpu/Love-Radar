@@ -33,7 +33,11 @@ test("ECDH+HKDF gives same AES-256 key to two peers, not to server",async()=>{
  assert.equal(await decryptText(b,cipher,msgId,aliceId),plain);
  await assert.rejects(decryptText(b,cipher,roomId,aliceId),"cannot move ciphertext to a different message id");
  await assert.rejects(decryptText(b,cipher,msgId,bobId),"sender authenticated in AAD");
- await assert.rejects(decryptText(b,cipher.slice(0,-2)+"AA",msgId,aliceId),"tag tampering rejected");
+ const parts=cipher.split(".");
+ const forged=Buffer.from(parts[2],"base64url");
+ forged[forged.length-1]^=1;
+ await assert.rejects(decryptText(b,parts[0]+"."+parts[1]+"."+forged.toString("base64url"),msgId,aliceId),
+  "tag tampering rejected");
  const wrongRoom=await deriveContext(bob,{roomId:msgId,mineId:bobId,partnerId:aliceId,
   minePublicKey:bob.publicKey,partnerPublicKey:alice.publicKey});
  await assert.rejects(decryptText(wrongRoom,cipher,msgId,aliceId),"room key is isolated");
