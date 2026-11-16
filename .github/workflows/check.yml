@@ -18,6 +18,7 @@ jobs:
       - run: npm run test:puzzle
       - run: npm run test:call
       - run: npm run test:background-call
+      - run: npm run test:e2ee
       - run: npm run test:reconcile
       - run: npm run test:design
       - run: npm run test:chat
