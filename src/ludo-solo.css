@@ -8,7 +8,7 @@
 .ludo-solo .ludo-brand small{color:#e5c2ad}
 .ludo-solo-restart{
  display:grid;place-items:center;flex:none;width:35px;height:35px;
- border:1px solid #aa8395;border-radius:11px;color:#ffedcf;
+ border:1px solid #bc396c;border-radius:11px;color:#ffedcf;
  background:#61435f;font-weight:900;font-size:26px;line-height:1;
 }
 .ludo-solo-restart:active{transform:scale(.92)}
@@ -21,7 +21,7 @@
  background:linear-gradient(135deg,#ffe6ac,#e8ab2f);font-size:20px
 }
 .ludo-solo .ludo-main-action:not(:disabled){
- background:linear-gradient(140deg,#ffb957,#e77c54 55%,#d4526c);
+ background:linear-gradient(140deg,#ffb957,#e77c54 55%,#a82358);
  box-shadow:inset 0 1px #fff3c980,inset 0 -4px #b45e419a,0 4px 9px #150b19aa
 }
 .ludo-solo .ludo-game-footer{
