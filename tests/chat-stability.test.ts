@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {findBuiltInSpeaker,isSpeakerLabel,audioRouteHelp} from "../src/audio-output";
+import {formatPartnerLastSeen} from "../src/last-seen";
 
 const voice=readFileSync("src/VoiceCall.tsx","utf8");
 const api=readFileSync("functions/api/love.ts","utf8");
@@ -124,4 +125,17 @@ test("voice recorder matches two-row WhatsApp layout with truly centered pause/p
  assert.ok(markup.includes('aria-label="Supprimer le vocal"'));
  assert.ok(markup.includes('aria-label="Envoyer le vocal"'));
  assert.ok(markup.includes("onClick={pauseOrResumeRecording}"),"pause and resume still function");
+});
+
+test("last seen shows local day and time, but never invents unknown presence",()=>{
+ const local=(year:number,month:number,day:number,hour:number,minute:number)=>new Date(year,month-1,day,hour,minute).getTime();
+ const now=local(2026,11,16,14,30);
+ assert.equal(formatPartnerLastSeen(0,now),"Hors ligne");
+ assert.equal(formatPartnerLastSeen(Number.NaN,now),"Hors ligne");
+ assert.equal(formatPartnerLastSeen(local(2026,11,16,14,24),now),"Dernière vue aujourd’hui à 14:24");
+ assert.equal(formatPartnerLastSeen(local(2026,11,15,19,5),now),"Dernière vue hier à 19:05");
+ assert.match(formatPartnerLastSeen(local(2026,11,12,8,9),now),/^Dernière vue le 12 nov\\.? à 08:09$/);
+ assert.ok(chat.includes("formatPartnerLastSeen(lastSeen,presenceNow)"));
+ assert.ok(chat.includes('partnerOnline?"En ligne"'));
+ assert.ok(chat.includes("setInterval(()=>setPresenceNow(Date.now()),10000)"));
 });
