@@ -1,5 +1,5 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
-const CACHE="love-radar-static-v64";
+const CACHE="love-radar-static-v65";
 const PRIVATE_AVATAR_CACHE="love-radar-private-notification-avatar-v1";
 const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png"];
 self.addEventListener("install",event=>{
@@ -67,7 +67,7 @@ async function notificationAvatar(memberId){
 }
 
 /* Notifications open their exact content, not just the app's welcome page. */
-const SUPPORTED_TABS=new Set(["home","chat","games","ludo","memory","rps","memories","moment","together","watch","watch-tiktok","puzzle","reconcile","story","reunion"]);
+const SUPPORTED_TABS=new Set(["home","chat","games","ludo","memory","rps","rapid","truth","memories","moment","together","watch","watch-tiktok","puzzle","reconcile","story","reunion"]);
 const TARGET_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","rps-challenge","daily-question","love-signal"]);
 function notificationTarget(info){
  const kind=typeof info?.kind==="string"&&TARGET_KINDS.has(info.kind)?info.kind:null;
