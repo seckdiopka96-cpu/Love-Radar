@@ -85,17 +85,17 @@ export default function HomeDashboard({room,token,mineAvatar,partnerAvatar,onEdi
   <div className="lr-home-section-heading"><span>À NE PAS MANQUER</span><small>Vos dernières activités</small></div>
   <div className="lr-home-essentials">
    <button type="button" className="lr-home-conversation" onClick={()=>onNavigate("chat")}>
-    <span className="lr-home-essential-symbol" aria-hidden="true">💬</span>
+    <span className="lr-home-essential-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 11.5a7.8 7.8 0 0 1-8 7.7 8.3 8.3 0 0 1-3.5-.8L4 20l1.4-4.2A7.6 7.6 0 0 1 4 11.5 7.8 7.8 0 0 1 12 4a7.8 7.8 0 0 1 8 7.5Z"/><path d="M8.5 11.7h7M8.5 14.5h4.5"/></svg></span>
     <span className="lr-home-essential-copy"><strong>Notre conversation</strong><small>{from} · {latest}</small></span>
     {Number(room.unreadCount||0)>0?<b className="lr-home-unread">{Math.min(99,Number(room.unreadCount))}{Number(room.unreadCount)>99?"+":""}</b>:<span className="lr-home-essential-arrow" aria-hidden="true">›</span>}
    </button>
    <button type="button" className="lr-home-daily" onClick={()=>onNavigate("moment")}>
-    <span className="lr-home-daily-icon" aria-hidden="true">💌</span>
+    <span className="lr-home-daily-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2.7" y="5.5" width="18.6" height="14" rx="3"/><path d="m3.8 7.6 8.2 6 8.2-6"/><path d="M12 4.2c-.8-1.5-3.7-1.3-3.7.9 0 1.3 1.4 2.1 3.7 3.6 2.3-1.5 3.7-2.3 3.7-3.6 0-2.2-2.9-2.4-3.7-.9Z" fill="currentColor" stroke="none"/></svg></span>
     <span className="lr-home-daily-content"><strong>Notre moment du jour</strong><span>{daily?.revealed?"Découvrir vos réponses":daily?.partnerAnswered&&!daily?.mine?"Ton amour a répondu, à toi !":daily?.mine?"Réponse envoyée · en attente":"Une question pour vous rapprocher"}</span></span>
     <span className="lr-home-daily-arrow" aria-hidden="true">›</span>
    </button>
    {game&&room.partner?<button type="button" className="lr-home-resume" onClick={()=>onNavigate("ludo")}>
-    <span className="lr-home-essential-symbol" aria-hidden="true">🎲</span>
+    <span className="lr-home-essential-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.4" cy="8.4" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.6" cy="8.4" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="8.4" cy="15.6" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.6" cy="15.6" r="1.2" fill="currentColor" stroke="none"/></svg></span>
     <span className="lr-home-essential-copy"><strong>{game.status==="won"?"Rejouer au Ludo":"Reprendre notre partie"}</strong><small>{game.status==="won"?"Une nouvelle partie vous attend":game.turn===room.user.seat?"C’est à toi de jouer":"À "+room.partner+" de jouer"}</small></span>
     <span className="lr-home-essential-arrow" aria-hidden="true">›</span>
    </button>:null}
