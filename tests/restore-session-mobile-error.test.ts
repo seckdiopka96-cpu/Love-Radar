@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {recoverSavedSession,persistSessionToken,clearSessionToken,hadPreviousSession} from "../src/session-persistence";
+import {connectionErrorMessage} from "../src/network-recovery";
 
 const app=readFileSync("src/App.tsx","utf8");
 const session=readFileSync("src/session-persistence.ts","utf8");
@@ -52,7 +53,7 @@ test("Only a confirmed HTTP 401 invalidates token; network errors don't delete i
  assert.ok(start.includes("if(res.status===401)"));
  assert.ok(start.includes("clearSessionToken();"));
  assert.ok(start.includes("setRecoverMode(true)"));
- assert.ok(start.includes('}catch(e){if(!silent)setError('),"network errors are recoverable");
+ assert.ok(start.includes('}catch(e){if(!silent)setError(connectionErrorMessage('),"network errors are recoverable");
  assert.ok(!start.slice(start.indexOf('}catch(e){if(!silent')).includes("clearSessionToken()"),
   "network error doesn't discard credentials");
  assert.ok(app.includes("persistSessionToken(data.token)"),"personal recovery rotates token");
@@ -68,4 +69,18 @@ test("Red reconnect error is readable and positioned inside mobile panel",()=>{
  assert.ok(css.includes(".lr-welcome-mode .lr-auth-panel .lr-inline-auth-error"));
  assert.ok(css.includes(".lr-app.lr-welcome-mode>.lr-error"));
  assert.ok(css.includes("left:12px!important;right:12px!important"),"no negative translated margin on mobile");
+});
+
+test("iOS Load failed on mobile data is localized and does not destroy a saved session",()=>{
+ assert.match(connectionErrorMessage(new TypeError("Load failed")),/4G\/5G/);
+ assert.match(connectionErrorMessage(new TypeError("Failed to fetch")),/Nouvelle tentative automatique/);
+ assert.match(connectionErrorMessage(new Error("unexpected"),true),/Connexion trop lente/);
+ assert.match(connectionErrorMessage(new Error("unexpected"),false,true),/4G\/5G/);
+ assert.equal(connectionErrorMessage(new Error("Erreur serveur")), "Erreur serveur");
+ assert.ok(app.includes('window.addEventListener("online",retry)'));
+ assert.ok(app.includes('window.addEventListener("pageshow",retry)'));
+ assert.ok(app.includes('window.setInterval(retry,15000)'));
+ assert.ok(app.includes('if(!token||room||initializing||recoverMode)return;'));
+ assert.ok(app.includes('void refresh(undefined,false)'));
+ assert.ok(app.includes('Ne recrée pas un espace. Love Radar réessaie automatiquement'));
 });
