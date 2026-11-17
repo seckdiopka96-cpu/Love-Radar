@@ -55,7 +55,7 @@ export async function ensureVoipDeviceTable(db:D1Database):Promise<void>{
  );
 }
 export async function notifyIncomingVoip(env:VoipEnv,roomId:string,memberId:string,
- callId:string,callerName:string,expiresAt:number):Promise<void>{
+ callId:string,callerName:string,expiresAt:number,mode:"audio"|"video"="audio"):Promise<void>{
  if(!env.DB)return;
  const c=config(env);
  if(!c){console.info("Love Radar APNs VoIP is not configured for this environment");return}
@@ -72,7 +72,7 @@ export async function notifyIncomingVoip(env:VoipEnv,roomId:string,memberId:stri
   if(!jwt)return;
   const payload=JSON.stringify({
    type:"incoming_call",callId,callerName:callerName.replace(/[\r\n\t]/g," ").trim().slice(0,60)||"Ton amour",
-   expiresAt
+   expiresAt,mode
   });
   await Promise.all(devices.map(async device=>{
    try{
