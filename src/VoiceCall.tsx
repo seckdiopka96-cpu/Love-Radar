@@ -469,6 +469,57 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   for(const t of local.current.getAudioTracks())t.enabled=!next;
   setMuted(next);
  }
+ function toggleCamera(){
+  if(current.current?.mode!=="video"||!local.current)return;
+  const tracks=local.current.getVideoTracks();
+  if(!tracks.length){setCameraWarning("Cette caméra est indisponible. Autorise-la puis rappelle.");return}
+  const next=!cameraOff;
+  tracks.forEach(track=>{track.enabled=!next});
+  setCameraOff(next);
+ }
+ async function switchCamera(){
+  if(current.current?.mode!=="video"||!local.current||cameraSwitching.current)return;
+  const sender=pc.current?.getSenders().find(item=>item.track?.kind==="video");
+  const existing=local.current.getVideoTracks()[0];
+  if(!sender||!existing){setCameraWarning("Aucune caméra active à changer.");return}
+  cameraSwitching.current=true;setCameraBusy(true);setCameraWarning("");
+  const oldFacing=cameraFacing,nextFacing=oldFacing==="user"?"environment":"user";
+  const acquire=(facing:"user"|"environment")=>navigator.mediaDevices.getUserMedia({
+   audio:false,video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}}
+  });
+  let replacement:MediaStream|null=null,stopped=false,adopted=false;
+  try{
+   try{replacement=await acquire(nextFacing)}
+   catch{
+    // Safari on iPhone sometimes allows only one camera stream at a time.
+    existing.stop();stopped=true;replacement=await acquire(nextFacing);
+   }
+   const track=replacement.getVideoTracks()[0];
+   if(!track)throw Error("Aucune caméra détectée.");
+   track.enabled=!cameraOff;
+   await sender.replaceTrack(track);
+   local.current.removeTrack(existing);local.current.addTrack(track);
+   if(!stopped)existing.stop();
+   adopted=true;
+   if(localVideo.current){localVideo.current.srcObject=null;localVideo.current.srcObject=local.current;void localVideo.current.play().catch(()=>{})}
+   setCameraFacing(nextFacing);
+  }catch(err){
+   if(stopped){
+    try{
+     const restored=await acquire(oldFacing),track=restored.getVideoTracks()[0];
+     if(track){
+      track.enabled=!cameraOff;await sender.replaceTrack(track);
+      local.current.removeTrack(existing);local.current.addTrack(track);
+      if(localVideo.current){localVideo.current.srcObject=null;localVideo.current.srcObject=local.current;void localVideo.current.play().catch(()=>{})}
+     }
+    }catch{setCameraOff(true)}
+   }
+   setCameraWarning("Changement de caméra impossible : "+(err instanceof Error?err.message:"réessaie plus tard."));
+  }finally{
+   if(replacement&&!adopted)replacement.getTracks().forEach(track=>track.stop());
+   cameraSwitching.current=false;setCameraBusy(false);
+  }
+ }
  async function enableAudio(){
   if(!remote.current)return;
   try{remote.current.muted=false;await remote.current.play();setNeedsPlay(false)}catch{setError("Vérifie le volume du téléphone et réessaie.")}
