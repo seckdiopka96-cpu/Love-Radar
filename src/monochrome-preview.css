@@ -1,0 +1,305 @@
+/* LOVE RADAR · Black & White preview — 17 Nov 2026
+ * Visual-only monochrome layer. No layout, call, chat, game or network logic changes.
+ * Photos/video, emoji and the functional Ludo board keep their original colors.
+ * To revert the experiment, remove this stylesheet import from main.tsx.
+ */
+:root {
+  color-scheme: dark;
+  --lr-night:#080808;
+  --lr-night-deep:#050505;
+  --lr-panel:#151515;
+  --lr-panel-raised:#202020;
+  --lr-panel-soft:#2b2b2b;
+  --lr-line:#3c3c3c;
+  --lr-line-soft:#303030;
+  --lr-rose:#f4f4f4;
+  --lr-rose-light:#fff;
+  --lr-sunset:#d5d5d5;
+  --lr-cream:#fafafa;
+  --lr-text:#f7f7f7;
+  --lr-text-muted:#bdbdbd;
+  --lr-subtle:#999;
+  --lr-success:#e0e0e0;
+  background:#080808!important;
+  color:#f7f7f7!important;
+}
+html,body,#root {background:#080808!important;color:#f7f7f7!important}
+.lr-app {
+  --lr-surface:#171717;
+  --lr-surface2:#222;
+  --lr-stroke:#414141;
+  --lr-muted:#bcbcbc;
+  --lr-rose:#f4f4f4;
+  --lr-polish-rose:#f4f4f4;
+  --lr-polish-blush:#e8e8e8;
+  --lr-polish-ink:#080808;
+  --lr-polish-panel:#181818;
+  --lr-polish-line:rgba(255,255,255,.19);
+  --universe-bg:#080808;
+  --universe-surface:#151515;
+  --universe-raised:#222;
+  --universe-line:#424242;
+  --universe-rose:#f4f4f4;
+  --universe-soft-rose:#fff;
+  --universe-text:#f7f7f7;
+  --universe-muted:#bfbfbf;
+  background:linear-gradient(160deg,#101010 0%,#080808 65%,#050505 100%)!important;
+  color:#f7f7f7!important;
+}
+.lr-app.lr-welcome-mode {background:linear-gradient(165deg,#171717,#080808 70%)!important}
+.lr-bg-decor {display:none!important}
+.lr-header,.lr-app.lr-app-locked>.lr-header {
+  background:rgba(12,12,12,.96)!important;
+  border-color:#303030!important;
+  box-shadow:none!important;
+}
+.lr-brand-emblem,.lr-app.lr-app-locked>.lr-header .lr-brand-emblem,.lr-brand-mark {
+  background:linear-gradient(145deg,#f9f9f9,#ababab)!important;
+  border-color:#eee!important;
+  color:#111!important;
+  box-shadow:0 5px 18px #0008!important;
+}
+.lr-brand-copy b,.lr-brand-copy b span,.lr-brand b span,.lr-header-context>strong {
+  color:#f8f8f8!important;
+}
+.lr-brand-copy small,.lr-brand small,.lr-header-context>span,.lr-top-status {color:#b8b8b8!important}
+.lr-header-avatar {
+  background:#292929!important;color:#fff!important;
+  border:1px solid #777!important;box-shadow:0 0 0 2px #ffffff14!important;
+}
+.lr-menu {
+  background:#171717!important;color:#f6f6f6!important;
+  border-color:#454545!important;box-shadow:0 16px 44px #0009!important;
+}
+.lr-menu button,.lr-menu .lr-menu-notification-actions button {
+  background:#292929!important;color:#f7f7f7!important;border-color:#575757!important;
+}
+.lr-menu-notification-title strong,.lr-menu-notification-help,.lr-menu-notification-status {
+  color:#dedede!important;
+}
+/* Minimal iPhone-style dock; preserve touch size, positioning and safe areas. */
+.lr-app.lr-app-locked .lr-mobile-nav,.lr-mobile-nav {
+  background:rgba(17,17,17,.98)!important;
+  border-color:#414141!important;
+  box-shadow:0 -8px 22px #0007!important;
+}
+.lr-app.lr-app-locked .lr-mobile-nav button,.lr-mobile-nav button {color:#a9a9a9!important}
+.lr-app.lr-app-locked .lr-mobile-nav button.active,.lr-app.lr-app-locked .lr-mobile-nav button.active small {
+  color:#fff!important;background:transparent!important;
+}
+.lr-app.lr-app-locked .lr-mobile-nav button.active .lr-nav-symbol {
+  color:#111!important;background:#fff!important;border:1px solid #fff!important;
+  box-shadow:0 3px 12px #ffffff20!important;
+}
+.lr-app.lr-app-locked .lr-mobile-nav button .lr-nav-unread {
+  color:#070707!important;background:#fff!important;border-color:#191919!important;
+}
+.lr-side-nav,.lr-sidebar,.lr-side-panel {background:#141414!important;border-color:#333!important}
+.lr-side-nav button.active {background:#303030!important;color:#fff!important}
+.lr-side-nav button.active .lr-nav-symbol {color:#fff!important}
+/* Welcome + sign-in */
+.lr-app .lr-auth-panel,.lr-app.lr-welcome-mode .lr-auth-panel {
+  background:linear-gradient(145deg,#1c1c1c,#121212)!important;
+  border-color:#434343!important;box-shadow:0 18px 60px #0008!important;
+}
+.lr-app .lr-auth-story h1,.lr-app .lr-auth-story h1 em,.lr-app .lr-panel-head h2 {color:#fff!important}
+.lr-app .lr-auth-story>p,.lr-app .lr-panel-head p,.lr-app .lr-safe-copy {color:#bdbdbd!important}
+.lr-app .lr-auth-switch,.lr-app.lr-welcome-mode .lr-auth-switch {background:#0e0e0e!important}
+.lr-app .lr-auth-switch button {color:#bbb!important}
+.lr-app .lr-auth-switch button.active,.lr-app.lr-welcome-mode .lr-auth-switch button.active {
+  background:#f5f5f5!important;color:#080808!important;
+}
+.lr-app .lr-auth-form label {color:#eee!important}
+.lr-app .lr-auth-form input,.lr-app.lr-welcome-mode .lr-auth-form input {
+  background:#111!important;border-color:#5a5a5a!important;color:#fff!important;
+}
+.lr-app .lr-auth-form input::placeholder {color:#999!important}
+.lr-app .lr-auth-form input:focus {border-color:#fff!important;box-shadow:0 0 0 2px #ffffff30!important}
+.lr-app .lr-auth-form>button,.lr-app.lr-welcome-mode .lr-auth-form>button {
+  background:#f5f5f5!important;color:#090909!important;
+  border:1px solid #fff!important;box-shadow:none!important;
+}
+/* Home: anthracite hero and black/white quick actions. */
+.lr-home-compact .lr-home-welcome h2,.lr-home-compact .lr-home-welcome h2 em,
+.lr-home-kicker,.lr-app .lr-home-compact .lr-home-kicker,
+.lr-home-section-heading span,.lr-app .lr-home-compact .lr-home-section-heading span {
+  color:#efefef!important;
+}
+.lr-home-compact .lr-home-welcome p,.lr-home-section-heading small {color:#bcbcbc!important}
+.lr-home-couple,.lr-app .lr-home-compact .lr-home-couple {
+  background:linear-gradient(135deg,#2b2b2b,#111 75%)!important;
+  border-color:#565656!important;box-shadow:0 10px 30px #0007!important;
+}
+.lr-home-couple h1,.lr-home-couple h1 span {color:#fff!important}
+.lr-home-couple p {color:#ccc!important}
+.lr-home-avatar,.lr-home-avatar-other,.lr-app .lr-home-compact .lr-home-couple .lr-home-avatar {
+  background:linear-gradient(140deg,#e5e5e5,#969696)!important;
+  color:#111!important;border-color:#f2f2f2!important;
+}
+.lr-home-heart,.lr-app .lr-home-compact .lr-home-heart {color:#f4f4f4!important}
+.lr-home-quick button,.lr-app .lr-home-compact .lr-home-quick button,
+.lr-home-quick button:nth-child(2),.lr-home-quick button:nth-child(3) {
+  background:linear-gradient(140deg,#f8f8f8,#dddddd)!important;
+  color:#101010!important;border-color:#fff!important;
+  box-shadow:0 6px 18px #0005!important;
+}
+.lr-home-quick button *:not(img):not(svg),.lr-home-quick strong,.lr-home-quick small {color:#151515!important}
+.lr-home-quick-icon,.lr-home-quick button:nth-child(2) .lr-home-quick-icon,
+.lr-home-quick button:nth-child(3) .lr-home-quick-icon {
+  background:#272727!important;color:#fff!important;
+}
+.lr-home-game,.lr-home-memory,.lr-home-our-story button,
+.lr-home-tile,.lr-home-essentials>button,.lr-home-essentials .lr-home-daily,
+.lr-home-invite {
+  background:linear-gradient(135deg,#282828,#151515)!important;
+  border-color:#4e4e4e!important;color:#f5f5f5!important;
+}
+.lr-home-game h2,.lr-home-tile h2,.lr-home-our-story strong,
+.lr-home-memory-copy strong,.lr-home-essentials strong {color:#fff!important}
+.lr-home-game p,.lr-home-preview,.lr-home-our-story small,
+.lr-home-memory-copy>span,.lr-home-essentials small {color:#c5c5c5!important}
+.lr-home-card-label,.lr-home-tile-top,.lr-home-open,.lr-home-from,
+.lr-home-memory-copy small,.lr-home-memory-copy b,.lr-home-our-story b {
+  color:#e4e4e4!important;
+}
+.lr-home-game-cta,.lr-home-invite button {
+  background:#fff!important;color:#101010!important;
+}
+.lr-home-tile-icon {background:#414141!important;color:#fff!important}
+.lr-home-no-photo {background:#191919!important;border-color:#555!important;color:#aaa!important}
+/* Messenger: background / text / contrast, no changes to scrolling or composer geometry. */
+.lr-chat {
+  background:#111!important;color:#f5f5f5!important;
+  border-color:#363636!important;box-shadow:0 15px 40px #0006!important;
+}
+.lr-chat-head,.lr-app.lr-app-locked.lr-chat-mode .lr-chat-head {
+  background:#161616!important;border-color:#3a3a3a!important;
+}
+.lr-chat-head h2 {color:#fff!important}
+.lr-chat-head span,.lr-chat-status,.lr-chat-partner small {color:#bfbfbf!important}
+.lr-chat-messages {
+  background:linear-gradient(165deg,#101010,#080808)!important;
+}
+.lr-chat-empty,.lr-chat-caption,.lr-chat-empty p {color:#b9b9b9!important}
+.lr-chat-empty h3 {color:#fff!important}
+.lr-chat .lr-bubble,.lr-bubble {
+  background:#292929!important;color:#f9f9f9!important;
+  border-color:#484848!important;box-shadow:0 3px 12px #0004!important;
+}
+.lr-chat .lr-bubble-row.mine .lr-bubble,.lr-bubble-row.mine .lr-bubble {
+  background:linear-gradient(135deg,#f5f5f5,#dadada)!important;
+  color:#101010!important;border-color:#f9f9f9!important;
+}
+.lr-bubble-row.mine .lr-bubble p,.lr-bubble-row.mine .lr-bubble span,
+.lr-bubble-row.mine .lr-bubble strong {color:#121212!important}
+.lr-message-time,.lr-read-receipt,.lr-chat-day {color:#a8a8a8!important}
+.lr-chat-day {background:#2a2a2a!important;border-color:#484848!important}
+.lr-chat-compose,.lr-chat .lr-chat-compose {
+  background:#161616!important;border-color:#363636!important;
+}
+.lr-chat .lr-chat-form {
+  --lr-composer-rose:#f6f6f6;
+  --lr-composer-icon:#f3f3f3;
+  --lr-composer-icon-bg:#303030;
+  --lr-composer-icon-border:#555;
+}
+.lr-chat .lr-chat-form>.lr-chat-textbox {
+  background:#252525!important;border-color:#555!important;
+}
+.lr-chat .lr-chat-form>.lr-chat-textbox:focus-within {border-color:#eee!important;box-shadow:0 0 0 2px #ffffff20!important}
+.lr-chat .lr-chat-form input:not([type=file]),.lr-chat .lr-chat-form textarea {
+  background:#252525!important;color:#fff!important;border-color:#535353!important;
+}
+.lr-chat .lr-chat-form input::placeholder,.lr-chat .lr-chat-form textarea::placeholder {color:#aaa!important}
+.lr-chat .lr-chat-form>button,.lr-chat .lr-chat-form>.lr-attach,.lr-chat .lr-chat-form>.lr-mic,.lr-chat .lr-chat-form>.lr-send {
+  background:#303030!important;border-color:#555!important;color:#fff!important;
+}
+.lr-chat .lr-chat-form>.lr-send:not(:disabled) {background:#f7f7f7!important;border-color:#fff!important;color:#101010!important}
+.lr-app.lr-app-locked.lr-chat-mode .lr-chat-back,.lr-call-trigger {
+  background:#2a2a2a!important;border-color:#666!important;color:#fff!important;
+}
+.lr-chat .lr-chat-activity,.lr-chat .lr-activity-bubble {background:#2a2a2a!important;border-color:#454545!important;color:#fff!important}
+.lr-chat .lr-typing-dots i {background:#fff!important}
+.lr-chat .lr-voice-note:not(.is-own) {background:#303030!important;border-color:#565656!important}
+.lr-chat .lr-voice-note.is-own {background:#e9e9e9!important;color:#111!important;border-color:#fff!important}
+.lr-chat .lr-voice-note.is-own .lr-voice-note-wave>span {background:#555!important}
+.lr-chat .lr-voice-note.is-own .lr-voice-note-wave>span.played {background:#151515!important}
+.lr-chat .lr-voice-note-wave>span {background:#aaa!important}
+.lr-chat .lr-message-action-popover,.lr-chat .lr-message-reaction-more,
+.lr-chat .lr-message-action-popover .lr-message-reaction-more {
+  background:#202020!important;border-color:#555!important;color:#fff!important;
+}
+.lr-chat .lr-message-action-popover .lr-message-action-preview {
+  background:#363636!important;color:#fff!important;border-color:#646464!important;
+}
+.lr-chat .lr-message-action-popover.is-own .lr-message-action-preview {
+  background:#eaeaea!important;color:#121212!important;border-color:#fff!important;
+}
+.lr-chat .lr-message-action-popover .lr-message-action-row,
+.lr-chat .lr-message-action-popover .lr-message-action-row>span {color:#f4f4f4!important}
+/* Settings and secondary content panels; no checkbox/input behavior changed. */
+.lr-settings-page,.lr-settings-heading h1 {color:#f5f5f5!important}
+.lr-settings-heading>div>span,.lr-settings-heading p {color:#bdbdbd!important}
+.lr-settings-section,.lr-settings-screenshot-info {
+  background:linear-gradient(145deg,#242424,#141414)!important;
+  border-color:#484848!important;color:#f4f4f4!important;
+}
+.lr-settings-icon,.lr-settings-back,.lr-settings-invitation,.lr-settings-inline-actions button {
+  background:#292929!important;border-color:#555!important;color:#fff!important;
+}
+.lr-settings-section-head h2,.lr-settings-invitation strong {color:#f9f9f9!important}
+.lr-settings-section-head p,.lr-settings-help,.lr-settings-footer,
+.lr-settings-screenshot-info p,.lr-settings-screenshot-info small {color:#bdbdbd!important}
+.lr-settings-primary,.lr-settings-invitation button {
+  background:#f5f5f5!important;color:#111!important;border-color:#fff!important;
+}
+.lr-settings-avatar {background:#555!important;border-color:#ddd!important;color:#fff!important}
+.lr-settings-toggle input:checked+.lr-settings-switch {
+  background:#f0f0f0!important;border-color:#fff!important;
+}
+.lr-settings-toggle input:checked+.lr-settings-switch::before {background:#111!important}
+.lr-games-choice,.lr-memory,.lr-memories-empty,.lr-story-album-entry {
+  background:linear-gradient(145deg,#292929,#171717)!important;
+  border-color:#555!important;color:#f5f5f5!important;
+}
+.lr-games-choice h3,.lr-memories-empty h3 {color:#fff!important}
+/* Call screens and minimized-call bubble. Preserve answer/end icons and layout. */
+.lr-call-backdrop {background:#050505f5!important}
+.lr-call-sheet,.lr-call-backdrop .lr-call-sheet {
+  background:linear-gradient(145deg,#242424,#0b0b0b)!important;
+  border-color:#555!important;color:#f6f6f6!important;
+  box-shadow:0 24px 70px #000c!important;
+}
+.lr-call-heart,.lr-call-brand,.lr-call-initial,.lr-call-sheet h2,
+.lr-call-sheet p,.lr-call-status,.lr-call-duration {
+  color:#f5f5f5!important;
+}
+.lr-call-initial {background:#313131!important;border-color:#777!important}
+.lr-call-mini {background:#141414f9!important;border-color:#666!important;color:#fff!important}
+.lr-call-mini-actions button,.lr-call-minimize,.lr-call-mute,.lr-call-speaker {
+  background:#3a3a3a!important;border-color:#747474!important;color:#fff!important;
+}
+.lr-call-backdrop .lr-call-sheet .lr-call-answer {background:#f4f4f4!important;color:#111!important}
+.lr-call-backdrop .lr-call-sheet .lr-call-decline,.lr-call-mini-actions .lr-call-mini-end {
+  background:#4b4b4b!important;border:2px solid #fff!important;color:#fff!important;
+}
+.lr-call-audio-hint,.lr-call-error,.lr-call-toast {
+  background:#292929!important;color:#f0f0f0!important;border-color:#5e5e5e!important;
+}
+/* Opening screen shown on PWA / native startup. */
+.lr-launch-splash {
+  background:radial-gradient(ellipse at 50% 24%,#343434,#0d0d0d 60%,#000 100%)!important;
+  color:#fff!important;
+}
+.lr-launch-glow {background:radial-gradient(ellipse at center,#ffffff12,transparent 48%)!important}
+.lr-launch-emblem {
+  background:linear-gradient(145deg,#e8e8e832,#fefefe08)!important;
+  border-color:#bbbbbb68!important;box-shadow:0 15px 55px #0009!important;
+}
+.lr-launch-kicker,.lr-launch-splash h1 span,.lr-launch-credit strong {color:#f5f5f5!important}
+.lr-launch-tagline,.lr-launch-credit {color:#bcbcbc!important}
+/* Visible focus state remains distinct and keyboard-accessible. */
+.lr-app button:focus-visible,.lr-app input:focus-visible,.lr-app textarea:focus-visible,.lr-app a:focus-visible {
+  outline:2px solid #fff!important;outline-offset:2px!important;
+}
+/* Do not touch uploaded media, emojis, colored games, positioning or animations. */
