@@ -522,13 +522,19 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
     void sync();
    }else if(action.action==="end"){
     if(pendingSystemAnswer.current===action.callId)pendingSystemAnswer.current=null;
-    if(current.current?.id===action.callId)reset();
+    if(current.current?.id===action.callId){
+     suppressed.current=action.callId;
+     reset();
+    }
+    // Native Android decline may arrive before the React call has been loaded.
+    // Notify the authenticated server even when the UI is not yet mounted.
+    void api("end",{id:action.callId}).catch(()=>{});
    }
   };
   void activateNativeVoip(token,onNativeCall).then(cleanup=>{
    if(disposed)cleanup();
    else detach=cleanup;
-  }).catch(error=>console.warn("iOS VoIP registration is not active",error));
+  }).catch(error=>console.warn("Native incoming call registration is not active",error));
   return()=>{disposed=true;detach?.();pendingSystemAnswer.current=null};
  },[token,hasPartner,sync,reset]);
  useEffect(()=>{
