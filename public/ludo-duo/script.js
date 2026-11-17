@@ -74,6 +74,11 @@
  movementLayer.className="pieces-layer ludo-duo-motion-overlay";
  movementLayer.setAttribute("aria-hidden","true");
  board.append(movementLayer);
+ const captureLayer=document.createElement("div");
+ captureLayer.className="pieces-layer ludo-duo-capture-overlay";
+ captureLayer.setAttribute("aria-hidden","true");
+ board.append(captureLayer);
+ const capturePins=new Map();
  let movingPawn=null,movingKey="";
  function getPosition(color,progress,pawn){
   const pt=pointFor(color,progress);
@@ -150,6 +155,35 @@
   if(selectable)b.addEventListener("click",()=>send("move",index));
   return b;
  }
+ /** Keep captured pins on the board, then return each one to its actual home
+  * with a real 540ms position animation instead of teleporting. */
+ function drawCaptured(){
+  const active=new Set();
+  for(const m of state?.capturedMotions||[]){
+   const key=state.game.id+":"+m.seat+":"+m.pawn;
+   active.add(key);
+   let pawn=capturePins.get(key);
+   const c=color(m.seat);
+   if(!pawn){
+    pawn=createPawn(c,m.seat,m.pawn,false);
+    pawn.classList.add("piece--board","piece--captured","piece--moving");
+    const pt=getPosition(c,m.from,m.pawn);
+    pawn.style.left=pt.x+"%";pawn.style.top=pt.y+"%";
+    captureLayer.append(pawn);capturePins.set(key,pawn);
+   }
+   if(m.returning&&!pawn.classList.contains("is-returning")){
+    pawn.classList.add("is-returning");
+    const dest=getPosition(c,-1,m.pawn);
+    requestAnimationFrame(()=>{
+     if(capturePins.get(key)!==pawn)return;
+     pawn.style.left=dest.x+"%";pawn.style.top=dest.y+"%";
+    });
+   }
+  }
+  for(const [key,pawn] of capturePins)if(!active.has(key)){
+   pawn.remove();capturePins.delete(key);
+  }
+ }
  function drawPawns(){
   if(!state?.game)return;
   const g=state.game,legal=legalPawns(),canChoose=legal.length>1;
@@ -194,20 +228,7 @@
    piece.style.zIndex=String(4+i);layer.append(piece);
   });
   drawMotion();
-  // Captured opponents keep their original square until the return phase.
-  for(const m of state.capturedMotions||[]){
-   const c=color(m.seat),p=m.returning?null:pointFor(c,m.from);
-   const piece=createPawn(c,m.seat,m.pawn,false);
-   if(m.returning){
-    const home=document.querySelector(".base--"+c+" .base-spot:nth-child("+(m.pawn+1)+")");
-    if(home){piece.classList.add("piece--home","piece--captured");home.append(piece)}
-   }else if(p){
-    piece.classList.add("piece--board","piece--captured");
-    piece.style.top=((p[0]+.5)/15*100)+"%";
-    piece.style.left=((p[1]+.5)/15*100)+"%";
-    layer.append(piece);
-   }
-  }
+  drawCaptured();
   choices.replaceChildren();choices.hidden=!canChoose;
   if(canChoose){
    const title=document.createElement("span");title.textContent="Choisis ton pion";
