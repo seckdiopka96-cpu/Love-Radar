@@ -133,3 +133,26 @@
  .lr-call-backdrop .lr-video-call .lr-call-actions{gap:6px 3px!important}
  .lr-call-backdrop .lr-video-call .lr-call-action .lr-call-control-icon{height:46px!important;width:46px!important}
 }
+
+/* iOS/PWA self-view recovery: never leave a silent dark tile. */
+.lr-call-video-self .lr-call-video-self-help{
+ position:absolute;inset:0;z-index:3;
+ display:grid;place-items:center;
+ width:100%;height:100%;padding:9px;
+ border:0;border-radius:12px;
+ background:rgba(39,29,50,.88);color:#fff2fb;
+ text-align:center;font-size:11px;font-weight:700;line-height:1.35;
+ cursor:pointer;
+}
+.lr-call-video-self .lr-call-video-retry{
+ position:absolute;z-index:4;right:5px;top:5px;
+ display:grid;place-items:center;
+ width:28px;height:28px;padding:0;
+ border-radius:50%;border:1px solid #ffffff77;
+ background:#1e1735cc;color:white;
+ font:700 21px/1 sans-serif;cursor:pointer;
+}
+.lr-call-video-self .lr-call-video-self-help:focus-visible,
+.lr-call-video-self .lr-call-video-retry:focus-visible{
+ outline:2px solid #fff;outline-offset:-2px;
+}
