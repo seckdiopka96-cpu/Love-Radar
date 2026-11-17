@@ -631,3 +631,21 @@
  width:clamp(17px,5vw,33px);
  height:clamp(22px,6.2vw,42px);
 }
+
+/* Ground contact shadow tracks the pawn on each hop. The route/board stay still. */
+.ludo-experience .ludo-moving-pawn::after{
+ content:"";position:absolute;pointer-events:none;
+ z-index:-1;left:50%;bottom:3%;width:74%;height:12%;
+ transform:translateX(-50%) scale(1);
+ border-radius:50%;opacity:.72;
+ background:radial-gradient(ellipse at center,#071327d1 0%,#11254577 53%,transparent 79%);
+ box-shadow:0 2px 5px #050f2855;
+ animation:ludo-pawn-cast-shadow .54s ease-in-out infinite;
+}
+@keyframes ludo-pawn-cast-shadow{
+ 0%,100%{opacity:.75;transform:translateX(-50%) scale(1)}
+ 45%{opacity:.33;transform:translateX(-50%) scale(.65)}
+}
+@media(prefers-reduced-motion:reduce){
+ .ludo-experience .ludo-moving-pawn::after{animation:none;opacity:.72}
+}
