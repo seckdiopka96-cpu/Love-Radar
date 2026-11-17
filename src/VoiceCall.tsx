@@ -7,8 +7,9 @@ import {relayNeedsRefresh,RELAY_REFRESH_AFTER_MS,RELAY_RETRY_AFTER_ERROR_MS} fro
 import {useCallback,useEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
 import "./voice-call.css";
+import "./video-call.css";
 
-type Call = {id:string;status:"ringing"|"active";direction:"incoming"|"outgoing";createdAt:number;updatedAt:number;expiresAt:number};
+type Call = {id:string;status:"ringing"|"active";direction:"incoming"|"outgoing";createdAt:number;updatedAt:number;expiresAt:number;mode?:"audio"|"video"};
 type Signal = {id:number;kind:"offer"|"answer"|"candidate";payload:string};
 type Result = {ok:boolean;error?:string;call?:Call|null;signals?:Signal[]};
 type Props = {token:string;partner:string;avatarSrc?:string;hasPartner:boolean;showButton:boolean;onOpenChat:()=>void};
@@ -34,11 +35,28 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const [relayEnabled,setRelayEnabled]=useState(false);
  const [networkHint,setNetworkHint]=useState("");
  const [duration,setDuration]=useState(0);
+ const [cameraOff,setCameraOff]=useState(false);
+ const [cameraFacing,setCameraFacing]=useState<"user"|"environment">("user");
+ const [cameraBusy,setCameraBusy]=useState(false);
+ const [cameraWarning,setCameraWarning]=useState("");
+ const [remoteHasVideo,setRemoteHasVideo]=useState(false);
  const current=useRef<Call|null>(null);
  const pc=useRef<RTCPeerConnection|null>(null);
  const iceServers=useRef<RTCIceServer[]>(STUN_SERVERS);
  const local=useRef<MediaStream|null>(null);
  const remote=useRef<HTMLAudioElement|null>(null);
+ const remoteStream=useRef<MediaStream|null>(null);
+ const remoteVideo=useRef<HTMLVideoElement|null>(null);
+ const localVideo=useRef<HTMLVideoElement|null>(null);
+ const cameraSwitching=useRef(false);
+ const attachRemoteVideo=useCallback((element:HTMLVideoElement|null)=>{
+  remoteVideo.current=element;
+  if(element){element.srcObject=remoteStream.current;if(remoteStream.current)void element.play().catch(()=>{})}
+ },[]);
+ const attachLocalVideo=useCallback((element:HTMLVideoElement|null)=>{
+  localVideo.current=element;
+  if(element){element.srcObject=local.current;if(local.current)void element.play().catch(()=>{})}
+ },[]);
  const signalAfter=useRef(0);
  const isPolling=useRef(false);
  const starting=useRef(false);
@@ -127,6 +145,9 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(p){p.ontrack=null;p.onicecandidate=null;p.onconnectionstatechange=null;p.oniceconnectionstatechange=null;p.close()}
   if(local.current){local.current.getTracks().forEach(track=>track.stop());local.current=null}
   if(remote.current){remote.current.pause();remote.current.srcObject=null}
+  if(remoteVideo.current){remoteVideo.current.pause();remoteVideo.current.srcObject=null}
+  if(localVideo.current){localVideo.current.pause();localVideo.current.srcObject=null}
+  if(remoteStream.current){remoteStream.current.getTracks().forEach(track=>track.stop());remoteStream.current=null}
   releaseCallAudio();
   offered.current=false;answered.current=false;connectedSince.current=0;
   signalAfter.current=0;
@@ -135,6 +156,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(audioSession){try{audioSession.type="auto"}catch{/* Browser controls audio routing. */}}
   previousSinkId.current="";
   setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setSpeakerBusy(false);setMinimized(false);setCallPanel("none");setDialed("");
+  cameraSwitching.current=false;setCameraOff(false);setCameraFacing("user");setCameraBusy(false);setCameraWarning("");setRemoteHasVideo(false);
  },[]);
  const reset=useCallback(()=>{
   const endedId=current.current?.id;
@@ -147,7 +169,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(current.current?.id!==call.id){
    if(current.current)clearAudio();
    setMinimized(false);setCallPanel("none");setDialed("");
-   setError("");setPhase(call.direction==="incoming"?"Appel vocal entrant…":"Appel en cours…");
+   setError("");setPhase(call.direction==="incoming"?(call.mode==="video"?"Appel vidéo entrant…":"Appel vocal entrant…"):"Appel en cours…");
   }
   current.current=call;
   claimCallAudio(); // Incoming and outgoing calls silence any message or video audio.
@@ -165,11 +187,28 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    void flushCandidates(current.current.id);
   };
   for(const track of local.current.getAudioTracks())peer.addTrack(track,local.current);
+  if(current.current?.mode==="video"){
+   const videos=local.current.getVideoTracks();
+   if(videos.length)for(const track of videos)peer.addTrack(track,local.current);
+   else peer.addTransceiver("video",{direction:"recvonly"});
+  }
   peer.ontrack=event=>{
+   if(pc.current!==peer)return;
+   const stream=remoteStream.current||new MediaStream();
+   remoteStream.current=stream;
+   for(const track of event.streams[0]?.getTracks()||[event.track]){
+    if(!stream.getTracks().some(other=>other.id===track.id))stream.addTrack(track);
+   }
+   if(event.track.kind==="video"){
+    setRemoteHasVideo(!event.track.muted);
+    event.track.onmute=()=>setRemoteHasVideo(false);
+    event.track.onunmute=()=>setRemoteHasVideo(true);
+    event.track.onended=()=>setRemoteHasVideo(false);
+   }
    const el=remote.current;
-   if(!el)return;
-   el.srcObject=event.streams[0]||new MediaStream([event.track]);
-   void el.play().then(()=>setNeedsPlay(false)).catch(()=>setNeedsPlay(true));
+   if(el){el.srcObject=stream;void el.play().then(()=>setNeedsPlay(false)).catch(()=>setNeedsPlay(true))}
+   const video=remoteVideo.current;
+   if(video){video.srcObject=stream;void video.play().catch(()=>{})}
   };
   peer.onconnectionstatechange=()=>{
    if(pc.current!==peer)return;
@@ -180,7 +219,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
     networkWarmedAt.current=0;
     setError("Impossible de transmettre l'audio sur ce réseau. Vérifie la connexion ou le relais TURN.");
    }else if(peer.connectionState==="disconnected")setPhase("Reconnexion…");
-   else if(peer.connectionState==="connecting")setPhase("Connexion audio…");
+   else if(peer.connectionState==="connecting")setPhase(current.current?.mode==="video"?"Connexion vidéo…":"Connexion audio…");
   };
   peer.oniceconnectionstatechange=()=>{
    if(pc.current!==peer)return;
@@ -195,7 +234,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   try{
    const peer=createPeer();
    setPhase("Connexion en cours…");
-   if(!peer.localDescription)await peer.setLocalDescription(await peer.createOffer({offerToReceiveAudio:true}));
+   if(!peer.localDescription)await peer.setLocalDescription(await peer.createOffer({offerToReceiveAudio:true,offerToReceiveVideo:call.mode==="video"}));
    if(current.current?.id!==call.id||pc.current!==peer)return;
    // Send the offer immediately; trickle ICE paths over separate messages.
    await api("signal",{id:call.id,kind:"offer",sdp:peer.localDescription?.sdp||""});
@@ -322,21 +361,34 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  },[]);
  useEffect(()=>()=>{const c=current.current;if(c)void api("end",{id:c.id}).catch(()=>{});clearAudio()},[api,clearAudio]);
 
- async function microphone(){
+ async function microphone(mode:"audio"|"video"="audio"){
   if(!navigator.mediaDevices?.getUserMedia)throw Error("Ouvre l’application en HTTPS et autorise l’accès au microphone.");
-  const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:false});
+  const audio:MediaTrackConstraints={echoCancellation:true,noiseSuppression:true};
+  const video:MediaTrackConstraints|false=mode==="video"?{
+   facingMode:{ideal:"user"},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:24,max:30}
+  }:false;
+  let stream:MediaStream;
+  try{stream=await navigator.mediaDevices.getUserMedia({audio,video})}
+  catch(err){
+   if(mode!=="video")throw err;
+   // When camera permission is denied, voice still works and video stays private.
+   stream=await navigator.mediaDevices.getUserMedia({audio,video:false});
+   setCameraOff(true);
+   setCameraWarning("Caméra indisponible. L’appel continue avec le micro uniquement.");
+  }
   local.current=stream;
+  if(localVideo.current){localVideo.current.srcObject=stream;void localVideo.current.play().catch(()=>{})}
   const audioSession=(navigator as Navigator & {audioSession?:{type:string}}).audioSession;
   if(audioSession){try{audioSession.type="play-and-record"}catch{/* Unsupported session type. */}}
  }
- async function start(){
+ async function start(mode:"audio"|"video"="audio"){
   if(busy||current.current||!hasPartner)return;
   claimCallAudio();
   setBusy(true);starting.current=true;setError("");
   // iOS getUserMedia begins in the user gesture; signaling starts in parallel
   // rather than waiting for the microphone permission/initialization.
-  const micTask=microphone();
-  const callTask=api("start");
+  const micTask=microphone(mode);
+  const callTask=api("start",{mode});
   const networkTask=warmNetwork(); // Ring immediately; ensure fresh TURN credentials before creating the peer.
   try{
    const [result]=await Promise.all([callTask,micTask]);
@@ -364,7 +416,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   claimCallAudio();
   setBusy(true);setError("");
   try{
-   await Promise.all([microphone(),warmNetwork()]);
+   await Promise.all([microphone(c.mode==="video"?"video":"audio"),warmNetwork()]);
    createPeer();
    await api("accept",{id:c.id});
    const updated={...c,status:"active" as const};
