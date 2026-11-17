@@ -19,9 +19,9 @@ test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()
  const boardSlice=s=>(s.slice(s.indexOf(start),s.indexOf(end))).replace(/^\s+|\s+$/g,"");
  assert.ok(duoHTML.includes(start));
  assert.equal(boardSlice(duoHTML),boardSlice(soloHTML));
- assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261117-v4"'));
- assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261117-v4"'));
- assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261117-v4" defer'));
+ assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261117-v5"'));
+ assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261117-v5"'));
+ assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261117-v5" defer'));
  assert.ok(duoHTML.includes('LUDO <span>♥</span> DUO'));
  assert.ok(duoHTML.includes('id="roll-dice"'));
  assert.ok(duoCSS.includes('.duo-side-actions'));
@@ -51,6 +51,8 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
  assert.ok(frameCSS.includes("display:none!important"),"no legacy board fallback");
  assert.ok(bridge.includes('failed&&!ready'),"broken iframe reports a visible error");
  assert.ok(bridge.includes("setRetry(n=>n+1)"),"broken iframe offers a retry");
+ assert.ok(bridge.includes('type:"ping"'),"parent retries initialization");
+ assert.ok(duoJS.includes('e.data.type==="ping"'),"child responds to parent initialization ping");
  assert.ok(!bridge.includes('onLoad={()=>setReady(true)}'),"iframe load alone does not confirm game ready");
  assert.ok(duoJS.includes('victoryGiftButton.addEventListener("click",()=>send("gift"))'),"Gifts must stay accessible after victory");
  assert.ok(parent.includes('action:"choose_color"'));
@@ -60,7 +62,7 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
  'function duoFrameAction(','signRules()', 'giftAction(','ludo-agreement-backdrop','ludo-gift-dialog','ludo-modal-backdrop']){
   assert.ok(parent.includes(unchanged),unchanged);
  }
- assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261117-v4"'));
+ assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261117-v5"'));
  assert.ok(bridge.includes('event.source!==frame'));
  assert.ok(bridge.includes('event.origin!==window.location.origin'));
  assert.ok(!bridge.includes("token:"));
