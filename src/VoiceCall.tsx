@@ -291,7 +291,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    }
    if(call.id===suppressed.current)return;
    if(current.current?.id!==call.id)setCurrent(call);
-   else if(current.current.status!==call.status){current.current=call;setActive(call)}
+   else if(current.current.status!==call.status||current.current.mode!==call.mode){current.current=call;setActive(call)}
    if(call.status==="active"&&call.direction==="outgoing"&&local.current)void offer(call);
    if(call.status==="active"&&local.current){
     for(const signal of data.signals||[]){
@@ -397,6 +397,9 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    if(result.call.direction==="incoming"){
     local.current?.getTracks().forEach(track=>track.stop());
     local.current=null;
+   }else if(result.call.mode!=="video"&&local.current?.getVideoTracks().length){
+    // An already-existing voice call must never retain a camera captured for a video request.
+    local.current.getVideoTracks().forEach(track=>{local.current?.removeTrack(track);track.stop()});
    }
    setCurrent(result.call);
    if(result.call.status==="active"&&result.call.direction==="outgoing")void offer(result.call);
