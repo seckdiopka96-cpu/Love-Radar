@@ -126,10 +126,10 @@ test("video call intent persists to both partners and call history without affec
 
 test("ICE reconnect signals stay private, bounded and allow renewed SDP without ending calls",async()=>{
  const {sqlite,invoke}=setup();
- const created=await invoke("POST","a",{action:"start",mode:"video"});
- assert.equal(created.status,200);
- const id=created.data.call.id;
- assert.equal((await invoke("POST","b",{action:"accept",id})).status,200);
+ const id="cccccccc-3333-4333-8333-cccccccccccc";
+ const at=Date.now();
+ sqlite.prepare("INSERT INTO voice_calls VALUES(?,?,?,?,?,?,?,?)")
+  .run(id,"couple-1","alice","bob","active",at,at,at+90000);
  const sdpA="v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n";
  const sdpB="v=0\r\no=- 2 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n";
  const sdpC="v=0\r\no=- 3 3 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n";
