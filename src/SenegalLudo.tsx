@@ -2,7 +2,7 @@ import {useCallback,useEffect,useRef,useState} from "react";
 import LudoDie3D from "./LudoDie3D";
 import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
-import {TRACK,HOME,SAFE,CELL,key,stackCellStyle,type Point} from "./ludo-visuals";
+import {TRACK,HOME,BASE,SAFE,CELL,key,stackCellStyle,type Point} from "./ludo-visuals";
 import {
  TURN_MS,newSenegalGame,isSenegalGame,movesForPawn,rollSenegal,
  applySenegalMove,chooseSenegalBotMove,pointForPawn,die,
@@ -20,6 +20,25 @@ type Props={
 type ServerGame=SenegalGame&{id:string;version:number;deadlineAt:number|null};
 type ServerResponse={ok:boolean;error?:string;members?:number;seat?:number;game?:ServerGame|null;move?:SenegalMove|null;moveVersion?:number|null;serverNow?:number};
 type Moving={seat:Seat;pawn:number;point:Point;index:number;length:number};
+type CaptureBack={seat:Seat;pawn:number;point:Point};
+type CapturedSenegalPawn=SenegalMove["captures"][number];
+/** Walk backwards through the track (one lap at most on a repeating track)
+ * or out of a home lane before settling into the original base slot. */
+function captureReversePoints(capture:CapturedSenegalPawn):Point[]{
+ const {seat,pawn,from}=capture;
+ const path:Point[]=[];
+ const track=(step:number):Point=>TRACK[((seat*26+step)%52+52)%52];
+ if(from.zone==="home"||from.zone==="enemy"){
+  const owner=from.zone==="enemy"?(1-seat) as Seat:seat;
+  for(let d=from.depth-1;d>=1;d--)path.push(HOME[owner][d-1]);
+  for(let i=0;i<Math.min(52,Math.abs(from.gate));i++)path.push(track(from.gate-1-i));
+ }else if(from.zone==="track"){
+  const sign=from.step<0?1:-1;
+  for(let i=1;i<=Math.min(52,Math.abs(from.step));i++)path.push(track(from.step+i*sign));
+ }
+ path.push(BASE[seat][pawn]);
+ return path;
+}
 const routeMap=new Map(TRACK.map((p,i)=>[key(p[0],p[1]),i]));
 const homeMap=HOME.map(lane=>new Set(lane.map(p=>key(p[0],p[1]))));
 const storage=(scope:string)=>"love-radar-senegal-v1:"+scope;
@@ -44,6 +63,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const [now,setNow]=useState(Date.now());
  const [assisted,setAssisted]=useState(false);
  const [motion,setMotion]=useState<Moving|null>(null);
+ const [captureBack,setCaptureBack]=useState<CaptureBack[]>([]);
  const [chosen,setChosen]=useState<MoveOption[]|null>(null);
  const [landing,setLanding]=useState<Point|null>(null);
  const [reaction,setReaction]=useState("");
@@ -86,6 +106,8 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const animate=useCallback((move:SenegalMove)=>{
   const path=move.path;
   if(!path.length)return;
+  const captured=move.captures.map(p=>({...p,point:pointForPawn(p.seat,p.pawn,p.from)}));
+  if(captured.length)setCaptureBack(captured.map(({seat,pawn,point})=>({seat,pawn,point})));
   setMotion({seat:move.seat,pawn:move.pawn,point:pointForPawn(move.seat,move.pawn,move.from),index:0,length:path.length});
   const STEP_MS=move.from.zone==="base"?520:540,START_MS=250;
   path.forEach((point,i)=>later(()=>{
@@ -98,7 +120,16 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   later(()=>{
    if(!loaded.current)return;
    setMotion(null);setLanding(pointForPawn(move.seat,move.pawn,move.to));
-   if(move.captures.length){playSound("capture");setReaction("💥");}
+   if(move.captures.length){
+    playSound("capture");setReaction("💥");
+    const returns=move.captures.map(captured=>({...captured,path:captureReversePoints(captured)}));
+    returns.forEach(item=>item.path.forEach((point,index)=>later(()=>{
+     if(!loaded.current)return;
+     setCaptureBack(rows=>rows.map(row=>row.seat===item.seat&&row.pawn===item.pawn?{...row,point}:row));
+    },120+index*130)));
+    const longest=Math.max(...returns.map(item=>item.path.length));
+    later(()=>{if(loaded.current)setCaptureBack([])},250+longest*130);
+   }
    else if(move.to.zone==="enemy"){setReaction("😈");}
    else if(move.action==="reverse"){setReaction("↩️");}
    else if(move.to.zone==="finished"){playSound("win");setReaction("🏠");}
@@ -236,8 +267,8 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  }
  const playerCanAct=game.status==="playing"&&game.turn===seat&&
   (solo?!assisted:online&&members===2);
- const canRoll=playerCanAct&&game.dice===null&&!rolling&&!motion&&!busy;
- const canPick=playerCanAct&&game.dice!==null&&!rolling&&!motion&&!busy;
+ const canRoll=playerCanAct&&game.dice===null&&!rolling&&!motion&&!captureBack.length&&!busy;
+ const canPick=playerCanAct&&game.dice!==null&&!rolling&&!motion&&!captureBack.length&&!busy;
  const turnOwner=game.turn===seat;
  const seconds=game.status==="playing"&&(solo?game.turn===0&&!assisted:members===2)?
   Math.max(0,Math.ceil((game.updatedAt+TURN_MS+(solo?0:serverOffset)-now)/1000)):null;
@@ -248,7 +279,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const occupancy=new Map<string,{seat:Seat;pawn:number;active:boolean;zone:Pawn["zone"]}[]>();
  for(const side of [0,1] as Seat[])for(let pawn=0;pawn<4;pawn++){
   const current=game.positions[side][pawn];
-  if(current.zone==="finished"||(motion?.seat===side&&motion.pawn===pawn))continue;
+  if(current.zone==="finished"||(motion?.seat===side&&motion.pawn===pawn)||captureBack.some(row=>row.seat===side&&row.pawn===pawn))continue;
   const [r,c]=pointForPawn(side,pawn,current),k=key(r,c);
   const members=occupancy.get(k)||[];
   members.push({seat:side,pawn,active:canPick&&seat===side&&movesForPawn(game,side,pawn).length>0,zone:current.zone});
@@ -324,6 +355,11 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
       <div className="ludo-yard ludo-yard-lower" aria-hidden="true"/>
       <div className="ludo-yard ludo-yard-gold" aria-hidden="true"/>
       <div className="ludo-board-center" aria-hidden="true"><span>🇸🇳</span></div>
+      {captureBack.map(row=><div key={"capture-"+row.seat+"-"+row.pawn}
+       className={"ludo-captured-pawn ludo-pawn-"+(row.seat===0?"red":"gold")+" is-returning"}
+       style={{left:((row.point[1]+.5)/15*100)+"%",top:((row.point[0]+.5)/15*100)+"%"}} aria-hidden="true">
+       <PawnShape index={row.pawn}/>
+      </div>)}
       {motion?<div className={"ludo-moving-pawn ludo-pawn-"+(motion.seat===0?"red":"gold")}
        style={{left:((motion.point[1]+.5)/15*100)+"%",top:((motion.point[0]+.5)/15*100)+"%"}} aria-hidden="true">
        <i className="ludo-motion-aura"/>
