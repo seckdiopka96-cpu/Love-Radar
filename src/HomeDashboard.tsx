@@ -101,5 +101,6 @@ export default function HomeDashboard({room,token,mineAvatar,partnerAvatar,onEdi
    </button>:null}
   </div>
   <p className="lr-home-compact-footer">Les autres activités sont dans <button type="button" onClick={()=>onNavigate("together")}>Nous deux</button>, <button type="button" onClick={()=>onNavigate("games")}>Jeux</button> et <button type="button" onClick={()=>onNavigate("memories")}>Souvenirs</button>.</p>
+  <div className="lr-home-made-by">Créé par <strong>Diao-Tech.com</strong></div>
  </div>;
 }
