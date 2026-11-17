@@ -884,3 +884,34 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
  content:"";position:absolute;inset:-5px;pointer-events:auto
 }
 .base-spot .piece--selectable{z-index:6}
+
+/* Exactly four protective stars, one on each colored starting square. */
+.cell--entry .star{
+ color:#fff7bd;text-shadow:0 1px 2px #182a46,0 0 5px #fff1b5;
+ font-size:clamp(11px,2.6vw,19px)
+}
+/* The six-sided cube shows the result itself. Hide the overlapping bottom badge. */
+.dice-holder .die-result{display:none!important}
+/* The die belongs to the player whose turn is active. */
+.app[data-dice-color="red"] .dice-3d .dice-face{
+ background:linear-gradient(143deg,#ffafb9 0%,#ec3451 49%,#a11935 100%)!important;
+ box-shadow:inset 2px 2px 3px #ffe0e5af,inset -5px -5px 7px #74112c99
+}
+.app[data-dice-color="blue"] .dice-3d .dice-face{
+ background:linear-gradient(143deg,#8fe8ff 0%,#119de8 49%,#064f9b 100%)!important
+}
+.app[data-dice-color="green"] .dice-3d .dice-face{
+ background:linear-gradient(143deg,#a5ffd0 0%,#0ab978 49%,#075c43 100%)!important
+}
+.app[data-dice-color="yellow"] .dice-3d .dice-face{
+ background:linear-gradient(143deg,#fff2ad 0%,#edb62d 49%,#a7750a 100%)!important
+}
+/* Fixed board placement: do not re-center in a flex slot that changes when
+   turn messages, pawn choices and die controls update. */
+.game-screen{justify-content:flex-start}
+.game-screen .board-area{
+ flex:0 0 auto;align-self:stretch;place-items:center;
+ margin:clamp(8px,1dvh,14px) 0
+}
+.game-screen .board-frame{flex:none}
+.game-screen .game-bottom{flex:0 0 auto;min-height:105px}
