@@ -477,6 +477,29 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   };
  },[sync,hasPartner]);
  useEffect(()=>{
+  const recoverIfNeeded=()=>{
+   const peer=pc.current;
+   if(peer&&current.current?.status==="active"&&
+      mustReconnect(peer.connectionState,peer.iceConnectionState)){
+    networkWarmedAt.current=0;
+    scheduleIceRecovery(true);
+   }
+  };
+  const online=()=>{recoverIfNeeded();void sync()};
+  const offline=()=>{
+   if(current.current?.status==="active")setPhase("En attente du réseau…");
+  };
+  const visible=()=>{if(document.visibilityState==="visible")recoverIfNeeded()};
+  window.addEventListener("online",online);
+  window.addEventListener("offline",offline);
+  document.addEventListener("visibilitychange",visible);
+  return()=>{
+   window.removeEventListener("online",online);
+   window.removeEventListener("offline",offline);
+   document.removeEventListener("visibilitychange",visible);
+  };
+ },[sync,scheduleIceRecovery]);
+ useEffect(()=>{
   // Prepare native background audio only once the caller/recipient explicitly
   // started microphone capture while the Android activity was still visible.
   if(!isNativeApp)return;
@@ -830,6 +853,13 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
          });
         }}>{active.direction==="incoming"?"Activer la sonnerie":"Activer la tonalité"}</button>:null}
       {networkHint&&active.status==="active"&&phase!=="Connecté"?<div className="lr-call-audio-hint" role="status">{networkHint}</div>:null}
+      {active.status==="active"&&(phase==="Connexion interrompue"||phase==="En attente du réseau…")?
+       <button type="button" className="lr-call-sound" onClick={()=>{
+        recoveryAttempts.current=0;
+        networkWarmedAt.current=0;
+        setError("");setPhase("Reconnexion…");
+        scheduleIceRecovery(true);
+       }}>Réessayer la connexion</button>:null}
       {cameraWarning&&isVideo?<div className="lr-call-audio-hint" role="status">{cameraWarning}</div>:null}
      </div>
     </div>
