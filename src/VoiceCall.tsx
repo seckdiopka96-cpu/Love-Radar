@@ -1005,22 +1005,68 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
     </div>:null}
    </div>
   </div>,document.body):null;
+ const floatingStyle:CSSProperties|undefined=floatingAt?{left:floatingAt.x,top:floatingAt.y,right:"auto"}:undefined;
  const mini=active&&minimized&&(active.status==="active"||(active.status==="ringing"&&active.direction==="outgoing"))?createPortal(
-  <div className={"lr-call-mini"+(isVideo?" lr-call-mini-video":"")} role="region" aria-label={(isVideo?"Appel vidéo":"Appel vocal")+" en cours avec "+partner}>
-   {isVideo?<div className="lr-call-mini-preview" aria-hidden="true"><video ref={attachRemoteVideo} data-lr-call-video="true" autoPlay playsInline muted/>{!remoteHasVideo?<span>📹</span>:null}</div>:null}
-   <button type="button" className="lr-call-mini-expand" onClick={()=>setMinimized(false)} aria-label="Agrandir l’appel" title="Revenir à l’appel">
-    <span className="lr-call-mini-pulse" aria-hidden="true">●</span>
-    <span className="lr-call-mini-info"><strong>{active.status==="ringing"?"Appel sortant…":phase==="Connecté"?"En appel":phase||"Appel en cours"} · {partner}</strong><small>{total} · Appuyer pour agrandir</small></span>
-    <span className="lr-call-mini-up" aria-hidden="true">⌃</span>
-   </button>
-   <div className="lr-call-mini-actions">
-    {needsPlay?<button type="button" onClick={enableAudio} className="lr-call-mini-sound" aria-label="Activer le son">🔊</button>:null}
-    <button type="button" className={"lr-call-mini-speaker "+(speakerSelected?"active":"")} onClick={selectSpeaker} disabled={speakerBusy} aria-pressed={speakerSelected} aria-label={speakerSelected?"Désactiver le haut-parleur":"Activer le haut-parleur"}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zM16 9a5 5 0 0 1 0 6M19 5a10 10 0 0 1 0 14"/></svg></button>
-    <button type="button" className={"lr-call-mini-mute "+(muted?"active":"")} onClick={toggleMute} disabled={!local.current} aria-label={muted?"Réactiver le micro":"Couper le micro"} aria-pressed={muted}>{muted?"🔇":"🎙️"}</button>
-    {isVideo?<button type="button" onClick={toggleCamera} aria-pressed={!cameraOff} aria-label={cameraOff?"Activer la caméra":"Couper la caméra"}>{cameraOff?"📷":"📹"}</button>:null}
-    <button type="button" className="lr-call-mini-end" onClick={hangup} disabled={busy} aria-label="Raccrocher">✕</button>
-   </div>
-  </div>,document.body):null;
+  isVideo?
+   <div ref={floatingBox} className={"lr-call-floating"+(draggingVideo?" is-dragging":"")}
+    role="region" aria-label={"Vidéo flottante avec "+partner} style={floatingStyle}>
+    <div className={"lr-call-floating-screen"+(active.status==="ringing"?" lr-call-floating-self":"")}>
+     {active.status==="ringing"?
+      <video ref={attachLocalVideo} data-lr-call-video="true" autoPlay playsInline muted
+       onPlaying={revealLocalFrame} onLoadedData={revealLocalFrame} aria-label="Ma caméra en attente d’appel"/>
+     :<video ref={attachRemoteVideo} data-lr-call-video="true" autoPlay playsInline muted
+       onPlaying={()=>setRemoteVideoReady(true)}
+       onWaiting={()=>setRemoteVideoReady(false)} aria-label={"Vidéo de "+partner}/>}
+     {(active.status==="ringing"?!localPreviewReady:!remoteHasVideo||!remoteVideoReady)?
+      <div className="lr-call-floating-empty">
+       <b>{avatarSrc?<img src={avatarSrc} alt=""/>:partner.trim().charAt(0).toUpperCase()||"♡"}</b>
+       <span>{active.status==="ringing"?"Ma caméra · ça sonne…":phase==="Reconnexion…"?"Reconnexion…":"En attente de la vidéo…"}</span>
+      </div>:null}
+     <div className="lr-call-floating-head">
+      <button type="button" className="lr-call-floating-drag"
+       aria-label="Déplacer la fenêtre vidéo"
+       onPointerDown={beginVideoDrag} onPointerMove={moveVideoDrag}
+       onPointerUp={endVideoDrag} onPointerCancel={endVideoDrag}>
+       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <circle cx="7" cy="6" r="1.7"/><circle cx="12" cy="6" r="1.7"/><circle cx="17" cy="6" r="1.7"/>
+        <circle cx="7" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="17" cy="12" r="1.7"/>
+       </svg>Déplacer
+      </button>
+      <button type="button" className="lr-call-floating-expand"
+       onClick={()=>setMinimized(false)} aria-label="Agrandir la vidéo">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+        <path d="M9 3H3v6M3 3l7 7M15 21h6v-6M21 21l-7-7"/>
+       </svg>
+      </button>
+     </div>
+     <div className="lr-call-floating-caption">
+      <strong>{partner}</strong>
+      <small>{active.status==="ringing"?"Ça sonne…":phase==="Connecté"?total:phase||"En appel"}</small>
+     </div>
+    </div>
+    <div className="lr-call-floating-actions">
+     {needsPlay?<button type="button" onClick={enableAudio} aria-label="Activer le son">🔊</button>:null}
+     <button type="button" className={muted?"is-muted":""} onClick={toggleMute}
+      disabled={!local.current} aria-label={muted?"Réactiver le micro":"Couper le micro"}>{muted?"🔇":"🎙️"}</button>
+     <button type="button" className={cameraOff?"is-muted":""} onClick={toggleCamera}
+      disabled={!local.current} aria-label={cameraOff?"Activer la caméra":"Couper la caméra"}>{cameraOff?"📷":"📹"}</button>
+     <button type="button" className="lr-call-floating-hangup" onClick={hangup}
+      disabled={busy} aria-label="Raccrocher">✕</button>
+    </div>
+   </div>:
+   <div className="lr-call-mini" role="region" aria-label={"Appel vocal en cours avec "+partner}>
+    <button type="button" className="lr-call-mini-expand" onClick={()=>setMinimized(false)} aria-label="Agrandir l’appel" title="Revenir à l’appel">
+     <span className="lr-call-mini-pulse" aria-hidden="true">●</span>
+     <span className="lr-call-mini-info"><strong>{active.status==="ringing"?"Appel sortant…":phase==="Connecté"?"En appel":phase||"Appel en cours"} · {partner}</strong><small>{total} · Appuyer pour agrandir</small></span>
+     <span className="lr-call-mini-up" aria-hidden="true">⌃</span>
+    </button>
+    <div className="lr-call-mini-actions">
+     {needsPlay?<button type="button" onClick={enableAudio} className="lr-call-mini-sound" aria-label="Activer le son">🔊</button>:null}
+     <button type="button" className={"lr-call-mini-speaker "+(speakerSelected?"active":"")} onClick={selectSpeaker} disabled={speakerBusy} aria-pressed={speakerSelected} aria-label={speakerSelected?"Désactiver le haut-parleur":"Activer le haut-parleur"}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zM16 9a5 5 0 0 1 0 6M19 5a10 10 0 0 1 0 14"/></svg></button>
+     <button type="button" className={"lr-call-mini-mute "+(muted?"active":"")} onClick={toggleMute} disabled={!local.current} aria-label={muted?"Réactiver le micro":"Couper le micro"} aria-pressed={muted}>{muted?"🔇":"🎙️"}</button>
+     <button type="button" className="lr-call-mini-end" onClick={hangup} disabled={busy} aria-label="Raccrocher">✕</button>
+    </div>
+   </div>,document.body):null;
  const videoOptions=active&&isVideo&&callPanel!=="none"?createPortal(
   <div className="lr-video-options-backdrop" onClick={event=>{if(event.target===event.currentTarget)setCallPanel("none")}}>
    <section className="lr-video-options-sheet" role="dialog" aria-modal="true" aria-label={callPanel==="info"?"Informations de l’appel vidéo":"Options de l’appel vidéo"}>
