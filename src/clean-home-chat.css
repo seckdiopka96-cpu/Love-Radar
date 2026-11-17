@@ -266,10 +266,12 @@
  font-weight:550!important;line-height:1.45!important;letter-spacing:.1px!important;
  text-transform:capitalize!important;
 }
+/* Give consecutive messages breathing room without separating a conversation.
+   Grouped bubbles stay closer than messages from different senders. */
 .lr-app.lr-chat-mode .lr-chat .lr-bubble-row{
- margin-top:9px!important;min-height:0!important;
+ margin-top:14px!important;min-height:0!important;
 }
-.lr-app.lr-chat-mode .lr-chat .lr-bubble-row.lr-grouped{margin-top:3px!important}
+.lr-app.lr-chat-mode .lr-chat .lr-bubble-row.lr-grouped{margin-top:8px!important}
 .lr-app.lr-chat-mode .lr-chat .lr-bubble-stack{
  max-width:min(84%,480px)!important;min-width:0!important;
 }
