@@ -34,6 +34,7 @@
  const board=document.getElementById("ludo-board");
  const layer=document.getElementById("pieces-layer");
  const dice=document.getElementById("dice-3d");
+ const dieResult=document.getElementById("die-result");
  const roll=document.getElementById("roll-dice");
  const status=document.getElementById("turn-message");
  const statusMeta=document.getElementById("turn-meta");
@@ -66,6 +67,53 @@
  const lastColor=document.getElementById("duo-colors-label");
  let state=null;
  let lastBoardKey="";
+ let lastAnimatedRoll="",remoteDieTimer=null;
+ // Keep the moving pawn in its own layer. Redrawing its DOM on every square
+ // prevents WebKit/iOS from animating the left/top transition.
+ const movementLayer=document.createElement("div");
+ movementLayer.className="pieces-layer ludo-duo-motion-overlay";
+ movementLayer.setAttribute("aria-hidden","true");
+ board.append(movementLayer);
+ let movingPawn=null,movingKey="";
+ function getPosition(color,progress,pawn){
+  const pt=pointFor(color,progress);
+  if(pt)return {x:(pt[1]+.5)/15*100,y:(pt[0]+.5)/15*100};
+  const home=document.querySelector(".base--"+color+" .base-spot:nth-child("+(pawn+1)+")");
+  const a=home?.getBoundingClientRect(),b=board.getBoundingClientRect();
+  if(a&&b.width&&b.height)return {x:(a.left+a.width/2-b.left)/b.width*100,
+   y:(a.top+a.height/2-b.top)/b.height*100};
+  return {x:50,y:50};
+ }
+ function drawMotion(){
+  const m=state?.motion;
+  if(!m){movingPawn=null;movingKey="";movementLayer.replaceChildren();return}
+  const id=state.game.id+":"+m.seat+":"+m.pawn+":"+m.from+":"+m.to;
+  const c=color(m.seat);
+  if(!movingPawn||movingKey!==id){
+   movingKey=id;
+   movingPawn=createPawn(c,m.seat,m.pawn,false);
+   movingPawn.classList.add("piece--board","piece--moving","ludo-duo-moving-pin");
+   const progress=document.createElement("b");
+   progress.className="piece-step-counter";progress.setAttribute("aria-hidden","true");
+   movingPawn.append(progress);
+   const from=getPosition(c,m.from,m.pawn);
+   movingPawn.style.left=from.x+"%";movingPawn.style.top=from.y+"%";
+   movementLayer.replaceChildren(movingPawn);
+  }
+  const to=getPosition(c,m.progress,m.pawn);
+  const progress=movingPawn.querySelector(".piece-step-counter");
+  if(progress)progress.textContent=Math.max(0,m.progress-m.from)+" / "+Math.max(1,m.to-m.from);
+  if(m.progress!==m.from){
+   const pawn=movingPawn;
+   requestAnimationFrame(()=>{
+    if(pawn!==movingPawn)return;
+    pawn.classList.remove("is-hopping");
+    void pawn.offsetWidth;
+    pawn.classList.add("is-hopping");
+    pawn.style.left=to.x+"%";pawn.style.top=to.y+"%";
+   });
+  }
+ }
  const send=(action,pawn,emoji)=>window.parent.postMessage({source:"love-radar-ludo-duo",type:"action",action,...(pawn===undefined?{}:{pawn}),...(emoji===undefined?{}:{emoji})},window.location.origin);
  function pointFor(color,progress){
   if(progress===57){
@@ -145,24 +193,16 @@
    piece.style.setProperty("--pawn-shift",shift.toFixed(1)+"px");
    piece.style.zIndex=String(4+i);layer.append(piece);
   });
-  if(state.motion){
-   const m=state.motion,c=color(m.seat),p=pointFor(c,m.progress);
-   if(p){
-    const piece=createPawn(c,m.seat,m.pawn,false);
-    piece.classList.add("piece--board","piece--moving","is-hopping");
-    piece.style.top=((p[0]+.5)/15*100)+"%";
-    piece.style.left=((p[1]+.5)/15*100)+"%";
-    layer.append(piece);
-   }
-  }
+  drawMotion();
+  // Captured opponents keep their original square until the return phase.
   for(const m of state.capturedMotions||[]){
    const c=color(m.seat),p=m.returning?null:pointFor(c,m.from);
    const piece=createPawn(c,m.seat,m.pawn,false);
    if(m.returning){
-    const slot=document.querySelector(".base--"+c+" .base-spot:nth-child("+(m.pawn+1)+")");
-    if(slot){piece.classList.add("piece--home");slot.append(piece)}
+    const home=document.querySelector(".base--"+c+" .base-spot:nth-child("+(m.pawn+1)+")");
+    if(home){piece.classList.add("piece--home","piece--captured");home.append(piece)}
    }else if(p){
-    piece.classList.add("piece--board","piece--moving");
+    piece.classList.add("piece--board","piece--captured");
     piece.style.top=((p[0]+.5)/15*100)+"%";
     piece.style.left=((p[1]+.5)/15*100)+"%";
     layer.append(piece);
@@ -234,11 +274,29 @@
   roll.disabled=!canRoll;
   roll.classList.toggle("is-ready",canRoll);
   roll.classList.toggle("is-busy",state.busy||state.rolling);
-  dice.classList.toggle("is-rolling",Boolean(state.rolling));
-  const previousValue=/lancé un ([1-6])/.exec(g.lastAction||"");
-  const diceValue=state.rolling?state.rollingFace||1:g.dice??(previousValue?Number(previousValue[1]):1);
+  const last=state.lastRoll;
+  const stamp=last?g.id+":"+last.at:"";
+  if(stamp&&lastAnimatedRoll!==stamp){
+   const previous=lastAnimatedRoll;
+   lastAnimatedRoll=stamp;
+   // Recreate a short dice roll for the partner, once per actual server roll.
+   if(previous&&last.seat!==state.mySeat&&!state.rolling){
+    if(remoteDieTimer!==null)clearTimeout(remoteDieTimer);
+    remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},750);
+   }
+  }
+  const rollingNow=Boolean(state.rolling)||remoteDieTimer!==null;
+  dice.classList.toggle("is-rolling",rollingNow);
+  // The game may clear g.dice immediately after a move; never fall back to
+  // a fake "1" when the server has persisted the real last die result.
+  const previousValue=/(?:lanc[eé]|dé\\s*:)\\s*(?:un\\s*)?([1-6])/.exec(g.lastAction||"");
+  const diceValue=g.dice??last?.face??(previousValue?Number(previousValue[1]):1);
   dice.dataset.face=String(diceValue);
-  dice.dataset.side=isMine?"human":"cpu";
+  dice.dataset.side=(last?.seat??g.turn)===state.mySeat?"human":"cpu";
+  dieResult.textContent=rollingNow?"·":String(diceValue);
+  dieResult.value=rollingNow?"":String(diceValue);
+  dieResult.setAttribute("aria-label",rollingNow?"Le dé tourne":"Dernier lancer : "+diceValue);
+  roll.setAttribute("aria-label",canRoll?"Lancer le dé":"Dé : "+diceValue);
   const only=legal.length===1;
   status.textContent=g.status==="won"?"Partie terminée":
     state.rolling?"🎲 Le dé roule…":
