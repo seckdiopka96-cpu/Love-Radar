@@ -383,21 +383,39 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const receive=useCallback(async(call:Call,signal:Signal)=>{
   if(current.current?.id!==call.id||!local.current)return false;
   const peer=createPeer();
-  if(signal.kind==="offer"&&call.direction==="incoming"&&!answered.current){
+  if(signal.kind==="restart"&&call.direction==="outgoing"){
+   // Callee requests an ICE restart; only the original caller re-offers.
+   void attemptIceRecovery(true);
+   return true;
+  }
+  if(signal.kind==="offer"&&call.direction==="incoming"){
+   if(peer.remoteDescription?.sdp===signal.payload)return true;
+   if(peer.signalingState!=="stable")return false;
+   const renegotiating=answered.current;
    answered.current=true;
    try{
-    setPhase("Connexion en cours…");
-    if(!peer.remoteDescription)await peer.setRemoteDescription({type:"offer",sdp:signal.payload});
-    if(!peer.localDescription)await peer.setLocalDescription(await peer.createAnswer());
+    setPhase(renegotiating?"Reconnexion…":"Connexion en cours…");
+    // The same MediaStreams remain attached: only ICE credentials are renewed.
+    sessionDescriptionSent.current=false;
+    queuedCandidates.current=[];
+    await peer.setRemoteDescription({type:"offer",sdp:signal.payload});
+    await peer.setLocalDescription(await peer.createAnswer());
     if(current.current?.id!==call.id||pc.current!==peer)return true;
-    await api("signal",{id:call.id,kind:"answer",sdp:peer.localDescription?.sdp||""});
+    await api("signal",{id:call.id,kind:"answer",sdp:peer.localDescription?.sdp||"",restart:renegotiating});
     if(current.current?.id!==call.id||pc.current!==peer)return true;
     sessionDescriptionSent.current=true;
     void flushCandidates(call.id);
     return true;
-   }catch(err){answered.current=false;setError(err instanceof Error?err.message:"Réponse impossible.");return false}
+   }catch(err){
+    if(!renegotiating)answered.current=false;
+    setPhase("Reconnexion…");
+    console.warn("Love Radar ICE answer retry",err);
+    return false;
+   }
   }
-  if(signal.kind==="answer"&&call.direction==="outgoing"&&peer.signalingState==="have-local-offer"){
+  if(signal.kind==="answer"&&call.direction==="outgoing"){
+   if(peer.signalingState==="stable")return true; // Late duplicate answer.
+   if(peer.signalingState!=="have-local-offer")return false;
    try{await peer.setRemoteDescription({type:"answer",sdp:signal.payload});return true}
    catch(err){setError(err instanceof Error?err.message:"Connexion impossible.");return false}
   }
@@ -406,13 +424,13 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    try{
     await peer.addIceCandidate(JSON.parse(signal.payload) as RTCIceCandidateInit);
    }catch(err){
-    // An invalid individual candidate must not block valid later paths.
+    // Older ICE generations on changing Wi-Fi networks may be stale.
     console.warn("ICE candidate ignored",err);
    }
    return true;
   }
   return false;
- },[api,createPeer,flushCandidates]);
+ },[api,createPeer,flushCandidates,attemptIceRecovery]);
  const sync=useCallback(async()=>{
   if(isPolling.current||starting.current||(document.visibilityState==="hidden"&&!isNativeApp))return;
   isPolling.current=true;
