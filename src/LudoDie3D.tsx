@@ -2,7 +2,7 @@ import "./ludo-die-3d.css";
 
 type Props={
  value:number;
- color?:"blue"|"green";
+ color?:"blue"|"green"|"red"|"gold";
  rolling?:boolean;
 };
 const PIPS:Readonly<Record<number,readonly number[]>>={
