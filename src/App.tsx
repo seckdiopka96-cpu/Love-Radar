@@ -208,6 +208,7 @@ export default function LoveRadar(){
  currentTab.current=tab;
  const chatReturnTab=useRef<Tab>("home");
  const [noticeTarget,setNoticeTarget]=useState<NoticeTarget|null>(()=>parseNotice(window.location.search));
+ const lastHandledNotice=useRef<string>("");
  const [focusMessage,setFocusMessage]=useState<Message|null>(null);
  const [focusLoading,setFocusLoading]=useState(false);
  const [focusError,setFocusError]=useState("");
@@ -666,6 +667,16 @@ export default function LoveRadar(){
    if(data?.type==="love-radar-open-notification"){
     const dest=parseNotice(new URL(noticeUrl({tab:data.tab,kind:data.kind,id:data.id}),window.location.origin).search);
     if(dest){
+     // ACK only after React has accepted this exact destination. The SW
+     // retains it until acknowledgment, even if iOS first opens home.
+     const routeId=typeof data.routeId==="string"?data.routeId:"";
+     if(routeId){
+      (event.source as ServiceWorker|null)?.postMessage({
+       type:"love-radar-ack-notification",routeId
+      });
+      if(lastHandledNotice.current===routeId)return;
+      lastHandledNotice.current=routeId;
+     }
      window.history.replaceState(null,"",noticeUrl(dest));
      setNoticeTarget(dest);
      setTab(dest.tab);setWatchInvite(null);setReconcileInvite(false);firstPoll.current=true;
