@@ -1,0 +1,139 @@
+// Capacitor bridge for Android incoming calls. FCM transports only call invitations.
+// No bearer token or conversation is persisted in Android preferences.
+package __PACKAGE__;
+
+import android.Manifest;
+import android.app.NotificationManager;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.messaging.FirebaseMessaging;
+import java.util.UUID;
+
+@CapacitorPlugin(name="NativeVoip",permissions={
+    @Permission(alias="notifications",strings={Manifest.permission.POST_NOTIFICATIONS})
+})
+public final class NativeVoipPlugin extends Plugin {
+    private static final String PREFS="love_radar_call_invites";
+    private static NativeVoipPlugin visiblePlugin;
+    private static SharedPreferences prefs(Context context){
+        return context.getApplicationContext().getSharedPreferences(PREFS,Context.MODE_PRIVATE);
+    }
+    private static String deviceId(Context context){
+        SharedPreferences preferences=prefs(context);
+        String id=preferences.getString("deviceId","");
+        if(!id.matches("(?i)[0-9a-f-]{36}")){
+            id=UUID.randomUUID().toString();
+            preferences.edit().putString("deviceId",id).apply();
+        }
+        return id;
+    }
+    private static JSObject event(String action,String id,long timestamp){
+        JSObject data=new JSObject();
+        data.put("action",action);data.put("callId",id);
+        data.put("timestamp",timestamp/1000.0);
+        return data;
+    }
+    public static void recordAction(Context context,String action,String id){
+        if(!("answer".equals(action)||"end".equals(action))||
+           id==null||!id.matches("(?i)[0-9a-f-]{36}"))return;
+        long at=System.currentTimeMillis();
+        prefs(context).edit().putString("action",action)
+            .putString("callId",id).putLong("timestamp",at).apply();
+        if(visiblePlugin!=null)visiblePlugin.notifyListeners("callAction",event(action,id,at));
+    }
+    public static void tokenChanged(Context context,String fcmToken){
+        if(visiblePlugin==null)return;
+        JSObject data=new JSObject();
+        data.put("deviceId",deviceId(context));
+        data.put("voipToken",fcmToken);
+        visiblePlugin.notifyListeners("tokenChanged",data);
+    }
+    @Override public void load(){
+        visiblePlugin=this;
+    }
+    private boolean notificationAllowed(){
+        if(Build.VERSION.SDK_INT>=33&&getContext().checkSelfPermission(
+            Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)return false;
+        NotificationManager manager=(NotificationManager)getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        return manager==null||manager.areNotificationsEnabled();
+    }
+    private void sessionReady(PluginCall call){
+        JSObject response=new JSObject();
+        response.put("ready",notificationAllowed());
+        call.resolve(response);
+    }
+    @PluginMethod public void setSession(PluginCall call){
+        if(Build.VERSION.SDK_INT>=33&&getPermissionState("notifications")!=
+           com.getcapacitor.PermissionState.GRANTED){
+            requestPermissionForAlias("notifications",call,"notificationsResult");
+            return;
+        }
+        sessionReady(call);
+    }
+    @PermissionCallback private void notificationsResult(PluginCall call){
+        sessionReady(call);
+    }
+    @PluginMethod public void clearSession(PluginCall call){
+        prefs(getContext()).edit().remove("action").remove("callId")
+            .remove("timestamp").apply();
+        cancelIncoming();
+        call.resolve();
+    }
+    @PluginMethod public void getDevice(PluginCall call){
+        JSObject data=new JSObject();
+        data.put("deviceId",deviceId(getContext()));
+        if(FirebaseApp.getApps(getContext()).isEmpty()){
+            data.put("voipToken","");
+            call.resolve(data);return;
+        }
+        try{
+            FirebaseMessaging.getInstance().getToken()
+             .addOnSuccessListener(token->{data.put("voipToken",token);call.resolve(data);})
+             .addOnFailureListener(error->{data.put("voipToken","");call.resolve(data);});
+        }catch(Exception ignored){data.put("voipToken","");call.resolve(data);}
+    }
+    @PluginMethod public void getPendingAction(PluginCall call){
+        SharedPreferences preferences=prefs(getContext());
+        long timestamp=preferences.getLong("timestamp",0L);
+        String id=preferences.getString("callId","");
+        String action=preferences.getString("action","");
+        if(timestamp==0||Math.abs(System.currentTimeMillis()-timestamp)>150000||
+           !id.matches("(?i)[0-9a-f-]{36}")||
+           !("answer".equals(action)||"end".equals(action))){
+            preferences.edit().remove("callId").remove("action").remove("timestamp").apply();
+            call.resolve(new JSObject());return;
+        }
+        call.resolve(event(action,id,timestamp));
+    }
+    @PluginMethod public void ackAction(PluginCall call){
+        String id=call.getString("callId","");
+        SharedPreferences preferences=prefs(getContext());
+        if(id.equalsIgnoreCase(preferences.getString("callId",""))){
+            preferences.edit().remove("callId").remove("action").remove("timestamp").apply();
+        }
+        call.resolve();
+    }
+    private void cancelIncoming(){
+        NotificationManager manager=(NotificationManager)getContext()
+            .getSystemService(Context.NOTIFICATION_SERVICE);
+        if(manager!=null)manager.cancel(NativeVoipMessageService.INCOMING_NOTIFICATION_ID);
+    }
+    @PluginMethod public void markAnswered(PluginCall call){
+        cancelIncoming();
+        call.resolve();
+    }
+    @PluginMethod public void finishCall(PluginCall call){
+        cancelIncoming();
+        call.resolve();
+    }
+}
