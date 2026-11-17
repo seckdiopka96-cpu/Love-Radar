@@ -14,6 +14,7 @@ type Props={
  palette:{colors:[DuoColor,DuoColor];chosenBy:number|null};
  lastRoll:{seat:number;face:number;at:number}|null;
  mySeat:number;myName:string;partnerName:string|null;
+ myAvatar?:string;partnerAvatar?:string;
  remaining:number|null;rolling:boolean;rollingFace:number;
  busy:boolean;animationBusy:boolean;
  motion:Motion|null;capturedMotions:CapturedMotion[];
@@ -41,11 +42,12 @@ export default function LudoDuoFrame(props:Props){
    source:"love-radar-ludo-duo-parent",type:"state",
    game:props.game,palette:props.palette,lastRoll:props.lastRoll,mySeat:props.mySeat,
    myName:props.myName,partnerName:props.partnerName,
+   myAvatar:props.myAvatar||"",partnerAvatar:props.partnerAvatar||"",
    remaining:props.remaining,rolling:props.rolling,rollingFace:props.rollingFace,
    busy:props.busy,animationBusy:props.animationBusy,
    motion:props.motion,capturedMotions:props.capturedMotions,error:props.error
   },window.location.origin);
- },[props.game,props.palette,props.lastRoll,props.mySeat,props.myName,props.partnerName,
+ },[props.game,props.palette,props.lastRoll,props.mySeat,props.myName,props.partnerName,props.myAvatar,props.partnerAvatar,
     props.remaining,props.rolling,props.rollingFace,props.busy,props.animationBusy,
     props.motion,props.capturedMotions,props.error]);
  useEffect(()=>{if(ready)send()},[ready,send]);
