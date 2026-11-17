@@ -95,7 +95,7 @@ async function reaction(db:D1Database,room:string){
  const result=await db.prepare("SELECT seat,emoji,updated_at AS at FROM ludo_reactions WHERE room_id=? AND updated_at>?").bind(room,Date.now()-7000).first<{seat:number;emoji:string;at:number}>();
  return result||null;
 }
-const EMOJIS=new Set(["❤️","😂","🔥","👏","😍","💋","😱","🤯","😤","😭","😘","😎","🥹","😮","😡"]);
+const EMOJIS=new Set(["❤️","😂","🤣","😝","🤪","🔥","👏","😍","💋","😱","🤯","😤","😭","😘","😎","🥹","😮","😡"]);
 async function recentReactions(db:D1Database,room:string,gameId:string){
  const r=await db.prepare("SELECT id,seat,emoji,created_at AS at FROM ludo_reaction_events WHERE room_id=? AND game_id=? AND created_at>? ORDER BY created_at DESC LIMIT 8")
   .bind(room,gameId,Date.now()-9000).all<{id:string;seat:number;emoji:string;at:number}>();
