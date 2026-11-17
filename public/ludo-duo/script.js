@@ -337,6 +337,11 @@
   if(rules.open&&typeof rules.close==="function")rules.close();
   else rules.removeAttribute("open");
  });
+ const victoryGiftButton=document.createElement("button");
+ victoryGiftButton.type="button";victoryGiftButton.className="dialog-secondary";
+ victoryGiftButton.textContent="🎁 Voir le défi cadeau";
+ victoryGiftButton.addEventListener("click",()=>send("gift"));
+ victory.querySelector("#change-color-after-win")?.after(victoryGiftButton);
  document.getElementById("play-again").addEventListener("click",()=>send("restart"));
  document.getElementById("change-color-after-win").addEventListener("click",()=>send("restart"));
  const gameDialog=document.getElementById("win-dialog");
