@@ -46,3 +46,12 @@
  .lr-ludo-embedded-title{font-size:13px}
  .lr-ludo-embedded-heart{font-size:18px}
 }
+
+
+.lr-ludo-embedded-title{position:relative}
+.lr-ludo-embedded-logo{
+ position:absolute;left:-29px;top:45%;transform:translateY(-50%);
+ width:26px;height:26px;object-fit:contain;border-radius:7px;
+ filter:drop-shadow(0 3px 6px #031126c9)
+}
+@media(max-width:370px){.lr-ludo-embedded-logo{left:-23px;width:22px;height:22px}}
