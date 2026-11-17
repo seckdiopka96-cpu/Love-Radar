@@ -27,6 +27,13 @@ type Props={
 export default function LudoDuoFrame(props:Props){
  const ref=useRef<HTMLIFrameElement|null>(null);
  const [ready,setReady]=useState(false);
+ const [failed,setFailed]=useState(false);
+ const [retry,setRetry]=useState(0);
+ useEffect(()=>{
+  if(ready){setFailed(false);return}
+  const id=window.setTimeout(()=>setFailed(true),8000);
+  return()=>window.clearTimeout(id);
+ },[ready,retry]);
  const send=useCallback(()=>{
   const frame=ref.current?.contentWindow;
   if(!frame)return;
@@ -48,7 +55,7 @@ export default function LudoDuoFrame(props:Props){
    if(!frame||event.source!==frame||event.origin!==window.location.origin)return;
    const data=event.data;
    if(!data||data.source!=="love-radar-ludo-duo")return;
-   if(data.type==="ready"){setReady(true);send();return}
+   if(data.type==="ready"){setReady(true);setFailed(false);send();return}
    if(data.type!=="action")return;
    switch(data.action){
     case "roll":case "restart":case "exit":case "gift":case "menu":
@@ -63,8 +70,13 @@ export default function LudoDuoFrame(props:Props){
   return()=>window.removeEventListener("message",message);
  },[props.onAction,send]);
  return <section className="ludo-duo-shared-frame" aria-label="Plateau Ludo Duo identique au Ludo Solo">
-  <iframe ref={ref} className="ludo-duo-shared-iframe"
+  <iframe key={retry} ref={ref} className="ludo-duo-shared-iframe"
    src="/ludo-duo/index.html?v=ludo-room-20261117-v4" title="Ludo Duo : plateau et dé synchronisés avec ton partenaire"
-   referrerPolicy="same-origin" loading="eager" onLoad={()=>setReady(true)}/>
+   referrerPolicy="same-origin" loading="eager" onError={()=>setFailed(true)}/>
+  {failed&&!ready?<div className="ludo-duo-frame-error" role="alert">
+   <strong>Impossible de charger le nouveau plateau Duo.</strong>
+   <span>Vérifie ta connexion ou la version publiée de Love Radar.</span>
+   <button type="button" onClick={()=>{setFailed(false);setReady(false);setRetry(n=>n+1)}}>Réessayer</button>
+  </div>:null}
  </section>;
 }
