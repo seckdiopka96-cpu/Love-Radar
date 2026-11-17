@@ -709,7 +709,8 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    </div>
   </div>,document.body):null;
  const mini=active?.status==="active"&&minimized?createPortal(
-  <div className="lr-call-mini" role="region" aria-label={"Appel vocal en cours avec "+partner}>
+  <div className={"lr-call-mini"+(isVideo?" lr-call-mini-video":"")} role="region" aria-label={(isVideo?"Appel vidéo":"Appel vocal")+" en cours avec "+partner}>
+   {isVideo?<div className="lr-call-mini-preview" aria-hidden="true"><video ref={attachRemoteVideo} autoPlay playsInline muted/>{!remoteHasVideo?<span>📹</span>:null}</div>:null}
    <button type="button" className="lr-call-mini-expand" onClick={()=>setMinimized(false)} aria-label="Agrandir l’appel" title="Revenir à l’appel">
     <span className="lr-call-mini-pulse" aria-hidden="true">●</span>
     <span className="lr-call-mini-info"><strong>{phase==="Connecté"?"En appel":phase||"Appel en cours"} · {partner}</strong><small>{total} · Appuyer pour agrandir</small></span>
@@ -719,11 +720,15 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
     {needsPlay?<button type="button" onClick={enableAudio} className="lr-call-mini-sound" aria-label="Activer le son">🔊</button>:null}
     <button type="button" className={"lr-call-mini-speaker "+(speakerSelected?"active":"")} onClick={selectSpeaker} disabled={speakerBusy} aria-pressed={speakerSelected} aria-label={speakerSelected?"Désactiver le haut-parleur":"Activer le haut-parleur"}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zM16 9a5 5 0 0 1 0 6M19 5a10 10 0 0 1 0 14"/></svg></button>
     <button type="button" className={"lr-call-mini-mute "+(muted?"active":"")} onClick={toggleMute} disabled={!local.current} aria-label={muted?"Réactiver le micro":"Couper le micro"} aria-pressed={muted}>{muted?"🔇":"🎙️"}</button>
+    {isVideo?<button type="button" onClick={toggleCamera} aria-pressed={!cameraOff} aria-label={cameraOff?"Activer la caméra":"Couper la caméra"}>{cameraOff?"📷":"📹"}</button>:null}
     <button type="button" className="lr-call-mini-end" onClick={hangup} disabled={busy} aria-label="Raccrocher">✕</button>
    </div>
   </div>,document.body):null;
  return <>
-  {anchor&&createPortal(<button type="button" className="lr-call-trigger" onClick={start} disabled={!hasPartner||busy||Boolean(active)} aria-label="Appeler en vocal" title="Appeler en vocal"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.8v3a2 2 0 0 1-2.2 2A19.5 19.5 0 0 1 2.2 4.2 2 2 0 0 1 4.2 2h3a2 2 0 0 1 2 1.7l.6 3.1a2 2 0 0 1-.6 1.9L7.7 10a16 16 0 0 0 6.3 6.3l1.4-1.5a2 2 0 0 1 1.9-.6l3.1.6a2 2 0 0 1 1.6 1.9Z"/></svg></button>,anchor)}
+  {anchor&&createPortal(<><button type="button" className="lr-call-trigger" onClick={()=>void start("audio")} disabled={!hasPartner||busy||Boolean(active)} aria-label="Appeler en vocal" title="Appeler en vocal"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.8v3a2 2 0 0 1-2.2 2A19.5 19.5 0 0 1 2.2 4.2 2 2 0 0 1 4.2 2h3a2 2 0 0 1 2 1.7l.6 3.1a2 2 0 0 1-.6 1.9L7.7 10a16 16 0 0 0 6.3 6.3l1.4-1.5a2 2 0 0 1 1.9-.6l3.1.6a2 2 0 0 1 1.6 1.9Z"/></svg></button>
+   <button type="button" className="lr-video-trigger" onClick={()=>void start("video")} disabled={!hasPartner||busy||Boolean(active)} aria-label="Appeler en vidéo HD" title="Appeler en vidéo">
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2.5" y="5.5" width="14" height="13" rx="3"/><path d="m16.5 10 5-3v10l-5-3"/></svg>
+   </button></>,anchor)}
   {error&&!active?<div className="lr-call-toast" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
   <audio ref={remote} data-lr-call-audio="true" autoPlay playsInline aria-label="Voix de ton partenaire"/>
   {display}
