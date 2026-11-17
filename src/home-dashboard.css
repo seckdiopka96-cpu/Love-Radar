@@ -102,3 +102,12 @@
 .lr-home-our-story small{font-size:10px;line-height:1.45;color:#e8cede;min-height:29px}
 .lr-home-our-story b{align-self:center;color:#f1c1d8;font-size:17px}
 @media(max-width:430px){.lr-home-our-story{gap:7px}.lr-home-our-story button{gap:6px;padding:11px 8px;border-radius:13px}.lr-home-our-symbol{font-size:22px}.lr-home-our-story strong{font-size:16px}.lr-home-our-story small{font-size:9px}.lr-home-our-story b{display:none}}
+
+/* Visible author signature on the private home, without occupying a navigation slot. */
+.lr-home-compact .lr-home-made-by{
+ margin:20px auto 4px;padding:3px 4px;
+ text-align:center;color:#c6a4b7;
+ font:600 11px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;
+ letter-spacing:.15px;
+}
+.lr-home-compact .lr-home-made-by strong{color:#f4b6d4;font-weight:850}
