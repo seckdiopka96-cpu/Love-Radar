@@ -524,7 +524,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   </footer>
   </div>
 
-  {game&&agreement?.startedAt&&palette&&game.status==="playing"?
+  {game&&agreement?.startedAt&&palette?
    <LudoDuoFrame game={game} palette={palette} lastRoll={lastRoll} mySeat={mySeat} myName={myName} partnerName={partnerName}
     remaining={remaining} rolling={rolling} rollingFace={rollingFace}
     busy={busy} animationBusy={animationBusy} motion={motion} capturedMotions={capturedMotions}
