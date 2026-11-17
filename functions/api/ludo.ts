@@ -78,7 +78,7 @@ async function rememberLastRoll(db:D1Database,g:Game,seat:number,face:number){
 async function getLastRoll(db:D1Database,g:Game){
  const row=await db.prepare("SELECT seat,face,updated_at AS at FROM ludo_last_rolls WHERE room_id=? AND game_id=?")
   .bind(g.room_id,g.game_id).first<{seat:number;face:number;at:number}>();
- return row&&row.face>=1&&row.face<=6?{seat:row.seat,face:row.face}:null;
+ return row&&row.face>=1&&row.face<=6?{seat:row.seat,face:row.face,at:row.at}:null;
 }
 function die(){
  const byte=new Uint8Array(1);
@@ -249,6 +249,20 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   if(members===2&&!g){
    await createIfMissing(db,player.room_id);
    g=await getGame(db,player.room_id);
+  }
+  // Fast conditional polling: no expensive gift, palette, challenge or
+  // move-event queries if both phones already have this game version.
+  // Verify server-side deadlines to keep automatic timeout turns active.
+  if(method==="GET"&&g?.status==="playing"){
+   const params=new URL(ctx.request.url).searchParams;
+   const since=params.get("since");
+   if(since!==null&&/^\d{1,10}$/.test(since)&&Number(since)===g.version&&
+      params.get("game")===g.game_id){
+    const activeAgreement=await agreement(db,g);
+    if(activeAgreement.startedAt&&Date.now()+350<Math.max(g.updated_at,activeAgreement.startedAt)+TURN_MS){
+     return reply({ok:true,unchanged:true,version:g.version,serverNow:Date.now()});
+    }
+   }
   }
   let signed:Agreement|null=null;
   if(g){
