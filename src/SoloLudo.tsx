@@ -13,6 +13,7 @@ import LudoTutorial,{ludoGuideWasSeen} from "./LudoTutorial";
 
 type Props={myName:string;storageKey:string;onExit:()=>void};
 type Motion={seat:SoloSeat;pawn:number;from:number;to:number;progress:number};
+type CaptureBack={seat:SoloSeat;pawn:number;progress:number};
 const trackAt=new Map(TRACK.map((point,i)=>[key(point[0],point[1]),i]));
 const homeAt=HOME.map(lane=>new Set(lane.map(point=>key(point[0],point[1]))));
 const storeKey=(scope:string)=>"love-radar-ludo-solo-v1:"+scope;
@@ -32,6 +33,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  const [assisted,setAssisted]=useState(false);
  const [now,setNow]=useState(Date.now());
  const [motion,setMotion]=useState<Motion|null>(null);
+ const [captureBack,setCaptureBack]=useState<CaptureBack[]>([]);
  const [rolling,setRolling]=useState(false);
  const [face,setFace]=useState(1);
  const [boardSize,setBoardSize]=useState(0);
@@ -106,6 +108,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   const result=moveSolo(game,pawn);
   if(!result)return;
   const {move}=result;
+  if(move.captured.length)setCaptureBack(move.captured.map(p=>({...p,progress:p.from})));
   const route=movementSteps(move.from,move.to);
   setGame(automatic&&seat===0?{...result.game,lastAction:"🤖 L’ordinateur a déplacé ton pion. "+result.game.lastAction}:result.game);
   setLanding(null);
@@ -124,8 +127,21 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
     if(result.game.turn===0&&result.game.status==="playing"&&!assisted)setGame(prev=>({...prev,updatedAt:Date.now()}));
     setLanding(pointForProgress(move.seat,move.pawn,move.to));
     playMoveEffects(move,result.game.winner);
+    if(move.captured.length)reverseCaptured(move.captured);
    },initialDelay+route.length*stepDuration+100);
   }else playMoveEffects(move,result.game.winner);
+ }
+ function reverseCaptured(pawns:SoloMove["captured"]){
+  // Captured pawns retrace their own path back to their launch square, then home.
+  const longest=Math.max(...pawns.map(p=>p.from));
+  for(const captured of pawns){
+   for(let step=captured.from-1;step>=0;step--){
+    later(()=>setCaptureBack(prev=>prev.map(row=>row.seat===captured.seat&&row.pawn===captured.pawn?
+     {...row,progress:step}:row)),140+(captured.from-1-step)*130);
+   }
+  }
+  later(()=>setCaptureBack(prev=>prev.map(row=>({...row,progress:-1}))),160+longest*130);
+  later(()=>setCaptureBack([]),440+longest*130);
  }
  function playMoveEffects(move:SoloMove,winner:SoloSeat|null){
   if(move.captured.length){
@@ -165,14 +181,14 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   return ()=>window.clearTimeout(timer);
  },[game,rolling,motion,assisted,confirmRestart,tutorialOpen]);
  const isHumanTurn=game.status==="playing"&&game.turn===0;
- const canRoll=isHumanTurn&&!assisted&&game.dice===null&&!rolling&&!motion;
- const canPick=isHumanTurn&&!assisted&&game.dice!==null&&!rolling&&!motion&&availableSoloPawns(game,0).length>1;
+ const canRoll=isHumanTurn&&!assisted&&game.dice===null&&!rolling&&!motion&&!captureBack.length;
+ const canPick=isHumanTurn&&!assisted&&game.dice!==null&&!rolling&&!motion&&!captureBack.length&&availableSoloPawns(game,0).length>1;
  const secondsLeft=isHumanTurn&&!assisted&&!rolling&&!motion?Math.max(0,Math.ceil((game.updatedAt+SOLO_TURN_MS-now)/1000)):null;
  const counts=game.positions.map(row=>row.filter(progress=>progress===57).length);
  const pawnCells=new Map<string,{seat:SoloSeat;pawn:number;active:boolean}[]>();
  for(const seat of [0,1] as SoloSeat[])for(let pawn=0;pawn<4;pawn++){
   const progress=game.positions[seat][pawn];
-  if(progress===57||(motion?.seat===seat&&motion.pawn===pawn))continue;
+  if(progress===57||(motion?.seat===seat&&motion.pawn===pawn)||captureBack.some(row=>row.seat===seat&&row.pawn===pawn))continue;
   const [r,c]=pointForProgress(seat,pawn,progress);
   const k=key(r,c);
   const list=pawnCells.get(k)||[];
@@ -196,7 +212,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   clearTimers();
   setGame(freshSoloGame());
   setAssisted(false);
-  setMotion(null);setRolling(false);setLanding(null);setReaction("");
+  setMotion(null);setCaptureBack([]);setRolling(false);setLanding(null);setReaction("");
   setConfirmRestart(false);
  }
  return <section className="ludo-experience ludo-solo ludo-arena" aria-label="Ludo solo contre l'ordinateur">
@@ -270,6 +286,13 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
       <span className="ludo-arena-field-label is-human" aria-hidden="true">TOI</span>
       <span className="ludo-arena-field-label is-bot" aria-hidden="true">ORDINATEUR</span>
       <div className="ludo-board-center" aria-hidden="true"><span>★</span></div>
+      {captureBack.map(row=>{
+       const point=pointForProgress(row.seat,row.pawn,row.progress);
+       return <div key={"capture-"+row.seat+"-"+row.pawn} className={"ludo-captured-pawn ludo-pawn-"+(row.seat===0?"red":"gold")+" is-returning"}
+        style={{left:((point[1]+.5)/15*100)+"%",top:((point[0]+.5)/15*100)+"%"}} aria-hidden="true">
+        <PawnShape index={row.pawn}/>
+       </div>;
+      })}
       {motion&&movingStyle?<div className={"ludo-moving-pawn ludo-pawn-"+(motion.seat===0?"red":"gold")} style={movingStyle} aria-hidden="true">
        <i className="ludo-motion-aura"/>
        <span key={motion.progress} className="ludo-moving-bounce"><PawnShape index={motion.pawn}/></span>
