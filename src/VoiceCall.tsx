@@ -6,7 +6,7 @@ import {claimCallAudio,releaseCallAudio} from "./audio-focus";
 import {primeCallTone,startCallTone,stopCallTone} from "./call-ringtone";
 import {relayNeedsRefresh,RELAY_REFRESH_AFTER_MS,RELAY_RETRY_AFTER_ERROR_MS} from "./reliability-rules";
 import {reconnectDelayMs,mustReconnect,MAX_RECONNECT_ATTEMPTS,clampFloatingCall} from "./call-resilience";
-import type {PointerEvent as ReactPointerEvent,CSSProperties} from "react";
+import type {PointerEvent as ReactPointerEvent,MouseEvent as ReactMouseEvent,CSSProperties} from "react";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
 import "./voice-call.css";
@@ -884,7 +884,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const isVideo=active?.mode==="video";
  const showPartnerFullscreen=Boolean(isVideo&&active?.status==="active"&&remoteVideoReady);
  const videoCanToggleControls=Boolean(isVideo&&active?.status==="active");
- function toggleVideoControls(event?:React.MouseEvent<HTMLElement>){
+ function toggleVideoControls(event?:ReactMouseEvent<HTMLElement>){
   if(!videoCanToggleControls||callPanel!=="none")return;
   // Tapping camera retry or other embedded actions must not hide the HUD.
   if(event?.target instanceof Element&&event.target.closest("button,a,input"))return;
