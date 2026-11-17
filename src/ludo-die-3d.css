@@ -27,7 +27,7 @@
  --die-dark:#ad2442;
  --die-edge:#761c35;
 }
-.ludo-die-3d-gold{
+.ludo-die-3d-gold,.ludo-die-3d-yellow{
  --die-light:#ffeab1;
  --die-medium:#e9b842;
  --die-dark:#ad781f;
