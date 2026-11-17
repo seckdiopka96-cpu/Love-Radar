@@ -25,7 +25,8 @@ type MoveRow={game_id:string;version:number;seat:number;pawn:number;from_progres
 const TURN_MS=15000;
 const GIFTS=new Set(["credit","internet","wave2000"]);
 const initial=():Board=>[[-1,-1,-1,-1],[-1,-1,-1,-1]];
-const SAFE=new Set([0,8,13,21,26,34,39,47]);
+// Starting squares may be captured; only the four star refuges are protected.
+const SAFE=new Set([8,21,34,47]);
 const reply=(payload:object,status=200)=>Response.json(payload,{status,headers:{"Cache-Control":"no-store"}});
 const fail=(error:string,status=400)=>reply({ok:false,error},status);
 let ready:Promise<void>|null=null;
