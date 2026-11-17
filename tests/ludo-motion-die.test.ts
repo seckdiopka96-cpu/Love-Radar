@@ -36,6 +36,35 @@ test("Ludo screenshot fixes: compact pawns, correct capture and clean HUD",()=>{
  assert.ok(solo.includes('dieResult.textContent=needsNewRoll?"↻":String(lastRoll)'));
  assert.ok(solo.includes("await sleep(start===HOME?520:540)"));
 });
+test("four pawns are chosen by touching the board, never from a second numbered picker",()=>{
+ const senegal=readFileSync("src/SenegalLudo.tsx","utf8");
+ const reactSolo=readFileSync("src/SoloLudo.tsx","utf8");
+ const reactDuo=readFileSync("src/Ludo.tsx","utf8");
+ assert.ok(solo.includes('button.addEventListener("click",()=>{void movePiece(side,index)}') ,
+  "each selectable Solo pawn must respond to a direct touch");
+ assert.ok(duo.includes('if(selectable)b.addEventListener("click",()=>send("move",index))'),
+  "each selectable Duo pawn must be actionable on the board");
+ assert.ok(solo.includes('const canChoose=playable.length>1;'));
+ assert.ok(duo.includes('canChoose=legal.length>1;'));
+ assert.ok(solo.includes("pawnChoices.hidden=true"));
+ assert.ok(duo.includes("choices.replaceChildren();choices.hidden=true"));
+ assert.ok(!solo.includes('textContent="Pion "+(index+1)'));
+ assert.ok(!duo.includes('textContent="Pion "+(pawn+1)'));
+ assert.ok(soloCSS.includes('.lr-ludo-solo-ui #turn-meta'));
+ assert.ok(soloCSS.includes('.lr-ludo-duo-ui #turn-meta'));
+ assert.ok(soloCSS.includes('.lr-ludo-solo-ui #pawn-choices'));
+ assert.ok(soloCSS.includes('.lr-ludo-duo-ui #pawn-choices'));
+ assert.ok(soloCSS.includes('.piece--selectable::after{'));
+ assert.ok(soloCSS.includes('inset:-5px;pointer-events:auto'));
+ assert.ok(!reactSolo.includes('className="ludo-pick-row"'));
+ assert.ok(!reactDuo.includes('className="ludo-pick-row"'));
+ assert.ok(!senegal.includes('className="ludo-pick-row"'));
+ assert.ok(senegal.includes('onClick={()=>choose(item.pawn)}'),
+  "Senegal pawns remain touchable while the necessary path-choice dialog stays intact");
+ assert.ok(senegal.includes('className={"ludo-senegal-choice"'));
+ assert.ok(solo.includes('choices.length>1 ? "Touche le pion à déplacer"'));
+ assert.ok(duo.includes('"Touche le pion à déplacer"'));
+});
 test("both complete vanilla games remain valid JavaScript",()=>{
  assert.doesNotThrow(()=>new Script(solo,{filename:"solo/script.js"}));
  assert.doesNotThrow(()=>new Script(duo,{filename:"duo/script.js"}));
