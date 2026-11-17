@@ -882,6 +882,6 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
    No visual resizing: touch a pawn directly and it takes the turn. */
 .piece--selectable{position:absolute;touch-action:manipulation;cursor:pointer}
 .piece--selectable::after{
- content:"";position:absolute;inset:-5px;pointer-events:none
+ content:"";position:absolute;inset:-5px;pointer-events:auto
 }
 .base-spot .piece--selectable{z-index:6}
