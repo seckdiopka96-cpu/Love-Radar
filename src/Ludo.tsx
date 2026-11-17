@@ -27,7 +27,7 @@ type Reaction={id?:string;seat:number;emoji:string;at:number};
 type CapturedPawn={seat:number;pawn:number;from:number};
 type MoveEvent={gameId:string;version:number;seat:number;pawn:number;from:number;to:number;captures:CapturedPawn[];at:number};
 type PawnMotion={seat:number;pawn:number;progress:number;from:number;to:number};
-type CapturedMotion=CapturedPawn&{returning:boolean};
+type CapturedMotion=CapturedPawn&{returning:boolean;progress:number};
 type Challenge={gameId:string;fromId:string;fromName:string;fromSeat:number;sentAt:number};
 type DieResult={seat:number;face:number;at:number};
 type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;reactions?:Reaction[];moveEvent?:MoveEvent|null;gift?:Gift|null;agreement?:Agreement|null;palette?:Palette|null;lastRoll?:DieResult|null;challenge?:Challenge|null;notificationRequested?:boolean;serverNow?:number};
@@ -136,7 +136,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
       // Match Solo's deliberate pace. Every square stays visible on both phones
       // long enough to see the pin land before moving to the next square.
       const STEP_MS=moved.from===-1?520:540,START_MS=250;
-     setCapturedMotions(captured.map(p=>({...p,returning:false})));
+     setCapturedMotions(captured.map(p=>({...p,returning:false,progress:p.from})));
      setMotion({seat:moved.seat,pawn:moved.pawn,from:moved.from,to:moved.to,progress:moved.from});
      route.forEach((progress,index)=>{
       movementTimers.current.push(window.setTimeout(()=>{
@@ -153,12 +153,24 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
       setLanding(pointForProgress(moved.seat,moved.pawn,moved.to));
       if(captured.length){
        setCaptureFlash(true);playSound("capture");haptic([35,40,45]);
+       // Replay the captured pawn's journey BACKWARDS, one real square per
+       // 130 ms, then move from its own starting square into its home slot.
+       const maxBack=Math.max(...captured.map(p=>p.from));
+       captured.forEach(p=>{
+        for(let step=p.from-1;step>=0;step--){
+         movementTimers.current.push(window.setTimeout(()=>{
+          if(!isActive.current)return;
+          setCapturedMotions(rows=>rows.map(row=>row.seat===p.seat&&row.pawn===p.pawn?
+           {...row,progress:step,returning:true}:row));
+         },140+(p.from-1-step)*130));
+        }
+       });
        movementTimers.current.push(window.setTimeout(()=>{
-        if(isActive.current)setCapturedMotions(rows=>rows.map(row=>({...row,returning:true})));
-       },120));
+        if(isActive.current)setCapturedMotions(rows=>rows.map(row=>({...row,progress:-1,returning:true})));
+       },150+maxBack*130));
        movementTimers.current.push(window.setTimeout(()=>{
         if(isActive.current)setCapturedMotions([]);
-       },910));
+       },420+maxBack*130));
       }
       if(celebration){playSound("win");haptic([55,70,65])}
      },finish));
@@ -482,7 +494,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
       <div className="ludo-yard ludo-yard-gold" aria-hidden="true"/>
       <div className="ludo-board-center" aria-hidden="true"><span>♥</span></div>
       {capturedMotions.map(item=>{
-       const point=item.returning?BASE[item.seat][item.pawn]:pointForProgress(item.seat,item.pawn,item.from);
+       const point=pointForProgress(item.seat,item.pawn,item.progress);
        return <div key={"captured-"+item.seat+"-"+item.pawn} className={"ludo-captured-pawn ludo-pawn-"+(item.seat===0?"red":"gold")+(item.returning?" is-returning":"")}
         style={{left:((point[1]+.5)/15*100)+"%",top:((point[0]+.5)/15*100)+"%"}} aria-hidden="true">
         <PawnShape index={item.pawn}/>
