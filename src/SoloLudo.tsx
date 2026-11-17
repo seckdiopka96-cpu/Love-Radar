@@ -38,7 +38,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  const [landing,setLanding]=useState<Point|null>(null);
  const [reaction,setReaction]=useState("");
  const [confirmRestart,setConfirmRestart]=useState(false);
- const [tutorialOpen,setTutorialOpen]=useState(()=>!ludoGuideWasSeen("solo"));
+ const [tutorialOpen,setTutorialOpen]=useState(()=>!ludoGuideWasSeen("solo")&&game.positions.every(row=>row.every(pawn=>pawn===-1)));
  const {enabled:soundOn,unlock:unlockSound,play:playSound,toggle:toggleSound}=useLudoSounds();
  const stage=useRef<HTMLDivElement|null>(null);
  const timers=useRef<number[]>([]);
@@ -77,11 +77,11 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  },[]);
  // 15 seconds per move opportunity: no extra delay for an inactive player.
  useEffect(()=>{
-  if(game.status!=="playing"||game.turn!==0||assisted||rolling||motion||confirmRestart)return;
+  if(game.status!=="playing"||game.turn!==0||assisted||rolling||motion||confirmRestart||tutorialOpen)return;
   const delay=Math.max(0,game.updatedAt+SOLO_TURN_MS-Date.now());
   const id=window.setTimeout(()=>{if(shouldAutoPlaySolo(game,Date.now()))setAssisted(true);},delay);
   return ()=>window.clearTimeout(id);
- },[game,assisted,rolling,motion,confirmRestart]);
+ },[game,assisted,rolling,motion,confirmRestart,tutorialOpen]);
  useEffect(()=>{
   if(game.turn!==0||game.status!=="playing")setAssisted(false);
  },[game.turn,game.status]);
@@ -142,7 +142,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  }
  // AI controls its own turn, or finishes the human turn when 15 s expires.
  useEffect(()=>{
-  if(game.status!=="playing"||rolling||motion||confirmRestart)return;
+  if(game.status!=="playing"||rolling||motion||confirmRestart||tutorialOpen)return;
   if(game.turn!==1&&!(game.turn===0&&assisted))return;
   const id=window.setTimeout(()=>{
    const seat=game.turn;
@@ -153,7 +153,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
    }
   },game.dice===null?900:720);
   return ()=>window.clearTimeout(id);
- },[game,rolling,motion,assisted,confirmRestart]);
+ },[game,rolling,motion,assisted,confirmRestart,tutorialOpen]);
  const isHumanTurn=game.status==="playing"&&game.turn===0;
  const canRoll=isHumanTurn&&!assisted&&game.dice===null&&!rolling&&!motion;
  const canPick=isHumanTurn&&!assisted&&game.dice!==null&&!rolling&&!motion;
@@ -290,7 +290,11 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
     <div className="ludo-last-move" role="status" aria-live="polite">{game.lastAction}</div>
    </div>
   </div>
-  {tutorialOpen&&game.status==="playing"&&!confirmRestart?<LudoTutorial mode="solo" onClose={()=>setTutorialOpen(false)}/>:null}
+  {tutorialOpen&&game.status==="playing"&&!confirmRestart?<LudoTutorial mode="solo" onClose={()=>{
+   setTutorialOpen(false);
+   // A first-run lesson must not consume the user's fifteen-second turn.
+   setGame(previous=>previous.turn===0?{...previous,updatedAt:Date.now()}:previous);
+  }}/>:null}
   {confirmRestart?<div className="ludo-modal-backdrop" role="dialog" aria-modal="true" aria-label="Recommencer la partie">
    <div className="ludo-modal">
     <span className="ludo-modal-symbol">🎲</span>
