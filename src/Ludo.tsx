@@ -353,7 +353,6 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  function duoFrameAction(action:"roll"|"move"|"restart"|"exit"|"gift"|"menu",pawn?:number){
   if(action==="exit"||action==="menu"){setMenu(true);return}
   if(action==="gift"){setGiftOpen(true);return}
-  if(action==="react"){if(emoji)void sendReaction(emoji);return}
   if(action==="roll"||action==="move"||action==="restart")void act(action,pawn);
  }
  // One legal pawn means automatic movement, just as in the new Solo.
