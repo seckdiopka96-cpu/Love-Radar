@@ -5,12 +5,19 @@ import "./ludo-immersive.css";
 import "./ludo-arena.css";
 import LudoTutorial from "./LudoTutorial";
 import LudoDie3D from "./LudoDie3D";
+import LudoDuoFrame from "./LudoDuoFrame";
 import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,BASE,SAFE,CELL,key,pointForProgress,movementSteps,stackCellStyle,type Point} from "./ludo-visuals";
 
 type Game={id:string;version:number;turn:number;dice:number|null;positions:number[][];status:"playing"|"won";winner:number|null;lastAction:string;updatedAt:number;deadlineAt:number|null};
 type Gift={consents:[boolean,boolean];choice:"credit"|"internet"|"wave2000"|null;chosenBy:number|null;given:boolean};
+type DuoColor="blue"|"red"|"green"|"yellow";
+type Palette={colors:[DuoColor,DuoColor];chosenBy:number|null};
+const DUO_COLORS:{value:DuoColor;name:string}[]=[
+ {value:"blue",name:"Bleu"},{value:"red",name:"Rouge"},
+ {value:"green",name:"Vert"},{value:"yellow",name:"Jaune"}
+];
 type Agreement={signed:[boolean,boolean];names:[string|null,string|null];giftChoices:[boolean|null,boolean|null];signedAt:[number|null,number|null];startedAt:number|null};
 type GiftChoice="credit"|"internet"|"wave2000";
 const GIFT_OPTIONS:{id:GiftChoice;label:string;detail:string}[]=[{id:"credit",label:"📱 Crédit téléphonique",detail:"Recharge à offrir"},{id:"internet",label:"🌐 Connexion Internet",detail:"Forfait Internet à offrir"},{id:"wave2000",label:"💸 Wave 2 000 F CFA",detail:"Cadeau à envoyer séparément"}];
@@ -21,7 +28,7 @@ type MoveEvent={gameId:string;version:number;seat:number;pawn:number;from:number
 type PawnMotion={seat:number;pawn:number;progress:number;from:number;to:number};
 type CapturedMotion=CapturedPawn&{returning:boolean};
 type Challenge={gameId:string;fromId:string;fromName:string;fromSeat:number;sentAt:number};
-type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;reactions?:Reaction[];moveEvent?:MoveEvent|null;gift?:Gift|null;agreement?:Agreement|null;challenge?:Challenge|null;notificationRequested?:boolean;serverNow?:number};
+type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;reactions?:Reaction[];moveEvent?:MoveEvent|null;gift?:Gift|null;agreement?:Agreement|null;palette?:Palette|null;challenge?:Challenge|null;notificationRequested?:boolean;serverNow?:number};
 type Props={token:string;mySeat:number;myName:string;partnerName:string|null;onExit:()=>void;challengeId?:string|null};
 function allowed(progress:number,dice:number|null){return dice!==null&&(progress===-1?dice===6:progress>=0&&progress<57&&progress+dice<=57)}
 function labelPosition(progress:number){return progress===-1?"Dans la base":progress===57?"Arrivé !":progress>=51?"Couloir final":"Sur le plateau"}
@@ -44,6 +51,9 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const [reactions,setReactions]=useState<Reaction[]>([]);
  const [gift,setGift]=useState<Gift|null>(null);
  const [agreement,setAgreement]=useState<Agreement|null>(null);
+ const [palette,setPalette]=useState<Palette|null>(null);
+ const [colorBusy,setColorBusy]=useState(false);
+ const autoDuoPawn=useRef("");
  const [challenge,setChallenge]=useState<Challenge|null>(null);
  const [challengeBusy,setChallengeBusy]=useState(false);
  const [challengeHint,setChallengeHint]=useState("");
@@ -174,6 +184,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    setReactions(data.reactions||(data.reaction?[data.reaction]:[]));
    setGift(data.gift||null);
    setAgreement(data.agreement||null);
+   setPalette(data.palette||null);
    setChallenge(data.challenge||null);
    if(typeof data.serverNow==="number")setClockOffset(data.serverNow-Date.now());
    setError("");
@@ -235,6 +246,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    if(data.game)onGame(data.game,data.moveEvent);
    if(data.gift)setGift(data.gift);
    if(data.agreement)setAgreement(data.agreement);
+   if(data.palette)setPalette(data.palette);
    if(typeof data.serverNow==="number")setClockOffset(data.serverNow-Date.now());
    return true;
   }catch(e){
@@ -288,12 +300,27 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    if(!response.ok||!data.ok)throw Error(data.error||"Impossible d’enregistrer la signature.");
    if(data.agreement)setAgreement(data.agreement);
    if(data.gift)setGift(data.gift);
+   if(data.palette)setPalette(data.palette);
    if(data.game)onGame(data.game,data.moveEvent);
    if(typeof data.serverNow==="number")setClockOffset(data.serverNow-Date.now());
   }catch(e){setError(e instanceof Error?e.message:"Signature non enregistrée.")}
   finally{setSignBusy(false)}
  }
 
+ async function chooseDuoColor(color:DuoColor){
+  if(colorBusy||!game||agreement?.startedAt||agreement?.signed.some(Boolean))return;
+  setColorBusy(true);setError("");
+  try{
+   const res=await apiFetch("/api/ludo",{
+    method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    body:JSON.stringify({action:"choose_color",color})
+   });
+   const data=await res.json() as ResponseData;
+   if(!res.ok||!data.ok)throw Error(data.error||"Cette couleur n’est pas disponible.");
+   if(data.palette)setPalette(data.palette);
+  }catch(e){setError(e instanceof Error?e.message:"Impossible de sélectionner cette couleur.");void load()}
+  finally{setColorBusy(false)}
+ }
  async function sendReaction(emoji:string){
   if(reactionBusy||members<2||!game)return;
   setEmotes(false);setReactionBusy(true);
@@ -311,6 +338,28 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   }catch(e){setError(e instanceof Error?e.message:"Réaction non envoyée.")}
   finally{setReactionBusy(false)}
  }
+
+ function duoFrameAction(action:"roll"|"move"|"restart"|"exit"|"react"|"gift"|"menu",pawn?:number,emoji?:string){
+  if(action==="exit"||action==="menu"){setMenu(true);return}
+  if(action==="gift"){setGiftOpen(true);return}
+  if(action==="react"){if(emoji)void sendReaction(emoji);return}
+  if(action==="roll"||action==="move"||action==="restart")void act(action,pawn);
+ }
+ // One legal pawn means automatic movement, just as in the new Solo.
+ // Deduplicate this action across clock updates and repeated polls.
+ useEffect(()=>{
+  if(!game||!agreement?.startedAt||game.status!=="playing"||game.turn!==mySeat||
+      game.dice===null||busy||rolling||motion||capturedMotions.length)return;
+  const pawns=game.positions[mySeat].flatMap((p,i)=>allowed(p,game.dice)?[i]:[]);
+  if(pawns.length!==1)return;
+  const stamp=game.id+":"+game.version+":"+pawns[0];
+  if(autoDuoPawn.current===stamp)return;
+  const timer=window.setTimeout(()=>{
+   autoDuoPawn.current=stamp;
+   void act("move",pawns[0]);
+  },320);
+  return()=>window.clearTimeout(timer);
+ },[game,agreement?.startedAt,mySeat,busy,rolling,motion,capturedMotions.length]);
 
  const remaining=game?.status==="playing"&&game.deadlineAt?Math.max(0,Math.ceil((game.deadlineAt-clock-clockOffset)/1000)):null;
  const giftAgreed=Boolean(gift?.consents.every(Boolean));
@@ -483,6 +532,11 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   </footer>
   </div>
 
+  {game&&agreement?.startedAt&&palette&&game.status==="playing"?
+   <LudoDuoFrame game={game} palette={palette} mySeat={mySeat} myName={myName} partnerName={partnerName}
+    remaining={remaining} rolling={rolling} rollingFace={rollingFace}
+    busy={busy} animationBusy={animationBusy} motion={motion} capturedMotions={capturedMotions}
+    error={error} onAction={duoFrameAction}/>:null}
   {tutorialOpen&&Boolean(agreement?.startedAt)&&game?.status==="playing"&&!mustSign&&!giftOpen&&!rules?<LudoTutorial mode="duo" onClose={()=>setTutorialOpen(false)}/>:null}
   {mustSign?<div className="ludo-agreement-backdrop">
    <div className="ludo-agreement-dialog" role="dialog" aria-modal="true" aria-label="Règles et signature avant la partie">
@@ -497,6 +551,21 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
       </div>)}
     </div>
     {!mySigned?<>
+     <fieldset className="ludo-duo-color-picker" disabled={colorBusy||Boolean(agreement?.signed.some(Boolean))}>
+      <legend>Choisis ta couleur de pion</legend>
+      <div className="ludo-duo-color-options">
+       {DUO_COLORS.map(c=><button key={c.value} type="button"
+        className={"ludo-duo-color-choice ludo-duo-color-"+c.value+
+         (palette?.chosenBy!=null&&palette?.colors[mySeat]===c.value?" is-selected":"")}
+        aria-pressed={palette?.chosenBy!=null&&palette?.colors[mySeat]===c.value}
+        onClick={()=>void chooseDuoColor(c.value)}>
+        <span aria-hidden="true"/>{c.name}
+       </button>)}
+      </div>
+      <p>{palette?.chosenBy==null?"Sélectionne une couleur avant de signer.":
+       "Ta couleur : "+(DUO_COLORS.find(c=>c.value===palette?.colors[mySeat])?.name||"Bleu")+
+       " · Ton partenaire jouera avec la couleur opposée."}</p>
+     </fieldset>
      <div className="ludo-agreement-rules" tabIndex={0} aria-label="Règles à lire">
       <h3>🎲 Règles du Ludo Duo</h3>
       <p>Vous jouez à deux, chacun avec quatre pions. Il faut faire un 6 pour sortir un pion. Le premier à amener ses quatre pions au centre gagne.</p>
@@ -512,7 +581,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
       <label><input type="radio" name="gift_preference" checked={giftPreference==="yes"} onChange={()=>setGiftPreference("yes")}/><span>Oui, j’accepte de participer 🎁</span></label>
       <label><input type="radio" name="gift_preference" checked={giftPreference==="no"} onChange={()=>setGiftPreference("no")}/><span>Non, jouons sans cadeau</span></label>
      </fieldset>
-     <button type="button" className="ludo-agreement-submit" disabled={signBusy||!rulesAccepted||giftPreference===""} onClick={()=>void signRules()}>{signBusy?"Enregistrement…":"Valider ma signature ✓"}</button>
+     <button type="button" className="ludo-agreement-submit" disabled={signBusy||!rulesAccepted||giftPreference===""||palette?.chosenBy==null} onClick={()=>void signRules()}>{signBusy?"Enregistrement…":"Valider ma signature ✓"}</button>
     </>:<>
      <div className="ludo-agreement-wait">
       <span className="ludo-agreement-bigcheck">✓</span>
