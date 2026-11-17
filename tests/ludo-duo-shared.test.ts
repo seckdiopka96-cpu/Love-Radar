@@ -44,7 +44,14 @@ test("Duo JavaScript is syntactically valid and only receives authoritative data
 test("React authenticated Ludo backend is preserved and paints the shared frame",()=>{
  assert.ok(parent.includes('import LudoDuoFrame from "./LudoDuoFrame"'));
  assert.ok(parent.includes('<LudoDuoFrame game={game} palette={palette}'));
- assert.ok(parent.includes('game&&agreement?.startedAt&&palette?'));
+ assert.ok(parent.includes('game&&palette?'),"modern Duo is mounted before signatures, under the signing modal");
+ assert.ok(parent.includes('ludo-duo-loading'),"a modern loading state replaces legacy preview");
+ const frameCSS=readFileSync("src/ludo-duo-frame.css","utf8");
+ assert.ok(frameCSS.includes(".ludo-experience.ludo-duo-arena > .ludo-play-area"),"old arena must be hidden");
+ assert.ok(frameCSS.includes("display:none!important"),"no legacy board fallback");
+ assert.ok(bridge.includes('failed&&!ready'),"broken iframe reports a visible error");
+ assert.ok(bridge.includes("setRetry(n=>n+1)"),"broken iframe offers a retry");
+ assert.ok(!bridge.includes('onLoad={()=>setReady(true)}'),"iframe load alone does not confirm game ready");
  assert.ok(duoJS.includes('victoryGiftButton.addEventListener("click",()=>send("gift"))'),"Gifts must stay accessible after victory");
  assert.ok(parent.includes('action:"choose_color"'));
  assert.ok(parent.includes('const stamp=game.id+":"+game.version+":"+pawns[0]'));
