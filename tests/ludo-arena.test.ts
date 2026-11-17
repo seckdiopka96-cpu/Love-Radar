@@ -91,7 +91,7 @@ test("retina-sharp 3D die has six physical faces and always shows the true game 
  assert.ok(dieCss.includes("@keyframes ludo-die-flying"));
  assert.ok(dieCss.includes("@media(prefers-reduced-motion:reduce)"));
  assert.ok(!die.includes("Math.random"),"the die visual must never generate a second outcome");
- assert.ok(solo.includes('<LudoDie3D value={face} color={game.turn===1?"green":"blue"} rolling={rolling}/>'));
+ assert.ok(solo.includes('<LudoDie3D value={face} color={game.turn===1?"gold":"red"} rolling={rolling}/>'));
  assert.ok(duo.includes('<LudoDie3D value={dice||0} color={palette?.colors[game?.turn??mySeat]??"blue"} rolling={rolling}/>'));
  assert.ok(pawn.includes('viewBox="0 0 52 70"'));
  assert.ok(pawn.includes('linearGradient id={metal}'));
