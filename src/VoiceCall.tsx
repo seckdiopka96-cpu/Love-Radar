@@ -5,13 +5,15 @@ import {findBuiltInSpeaker,audioRouteHelp} from "./audio-output";
 import {claimCallAudio,releaseCallAudio} from "./audio-focus";
 import {primeCallTone,startCallTone,stopCallTone} from "./call-ringtone";
 import {relayNeedsRefresh,RELAY_REFRESH_AFTER_MS,RELAY_RETRY_AFTER_ERROR_MS} from "./reliability-rules";
+import {reconnectDelayMs,mustReconnect,MAX_RECONNECT_ATTEMPTS,clampFloatingCall} from "./call-resilience";
+import type {PointerEvent as ReactPointerEvent} from "react";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
 import "./voice-call.css";
 import "./video-call.css";
 
 type Call = {id:string;status:"ringing"|"active";direction:"incoming"|"outgoing";createdAt:number;updatedAt:number;expiresAt:number;mode?:"audio"|"video"};
-type Signal = {id:number;kind:"offer"|"answer"|"candidate";payload:string};
+type Signal = {id:number;kind:"offer"|"answer"|"candidate"|"restart";payload:string};
 type Result = {ok:boolean;error?:string;call?:Call|null;signals?:Signal[]};
 type Props = {token:string;partner:string;avatarSrc?:string;hasPartner:boolean;showButton:boolean;onOpenChat:()=>void};
 
@@ -23,6 +25,8 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const [anchor,setAnchor]=useState<HTMLElement|null>(null);
  const [active,setActive]=useState<Call|null>(null);
  const [minimized,setMinimized]=useState(false);
+ const [floatingAt,setFloatingAt]=useState<{x:number;y:number}|null>(null);
+ const [draggingVideo,setDraggingVideo]=useState(false);
  const [callPanel,setCallPanel]=useState<"none"|"info"|"more"|"keypad">("none");
  const [dialed,setDialed]=useState("");
  const [busy,setBusy]=useState(false);
@@ -112,6 +116,11 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const networkWarmedAt=useRef(0);
  const networkMaxAge=useRef(RELAY_REFRESH_AFTER_MS);
  const previousSinkId=useRef<string>("");
+ const recoveryTimer=useRef<number|null>(null);
+ const recoveryAttempts=useRef(0);
+ const recoveryInFlight=useRef(false);
+ const floatingBox=useRef<HTMLDivElement|null>(null);
+ const dragVideo=useRef<{x:number;y:number;left:number;top:number;pointerId:number}|null>(null);
 
  useEffect(()=>setAnchor(showButton?document.getElementById("lr-voice-button-slot"):null),[showButton]);
  useEffect(()=>{
@@ -189,6 +198,9 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   }finally{sendingCandidates.current=false}
  },[api]);
  const clearAudio=useCallback(()=>{
+  if(recoveryTimer.current!==null){window.clearTimeout(recoveryTimer.current);recoveryTimer.current=null}
+  recoveryAttempts.current=0;recoveryInFlight.current=false;
+  dragVideo.current=null;setDraggingVideo(false);setFloatingAt(null);
   stopCallTone();
   // Stop the native microphone service on any end, reset or room change.
   void endNativeCallSession().catch(error=>console.warn("Native call cleanup",error));
