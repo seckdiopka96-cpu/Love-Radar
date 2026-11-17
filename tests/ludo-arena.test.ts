@@ -71,3 +71,48 @@ test("French interactive tutorial can be skipped and does not consume solo 15-se
  assert.ok(duo.includes('Boolean(agreement?.startedAt)'));
  assert.ok(style.includes("@media(prefers-reduced-motion:reduce)"));
 });
+
+
+test("retina-sharp 3D die has six physical faces and always shows the true game result",()=>{
+ const die=readFileSync("src/LudoDie3D.tsx","utf8");
+ const dieCss=readFileSync("src/ludo-die-3d.css","utf8");
+ const pawn=readFileSync("src/LudoPawn.tsx","utf8");
+ assert.ok(die.includes('([1,2,3,4,5,6] as const).map(number=>'));
+ assert.ok(die.includes('const face=Number.isInteger(value)&&value>=1&&value<=6?value:1'));
+ assert.ok(die.includes('data-result={face}'));
+ assert.ok(die.includes('role="img"'));
+ for(let n=1;n<=6;n++){
+  assert.ok(dieCss.includes(".ludo-die-side-"+n+"{transform:"),"real 3D geometry for side "+n);
+  assert.ok(dieCss.includes(".ludo-die-shows-"+n+"{--die-x:"),"correct face after stopping "+n);
+ }
+ assert.ok(dieCss.includes("transform-style:preserve-3d"));
+ assert.ok(dieCss.includes("backface-visibility:hidden"));
+ assert.ok(dieCss.includes("@keyframes ludo-die-tumble-3d"));
+ assert.ok(dieCss.includes("@keyframes ludo-die-flying"));
+ assert.ok(dieCss.includes("@media(prefers-reduced-motion:reduce)"));
+ assert.ok(!die.includes("Math.random"),"the die visual must never generate a second outcome");
+ assert.ok(solo.includes('<LudoDie3D value={face} color={game.turn===1?"green":"blue"} rolling={rolling}/>'));
+ assert.ok(duo.includes('<LudoDie3D value={dice||0} color={myTurn?"blue":"green"} rolling={rolling}/>'));
+ assert.ok(pawn.includes('viewBox="0 0 52 70"'));
+ assert.ok(pawn.includes('linearGradient id={metal}'));
+ assert.ok(pawn.includes('radialGradient id={orb}'));
+ assert.ok(pawn.includes('useId()'));
+ assert.ok(!pawn.includes("<image"),"pins stay vector sharp on Retina iPhones");
+});
+test("die sits between blue TOI and green ORDI without duplicate solo roll buttons",()=>{
+ const playerStart=solo.indexOf('className="ludo-players ludo-arena-player-rail"');
+ const dieInRail=solo.indexOf('className={"ludo-die-holder ludo-die-in-player-rail"',playerStart);
+ const opponent=solo.indexOf('<strong>ORDI</strong>',playerStart);
+ assert.ok(playerStart>0&&dieInRail>playerStart&&opponent>dieInRail);
+ assert.ok(solo.includes('<strong>TOI</strong>'));
+ assert.ok(solo.includes('onClick={()=>performRoll(0)}'));
+ assert.ok(solo.includes('ludo-arena-roll-tip'));
+ assert.ok(solo.includes('{canPick?<div className="ludo-pick-row"'));
+ assert.equal((solo.match(/onClick=\{\(\)=>performRoll\(0\)\}/g)||[]).length,1,
+  "one physical die is the single visible roll control");
+ assert.ok(style.includes(".ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail{"));
+ assert.ok(style.includes("grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr)!important"));
+ assert.ok(style.includes(".ludo-arena-player-rail .ludo-die-in-player-rail{"));
+ assert.ok(style.includes(".ludo-experience.ludo-arena .ludo-cell-pawns .ludo-pawn-stacked{"));
+ assert.ok(style.includes("border:2px solid #a9c9e9!important"));
+});
