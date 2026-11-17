@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from "react";
-import DiceFace from "./DiceFace";
+import LudoDie3D from "./LudoDie3D";
 import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,SAFE,CELL,key,pointForProgress,movementSteps,stackCellStyle,type Point} from "./ludo-visuals";
@@ -199,16 +199,21 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
     <button type="button" className="ludo-solo-restart" onClick={()=>setConfirmRestart(true)} aria-label="Nouvelle partie">↻</button>
    </div>
   </header>
-  <div className="ludo-players" aria-label="Joueurs et tour actif">
+  <div className="ludo-players ludo-arena-player-rail" aria-label="Joueurs, dé et tour actif">
    <div className={"ludo-player ludo-player-red"+(game.turn===0&&game.status==="playing"?" is-active":"")}>
     <span className="ludo-player-avatar">{myName.trim().charAt(0).toUpperCase()||"☺"}</span>
-    <div className="ludo-player-info"><strong>{myName||"Moi"} · Moi</strong><span>{counts[0]} / 4 pions arrivés</span></div>
-    {game.turn===0&&game.status==="playing"?<span className="ludo-player-turn">●</span>:null}
+    <div className="ludo-player-info"><strong>TOI</strong><span>{counts[0]} / 4 arrivés</span></div>
+    {game.turn===0&&game.status==="playing"?<span className="ludo-player-turn" aria-label="À ton tour">●</span>:null}
    </div>
+   <button type="button" className={"ludo-die-holder ludo-die-in-player-rail"+(rolling?" is-rolling":"")}
+    disabled={!canRoll} onClick={()=>performRoll(0)}
+    aria-label={rolling?"Le dé est en train de rouler":canRoll?"Lancer le dé":"Dé affiché, en attente du tour"} title={canRoll?"Lancer le dé":"Résultat du dé"}>
+    <LudoDie3D value={face} color={game.turn===1?"green":"blue"} rolling={rolling}/>
+   </button>
    <div className={"ludo-player ludo-player-gold"+(game.turn===1&&game.status==="playing"?" is-active":"")}>
     <span className="ludo-player-avatar">🤖</span>
-    <div className="ludo-player-info"><strong>Ordinateur</strong><span>{counts[1]} / 4 pions arrivés</span></div>
-    {game.turn===1&&game.status==="playing"?<span className="ludo-player-turn">●</span>:null}
+    <div className="ludo-player-info"><strong>ORDI</strong><span>{counts[1]} / 4 arrivés</span></div>
+    {game.turn===1&&game.status==="playing"?<span className="ludo-player-turn" aria-label="À l’ordinateur">●</span>:null}
    </div>
   </div>
   <div className={"ludo-turn-banner"+(isHumanTurn?" its-mine":"")} role="status" aria-live="polite">
@@ -272,13 +277,11 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
    </div>
    <div className="ludo-game-footer">
     <div className="ludo-bottom-actions">
-     <button type="button" className={"ludo-die-holder"+(rolling?" is-rolling":"")} disabled={!canRoll}
-      onClick={()=>performRoll(0)} aria-label="Lancer le dé"><DiceFace value={face} variant={game.turn===1?"gold":"pink"} size="large"/></button>
-     <button type="button" className="ludo-main-action" disabled={!canRoll} onClick={()=>performRoll(0)}>
-      {rolling?"LE DÉ ROULE…":motion?"DÉPLACEMENT…":game.turn===1||assisted?"🤖 L’ORDINATEUR JOUE":game.dice!==null?"CHOISIS UN PION":"🎲 LANCER LE DÉ"}
-     </button>
+     <span className="ludo-arena-roll-tip" aria-live="polite">
+      {rolling?"🎲 Le dé roule…":canRoll?"Touche le dé pour lancer":canPick?"Choisis le pion qui brille":game.turn===1?"L’ordinateur joue…":"À toi de jouer"}
+     </span>
     </div>
-    <div className="ludo-pick-row" aria-label="Tes quatre pions">
+    {canPick?<div className="ludo-pick-row" aria-label="Tes quatre pions">
      <span className="ludo-pick-label">MES PIONS</span>
      {game.positions[0].map((progress,pawn)=>{
       const active=canPick&&canSoloMove(progress,game.dice);
@@ -288,7 +291,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
        <PawnShape index={pawn}/>
       </button>;
      })}
-    </div>
+    </div>:null}
     <div className="ludo-last-move" role="status" aria-live="polite">{game.lastAction}</div>
    </div>
   </div>
