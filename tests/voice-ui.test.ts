@@ -47,7 +47,7 @@ test("real playable voice notes replace basic audio controls inside chat",()=>{
 test("outgoing and incoming audio remain in existing conversation order with no repeated timestamp",()=>{
  const app=readFileSync("src/App.tsx","utf8");
  assert.ok(app.includes('!groupedAfter&&m.kind!=="audio"'));
- assert.ok(app.includes('mine&&m.kind!=="audio"&&m.id===lastOwnMessage?.id'));
+ assert.ok(app.includes('mine&&m.kind!=="audio"&&textOutbox.every(v=>v.id!==m.id||v.status==="sent")'),"every confirmed outgoing bubble has its own receipt");
  assert.ok(app.includes('mine={mine} time={time}'));
  assert.ok(app.includes('chatTimeline.map((entry,feedIndex)=>'),"Call events and messages are rendered by chronology");
  assert.ok(app.includes('const m=entry.message,idx=entry.index;'),"Voice sequence still uses original message index");
