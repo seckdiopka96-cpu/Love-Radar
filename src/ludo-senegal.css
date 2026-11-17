@@ -105,6 +105,8 @@
 }
 .ludo-senegal-choice>button:disabled{opacity:.5}
 
+/* Captured pawns rewind rapidly through individual cells; ordinary hops remain slow. */
+.ludo-senegal .ludo-captured-pawn{transition:left .045s linear,top .045s linear!important}
 /* Keep the Senegal Ludo board clean while preserving its essential move choices. */
 .ludo-senegal .ludo-last-move,
 .ludo-senegal .ludo-senegal-step{display:none!important}
