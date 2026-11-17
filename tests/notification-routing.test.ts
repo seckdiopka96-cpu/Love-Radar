@@ -11,7 +11,8 @@ const agreementCSS=readFileSync("src/ludo-duo-color.css","utf8");
 test("notification targets survive an iPhone cold start and open their precise screen",()=>{
  assert.ok(worker.includes('PENDING_ROUTE_CACHE="love-radar-notification-route-v1"'));
  assert.ok(worker.includes("rememberNotificationRoute(destination)"));
- assert.ok(worker.includes('event.data?.type!=="love-radar-request-pending-notification"'));
+ assert.ok(worker.includes('event.data?.type==="love-radar-request-pending-notification"'));
+ assert.ok(worker.includes('event.data?.type==="love-radar-ack-notification"'));
  assert.ok(worker.includes("deliverPendingRoute(event.source)"));
  assert.ok(worker.includes("await self.clients.openWindow(url)"));
  assert.ok(worker.includes('focused.postMessage({type:"love-radar-open-notification",...destination})'));
@@ -34,7 +35,9 @@ test("message notifications jump to their actual chat bubble",()=>{
 test("Ludo Duo agreement is one step after color selection, without mandatory gifts",()=>{
  assert.ok(duo.includes('ludo-agreement-dialog ludo-ready-dialog'));
  assert.ok(duo.includes('J’accepte et je joue'));
- assert.ok(duo.includes('giftConsent:false'));
+ assert.ok(duo.includes('giftConsent:giftOptIn'));
+ assert.ok(duo.includes('checked={giftOptIn}'),"gift opt-in must remain optional");
+ assert.ok(duo.includes('setGiftOptIn(false)'),"new match begins with no gift obligation");
  assert.ok(duo.includes('aria-label="Accord pour jouer au Ludo Duo"'));
  assert.ok(duo.includes('agreement?.signed[seat]'));
  assert.ok(duo.includes('palette?.chosenBy==null'));
@@ -50,12 +53,18 @@ test("push worker routes a warm notification directly without reloading the app"
  let navigated=false;
  const client={url:"https://love-radar-acd.pages.dev/",focus:async()=>client,
   postMessage:(v:any)=>messages.push(v),navigate:async()=>{navigated=true;return client}};
+ const stored=new Map<string,Response>();
+ const caches={open:async()=>({
+  put:async(k:string,v:Response)=>{stored.set(k,v)},
+  match:async(k:string)=>stored.get(k)?.clone(),
+  delete:async(k:string)=>stored.delete(k)
+ })};
  const self={
   location:{origin:"https://love-radar-acd.pages.dev"},
   clients:{matchAll:async()=>[client],openWindow:async()=>{throw Error("should reuse the active app")}},
   addEventListener:(name:string,fn:(ev:any)=>void)=>listeners.set(name,fn)
  };
- new Script(worker,{filename:"public/sw.js"}).runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request,caches:{}});
+ new Script(worker,{filename:"public/sw.js"}).runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request,caches});
  let job=Promise.resolve();
  listeners.get("notificationclick")!({notification:{
   close(){},data:{tab:"chat",kind:"message",id:"11111111-1111-4111-8111-111111111111"}
@@ -65,6 +74,17 @@ test("push worker routes a warm notification directly without reloading the app"
  assert.equal(messages[0].tab,"chat");
  assert.equal(messages[0].kind,"message");
  assert.equal(messages[0].id,"11111111-1111-4111-8111-111111111111");
+ assert.equal(stored.size,1,"even a warm focus retains the route until the SPA acknowledges it");
+ const replay:any[]=[];
+ listeners.get("message")!({data:{type:"love-radar-request-pending-notification"},
+  source:{postMessage:(v:any)=>replay.push(v)},
+  waitUntil(p:Promise<unknown>){job=p as Promise<void>}});
+ await job;
+ assert.equal(replay[0].id,messages[0].id,"an iOS reload can recover a lost warm message");
+ listeners.get("message")!({data:{type:"love-radar-ack-notification",routeId:replay[0].routeId},
+  source:{postMessage:()=>{}},waitUntil(p:Promise<unknown>){job=p as Promise<void>}});
+ await job;
+ assert.equal(stored.size,0,"remove only when handled by the app");
 });
 
 test("push worker remembers an exact route on cold iPhone launch",async()=>{
@@ -95,5 +115,10 @@ test("push worker remembers an exact route on cold iPhone launch",async()=>{
  await job;
  assert.equal(messages[0].tab,"ludo");
  assert.equal(messages[0].kind,"ludo-challenge");
- assert.equal(stored.size,0,"a notification destination must be consumed once");
+ assert.equal(stored.size,1,"pending notification must persist until acknowledged");
+ listeners.get("message")!({data:{type:"love-radar-ack-notification",routeId:messages[0].routeId},
+  source:{postMessage:()=>{}},
+  waitUntil(p:Promise<unknown>){job=p as Promise<void>}});
+ await job;
+ assert.equal(stored.size,0,"clear route only after the app confirms navigation");
 });
