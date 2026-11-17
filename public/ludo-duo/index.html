@@ -83,7 +83,7 @@
     <!-- 2. Écran de jeu : le plateau a 15 lignes × 15 colonnes. -->
     <section id="plateau" class="game-screen" aria-label="Partie de Ludo Duo">
       <header class="game-header">
-        <button id="choose-again" type="button" class="back-link">‹ Jeux</button>
+        <button id="choose-again" type="button" class="back-link" aria-label="Quitter ou abandonner la partie">‹ Quitter</button>
         <div class="game-title"><img class="ludo-header-logo" src="../ludo-mark.svg" alt="Logo Ludo"><strong>LUDO <span>♥</span> DUO</strong><small>TOI CONTRE TON PARTENAIRE</small></div>
         <button type="button" id="show-rules" class="header-help" aria-label="Voir les règles">?</button>
       </header>
@@ -401,6 +401,7 @@
       <p><strong>Déplacer :</strong> avance du nombre exact de cases obtenu. Si un seul pion est jouable, il avance automatiquement. Sinon, sélectionne celui que tu veux.</p>
       <p><strong>Capturer :</strong> tomber sur un pion adverse hors d’une case étoilée le renvoie à sa maison et offre un nouveau tour. Deux pions adverses regroupés forment un barrage.</p>
       <p><strong>Gagner :</strong> il faut arriver pile au centre, sans dépasser. Une arrivée réussie offre un nouveau tour.</p>
+      <p><strong>Inactivité :</strong> tu as 15 secondes pour jouer. Après 3 tours joués à ta place par l’ordinateur, tu perds automatiquement la manche.</p>
       <button type="button" id="close-rules" class="dialog-button">C’est compris</button>
     </dialog>
     <dialog id="win-dialog" class="game-dialog victory-dialog" aria-labelledby="win-title">
