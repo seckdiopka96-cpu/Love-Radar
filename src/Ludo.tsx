@@ -39,15 +39,6 @@ const homeAt=HOME.map(list=>new Set(list.map(p=>key(p[0],p[1]))));
 function haptic(duration:number|number[]=12){try{if("vibrate" in navigator)navigator.vibrate(duration)}catch{/* unsupported on iOS */}}
 
 
-const REACTIONS=[
- {emoji:"😝",label:"Langue tirée"},{emoji:"🤪",label:"Grimace"},{emoji:"🤣",label:"Fou rire"},
-  {emoji:"😂",label:"Mort de rire"},{emoji:"😱",label:"Choqué"},{emoji:"😮",label:"Surpris"},
- {emoji:"🤯",label:"Incroyable"},{emoji:"😍",label:"Amoureux"},{emoji:"😘",label:"Bisou"},
- {emoji:"😤",label:"Contrarié"},{emoji:"😭",label:"Triste"},{emoji:"😎",label:"Trop fort"},
- {emoji:"👏",label:"Bravo"},{emoji:"❤️",label:"Cœur"},{emoji:"🔥",label:"En feu"},
- {emoji:"🥹",label:"Ému"},{emoji:"😡",label:"Fâché"},{emoji:"💋",label:"Baiser"}
-];
-
 export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId}:Props){
  const [game,setGame]=useState<Game|null>(null);
  const [members,setMembers]=useState(0);
@@ -359,7 +350,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   finally{setReactionBusy(false)}
  }
 
- function duoFrameAction(action:"roll"|"move"|"restart"|"exit"|"react"|"gift"|"menu",pawn?:number,emoji?:string){
+ function duoFrameAction(action:"roll"|"move"|"restart"|"exit"|"gift"|"menu",pawn?:number){
   if(action==="exit"||action==="menu"){setMenu(true);return}
   if(action==="gift"){setGiftOpen(true);return}
   if(action==="react"){if(emoji)void sendReaction(emoji);return}
@@ -421,8 +412,6 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    highlighted.set(key(pt[0],pt[1]),step===motion.progress?"current":step<motion.progress?"passed":step===motion.to?"finish":"upcoming");
   }
  }
- const visibleReactions=reactions.filter(r=>clock+clockOffset-r.at<7200&&clock+clockOffset-r.at> -2500).slice(-6);
- const shownReaction=visibleReactions[visibleReactions.length-1]||null;
  const lastNumber=game?.lastAction.match(/lancé un ([1-6])/);
  const showLast=lastRoll?.face??(lastNumber?Number(lastNumber[1]):5);
  const dice=rolling?rollingFace:(game?.dice??showLast);
@@ -446,7 +435,6 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    {[0,1].map(side=><div key={side} className={"ludo-player ludo-player-"+(side===0?"red":"gold")+(game?.turn===side&&game.status==="playing"?" is-active":"")}>
     <div className="ludo-player-avatar">{displayName(side).trim().charAt(0).toUpperCase()||"♥"}</div>
     <div className="ludo-player-info"><strong>{displayName(side)}{side===mySeat?" · Moi":""}</strong><span>{finished(side)} / 4 arrivés</span></div>
-    {visibleReactions.filter(r=>r.seat===side).slice(-2).map(r=><span key={r.id||r.at} className="ludo-player-reaction" role="img" aria-label={"Réaction "+r.emoji+" de "+displayName(side)}>{r.emoji}</span>)}
     {game?.turn===side&&game.status==="playing"?<span className="ludo-player-turn" aria-label="À son tour">●</span>:null}
    </div>)}
   </div>
@@ -509,9 +497,6 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
      </div>
     </div>
    {error?<div className="ludo-alert-pop" role="alert">{error}</div>:null}
-   {shownReaction?<div className={"ludo-floating-emoji"+(shownReaction.seat===mySeat?" mine":" theirs")} key={shownReaction.id||shownReaction.at} role="status" aria-label={"Réaction de "+displayName(shownReaction.seat)+": "+shownReaction.emoji}>
-    <strong>{shownReaction.emoji}</strong><small>{displayName(shownReaction.seat)}</small>
-   </div>:null}
    {game?.status==="won"&&!motion?<div className="ludo-victory" role="dialog" aria-label="Partie terminée">
     <div className="ludo-confetti-layer" aria-hidden="true">{Array.from({length:20},(_,i)=><i key={i} style={{left:((i*37+9)%97)+"%",animationDelay:((i*71)%900)+"ms",backgroundColor:["#ffc757","#fa8db9","#5ed3ba","#b995ff"][i%4]}}/>)}</div>
     <div className="ludo-celebrate" aria-hidden="true">🏆</div>
@@ -533,21 +518,16 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
     </button>
     <button type="button" className="ludo-main-action" disabled={busy||animationBusy||Boolean(game&&(!myTurn||rolling||game.status==="won"||game.dice!==null))}
      onClick={()=>{if(game)void act("roll");else void load()}}>{!game?"ACTUALISER":game.dice!==null?"TOUCHE UN PION":myTurn?rolling?"LANCEMENT…":"LANCER LE DÉ":"ATTENDRE…"}</button>
-    <button type="button" className={"ludo-emoji-button"+(emotes?" is-open":"")} onClick={()=>setEmotes(!emotes)} aria-label="Envoyer une réaction" aria-expanded={emotes} disabled={members<2}>😂</button>
    </div>
 
    <div className="ludo-last-move" role="status" aria-live="polite">{error?"⚠ "+error:(game?.lastAction||"Plateau visible · La partie commencera quand vous serez deux ♥")}</div>
-   {emotes?<div className="ludo-emote-tray" role="group" aria-label="Réactions rapides à deux">
-    <div className="ludo-emote-heading"><strong>Réagis en direct 💬</strong><button type="button" aria-label="Fermer les réactions" onClick={()=>setEmotes(false)}>×</button></div>
-    <div className="ludo-emote-grid">{REACTIONS.map(r=><button key={r.emoji} onClick={()=>void sendReaction(r.emoji)} type="button" disabled={reactionBusy} aria-label={r.label} title={r.label}>{r.emoji}</button>)}</div>
-   </div>:null}
   </footer>
   </div>
 
   {game&&agreement?.startedAt&&palette&&game.status==="playing"?
    <LudoDuoFrame game={game} palette={palette} lastRoll={lastRoll} mySeat={mySeat} myName={myName} partnerName={partnerName}
     remaining={remaining} rolling={rolling} rollingFace={rollingFace}
-    busy={busy} animationBusy={animationBusy} motion={motion} capturedMotions={capturedMotions} reactions={visibleReactions}
+    busy={busy} animationBusy={animationBusy} motion={motion} capturedMotions={capturedMotions}
     error={error} onAction={duoFrameAction}/>:null}
   {tutorialOpen&&Boolean(agreement?.startedAt)&&game?.status==="playing"&&!mustSign&&!giftOpen&&!rules?<LudoTutorial mode="duo" onClose={()=>setTutorialOpen(false)}/>:null}
   {mustSign?<div className="ludo-agreement-backdrop">
