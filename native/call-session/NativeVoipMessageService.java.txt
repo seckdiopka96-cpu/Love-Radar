@@ -33,7 +33,7 @@ public final class NativeVoipMessageService extends FirebaseMessagingService {
         String id=data.get("callId");
         if(id==null||!id.matches("(?i)[0-9a-f-]{36}"))return;
         long expires;
-        try{expires=Long.parseLong(data.get("expiresAt"))}
+        try{expires=Long.parseLong(data.get("expiresAt"));}
         catch(Exception ignored){return;}
         long remaining=expires-System.currentTimeMillis();
         if(remaining<=0||remaining>120000)return;
