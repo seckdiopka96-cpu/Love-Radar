@@ -48,8 +48,11 @@
     green:  [[1,7],[2,7],[3,7],[4,7],[5,7]],
     yellow: [[7,13],[7,12],[7,11],[7,10],[7,9]]
   });
-  // Les départs (y compris rouge) sont capturables. Seules les étoiles protègent.
-  const SAFE_KEYS = new Set(["2,6","6,12","8,2","12,8"]);
+  // Les départs et quatre étoiles restent protégés; un pion adverse deux cases plus loin peut être capturé.
+  const SAFE_KEYS = new Set([
+    ...Object.values(SPAWNS).map(i=>TRACK[i].join(",")),
+    "2,6","6,12","8,2","12,8"
+  ]);
 
   const app = document.querySelector(".app");
   const selection = document.getElementById("choix-couleur");
@@ -336,9 +339,12 @@
     die.classList.toggle("is-rolling",game.phase==="rolling");
     die.dataset.face=String(lastRoll);
     die.dataset.side=game.turn;
-    dieResult.textContent=String(lastRoll);
-    dieResult.value=String(lastRoll);
-    dieResult.setAttribute("aria-label","Dernier lancer : "+lastRoll);
+    // The previous result is NOT a new playable roll. Show a replay icon
+    // while the player must throw again, then the real numeric result.
+    const needsNewRoll=game.phase==="roll"&&isHuman;
+    dieResult.textContent=needsNewRoll?"↻":String(lastRoll);
+    dieResult.value=needsNewRoll?"":String(lastRoll);
+    dieResult.setAttribute("aria-label",needsNewRoll?"Lancer un nouveau dé":"Dernier lancer : "+lastRoll);
     rollButton.setAttribute("aria-label",humanCanRoll?"Lancer le dé":game.phase==="rolling"?"Le dé tourne":"Dé : "+lastRoll);
     document.getElementById("player-count").textContent=game.pieces.human.filter(p=>p===FINAL).length+" / 4 arrivés";
     document.getElementById("computer-count").textContent=game.pieces.cpu.filter(p=>p===FINAL).length+" / 4 arrivés";
