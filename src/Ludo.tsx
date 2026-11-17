@@ -55,9 +55,11 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const [challengeBusy,setChallengeBusy]=useState(false);
  const [challengeHint,setChallengeHint]=useState("");
  const [signBusy,setSignBusy]=useState(false);
+ const [giftOptIn,setGiftOptIn]=useState(false);
  // A new match always requires a fresh read, choice and signature.
  useEffect(()=>{
   setGiftOpen(false);
+  setGiftOptIn(false);
  },[game?.id]);
  const [giftOpen,setGiftOpen]=useState(false);
  const [giftBusy,setGiftBusy]=useState(false);
@@ -336,7 +338,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   try{
    const response=await apiFetch("/api/ludo",{method:"POST",
     headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
-    body:JSON.stringify({action:"sign_rules",acceptRules:true,signed:true,giftConsent:false})
+    body:JSON.stringify({action:"sign_rules",acceptRules:true,signed:true,giftConsent:giftOptIn})
    });
    const data=await response.json() as ResponseData;
    if(!response.ok||!data.ok)throw Error(data.error||"Impossible d’enregistrer la signature.");
@@ -606,7 +608,11 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
       <p>⭐ <span>Les étoiles protègent. Un 6, une capture ou une arrivée donne un tour bonus.</span></p>
       <p>⏱️ <span>Tu as <strong>15 secondes</strong> pour jouer, sinon le tour est automatique.</span></p>
      </section>
-     <p className="ludo-ready-consent">En appuyant sur le bouton, tu acceptes ces règles pour cette partie. Aucun cadeau ni paiement n’est obligatoire.</p>
+     <label className="ludo-ready-gift-option">
+      <input type="checkbox" checked={giftOptIn} onChange={e=>setGiftOptIn(e.target.checked)}/>
+      <span><strong>🎁 Défi cadeau (facultatif)</strong><small>Seulement si vous l’acceptez tous les deux. Aucun paiement automatique.</small></span>
+     </label>
+     <p className="ludo-ready-consent">En appuyant sur le bouton, tu acceptes les règles pour cette partie. Tu peux jouer sans cadeau.</p>
      <button type="button" className="ludo-agreement-submit" disabled={signBusy||colorBusy||palette?.chosenBy==null} onClick={()=>void signRules()}>
       {signBusy?"Validation en cours…":"✓ J’accepte et je joue"}
      </button>
@@ -615,6 +621,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
       <span className="ludo-agreement-bigcheck" aria-hidden="true">✓</span>
       <h3>Tu es prêt·e !</h3>
       <p>{otherSigned?"Vous êtes prêts tous les deux. La partie commence !":"En attente de "+displayName(1-mySeat)+"…"}</p>
+      <small>{agreement?.giftChoices[mySeat]?"Défi cadeau accepté":"Partie sans cadeau de ton côté"}</small>
      </div>
     </>}
     {!otherSigned?<button type="button" className="ludo-challenge-send" disabled={challengeBusy} onClick={()=>void sendChallenge()}>
