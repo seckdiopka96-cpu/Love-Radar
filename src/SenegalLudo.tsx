@@ -332,10 +332,10 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   solo?"🤖 L’ordinateur réfléchit…":"Ton partenaire joue…";
  const leftName=solo?myName:mySeat===0?myName:partnerName||"Ton partenaire";
  const rightName=solo?"Ordinateur":mySeat===1?myName:partnerName||"Ton partenaire";
- return <section className="ludo-experience ludo-senegal" aria-label={"Ludo Sénégal "+(solo?"solo":"à deux")}>
+ return <section className={"ludo-experience ludo-senegal "+(solo?"ludo-senegal-solo":"ludo-senegal-duo")} aria-label={"Ludo Sénégal "+(solo?"solo":"à deux")}>
   <header className="ludo-topbar">
    <button type="button" className="ludo-leave" onClick={onExit}><span aria-hidden="true">‹</span> Jeux</button>
-   <div className="ludo-brand"><strong>LUDO <span>🇸🇳</span> SÉNÉGAL</strong><small>{solo?"DÉFIE L’ORDINATEUR":"EN DUO · RÈGLES SÉNÉGALAISES"}</small></div>
+   <div className="ludo-brand"><img className="ludo-head-logo" src="/ludo-mark.svg" alt="Logo Ludo"/><strong>LUDO <span>🇸🇳</span> SÉNÉGAL</strong><small>{solo?"DÉFIE L’ORDINATEUR":"EN DUO · RÈGLES SÉNÉGALAISES"}</small></div>
    <div className="ludo-top-actions">
     <button type="button" className="ludo-sound" onClick={toggleSound} aria-label={soundOn?"Désactiver le son":"Activer le son"} aria-pressed={soundOn}>{soundOn?"🔊":"🔇"}</button>
     <button type="button" className="ludo-solo-restart" onClick={()=>setConfirmReset(true)} aria-label="Recommencer">↻</button>
