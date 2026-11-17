@@ -197,6 +197,71 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    }
   }finally{sendingCandidates.current=false}
  },[api]);
+ const attemptIceRecovery=useCallback(async(force=false)=>{
+  const call=current.current,peer=pc.current;
+  if(!call||call.status!=="active"||!peer||recoveryInFlight.current)return;
+  if(!force&&!mustReconnect(peer.connectionState,peer.iceConnectionState))return;
+  if(navigator.onLine===false){setPhase("En attente du réseau…");return}
+  recoveryInFlight.current=true;
+  setPhase("Reconnexion…");
+  try{
+   // Credentials for Cloudflare TURN can expire; request new ones on each new
+   // ICE generation without stopping camera, microphone, or the active call.
+   networkWarmedAt.current=0;
+   await warmNetwork();
+   if(pc.current!==peer||current.current?.id!==call.id||peer.signalingState==="closed")return;
+   peer.setConfiguration({iceServers:iceServers.current,iceCandidatePoolSize:2});
+   if(call.direction==="outgoing"){
+    // Only the original caller offers. Avoid glare and preserve existing tracks.
+    if(peer.signalingState!=="stable")return;
+    sessionDescriptionSent.current=false;
+    queuedCandidates.current=[];
+    if(typeof peer.restartIce==="function")peer.restartIce();
+    const description=await peer.createOffer({iceRestart:true,offerToReceiveAudio:true,
+     offerToReceiveVideo:call.mode==="video"});
+    await peer.setLocalDescription(description);
+    if(pc.current!==peer||current.current?.id!==call.id)return;
+    try{
+     await api("signal",{id:call.id,kind:"offer",sdp:peer.localDescription?.sdp||"",restart:true});
+     sessionDescriptionSent.current=true;
+     void flushCandidates(call.id);
+    }catch(error){
+     if(peer.signalingState==="have-local-offer"){
+      try{await peer.setLocalDescription({type:"rollback"})}catch{/* Browser may close during recovery */ }
+     }
+     throw error;
+    }
+   }else{
+    // The receiver requests a new ICE offer; the caller remains the sole offerer.
+    await api("signal",{id:call.id,kind:"restart"});
+   }
+  }catch(error){
+   if(current.current?.id===call.id){
+    console.warn("Love Radar ICE recovery will retry",error);
+    setPhase(navigator.onLine===false?"En attente du réseau…":"Reconnexion…");
+   }
+  }finally{recoveryInFlight.current=false}
+ },[api,warmNetwork,flushCandidates]);
+ const scheduleIceRecovery=useCallback((immediate=false)=>{
+  const call=current.current,peer=pc.current;
+  if(!call||call.status!=="active"||!peer||recoveryTimer.current!==null)return;
+  if(!immediate&&!mustReconnect(peer.connectionState,peer.iceConnectionState))return;
+  if(navigator.onLine===false){setPhase("En attente du réseau…");return}
+  if(recoveryAttempts.current>=MAX_RECONNECT_ATTEMPTS){
+   setPhase("Connexion interrompue");
+   setError("La connexion ne revient pas. Vérifie le réseau, puis appuie sur Réessayer.");
+   return;
+  }
+  const attempt=recoveryAttempts.current++;
+  recoveryTimer.current=window.setTimeout(()=>{
+   recoveryTimer.current=null;
+   if(current.current?.id!==call.id||pc.current!==peer)return;
+   void attemptIceRecovery().finally(()=>{
+    if(pc.current===peer&&current.current?.id===call.id&&
+       mustReconnect(peer.connectionState,peer.iceConnectionState))scheduleIceRecovery();
+   });
+  },immediate?120:reconnectDelayMs(attempt));
+ },[attemptIceRecovery]);
  const clearAudio=useCallback(()=>{
   if(recoveryTimer.current!==null){window.clearTimeout(recoveryTimer.current);recoveryTimer.current=null}
   recoveryAttempts.current=0;recoveryInFlight.current=false;
