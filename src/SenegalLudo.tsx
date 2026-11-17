@@ -18,7 +18,7 @@ type Props={
  partnerName:string|null;storageKey:string;onExit:()=>void
 };
 type ServerGame=SenegalGame&{id:string;version:number;deadlineAt:number|null};
-type ServerResponse={ok:boolean;error?:string;members?:number;seat?:number;game?:ServerGame|null;move?:SenegalMove|null;serverNow?:number};
+type ServerResponse={ok:boolean;error?:string;members?:number;seat?:number;game?:ServerGame|null;move?:SenegalMove|null;moveVersion?:number|null;serverNow?:number};
 type Moving={seat:Seat;pawn:number;point:Point;index:number;length:number};
 const routeMap=new Map(TRACK.map((p,i)=>[key(p[0],p[1]),i]));
 const homeMap=HOME.map(lane=>new Set(lane.map(p=>key(p[0],p[1]))));
@@ -121,8 +121,11 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    positions:next.positions,turn:next.turn,dice:next.dice,streak:next.streak,
    status:next.status,winner:next.winner,updatedAt:next.updatedAt,lastAction:next.lastAction
   });
-  const animationKey=next.id+":"+next.version;
-  if(data.move&&oldId===next.id&&oldVersion<next.version&&lastAnimated.current!==animationKey){
+  // Use the move's own version. The board may have received another dice
+  // result by the time polling delivers the pawn path to the second phone.
+  const moveVersion=data.moveVersion??(data.move?next.version:null);
+  const animationKey=next.id+":"+moveVersion;
+  if(data.move&&moveVersion!==null&&oldId===next.id&&oldVersion<moveVersion&&lastAnimated.current!==animationKey){
    lastAnimated.current=animationKey;animate(data.move);
   }
  },[animate]);
