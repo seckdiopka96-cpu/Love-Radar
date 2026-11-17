@@ -230,15 +230,8 @@
   });
   drawMotion();
   drawCaptured();
-  choices.replaceChildren();choices.hidden=!canChoose;
-  if(canChoose){
-   const title=document.createElement("span");title.textContent="Choisis ton pion";
-   choices.append(title);
-   for(const pawn of legal){
-    const b=document.createElement("button");b.type="button";b.textContent="Pion "+(pawn+1);
-    b.addEventListener("click",()=>send("move",pawn));choices.append(b);
-   }
-  }
+  // Touch the actual highlighted pawn; do not duplicate the four tokens below the board.
+  choices.replaceChildren();choices.hidden=true;
  }
  function makeDice(){
   dice.replaceChildren();
@@ -322,7 +315,7 @@
   status.textContent=g.status==="won"?"Partie terminée":
     state.rolling?"🎲 Le dé roule…":
     state.motion?"Un pion avance…":
-    g.dice!==null&&isMine?(only?"Ton pion avance automatiquement…":"Choisis un pion qui brille"):
+    g.dice!==null&&isMine?(only?"Ton pion avance automatiquement…":"Touche le pion à déplacer"):
     g.dice!==null?"Ton partenaire joue son pion…":
     isMine?"À toi de jouer : lance le dé !":"Au tour de ton partenaire…";
   feedback.textContent=state.error||g.lastAction||"Jouez à deux en direct.";
