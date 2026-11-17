@@ -234,7 +234,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
    <button type="button" className={"ludo-die-holder ludo-die-in-player-rail"+(rolling?" is-rolling":"")}
     disabled={!canRoll} onClick={()=>performRoll(0)}
     aria-label={rolling?"Le dé est en train de rouler":canRoll?"Lancer le dé":"Dé affiché, en attente du tour"} title={canRoll?"Lancer le dé":"Résultat du dé"}>
-    <LudoDie3D value={face} color={game.turn===1?"green":"blue"} rolling={rolling}/>
+    <LudoDie3D value={face} color={game.turn===1?"gold":"red"} rolling={rolling}/>
    </button>
    <div className={"ludo-player ludo-player-gold"+(game.turn===1&&game.status==="playing"?" is-active":"")}>
     <span className="ludo-player-avatar">🤖</span>
