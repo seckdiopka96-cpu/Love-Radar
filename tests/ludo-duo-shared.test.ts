@@ -44,7 +44,8 @@ test("Duo JavaScript is syntactically valid and only receives authoritative data
 test("React authenticated Ludo backend is preserved and paints the shared frame",()=>{
  assert.ok(parent.includes('import LudoDuoFrame from "./LudoDuoFrame"'));
  assert.ok(parent.includes('<LudoDuoFrame game={game} palette={palette}'));
- assert.ok(parent.includes('agreement?.startedAt&&palette&&game.status==="playing"'));
+ assert.ok(parent.includes('game&&agreement?.startedAt&&palette?'));
+ assert.ok(duoJS.includes('victoryGiftButton.addEventListener("click",()=>send("gift"))'),"Gifts must stay accessible after victory");
  assert.ok(parent.includes('action:"choose_color"'));
  assert.ok(parent.includes('const stamp=game.id+":"+game.version+":"+pawns[0]'));
  assert.ok(parent.includes('void act("move",pawns[0])'));
