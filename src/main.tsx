@@ -5,6 +5,7 @@ import LaunchSplash from "./LaunchSplash";
 import {isNativeApp} from "./api";
 import {initializeNativePrivacy} from "./native-privacy";
 import {initializeMotionMode} from "./motion-mode";
+import "./monochrome-preview.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Root element missing");
