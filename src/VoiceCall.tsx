@@ -342,21 +342,26 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   peer.onconnectionstatechange=()=>{
    if(pc.current!==peer)return;
    if(peer.connectionState==="connected"){
-    if(!connectedSince.current)connectedSince.current=Date.now();setPhase("Connecté");setError("");
-   }else if(peer.connectionState==="failed"){
-    setPhase("Connexion échouée");
-    networkWarmedAt.current=0;
-    setError("Impossible de transmettre l'audio sur ce réseau. Vérifie la connexion ou le relais TURN.");
-   }else if(peer.connectionState==="disconnected")setPhase("Reconnexion…");
-   else if(peer.connectionState==="connecting")setPhase(current.current?.mode==="video"?"Connexion vidéo…":"Connexion audio…");
+    if(recoveryTimer.current!==null){window.clearTimeout(recoveryTimer.current);recoveryTimer.current=null}
+    recoveryAttempts.current=0;
+    if(!connectedSince.current)connectedSince.current=Date.now();
+    setPhase("Connecté");setError("");
+   }else if(mustReconnect(peer.connectionState,peer.iceConnectionState)){
+    setPhase(navigator.onLine===false?"En attente du réseau…":"Reconnexion…");
+    scheduleIceRecovery();
+   }else if(peer.connectionState==="connecting")
+    setPhase(current.current?.mode==="video"?"Connexion vidéo…":"Connexion audio…");
   };
   peer.oniceconnectionstatechange=()=>{
    if(pc.current!==peer)return;
-   if(peer.iceConnectionState==="failed")setError("Aucun chemin audio trouvé. Un relais TURN peut être nécessaire.");
+   if(mustReconnect(peer.connectionState,peer.iceConnectionState)){
+    setPhase(navigator.onLine===false?"En attente du réseau…":"Reconnexion…");
+    scheduleIceRecovery();
+   }
   };
   pc.current=peer;
   return peer;
- },[flushCandidates]);
+ },[flushCandidates,scheduleIceRecovery]);
  const offer=useCallback(async(call:Call)=>{
   if(offered.current||!local.current)return;
   offered.current=true;
