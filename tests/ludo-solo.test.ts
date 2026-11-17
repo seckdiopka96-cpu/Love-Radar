@@ -42,6 +42,16 @@ test("capture on unsafe square returns opponent to base and grants extra turn",(
  assert.equal(result?.game.turn,0);
  assert.equal(result?.move.captured.length,1);
 });
+test("two on the die lets the red pawn capture blue and returns blue to its home",()=>{
+ // Red advances from index 13 to 15; the other player's pawn at progress 41
+ // occupies exactly the same track cell: (26+41)%52 === 15.
+ const state=position([13,-1,-1,-1],[41,-1,-1,-1],0,2);
+ const captured=moveSolo(state,0);
+ assert.equal(captured?.game.positions[0][0],15);
+ assert.equal(captured?.game.positions[1][0],-1);
+ assert.equal(captured?.move.captured.length,1);
+ assert.equal(captured?.game.turn,0);
+});
 test("safe square protects opponent and normal move passes turn",()=>{
  // Red index 8, yellow progress 34 => index 8; square 8 is safe.
  const game=position([7,-1,-1,-1],[34,-1,-1,-1],0,1);
