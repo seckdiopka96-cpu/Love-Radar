@@ -114,6 +114,17 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const previousSinkId=useRef<string>("");
 
  useEffect(()=>setAnchor(showButton?document.getElementById("lr-voice-button-slot"):null),[showButton]);
+ useEffect(()=>{
+  // iOS/WebKit generally allows sound only after a real interaction. Prime
+  // the silent audio context when either partner first uses Love Radar.
+  const unlock=()=>{void primeCallTone()};
+  document.addEventListener("pointerdown",unlock,{once:true,capture:true});
+  document.addEventListener("keydown",unlock,{once:true,capture:true});
+  return()=>{
+   document.removeEventListener("pointerdown",unlock,true);
+   document.removeEventListener("keydown",unlock,true);
+  };
+ },[]);
  const api=useCallback(async(action?:string,extra:Record<string,unknown>={},after=0):Promise<Result>=>{
   const controller=new AbortController();
   // A stuck signaling GET must not freeze incoming calls or WebRTC ICE updates.
@@ -678,7 +689,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const total=String(Math.floor(duration/60)).padStart(2,"0")+":"+String(duration%60).padStart(2,"0");
  const isVideo=active?.mode==="video";
  const showPartnerFullscreen=Boolean(isVideo&&active?.status==="active"&&remoteVideoReady);
- const callStatus=isIncoming?(isVideo?"Appel vidéo entrant…":"Appel vocal entrant…"):isOutgoing?(isVideo?"Appel vidéo sortant…":"Appel en cours…"):phase||"Connexion en cours…";
+ const callStatus=isIncoming?(isVideo?"Appel vidéo entrant…":"Appel vocal entrant…"):isOutgoing?(isVideo?"Appel vidéo sortant…":"Appel vocal sortant…"):phase||"Connexion en cours…";
  const display=active&&(!minimized||(active.status==="ringing"&&active.direction==="incoming"))?createPortal(
   <div className="lr-call-backdrop" role="dialog" aria-modal="true" aria-label={isVideo?"Appel vidéo":"Appel audio"}>
    <div className={"lr-call-sheet lr-call-facetime"+(isVideo?" lr-video-call"+(active.direction==="outgoing"?" is-video-outgoing":""):"")}>
@@ -704,14 +715,14 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
       {error?<div className="lr-call-error" role="alert">{error}</div>:null}
       {needsPlay?<button type="button" className="lr-call-sound" onClick={enableAudio}>Activer le son</button>:null}
       {speakerHelp?<div className="lr-call-audio-hint" role="status">{speakerHelp}</div>:null}
-       {active.status==="ringing"&&active.direction==="incoming"&&ringToneBlocked?
+       {active.status==="ringing"&&ringToneBlocked?
         <button type="button" className="lr-call-sound" onClick={()=>{
          void primeCallTone().then(ready=>{
           setRingToneBlocked(!ready);
-          if(ready&&current.current?.status==="ringing"&&current.current.direction==="incoming")
-           startCallTone("incoming",available=>setRingToneBlocked(!available));
+          if(ready&&current.current?.status==="ringing")
+           startCallTone(current.current.direction,available=>setRingToneBlocked(!available));
          });
-        }}>Activer la sonnerie</button>:null}
+        }}>{active.direction==="incoming"?"Activer la sonnerie":"Activer la tonalité"}</button>:null}
       {networkHint&&active.status==="active"&&phase!=="Connecté"?<div className="lr-call-audio-hint" role="status">{networkHint}</div>:null}
       {cameraWarning&&isVideo?<div className="lr-call-audio-hint" role="status">{cameraWarning}</div>:null}
      </div>
