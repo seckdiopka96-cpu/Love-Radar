@@ -323,6 +323,7 @@
     const choices=game.phase==="choose"?validMoves("human",game.die):[];
     const humanCanRoll=game.phase==="roll"&&isHuman&&!busy&&!rulesPause;
     app.dataset.player=game.playerColor;
+    app.dataset.diceColor=getColor(game.turn);
     app.dataset.computer=game.cpuColor;
     rollButton.disabled=!humanCanRoll;
     rollButton.classList.toggle("is-ready",humanCanRoll);
