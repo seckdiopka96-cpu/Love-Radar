@@ -44,13 +44,14 @@ private enum LoveRadarSecureSession {
     private var registry: PKPushRegistry?
     private var callId: UUID?
     private var callAnswered = false
+    private var expiryWork: DispatchWorkItem?
     private var pending: [String: Any]?
     weak var plugin: LoveRadarVoipPlugin?
     private let endpoint = URL(string: "https://love-radar-acd.pages.dev/api/call")!
     private let defaults = UserDefaults.standard
     private override init() {
-        let config = CXProviderConfiguration(localizedName: "Love Radar audio")
-        config.supportsVideo = false
+        let config = CXProviderConfiguration(localizedName: "Love Radar")
+        config.supportsVideo = true
         config.maximumCallsPerCallGroup = 1
         config.maximumCallGroups = 1
         config.supportedHandleTypes = [.generic]
@@ -126,6 +127,8 @@ private enum LoveRadarSecureSession {
         provider.reportCall(with: id, endedAt: Date(), reason: reason)
         callId = nil
         callAnswered = false
+        expiryWork?.cancel()
+        expiryWork = nil
     }
     func markAnswered(_ id: String) {
         guard let uuid = UUID(uuidString: id), callId == uuid else { return }
@@ -154,11 +157,12 @@ private enum LoveRadarSecureSession {
         let values = payload.dictionaryPayload
         let id = (values["callId"] as? String).flatMap(UUID.init(uuidString:)) ?? UUID()
         let caller = (values["callerName"] as? String)?.prefix(60) ?? "Ton amour"
+        let mode = (values["mode"] as? String) == "video" ? "video" : "audio"
         let expires = values["expiresAt"] as? Double ?? 0
         let update = CXCallUpdate()
         update.localizedCallerName = String(caller)
         update.remoteHandle = CXHandle(type: .generic, value: "Love Radar")
-        update.hasVideo = false
+        update.hasVideo = mode == "video"
         update.supportsHolding = false
         update.supportsGrouping = false
         update.supportsUngrouping = false
@@ -167,7 +171,16 @@ private enum LoveRadarSecureSession {
             guard error == nil else { return }
             self.callId = id
             self.callAnswered = false
-            if expires > 0 && expires <= Date().timeIntervalSince1970 * 1000 {
+            // An unanswered call must never keep ringing after the server lease expires.
+            self.expiryWork?.cancel()
+            let left = expires > 0 ? max(0, min(60, (expires / 1000) - Date().timeIntervalSince1970)) : 60
+            let timeout = DispatchWorkItem { [weak self] in
+                guard let self = self, self.callId == id && !self.callAnswered else { return }
+                self.reportEnded(id, reason: .unanswered)
+            }
+            self.expiryWork = timeout
+            DispatchQueue.main.asyncAfter(deadline: .now() + left, execute: timeout)
+            if left == 0 {
                 self.reportEnded(id, reason: .unanswered)
             } else if LoveRadarSecureSession.token() == nil {
                 self.reportEnded(id, reason: .failed)
@@ -179,6 +192,8 @@ private enum LoveRadarSecureSession {
         server("accept", id: action.callUUID) { ok in
             if ok {
                 self.callAnswered = true
+                self.expiryWork?.cancel()
+                self.expiryWork = nil
                 self.event("answer", id: action.callUUID)
                 action.fulfill()
             } else {
@@ -204,6 +219,8 @@ private enum LoveRadarSecureSession {
         if let id = callId { event("end", id: id) }
         callId = nil
         callAnswered = false
+        expiryWork?.cancel()
+        expiryWork = nil
     }
 }
 
