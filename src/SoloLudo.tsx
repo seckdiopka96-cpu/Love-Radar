@@ -3,7 +3,7 @@ import LudoDie3D from "./LudoDie3D";
 import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,SAFE,CELL,key,pointForProgress,movementSteps,stackCellStyle,type Point} from "./ludo-visuals";
-import {freshSoloGame,isSoloGame,rollSolo,moveSolo,chooseSoloBotPawn,canSoloMove,soloDie,SOLO_TURN_MS,shouldAutoPlaySolo,
+import {freshSoloGame,isSoloGame,rollSolo,moveSolo,chooseSoloBotPawn,canSoloMove,availableSoloPawns,solePlayableSoloPawn,soloDie,SOLO_TURN_MS,shouldAutoPlaySolo,
  type SoloGame,type SoloSeat,type SoloMove} from "./ludo-solo-engine";
 import "./ludo.css";
 import "./ludo-immersive.css";
@@ -154,9 +154,19 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   },game.dice===null?900:720);
   return ()=>window.clearTimeout(id);
  },[game,rolling,motion,assisted,confirmRestart,tutorialOpen]);
+ // If only one pawn can move, don't require a meaningless tap. Animate it as
+ // any other move, after the dice roll animation has finished.
+ useEffect(()=>{
+  if(game.status!=="playing"||game.turn!==0||game.dice===null||rolling||motion||
+     assisted||confirmRestart||tutorialOpen)return;
+  const onlyPawn=solePlayableSoloPawn(game,0);
+  if(onlyPawn===null)return;
+  const timer=window.setTimeout(()=>performMove(0,onlyPawn),320);
+  return ()=>window.clearTimeout(timer);
+ },[game,rolling,motion,assisted,confirmRestart,tutorialOpen]);
  const isHumanTurn=game.status==="playing"&&game.turn===0;
  const canRoll=isHumanTurn&&!assisted&&game.dice===null&&!rolling&&!motion;
- const canPick=isHumanTurn&&!assisted&&game.dice!==null&&!rolling&&!motion;
+ const canPick=isHumanTurn&&!assisted&&game.dice!==null&&!rolling&&!motion&&availableSoloPawns(game,0).length>1;
  const secondsLeft=isHumanTurn&&!assisted&&!rolling&&!motion?Math.max(0,Math.ceil((game.updatedAt+SOLO_TURN_MS-now)/1000)):null;
  const counts=game.positions.map(row=>row.filter(progress=>progress===57).length);
  const pawnCells=new Map<string,{seat:SoloSeat;pawn:number;active:boolean}[]>();
@@ -181,7 +191,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  const message=game.status==="won"?(game.winner===0?"🏆 Victoire !":"🤖 L'ordinateur gagne"):
   assisted&&game.turn===0?"🤖 L’ordinateur joue à ta place…":motion?"Le pion avance…":rolling?(game.turn===1?"L'ordinateur lance le dé…":"Le dé roule…"):
   game.turn===1?(game.dice===null?"L'ordinateur réfléchit…":"L'ordinateur choisit un pion…"):
-  game.dice===null?"À toi de jouer : lance le dé !":"Choisis un pion qui brille";
+  game.dice===null?"À toi de jouer : lance le dé !":solePlayableSoloPawn(game,0)!==null?"Ton pion avance automatiquement…":"Choisis un pion qui brille";
  function reset(){
   clearTimers();
   setGame(freshSoloGame());
@@ -278,7 +288,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
    <div className="ludo-game-footer">
     <div className="ludo-bottom-actions">
      <span className="ludo-arena-roll-tip" aria-live="polite">
-      {rolling?"🎲 Le dé roule…":canRoll?"Touche le dé pour lancer":canPick?"Choisis le pion qui brille":game.turn===1?"L’ordinateur joue…":"À toi de jouer"}
+      {rolling?"🎲 Le dé roule…":canRoll?"Touche le dé pour lancer":canPick?"Choisis un pion":game.turn===1?"L’ordinateur joue…":solePlayableSoloPawn(game,0)!==null?"Ton pion avance…":"À toi de jouer"}
      </span>
     </div>
     {canPick?<div className="ludo-pick-row" aria-label="Tes quatre pions">
