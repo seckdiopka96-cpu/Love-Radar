@@ -61,8 +61,8 @@ test("Duo retains one moving DOM pawn across server hop frames and returns real 
  assert.ok(duo.includes("let movingPawn=null,movingKey="));
  assert.ok(duo.includes("function drawMotion()"));
  assert.ok(duo.includes("if(!movingPawn||movingKey!==id)"));
- assert.ok(duo.includes("movingPawn.style.left=to.x"));
- assert.ok(duo.includes("movingPawn.style.top=to.y"));
+ assert.ok(duo.includes("pawn.style.left=to.x"));
+ assert.ok(duo.includes("pawn.style.top=to.y"));
  assert.ok(duo.includes('drawMotion();'));
  assert.ok(duo.includes('progress.textContent=')||duo.includes('marker.textContent='));
  assert.ok(bridge.includes("lastRoll:props.lastRoll"));
