@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useRef,useState} from "react";
-import DiceFace from "./DiceFace";
+import LudoDie3D from "./LudoDie3D";
 import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,SAFE,CELL,key,stackCellStyle,type Point} from "./ludo-visuals";
@@ -87,13 +87,14 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   const path=move.path;
   if(!path.length)return;
   setMotion({seat:move.seat,pawn:move.pawn,point:pointForPawn(move.seat,move.pawn,move.from),index:0,length:path.length});
+  const STEP_MS=move.from.zone==="base"?850:780,START_MS=530;
   path.forEach((point,i)=>later(()=>{
    if(!loaded.current)return;
    setMotion({seat:move.seat,pawn:move.pawn,point,index:i+1,length:path.length});
    playSound("step");
    if(i===path.length-1)haptic();
-  },200+i*305));
-  const done=200+path.length*305+80;
+  },START_MS+i*STEP_MS));
+  const done=START_MS+path.length*STEP_MS+90;
   later(()=>{
    if(!loaded.current)return;
    setMotion(null);setLanding(pointForPawn(move.seat,move.pawn,move.to));
@@ -361,7 +362,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
     <div className="ludo-bottom-actions">
      <button type="button" className={"ludo-die-holder"+(rolling?" is-rolling":"")} disabled={!canRoll}
       onClick={()=>void roll()} aria-label="Lancer le dé">
-      <DiceFace value={shownDie} variant={game.turn===0?"pink":"gold"} size="large"/>
+      <LudoDie3D value={shownDie} color={game.turn===0?"red":"gold"} rolling={rolling}/>
      </button>
      <button type="button" className="ludo-main-action" disabled={!canRoll} onClick={()=>void roll()}>
       {!solo&&!online?"CONNEXION…":rolling?"LE DÉ ROULE…":motion?"DÉPLACEMENT…":
