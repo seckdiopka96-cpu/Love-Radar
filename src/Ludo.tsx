@@ -31,7 +31,7 @@ type CapturedMotion=CapturedPawn&{returning:boolean;progress:number};
 type Challenge={gameId:string;fromId:string;fromName:string;fromSeat:number;sentAt:number};
 type DieResult={seat:number;face:number;at:number};
 type ResponseData={ok:boolean;unchanged?:boolean;delta?:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;reactions?:Reaction[];moveEvent?:MoveEvent|null;gift?:Gift|null;agreement?:Agreement|null;palette?:Palette|null;lastRoll?:DieResult|null;challenge?:Challenge|null;notificationRequested?:boolean;serverNow?:number};
-type Props={token:string;mySeat:number;myName:string;partnerName:string|null;onExit:()=>void;challengeId?:string|null};
+type Props={token:string;mySeat:number;myName:string;partnerName:string|null;myAvatar?:string;partnerAvatar?:string;onExit:()=>void;challengeId?:string|null};
 function allowed(progress:number,dice:number|null){return dice!==null&&(progress===-1?dice===6:progress>=0&&progress<57&&progress+dice<=57)}
 function labelPosition(progress:number){return progress===-1?"Dans la base":progress===57?"Arrivé !":progress>=51?"Couloir final":"Sur le plateau"}
 const trackAt=new Map(TRACK.map((p,i)=>[key(p[0],p[1]),i]));
@@ -39,7 +39,7 @@ const homeAt=HOME.map(list=>new Set(list.map(p=>key(p[0],p[1]))));
 function haptic(duration:number|number[]=12){try{if("vibrate" in navigator)navigator.vibrate(duration)}catch{/* unsupported on iOS */}}
 
 
-export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId}:Props){
+export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAvatar,onExit,challengeId}:Props){
  const [game,setGame]=useState<Game|null>(null);
  const [members,setMembers]=useState(0);
  const [reactions,setReactions]=useState<Reaction[]>([]);
@@ -566,7 +566,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    </div>
   </div>:null}
   {game&&palette?
-   <LudoDuoFrame game={game} palette={palette} lastRoll={lastRoll} mySeat={mySeat} myName={myName} partnerName={partnerName}
+   <LudoDuoFrame game={game} palette={palette} lastRoll={lastRoll} mySeat={mySeat} myName={myName} partnerName={partnerName} myAvatar={myAvatar} partnerAvatar={partnerAvatar}
     remaining={remaining} rolling={rolling} rollingFace={rollingFace}
     busy={busy} animationBusy={animationBusy} motion={motion} capturedMotions={capturedMotions}
     error={error} onAction={duoFrameAction}/>:null}
