@@ -252,6 +252,8 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
       <div className="ludo-yard ludo-yard-upper" aria-hidden="true"/>
       <div className="ludo-yard ludo-yard-lower" aria-hidden="true"/>
       <div className="ludo-yard ludo-yard-gold" aria-hidden="true"/>
+      <span className="ludo-arena-field-label is-human" aria-hidden="true">TOI</span>
+      <span className="ludo-arena-field-label is-bot" aria-hidden="true">ORDINATEUR</span>
       <div className="ludo-board-center" aria-hidden="true"><span>★</span></div>
       {motion&&movingStyle?<div className={"ludo-moving-pawn ludo-pawn-"+(motion.seat===0?"red":"gold")} style={movingStyle} aria-hidden="true">
        <i className="ludo-motion-aura"/>
