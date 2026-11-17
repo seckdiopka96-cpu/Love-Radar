@@ -8,7 +8,7 @@ type DuoGameSnapshot={
  lastAction:string;deadlineAt:number|null;
 };
 type Motion={seat:number;pawn:number;progress:number;from:number;to:number};
-type CapturedMotion={seat:number;pawn:number;from:number;returning:boolean};
+type CapturedMotion={seat:number;pawn:number;from:number;returning:boolean;progress:number};
 type Props={
  game:DuoGameSnapshot;
  palette:{colors:[DuoColor,DuoColor];chosenBy:number|null};
