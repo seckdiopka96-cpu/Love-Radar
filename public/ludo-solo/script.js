@@ -48,9 +48,8 @@
     green:  [[1,7],[2,7],[3,7],[4,7],[5,7]],
     yellow: [[7,13],[7,12],[7,11],[7,10],[7,9]]
   });
-  // Les départs et quatre étoiles restent protégés; un pion adverse deux cases plus loin peut être capturé.
-  // A star is drawn on every colored entry square; no hidden safe cells.
-  const SAFE_KEYS = new Set(Object.values(SPAWNS).map(i=>TRACK[i].join(",")));
+  // Eight visible protected cells: colored launches and four extra star refuges.
+  const SAFE_KEYS = new Set([0,8,13,21,26,34,39,47].map(i=>TRACK[i].join(",")));
 
   const app = document.querySelector(".app");
   const selection = document.getElementById("choix-couleur");
