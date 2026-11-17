@@ -137,8 +137,8 @@ test("both players show the real app profile photos throughout Ludo Duo",()=>{
  assert.equal((duoHTML.match(/class="duo-profile-photo" alt="" hidden/g)||[]).length,2);
  assert.ok(duoJS.includes('renderProfilePhoto(".player--human",state.myAvatar)'));
  assert.ok(duoJS.includes('renderProfilePhoto(".player--cpu",state.partnerAvatar)'));
- assert.ok(duoJS.includes('src.startsWith("blob:"+location.origin+"/")'),
-  "only private same-origin object URLs are passed from parent to child");
+ assert.ok(duoJS.includes('src.startsWith("blob:")'),
+  "private authenticated object URLs must work in HTTPS and native iOS WebView");
  assert.ok(duoJS.includes('picture.dataset.photoUrl===next'),
   "periodic multiplayer refresh must not reload the avatar on each poll");
  assert.ok(duoJS.includes("picture.onload="));
