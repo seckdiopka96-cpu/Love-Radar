@@ -552,3 +552,36 @@
  .lr-call-backdrop .lr-video-call .lr-call-action .lr-call-control-icon{width:43px!important;height:43px!important}
  .lr-call-backdrop .lr-video-call .lr-call-video-stage{min-height:100%!important}
 }
+
+/* Live HD call: one tap on the picture hides or reveals the entire HUD.
+   Ringing/accept/decline controls remain visible until the call is active.
+   The media stream and the self-preview are never removed or paused. */
+.lr-call-backdrop .lr-video-call .lr-call-video-stage{
+ touch-action:manipulation!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-upper,
+.lr-call-backdrop .lr-video-call .lr-call-actions{
+ transition:opacity .18s ease,visibility .18s ease!important;
+}
+.lr-call-backdrop .lr-video-call.is-controls-hidden .lr-call-upper,
+.lr-call-backdrop .lr-video-call.is-controls-hidden .lr-call-actions{
+ opacity:0!important;
+ visibility:hidden!important;
+ pointer-events:none!important;
+}
+.lr-call-backdrop .lr-video-call.is-controls-hidden .lr-call-topbar button,
+.lr-call-backdrop .lr-video-call.is-controls-hidden .lr-call-actions button,
+.lr-call-backdrop .lr-video-call.is-controls-hidden .lr-call-feedback button{
+ pointer-events:none!important;
+}
+.lr-call-backdrop .lr-video-call.is-controls-hidden .lr-call-video-retry{
+ opacity:0!important;
+ visibility:hidden!important;
+ pointer-events:none!important;
+}
+@media (prefers-reduced-motion:reduce){
+ .lr-call-backdrop .lr-video-call .lr-call-upper,
+ .lr-call-backdrop .lr-video-call .lr-call-actions{
+  transition:none!important;
+ }
+}
