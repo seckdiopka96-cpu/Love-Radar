@@ -3,6 +3,7 @@ import {beginNativeCallSession,endNativeCallSession,nativeCallSessionRunning} fr
 import {activateNativeVoip,hasNativeVoip,nativeVoipAnswered,nativeVoipEnd,type NativeVoipAction} from "./native-voip";
 import {findBuiltInSpeaker,audioRouteHelp} from "./audio-output";
 import {claimCallAudio,releaseCallAudio} from "./audio-focus";
+import {primeCallTone,startCallTone,stopCallTone} from "./call-ringtone";
 import {relayNeedsRefresh,RELAY_REFRESH_AFTER_MS,RELAY_RETRY_AFTER_ERROR_MS} from "./reliability-rules";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
@@ -29,6 +30,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const [phase,setPhase]=useState("");
  const [error,setError]=useState("");
  const [needsPlay,setNeedsPlay]=useState(false);
+ const [ringToneBlocked,setRingToneBlocked]=useState(false);
  const [speakerHelp,setSpeakerHelp]=useState("");
  const [speakerSelected,setSpeakerSelected]=useState(false);
  const [speakerBusy,setSpeakerBusy]=useState(false);
@@ -176,6 +178,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   }finally{sendingCandidates.current=false}
  },[api]);
  const clearAudio=useCallback(()=>{
+  stopCallTone();
   // Stop the native microphone service on any end, reset or room change.
   void endNativeCallSession().catch(error=>console.warn("Native call cleanup",error));
   const p=pc.current;
@@ -207,7 +210,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(current.current?.id!==call.id){
    if(current.current)clearAudio();
    setMinimized(false);setCallPanel("none");setDialed("");
-   setError("");setPhase(call.direction==="incoming"?(call.mode==="video"?"Appel vidéo entrant…":"Appel vocal entrant…"):"Appel en cours…");
+   setError("");setPhase(call.direction==="incoming"?(call.mode==="video"?"Appel vidéo entrant…":"Appel vocal entrant…"):call.status==="ringing"?"Ça sonne…":"Connexion en cours…");
   }
   current.current=call;
   claimCallAudio(); // Incoming and outgoing calls silence any message or video audio.
@@ -394,6 +397,16 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   vibration.vibrate?.([180,130,180]);
  },[active?.id,active?.status,active?.direction]);
  useEffect(()=>{
+  // Keep the ring tone until the recipient accepts, declines, or the call ends.
+  if(!active||active.status!=="ringing"||active.id==="preparing-video"){
+   stopCallTone();
+   setRingToneBlocked(false);
+   return;
+  }
+  startCallTone(active.direction,available=>setRingToneBlocked(!available));
+  return()=>stopCallTone();
+ },[active?.id,active?.status,active?.direction]);
+ useEffect(()=>{
   const tick=setInterval(()=>{if(connectedSince.current)setDuration(Math.floor((Date.now()-connectedSince.current)/1000))},1000);
   return()=>clearInterval(tick);
  },[]);
@@ -423,6 +436,8 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  async function start(mode:"audio"|"video"="audio"){
   if(busy||starting.current||current.current||!hasPartner)return;
   claimCallAudio();
+  // Unlock iOS audio from the actual call-button gesture.
+  void primeCallTone();
   cancelPendingStart.current=false;
   setBusy(true);starting.current=true;setError("");setCameraWarning("");
   // iOS camera permission must start in the user gesture, not after signaling.
@@ -468,6 +483,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   }finally{starting.current=false;setBusy(false)}
  }
  async function accept(){
+  stopCallTone();
   const c=current.current;
   if(!c||c.direction!=="incoming"||busy)return;
   claimCallAudio();
@@ -688,6 +704,14 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
       {error?<div className="lr-call-error" role="alert">{error}</div>:null}
       {needsPlay?<button type="button" className="lr-call-sound" onClick={enableAudio}>Activer le son</button>:null}
       {speakerHelp?<div className="lr-call-audio-hint" role="status">{speakerHelp}</div>:null}
+       {active.status==="ringing"&&active.direction==="incoming"&&ringToneBlocked?
+        <button type="button" className="lr-call-sound" onClick={()=>{
+         void primeCallTone().then(ready=>{
+          setRingToneBlocked(!ready);
+          if(ready&&current.current?.status==="ringing"&&current.current.direction==="incoming")
+           startCallTone("incoming",available=>setRingToneBlocked(!available));
+         });
+        }}>Activer la sonnerie</button>:null}
       {networkHint&&active.status==="active"&&phase!=="Connecté"?<div className="lr-call-audio-hint" role="status">{networkHint}</div>:null}
       {cameraWarning&&isVideo?<div className="lr-call-audio-hint" role="status">{cameraWarning}</div>:null}
      </div>
