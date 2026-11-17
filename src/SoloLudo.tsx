@@ -288,20 +288,10 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
    <div className="ludo-game-footer">
     <div className="ludo-bottom-actions">
      <span className="ludo-arena-roll-tip" aria-live="polite">
-      {rolling?"🎲 Le dé roule…":canRoll?"Touche le dé pour lancer":canPick?"Choisis un pion":game.turn===1?"L’ordinateur joue…":solePlayableSoloPawn(game,0)!==null?"Ton pion avance…":"À toi de jouer"}
+      {rolling?"🎲 Le dé roule…":canRoll?"Touche le dé pour lancer":canPick?"Touche un pion sur le plateau":game.turn===1?"L’ordinateur joue…":solePlayableSoloPawn(game,0)!==null?"Ton pion avance…":"À toi de jouer"}
      </span>
     </div>
-    {canPick?<div className="ludo-pick-row" aria-label="Tes quatre pions">
-     <span className="ludo-pick-label">MES PIONS</span>
-     {game.positions[0].map((progress,pawn)=>{
-      const active=canPick&&canSoloMove(progress,game.dice);
-      return <button type="button" key={pawn} disabled={!active} onClick={()=>performMove(0,pawn)}
-       className={"ludo-pick ludo-pawn-red"+(active?" can-play":"")}
-       aria-label={"Déplacer le pion "+(pawn+1)} title={progress===57?"Pion arrivé":progress===-1?"Pion en base":"Pion "+(pawn+1)}>
-       <PawnShape index={pawn}/>
-      </button>;
-     })}
-    </div>:null}
+
     <div className="ludo-last-move" role="status" aria-live="polite">{game.lastAction}</div>
    </div>
   </div>
