@@ -23,7 +23,7 @@
     "test:server": "tsx --test tests/server-diagnostics.test.ts",
     "test:server-scale": "node scripts/server-sql-scale-check.mjs",
     "test:reconcile": "tsx --test tests/reconcile.test.ts",
-    "test:design": "tsx --test tests/redesign.test.ts",
+    "test:design": "tsx --test tests/redesign.test.ts tests/clean-home-chat.test.ts",
     "test:chat": "tsx --test tests/chat-stability.test.ts tests/multi-couple.test.ts tests/chat-composer-signature.test.ts tests/message-delivery-ui.test.ts",
     "test:chat-type-push": "tsx --test tests/chat-type-push-avatar.test.ts",
     "test:expressions": "tsx --test tests/expressions.test.ts",
