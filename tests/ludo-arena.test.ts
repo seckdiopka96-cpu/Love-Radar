@@ -50,7 +50,7 @@ test("animated original 3D pawns still overlap compactly, not in horizontal rows
 });
 test("game has a real die button and the player bar beneath the board",()=>{
  assert.ok(solo.includes('onClick={()=>performRoll(0)}'));
- assert.ok(solo.includes('onClick={()=>performMove(0,pawn)}'));
+ assert.ok(solo.includes('onClick={()=>performMove(item.seat,item.pawn)}'));
  assert.ok(duo.includes('onClick={()=>void act("roll")}'));
  assert.ok(duo.includes('onClick={()=>void act("move",item.pawn)}'));
  assert.ok(style.includes(".ludo-arena .ludo-players{\n order:3"));
