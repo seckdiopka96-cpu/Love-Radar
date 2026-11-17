@@ -172,9 +172,13 @@
     pawn.style.left=pt.x+"%";pawn.style.top=pt.y+"%";
     captureLayer.append(pawn);capturePins.set(key,pawn);
    }
-   if(m.returning&&!pawn.classList.contains("is-returning")){
-    pawn.classList.add("is-returning");
-    const dest=getPosition(c,-1,m.pawn);
+   // Each server-authoritative reverse step moves this SAME DOM pawn.
+   // Never teleport straight from the capture square to its home.
+   if(m.returning)pawn.classList.add("is-returning");
+   const nextProgress=Number.isInteger(m.progress)?m.progress:m.from;
+   if(pawn.dataset.reverseProgress!==String(nextProgress)){
+    pawn.dataset.reverseProgress=String(nextProgress);
+    const dest=getPosition(c,nextProgress,m.pawn);
     requestAnimationFrame(()=>{
      if(capturePins.get(key)!==pawn)return;
      pawn.style.left=dest.x+"%";pawn.style.top=dest.y+"%";
