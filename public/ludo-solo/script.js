@@ -449,17 +449,17 @@
     layer.append(pawn);
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     // Reverse the exact progress journey; do not jump diagonally across the board.
-    // A short capture-specific tempo avoids making a long capture take 30 seconds.
+    // A fast 50ms square-by-square rewind returns even a distant pawn in under 3 seconds.
     for(let step=progress-1;step>=0;step--){
       if(!isCurrent(tokenGeneration)){pawn.remove();return false}
       const back=boardPosition(color,step,pawnIndex);
       pawn.style.left=back.x+"%";pawn.style.top=back.y+"%";
-      await sleep(130);
+      await sleep(50);
     }
     if(!isCurrent(tokenGeneration)){pawn.remove();return false}
     const home=boardPosition(color,HOME,pawnIndex);
     pawn.style.left=home.x+"%";pawn.style.top=home.y+"%";
-    await sleep(230);
+    await sleep(140);
     pawn.remove();
     return isCurrent(tokenGeneration);
   }
