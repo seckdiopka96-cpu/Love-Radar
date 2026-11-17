@@ -48,7 +48,7 @@ test("Solo and Duo both display the final real die result, separate from transie
 test("Solo hops through every cell, shows step number and animates captures back to home",()=>{
  assert.ok(solo.includes("for (let step=first;step<=target;step++)"));
  assert.ok(solo.includes("counter.textContent=(step-first+1)+"));
- assert.ok(solo.includes("start===HOME?800:760"));
+ assert.ok(solo.includes("start===HOME?900:920"));
  assert.ok(soloCSS.includes("transition:left .64s"));
  assert.ok(soloCSS.includes("animation:pawn-hop-hd .65s"));
  assert.ok(solo.includes("async function animateCapture("));
@@ -113,9 +113,9 @@ test("React Solo, Duo and Senegal use a single-face die and readable movement",(
  const dieCSS=readFileSync("src/ludo-die-3d.css","utf8");
  const arenaCSS=readFileSync("src/ludo-arena.css","utf8");
  const senegalCSS=readFileSync("src/ludo-senegal.css","utf8");
- assert.ok(reactSolo.includes('stepDuration=move.from===-1?850:780,initialDelay=530'));
- assert.ok(parent.includes('STEP_MS=moved.from===-1?850:780,START_MS=530'));
- assert.ok(senegal.includes('STEP_MS=move.from.zone==="base"?850:780,START_MS=530'));
+ assert.ok(reactSolo.includes('stepDuration=move.from===-1?900:920,initialDelay=430'));
+ assert.ok(parent.includes('STEP_MS=moved.from===-1?900:920,START_MS=430'));
+ assert.ok(senegal.includes('STEP_MS=move.from.zone==="base"?900:920,START_MS=430'));
  assert.ok(senegal.includes('path.forEach((point,i)=>later('));
  assert.ok(senegal.includes('START_MS+i*STEP_MS'));
  assert.ok(senegal.includes('<LudoDie3D value={shownDie}'));
@@ -131,9 +131,23 @@ test("React Solo, Duo and Senegal use a single-face die and readable movement",(
  assert.ok(dieCSS.includes('.ludo-die-3d:not(.is-tumbling) .ludo-die-side{opacity:0}'));
 });
 
+test("visible steps are not accelerated away by iOS Reduce Motion, and Senegal catches missed move events",()=>{
+ const senegalServer=readFileSync("functions/api/ludo-senegal.ts","utf8");
+ const senegalClient=readFileSync("src/SenegalLudo.tsx","utf8");
+ assert.ok(!solo.includes("reducedMotion?25:"),"Reduce Motion must never skip game squares");
+ assert.ok(solo.includes("await sleep(start===HOME?900:920)"));
+ assert.ok(!parent.includes('&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches'),
+  "the Duo must still show individual square changes without decorative effects");
+ assert.ok(senegalServer.includes("SELECT move_json,version FROM ludo_senegal_moves"));
+ assert.ok(senegalServer.includes("moveVersion:recent?.version??null"));
+ assert.ok(senegalServer.includes("moveVersion:move?saved.version:null"));
+ assert.ok(senegalClient.includes("oldVersion<moveVersion"));
+ assert.ok(senegalClient.includes("moveVersion:data.moveVersion")||senegalClient.includes("moveVersion=data.moveVersion"));
+});
+
 test("Solo and synchronized Duo do not skip fast between board squares",()=>{
- assert.ok(solo.includes('await sleep(reducedMotion?25:(start===HOME?800:760))'));
- assert.ok(parent.includes('const STEP_MS=moved.from===-1?850:780,START_MS=530'));
+ assert.ok(solo.includes('await sleep(start===HOME?900:920)'));
+ assert.ok(parent.includes('const STEP_MS=moved.from===-1?900:920,START_MS=430'));
  assert.ok(soloCSS.includes('transition:left .64s cubic-bezier'));
  assert.ok(soloCSS.includes('animation:pawn-hop-hd .65s'));
  assert.ok(duo.includes('if(!movingPawn||movingKey!==id)'));
