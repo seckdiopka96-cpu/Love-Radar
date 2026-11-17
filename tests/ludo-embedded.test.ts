@@ -13,7 +13,7 @@ const sw=readFileSync("public/sw.js","utf8");
 
 test("Jeux > Ludo contre l'ordinateur opens the new complete HTML/CSS/JS game inside Love Radar",()=>{
  assert.ok(app.includes('import LudoSoloEmbedded from "./LudoSoloEmbedded";'));
- assert.ok(app.includes('tab==="ludo-solo"?<LudoSoloEmbedded scope={room.roomId+":"+room.user.id} onExit={()=>navigate("games")}/>:null'));
+ assert.ok(app.includes('tab==="ludo-solo"?<LudoSoloEmbedded scope={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null'));
  assert.ok(!app.includes('tab==="ludo-solo"?<SoloLudo '),"old game no longer opens through this route");
  assert.ok(host.includes('src="/ludo-solo/index.html?scope="')||host.includes('const src="/ludo-solo/index.html?scope="'));
  assert.ok(host.includes('src={src}'));
@@ -24,8 +24,8 @@ test("Jeux > Ludo contre l'ordinateur opens the new complete HTML/CSS/JS game in
 });
 test("complete standalone game is bundled as three first-party static files",()=>{
  assert.ok(page.startsWith("<!doctype html>"));
- assert.ok(page.includes('href="./style.css"'));
- assert.ok(page.includes('src="./script.js" defer'));
+ assert.ok(page.includes('href="./style.css?v=ludo-room-20261117-v3"'));
+ assert.ok(page.includes('src="./script.js?v=ludo-room-20261117-v3" defer'));
  assert.ok(page.includes('id="couleur-blue"'));
  assert.ok(page.includes('id="couleur-red"'));
  assert.ok(page.includes('id="couleur-green"'));
