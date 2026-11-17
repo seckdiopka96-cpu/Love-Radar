@@ -659,8 +659,7 @@
  filter:blur(1.6px);
  animation:lr-react-pawn-shadow .54s ease-in-out infinite;
 }
-.ludo-experience .ludo-moving-pawn .ludo-moving-bounce,
-.ludo-experience .ludo-moving-pawn .ludo-motion-aura{position:relative;z-index:1}
+.ludo-experience .ludo-moving-pawn .ludo-moving-bounce{position:relative;z-index:1}
 @keyframes lr-react-pawn-shadow{
  0%,100%{opacity:.76;transform:translateX(-50%) scale(1)}
  50%{opacity:.25;transform:translateX(-50%) scale(.54)}
