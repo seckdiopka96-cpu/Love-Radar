@@ -260,7 +260,9 @@
    const avatar=document.querySelector(playerSelector+" .avatar");
    const picture=avatar?.querySelector(".duo-profile-photo");
    if(!avatar||!picture)return;
-   // Accept private object URLs created by the verified parent, including\n   // Capacitor iOS blob:null URLs from WKWebView custom origins.\n   const next=typeof src==="string"&&src.startsWith("blob:")?src:"";
+   // Accept private object URLs created by the verified parent, including
+   // Capacitor iOS blob:null URLs from WKWebView custom origins.
+   const next=typeof src==="string"&&src.startsWith("blob:")?src:"";
    if(picture.dataset.photoUrl===next)return;
    picture.dataset.photoUrl=next;
    picture.hidden=true;
