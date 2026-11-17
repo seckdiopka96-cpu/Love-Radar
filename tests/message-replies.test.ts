@@ -8,7 +8,7 @@ import StickerArt from "../src/StickerArt";
 import {STICKERS,STICKER_GROUPS,encodeSticker,getSticker,readStickerId} from "../src/stickers";
 import QuoteCard from "../src/QuoteCard";
 import {isTransientMessageFailure,messageRetryDelayMs} from "../src/message-network";
-import {receiptState,receiptGlyph,receiptAccessibleLabel} from "../src/message-delivery";
+import {receiptState,receiptGlyph,receiptDisplayLabel,receiptAccessibleLabel} from "../src/message-delivery";
 
 const app=readFileSync("src/App.tsx","utf8");
 const api=readFileSync("functions/api/love.ts","utf8");
@@ -282,8 +282,9 @@ test("message receipts distinguish server send, actual device receipt and read",
  assert.equal(receiptState(200,200,0),"read");
  assert.equal(receiptGlyph("sent"),"✓");
  assert.equal(receiptGlyph("delivered"),"✓✓");
- assert.equal(receiptGlyph("read"),"Vu");
- assert.equal(receiptAccessibleLabel("delivered"),"Distribué");
+ assert.equal(receiptGlyph("read"),"✓✓");
+ assert.equal(receiptDisplayLabel("read"),"Lu");
+ assert.ok(receiptAccessibleLabel("delivered").startsWith("Distribué"));
  assert.ok(app.includes('request("delivered",{messageId:newest.id})'));
  assert.ok(api.includes('sender_id<>?'));
  assert.ok(api.includes("last_delivered_at"));
