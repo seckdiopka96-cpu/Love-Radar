@@ -109,6 +109,7 @@ test("PWA never registers PushKit; native iOS generator starts CallKit before We
  assert.ok(generator.includes('"voip","remote-notification"'));
  assert.ok(generator.includes("APS_ENVIRONMENT"));
  assert.ok(app.includes("pendingSystemAnswer.current=action.callId"));
- assert.ok(api.includes("notifyIncomingVoip(env,u.room_id,partner.id,call.id,u.name,call.expires_at)"));
+ assert.ok(api.includes("notifyIncomingVoip(env,u.room_id,partner.id,call.id,u.name,call.expires_at,mode)"));
+ assert.ok(api.includes("notifyIncomingAndroid(env,u.room_id,partner.id,call.id,u.name,call.expires_at,mode)"));
  assert.ok(deletion.includes('"native_voip_devices"'));
 });
