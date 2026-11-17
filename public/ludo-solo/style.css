@@ -934,3 +934,21 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
 @media(prefers-reduced-motion:reduce){
  .piece--moving:not(.piece--captured)::before{animation:none;opacity:.75}
 }
+
+/* Moving pawns cast a ground shadow that shrinks as the pin lifts.
+   This pseudo-element follows the pin's x/y position, never the board. */
+.piece--moving:not(.piece--captured)::before{
+ content:"";position:absolute;z-index:0;left:50%;bottom:-2%;
+ width:72%;height:13%;border-radius:50%;pointer-events:none;
+ background:radial-gradient(ellipse,#06152cbe 0%,#0b27457a 40%,transparent 76%);
+ filter:blur(1.5px);
+ animation:lr-pawn-shadow .40s ease-in-out infinite;
+}
+.piece--moving:not(.piece--captured)>.piece-svg{position:relative;z-index:1}
+@keyframes lr-pawn-shadow{
+ 0%,100%{opacity:.75;transform:translateX(-50%) scale(1)}
+ 50%{opacity:.30;transform:translateX(-50%) scale(.59)}
+}
+@media(prefers-reduced-motion:reduce){
+ .piece--moving:not(.piece--captured)::before{animation:none;opacity:.58;transform:translateX(-50%) scale(.8)}
+}
