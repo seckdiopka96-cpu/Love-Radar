@@ -55,6 +55,30 @@ test("YouTube co-watch also keeps its player, link editor and conversation on a 
  assert.ok(youtubeStyle.includes(".wt-page:has(.wt-link-line input:focus,.wt-chat-compose input:focus)"));
 });
 
+test("outgoing and incoming calls have audible repeating tones that stop on pickup or hangup",()=>{
+ const ringtone=readFileSync("src/call-ringtone.ts","utf8");
+ const focus=readFileSync("src/audio-focus.ts","utf8");
+ assert.ok(ringtone.includes('export function startCallTone(kind:CallToneKind'));
+ assert.ok(ringtone.includes('export function stopCallTone()'));
+ assert.ok(ringtone.includes('export async function primeCallTone()'));
+ assert.ok(ringtone.includes('ctx.createOscillator()'));
+ assert.ok(ringtone.includes('pulse([440,480]'),"outgoing ringback is audible");
+ assert.ok(ringtone.includes('pulse([587.33,783.99]'),"incoming chime is audible");
+ assert.ok(ringtone.includes('window.setInterval('),"ring until accepted, not a single beep");
+ assert.ok(ringtone.includes('tone.stop()'),"ringing nodes stop on end");
+ assert.ok(ringtone.includes('if(generation!==token||activeKind!==kind)return'),"stale async ringing does not revive");
+ assert.ok(call.includes('startCallTone(active.direction'));
+ assert.ok(call.includes('if(!active||active.status!=="ringing"'),"active connected calls have no ringtone");
+ assert.ok(call.includes('active.id==="preparing-video"'),"do not falsely ring before server acceptance");
+ assert.ok(call.includes('stopCallTone();'),"stop immediately on pickup/end");
+ assert.ok(call.includes('void primeCallTone();'),"outgoing ringtone gets iPhone user gesture");
+ assert.ok(call.includes('document.addEventListener("pointerdown",unlock'),"incoming tone is primed by earlier gestures");
+ assert.ok(call.includes('Activer la sonnerie'),"incoming fallback for autoplay-blocked iPhones");
+ assert.ok(call.includes('Appel vocal sortant…'),"outgoing audio is not falsely labeled connected");
+ assert.ok(focus.includes('target.dataset.lrCallVideo==="true"'),"do not pause the video while ringing");
+ assert.ok(!/https?:\/\//.test(ringtone),"no external sound asset or data upload");
+});
+
 test("voice calling stays intact while HD video is added",()=>{
  const css=readFileSync("src/voice-call.css","utf8");
  const videoCss=readFileSync("src/video-call.css","utf8");
