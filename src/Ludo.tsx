@@ -54,13 +54,9 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const [challenge,setChallenge]=useState<Challenge|null>(null);
  const [challengeBusy,setChallengeBusy]=useState(false);
  const [challengeHint,setChallengeHint]=useState("");
- const [rulesAccepted,setRulesAccepted]=useState(false);
- const [giftPreference,setGiftPreference]=useState<"yes"|"no"|"">("");
  const [signBusy,setSignBusy]=useState(false);
  // A new match always requires a fresh read, choice and signature.
  useEffect(()=>{
-  setRulesAccepted(false);
-  setGiftPreference("");
   setGiftOpen(false);
  },[game?.id]);
  const [giftOpen,setGiftOpen]=useState(false);
@@ -336,12 +332,11 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
 
  async function signRules(){
   if(signBusy||!game||agreement?.startedAt||agreement?.signed[mySeat])return;
-  if(!rulesAccepted||giftPreference==="")return;
   setSignBusy(true);setError("");
   try{
    const response=await apiFetch("/api/ludo",{method:"POST",
     headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
-    body:JSON.stringify({action:"sign_rules",acceptRules:true,signed:true,giftConsent:giftPreference==="yes"})
+    body:JSON.stringify({action:"sign_rules",acceptRules:true,signed:true,giftConsent:false})
    });
    const data=await response.json() as ResponseData;
    if(!response.ok||!data.ok)throw Error(data.error||"Impossible d’enregistrer la signature.");
@@ -575,20 +570,23 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
     error={error} onAction={duoFrameAction}/>:null}
   {tutorialOpen&&Boolean(agreement?.startedAt)&&game?.status==="playing"&&!mustSign&&!giftOpen&&!rules?<LudoTutorial mode="duo" onClose={()=>setTutorialOpen(false)}/>:null}
   {mustSign?<div className="ludo-agreement-backdrop">
-   <div className="ludo-agreement-dialog" role="dialog" aria-modal="true" aria-label="Règles et signature avant la partie">
-    <div className="ludo-agreement-heading"><span className="ludo-agreement-icon">📜</span><div><h2>Avant de jouer</h2><p>Règles et accord des deux partenaires</p></div></div>
-    {challengeId&&game?.id!==challengeId?<div className="ludo-challenge-alert" role="status">⏳ Le défi de cette notification n’est plus actif. Voici la manche actuelle.</div>:null}
-    {challenge&&challenge.gameId===game?.id&&challenge.fromSeat!==mySeat?<div className="ludo-challenge-alert" role="status">🎲 {challenge.fromName} t’a lancé un défi ! Lis et signe pour le rejoindre.</div>:null}
-    <div className="ludo-agreement-status">
+   <div className="ludo-agreement-dialog ludo-ready-dialog" role="dialog" aria-modal="true" aria-label="Accord pour jouer au Ludo Duo">
+    <div className="ludo-agreement-heading">
+     <span className="ludo-agreement-icon" aria-hidden="true">🎲</span>
+     <div><span className="ludo-ready-kicker">LUDO DUO · PARTIE PRIVÉE</span><h2>Prêts à jouer ?</h2><p>Un accord simple, et la partie commence.</p></div>
+    </div>
+    {challengeId&&game?.id!==challengeId?<div className="ludo-challenge-alert" role="status">⏳ L’ancien défi est terminé. Voici votre partie actuelle.</div>:null}
+    {challenge&&challenge.gameId===game?.id&&challenge.fromSeat!==mySeat?<div className="ludo-challenge-alert" role="status">🎲 {challenge.fromName} t’invite à jouer !</div>:null}
+    <div className="ludo-agreement-status" aria-label="Accord des deux joueurs">
      {[0,1].map(seat=><div key={seat} className={"ludo-agreement-player"+(agreement?.signed[seat]?" is-signed":"")}>
-       <span>{agreement?.signed[seat]?"✓":"✎"}</span>
-       <strong>{displayName(seat)}</strong>
-       <small>{agreement?.signed[seat]?"Signé":"Signature attendue"}</small>
-      </div>)}
+      <span aria-hidden="true">{agreement?.signed[seat]?"✓":seat===mySeat?"●":"◌"}</span>
+      <strong>{seat===mySeat?"Toi · "+displayName(seat):displayName(seat)}</strong>
+      <small>{agreement?.signed[seat]?"Prêt à jouer":seat===mySeat?"À confirmer":"En attente"}</small>
+     </div>)}
     </div>
     {!mySigned?<>
      <fieldset className="ludo-duo-color-picker" disabled={colorBusy||Boolean(agreement?.signed.some(Boolean))}>
-      <legend>Choisis ta couleur de pion</legend>
+      <legend>1 · Choisis ta couleur</legend>
       <div className="ludo-duo-color-options">
        {DUO_COLORS.map(c=><button key={c.value} type="button"
         className={"ludo-duo-color-choice ludo-duo-color-"+c.value+
@@ -598,43 +596,36 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
         <span aria-hidden="true"/>{c.name}
        </button>)}
       </div>
-      <p>{palette?.chosenBy==null?"Sélectionne une couleur avant de signer.":
+      <p>{palette?.chosenBy==null?"Choisis une couleur pour continuer.":
        "Ta couleur : "+(DUO_COLORS.find(c=>c.value===palette?.colors[mySeat])?.name||"Bleu")+
-       " · Ton partenaire jouera avec la couleur opposée."}</p>
+       " · Ton partenaire a la couleur opposée."}</p>
      </fieldset>
-     <div className="ludo-agreement-rules" tabIndex={0} aria-label="Règles à lire">
-      <h3>🎲 Règles du Ludo Duo</h3>
-      <p>Vous jouez à deux, chacun avec quatre pions. Il faut faire un 6 pour sortir un pion. Le premier à amener ses quatre pions au centre gagne.</p>
-      <p>Un 6, une capture ou une arrivée au centre donne un tour supplémentaire. Trois 6 consécutifs font perdre le tour. Les étoiles ★ sont protégées et il faut le nombre exact pour terminer.</p>
-      <p><strong>⏱️ Chronomètre :</strong> chacun a 15 secondes pour agir. Après ce délai, l’ordinateur joue automatiquement à sa place dès qu’un appareil connecté interroge le serveur.</p>
-      <h3>🎁 Défi cadeau facultatif</h3>
-      <p>Si vous acceptez tous les deux le défi, <strong>le perdant propose d’offrir le cadeau choisi par le gagnant</strong> : crédit téléphonique, forfait Internet ou <strong>2 000 F CFA via Wave</strong>.</p>
-      <p>Ce défi est un engagement amical, pas un contrat légal ni un paiement automatique. Vous pouvez jouer sans cadeau si l’un de vous refuse. Aucun achat ou transfert Wave n’est effectué dans l’application.</p>
-     </div>
-     <label className="ludo-agreement-read"><input type="checkbox" checked={rulesAccepted} onChange={e=>setRulesAccepted(e.target.checked)}/><span>✍️ Je coche pour confirmer avoir lu les règles et signer avec mon profil <strong>{myName}</strong>.</span></label>
-     <fieldset className="ludo-agreement-choice">
-      <legend>Acceptes-tu le défi cadeau si tu perds ?</legend>
-      <label><input type="radio" name="gift_preference" checked={giftPreference==="yes"} onChange={()=>setGiftPreference("yes")}/><span>Oui, j’accepte de participer 🎁</span></label>
-      <label><input type="radio" name="gift_preference" checked={giftPreference==="no"} onChange={()=>setGiftPreference("no")}/><span>Non, jouons sans cadeau</span></label>
-     </fieldset>
-     <button type="button" className="ludo-agreement-submit" disabled={signBusy||!rulesAccepted||giftPreference===""||palette?.chosenBy==null} onClick={()=>void signRules()}>{signBusy?"Enregistrement…":"Valider ma signature ✓"}</button>
+     <section className="ludo-ready-rules" aria-label="Règles essentielles du Ludo Duo">
+      <h3>2 · Les règles, en bref</h3>
+      <p>🎲 <span>Fais <strong>6</strong> pour sortir un pion. Le premier à rentrer ses <strong>4 pions</strong> gagne.</span></p>
+      <p>⭐ <span>Les étoiles protègent. Un 6, une capture ou une arrivée donne un tour bonus.</span></p>
+      <p>⏱️ <span>Tu as <strong>15 secondes</strong> pour jouer, sinon le tour est automatique.</span></p>
+     </section>
+     <p className="ludo-ready-consent">En appuyant sur le bouton, tu acceptes ces règles pour cette partie. Aucun cadeau ni paiement n’est obligatoire.</p>
+     <button type="button" className="ludo-agreement-submit" disabled={signBusy||colorBusy||palette?.chosenBy==null} onClick={()=>void signRules()}>
+      {signBusy?"Validation en cours…":"✓ J’accepte et je joue"}
+     </button>
     </>:<>
-     <div className="ludo-agreement-wait">
-      <span className="ludo-agreement-bigcheck">✓</span>
-      <h3>Tu as signé !</h3>
-      <p>Signature enregistrée pour cette manche.</p>
-      <p>{otherSigned?"Vous avez signé tous les deux. La partie va commencer !":"En attente de la signature de "+displayName(1-mySeat)+"…"}</p>
-      <p>Ton choix cadeau : <strong>{agreement?.giftChoices[mySeat]?"Accepté 🎁":"Sans cadeau"}</strong></p>
+     <div className="ludo-agreement-wait" role="status">
+      <span className="ludo-agreement-bigcheck" aria-hidden="true">✓</span>
+      <h3>Tu es prêt·e !</h3>
+      <p>{otherSigned?"Vous êtes prêts tous les deux. La partie commence !":"En attente de "+displayName(1-mySeat)+"…"}</p>
      </div>
     </>}
-    <button type="button" className="ludo-challenge-send" disabled={challengeBusy} onClick={()=>void sendChallenge()}>{challengeBusy?"Envoi…":"🎲 Lancer un défi à mon partenaire"}</button>
+    {!otherSigned?<button type="button" className="ludo-challenge-send" disabled={challengeBusy} onClick={()=>void sendChallenge()}>
+     {challengeBusy?"Envoi…":"↗ Inviter mon partenaire"}
+    </button>:null}
     {challengeHint?<p className="ludo-challenge-hint" role="status">{challengeHint}</p>:null}
     {error?<div className="ludo-agreement-error" role="alert">{error}</div>:null}
-    <button type="button" className="ludo-agreement-exit" onClick={onExit}>← Retour à l’accueil</button>
-    <p className="ludo-agreement-footnote">Signature enregistrée dans votre espace privé pour cette manche uniquement.</p>
+    <button type="button" className="ludo-agreement-exit" onClick={onExit}>← Quitter la partie</button>
+    <p className="ludo-agreement-footnote">Accord valable uniquement pour cette manche.</p>
    </div>
   </div>:null}
-
   {giftOpen?<div className="ludo-modal-backdrop" role="presentation">
    <div className="ludo-modal ludo-gift-dialog" role="dialog" aria-modal="true" aria-label="Défi cadeau entre partenaires">
     <div className="ludo-modal-symbol">🎁</div>
