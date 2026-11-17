@@ -6,6 +6,7 @@ import "./ludo-arena.css";
 import LudoTutorial from "./LudoTutorial";
 import LudoDie3D from "./LudoDie3D";
 import LudoDuoFrame from "./LudoDuoFrame";
+import "./ludo-duo-color.css";
 import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,BASE,SAFE,CELL,key,pointForProgress,movementSteps,stackCellStyle,type Point} from "./ludo-visuals";
