@@ -76,7 +76,8 @@ CREATE TABLE IF NOT EXISTS ludo_games (
  winner INTEGER,
  streak INTEGER NOT NULL DEFAULT 0,
  last_action TEXT NOT NULL,
- updated_at INTEGER NOT NULL
+ updated_at INTEGER NOT NULL,
+ auto_counts TEXT NOT NULL DEFAULT '[0,0]'
 );
 
 -- Profile images are always accessed by authenticated users from the same room.
