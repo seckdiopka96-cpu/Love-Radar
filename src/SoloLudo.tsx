@@ -229,7 +229,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  return <section className="ludo-experience ludo-solo ludo-arena" aria-label="Ludo solo contre l'ordinateur">
   <header className="ludo-topbar">
    <button type="button" className="ludo-leave" onClick={onExit}><span aria-hidden="true">‹</span> Jeux</button>
-   <div className="ludo-brand"><strong>LUDO <span>★</span> SOLO</strong><small>TOI CONTRE L’ORDINATEUR</small></div>
+   <div className="ludo-brand"><img className="ludo-head-logo" src="/ludo-mark.svg" alt="Logo Ludo"/><strong>LUDO <span>★</span> SOLO</strong><small>TOI CONTRE L’ORDINATEUR</small></div>
    <div className="ludo-top-actions">
     <button type="button" className="ludo-sound" onClick={toggleSound} aria-label={soundOn?"Désactiver le son":"Activer le son"} aria-pressed={soundOn}>{soundOn?"🔊":"🔇"}</button>
     <button type="button" className="ludo-arena-how" onClick={()=>setTutorialOpen(true)} aria-label="Voir le tutoriel Ludo">?</button>
