@@ -15,17 +15,20 @@ test("notification targets survive an iPhone cold start and open their precise s
  assert.ok(worker.includes('event.data?.type==="love-radar-ack-notification"'));
  assert.ok(worker.includes("deliverPendingRoute(event.source)"));
  assert.ok(worker.includes("await self.clients.openWindow(url)"));
- assert.ok(worker.includes('focused.postMessage({type:"love-radar-open-notification",...destination})'));
+ assert.ok(worker.includes('focused.postMessage({type:"love-radar-open-notification",...destination,routeId})'));
  assert.ok(!worker.includes("await focused.navigate(url)"),"do not reload an existing chat on notification tap");
  assert.ok(app.includes('window.addEventListener("pageshow",onPageShow)'));
  assert.ok(app.includes('navigator.serviceWorker?.ready.then(reg=>'));
  assert.ok(app.includes('type:"love-radar-request-pending-notification"'));
  assert.ok(app.includes('setTab(dest.tab)'),"go directly to the chosen page");
+ assert.ok(app.includes('type:"love-radar-ack-notification",routeId'),"SPA must acknowledge a handled notification");
+ assert.ok(app.includes('if(lastHandledNotice.current===routeId)return'),"duplicate messages cannot reroute the user");
  assert.ok(app.includes('challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}'),"Ludo challenge reaches game agreement");
 });
 
 test("message notifications jump to their actual chat bubble",()=>{
  assert.ok(app.includes('target.scrollIntoView({block:"center",behavior:"auto"})'));
+ assert.ok(app.includes('if(lastMessageJump.current===id)return'),"do not force-scroll after every new message");
  assert.ok(app.includes('noticeTarget?.id===m.id&&tab==="chat"?" lr-notified-bubble"'));
  assert.ok(app.includes('!room.messages.some(m=>m.id===noticeTarget.id)'),"show fallback only if message is older than loaded chat");
  assert.ok(app.includes('const notified=noticeTarget?.id&&["message","photo","audio"].includes'));
