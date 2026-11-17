@@ -1,7 +1,7 @@
 import {Capacitor,registerPlugin,type PluginListenerHandle} from "@capacitor/core";
 import {apiFetch,isNativeApp} from "./api";
 
-/** Native iOS CallKit / PushKit bridge. Never available in the web/PWA build. */
+/** iOS PushKit/CallKit and Android FCM native call bridge; never available to a PWA. */
 export type NativeVoipAction={action:"answer"|"end";callId:string;timestamp?:number};
 type Device={deviceId:string;voipToken:string};
 type Bridge={
@@ -18,11 +18,15 @@ type Bridge={
 const bridge=registerPlugin<Bridge>("NativeVoip");
 const deviceRx=/^[0-9a-f-]{36}$/i;
 const voipRx=/^[a-f0-9]{64,512}$/i;
-export const hasNativeVoip=():boolean=>isNativeApp&&Capacitor.getPlatform()==="ios";
+const fcmRx=/^[A-Za-z0-9:_.\-]{60,1024}$/;
+export const hasNativeVoip=():boolean=>isNativeApp&&
+ (Capacitor.getPlatform()==="ios"||Capacitor.getPlatform()==="android");
 async function updateDevice(token:string,action:"register"|"unregister",device:Device):Promise<boolean>{
  if(!deviceRx.test(device.deviceId))return false;
- if(action==="register"&&(!voipRx.test(device.voipToken)||device.voipToken.length%2))return false;
- const response=await apiFetch("/api/voip",{
+ const isAndroid=Capacitor.getPlatform()==="android";
+ if(action==="register"&&
+  (isAndroid?!fcmRx.test(device.voipToken):!voipRx.test(device.voipToken)||device.voipToken.length%2))return false;
+ const response=await apiFetch(isAndroid?"/api/android-voip":"/api/voip",{
   method:"POST",cache:"no-store",
   headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
   body:JSON.stringify({action,deviceId:device.deviceId,
