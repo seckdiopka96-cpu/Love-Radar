@@ -48,7 +48,9 @@ test("Solo and Duo both display the final real die result, separate from transie
 test("Solo hops through every cell, shows step number and animates captures back to home",()=>{
  assert.ok(solo.includes("for (let step=first;step<=target;step++)"));
  assert.ok(solo.includes("counter.textContent=(step-first+1)+"));
- assert.ok(solo.includes("start===HOME?380:260"));
+ assert.ok(solo.includes("start===HOME?800:760"));
+ assert.ok(soloCSS.includes("transition:left .64s"));
+ assert.ok(soloCSS.includes("animation:pawn-hop-hd .65s"));
  assert.ok(solo.includes("async function animateCapture("));
  assert.ok(solo.includes("await Promise.all(captured.map("));
  assert.ok(solo.includes("renderPawns();\\n    const captured")||solo.includes("renderPawns();\n    const captured"));
@@ -88,4 +90,29 @@ test("Duo captures visibly return through a stable animation overlay",()=>{
  assert.ok(duo.includes('pawn.style.left=dest.x'));
  assert.ok(duo.includes('pawn.style.top=dest.y'));
  assert.ok(duoCSS.includes('transition:left .54s'));
+});
+
+
+test("3D die settles with exactly one face facing the viewer for all six values",()=>{
+ const expected={1:[0,0],2:[-90,0],3:[0,-90],4:[0,90],5:[90,0],6:[0,180]};
+ for(const [face,[x,y]] of Object.entries(expected)){
+  const selector='.dice-3d:not(.is-rolling)[data-face="'+face+'"]';
+  const angle='transform:rotateX('+x+'deg) rotateY('+y+'deg)!important';
+  assert.ok(soloCSS.includes(selector+'{'+angle+'}'),"only face "+face+" should point toward the player");
+  assert.ok(soloCSS.includes(selector+' .dice-face--'+face),"die face "+face+" should remain visible");
+ }
+ assert.ok(soloCSS.includes('.dice-3d:not(.is-rolling) .dice-face{opacity:0}'),
+  "side faces must disappear after rolling");
+ assert.ok(soloCSS.includes('animation:dice-tumble-real'),
+  "physical tumble animation must remain");
+});
+
+test("Solo and synchronized Duo do not skip fast between board squares",()=>{
+ assert.ok(solo.includes('await sleep(reducedMotion?25:(start===HOME?800:760))'));
+ assert.ok(parent.includes('const STEP_MS=moved.from===-1?850:780,START_MS=530'));
+ assert.ok(soloCSS.includes('transition:left .64s cubic-bezier'));
+ assert.ok(soloCSS.includes('animation:pawn-hop-hd .65s'));
+ assert.ok(duo.includes('if(!movingPawn||movingKey!==id)'));
+ assert.ok(duo.includes('pawn.style.left=to.x'));
+ assert.ok(duo.includes('pawn.style.top=to.y'));
 });
