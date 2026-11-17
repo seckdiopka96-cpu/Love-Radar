@@ -13,16 +13,17 @@ const parent=readFileSync("src/Ludo.tsx","utf8");
 const bridge=readFileSync("src/LudoDuoFrame.tsx","utf8");
 const schema=readFileSync("schema.sql","utf8");
 
-test("Ludo screenshot fixes: capturable starts, compact pins and hidden Solo footer",()=>{
- const server=readFileSync("functions/api/ludo.ts","utf8");
+test("Ludo screenshot fixes: compact pawns, correct capture and clean HUD",()=>{
  const senegal=readFileSync("src/ludo-senegal-engine.ts","utf8");
  const boardRules=readFileSync("src/ludo-visuals.ts","utf8");
- assert.ok(solo.includes('new Set(["2,6","6,12","8,2","12,8"])'));
- assert.ok(server.includes("const SAFE=new Set([8,21,34,47])"));
- assert.ok(boardRules.includes("export const SAFE=new Set([8,21,34,47])"));
- assert.ok(senegal.includes("positions[enemy][pawn]=freshPawn()"));
+ // Starting squares and star refuges still have standard protection.
+ assert.ok(solo.includes('...Object.values(SPAWNS).map(i=>TRACK[i].join(","))'));
+ assert.ok(server.includes("const SAFE=new Set([0,8,13,21,26,34,39,47])"));
+ assert.ok(boardRules.includes("export const SAFE=new Set([0,8,13,21,26,34,39,47])"));
+ // Red from its own start + 2 must capture a single blue pawn at row 6, col 3.
  assert.ok(solo.includes("game.pieces[otherSide][opponentPawn]=HOME"));
  assert.ok(solo.includes("if(captured.length)renderPawns()"));
+ assert.ok(senegal.includes("positions[enemy][pawn]=freshPawn()"));
  assert.ok(solo.includes("Math.min(3,7/group.length)"));
  assert.ok(duo.includes("Math.min(3,7/group.length)"));
  assert.ok(soloCSS.includes("width: 5.7%; height: 6.6%"));
@@ -32,7 +33,7 @@ test("Ludo screenshot fixes: capturable starts, compact pins and hidden Solo foo
  assert.ok(soloCSS.includes(".lr-ludo-solo-ui .game-actions"));
  assert.ok(soloCSS.includes(".lr-ludo-solo-ui #game-feedback"));
  assert.ok(soloCSS.includes(".lr-ludo-duo-ui #new-game:disabled"));
- assert.ok(soloCSS.includes("await sleep(start===HOME?520:540)")===false);
+ assert.ok(solo.includes('dieResult.textContent=needsNewRoll?"↻":String(lastRoll)'));
  assert.ok(solo.includes("await sleep(start===HOME?520:540)"));
 });
 test("both complete vanilla games remain valid JavaScript",()=>{
@@ -59,7 +60,7 @@ test("Solo and Duo both display the final real die result, separate from transie
  }
  assert.ok(solo.includes("game.lastRoll=value"));
  assert.ok(solo.includes("lastRoll=game.die||((Number.isInteger(game.lastRoll)"));
- assert.ok(solo.includes('dieResult.textContent=String(lastRoll)'));
+ assert.ok(solo.includes('dieResult.textContent=needsNewRoll?"↻":String(lastRoll)'));
  assert.ok(duo.includes("const diceValue=g.dice??last?.face??"));
  assert.ok(duo.includes('dieResult.textContent=rollingNow?"·":String(diceValue)'));
  assert.ok(duo.includes("lastAnimatedRoll"));
@@ -71,7 +72,7 @@ test("Solo hops through every cell, shows step number and animates captures back
  assert.ok(solo.includes("for (let step=first;step<=target;step++)"));
  assert.ok(solo.includes("counter.textContent=(step-first+1)+"));
  assert.ok(solo.includes("start===HOME?520:540"));
- assert.ok(soloCSS.includes("transition:left .64s"));
+ assert.ok(soloCSS.includes("transition:left .40s"));
  assert.ok(soloCSS.includes("animation:pawn-hop-hd .40s"));
  assert.ok(solo.includes("async function animateCapture("));
  assert.ok(solo.includes("await Promise.all(captured.map("));
@@ -142,9 +143,9 @@ test("React Solo, Duo and Senegal use a single-face die and readable movement",(
  assert.ok(senegal.includes('START_MS+i*STEP_MS'));
  assert.ok(senegal.includes('<LudoDie3D value={shownDie}'));
  assert.ok(!senegal.includes('<DiceFace'));
- assert.ok(arenaCSS.includes('.ludo-moving-pawn{transition:left .64s'));
+ assert.ok(arenaCSS.includes('.ludo-moving-pawn{transition:left .40s'));
  assert.ok(senegalCSS.includes('.ludo-senegal .ludo-moving-pawn{'));
- assert.ok(senegalCSS.includes('transition:left .64s'));
+ assert.ok(senegalCSS.includes('transition:left .40s'));
  assert.ok(parent.includes('lastRoll?.face??'));
  for(const [face,x,y] of [[1,0,0],[2,-90,0],[3,0,-90],[4,0,90],[5,90,0],[6,0,180]]){
   assert.ok(dieCSS.includes('.ludo-die-shows-'+face+'{--die-x:'+x+'deg;--die-y:'+y+'deg}'));
