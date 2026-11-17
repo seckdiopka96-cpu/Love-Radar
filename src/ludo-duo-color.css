@@ -180,3 +180,18 @@
  .ludo-ready-dialog .ludo-ready-rules{gap:5px;padding:10px}
  .ludo-ready-dialog .ludo-agreement-submit{min-height:45px}
 }
+
+/* Audit: optional gift stays one unobtrusive choice, never blocks play. */
+.ludo-ready-dialog .ludo-ready-gift-option{
+ display:flex;align-items:center;gap:10px;
+ padding:11px 12px;border:1px solid #375679;border-radius:13px;
+ background:#122947;cursor:pointer;color:#e6effc;
+}
+.ludo-ready-dialog .ludo-ready-gift-option input{
+ flex:none;width:19px;height:19px;margin:0;
+ accent-color:#f1c67c;cursor:pointer;
+}
+.ludo-ready-dialog .ludo-ready-gift-option span{display:flex;flex-direction:column;gap:3px}
+.ludo-ready-dialog .ludo-ready-gift-option strong{font-size:12px;line-height:1.35}
+.ludo-ready-dialog .ludo-ready-gift-option small{font-size:10px;line-height:1.35;color:#aec1d9}
+.ludo-ready-dialog .ludo-agreement-wait small{font-size:10px;color:#b5dccb;text-align:center}
