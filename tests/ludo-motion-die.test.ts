@@ -116,6 +116,7 @@ test("captured pawns reverse rapidly without speeding ordinary board movement",(
  const reactDuo=readFileSync("src/Ludo.tsx","utf8");
  const senegal=readFileSync("src/SenegalLudo.tsx","utf8");
  const senegalCSS=readFileSync("src/ludo-senegal.css","utf8");
+ const duoCSS=readFileSync("public/ludo-duo/style.css","utf8");
  const arenaCSS=readFileSync("src/ludo-arena.css","utf8");
  assert.ok(solo.includes("await sleep(50)"),"Solo rewinds a square in 50ms");
  assert.ok(solo.includes("await sleep(start===HOME?520:540)"),"ordinary pawns stay readable");
