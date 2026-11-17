@@ -6,11 +6,12 @@ import {claimCallAudio,releaseCallAudio} from "./audio-focus";
 import {primeCallTone,startCallTone,stopCallTone} from "./call-ringtone";
 import {relayNeedsRefresh,RELAY_REFRESH_AFTER_MS,RELAY_RETRY_AFTER_ERROR_MS} from "./reliability-rules";
 import {reconnectDelayMs,mustReconnect,MAX_RECONNECT_ATTEMPTS,clampFloatingCall} from "./call-resilience";
-import type {PointerEvent as ReactPointerEvent} from "react";
+import type {PointerEvent as ReactPointerEvent,CSSProperties} from "react";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
 import "./voice-call.css";
 import "./video-call.css";
+import "./floating-video.css";
 
 type Call = {id:string;status:"ringing"|"active";direction:"incoming"|"outgoing";createdAt:number;updatedAt:number;expiresAt:number;mode?:"audio"|"video"};
 type Signal = {id:number;kind:"offer"|"answer"|"candidate"|"restart";payload:string};
@@ -797,6 +798,46 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    setSpeakerHelp("Impossible de changer la sortie audio : "+(error instanceof Error?error.message:"choisis une sortie depuis les réglages du téléphone."));
   }finally{setSpeakerBusy(false)}
  }
+ function beginVideoDrag(event:ReactPointerEvent<HTMLButtonElement>){
+  if(event.button!==0)return;
+  const element=floatingBox.current;
+  if(!element)return;
+  const rect=element.getBoundingClientRect();
+  dragVideo.current={x:event.clientX,y:event.clientY,left:rect.left,top:rect.top,pointerId:event.pointerId};
+  event.currentTarget.setPointerCapture(event.pointerId);
+  setDraggingVideo(true);
+ }
+ function moveVideoDrag(event:ReactPointerEvent<HTMLButtonElement>){
+  const drag=dragVideo.current,element=floatingBox.current;
+  if(!drag||drag.pointerId!==event.pointerId||!element)return;
+  const rectangle=element.getBoundingClientRect();
+  const position=clampFloatingCall(drag.left+event.clientX-drag.x,drag.top+event.clientY-drag.y,
+   window.innerWidth,window.innerHeight,rectangle.width,rectangle.height);
+  setFloatingAt(position);
+ }
+ function endVideoDrag(event:ReactPointerEvent<HTMLButtonElement>){
+  if(dragVideo.current?.pointerId!==event.pointerId)return;
+  dragVideo.current=null;setDraggingVideo(false);
+  if(event.currentTarget.hasPointerCapture(event.pointerId))
+   event.currentTarget.releasePointerCapture(event.pointerId);
+ }
+ useEffect(()=>{
+  // Keep the floating player inside the screen when the phone rotates or the
+  // iPhone keyboard/visual viewport changes size.
+  const reposition=()=>{
+   const element=floatingBox.current;
+   if(!element)return;
+   const rectangle=element.getBoundingClientRect();
+   setFloatingAt(previous=>previous?clampFloatingCall(previous.x,previous.y,
+    window.innerWidth,window.innerHeight,rectangle.width,rectangle.height):null);
+  };
+  window.addEventListener("resize",reposition);
+  window.visualViewport?.addEventListener("resize",reposition);
+  return()=>{
+   window.removeEventListener("resize",reposition);
+   window.visualViewport?.removeEventListener("resize",reposition);
+  };
+ },[]);
  function minimizeAndWrite(){
   const call=current.current;
   if(!call)return;
