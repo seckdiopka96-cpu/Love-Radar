@@ -1,0 +1,50 @@
+/* Color selection is shared on the server and frozen when either player
+   signs. The opponent is automatically assigned the opposite starting zone. */
+.ludo-agreement-dialog .ludo-duo-color-picker{
+ width:100%;margin:0 0 12px;
+ padding:12px 12px 10px;
+ border:1px solid #c5a6d456;border-radius:15px;
+ background:#142c4bdc;color:#e8f3fb;
+}
+.ludo-agreement-dialog .ludo-duo-color-picker legend{
+ padding:0 7px;color:#ffe8b6;font-size:14px;font-weight:850;
+}
+.ludo-agreement-dialog .ludo-duo-color-options{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:6px;
+}
+.ludo-agreement-dialog .ludo-duo-color-choice{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:5px;min-height:65px;padding:8px 4px;
+ border:1px solid #ffffff40;border-radius:12px;
+ background:#27405d;color:#f7f6ff;
+ font:800 11px/1.2 -apple-system,BlinkMacSystemFont,Arial,sans-serif;
+ cursor:pointer;box-shadow:none;
+}
+.ludo-agreement-dialog .ludo-duo-color-choice>span{
+ width:27px;height:27px;border-radius:50%;background:var(--pawn-choice);
+ border:2px solid #fff8ee;
+ box-shadow:inset -3px -4px 6px #00264475,0 2px 6px #0006;
+}
+.ludo-agreement-dialog .ludo-duo-color-blue{--pawn-choice:#18a9fb}
+.ludo-agreement-dialog .ludo-duo-color-red{--pawn-choice:#f43a50}
+.ludo-agreement-dialog .ludo-duo-color-green{--pawn-choice:#00b979}
+.ludo-agreement-dialog .ludo-duo-color-yellow{--pawn-choice:#ffda30}
+.ludo-agreement-dialog .ludo-duo-color-choice.is-selected{
+ border:2px solid #ffe286;
+ background:#345d86;
+ box-shadow:0 0 0 2px #ffdf633a;
+}
+.ludo-agreement-dialog .ludo-duo-color-choice:focus-visible{
+ outline:2px solid #ffe286;outline-offset:2px;
+}
+.ludo-agreement-dialog .ludo-duo-color-picker p{
+ margin:8px 1px 0;color:#bed5e8;font-size:11px;line-height:1.4;
+}
+.ludo-agreement-dialog .ludo-duo-color-picker:disabled{
+ opacity:.78;
+}
+@media(max-width:365px){
+ .ludo-agreement-dialog .ludo-duo-color-choice{min-height:57px;font-size:10px}
+ .ludo-agreement-dialog .ludo-duo-color-choice>span{width:23px;height:23px}
+}
