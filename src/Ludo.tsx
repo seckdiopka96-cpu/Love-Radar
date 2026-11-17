@@ -228,8 +228,12 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
     inFlight=false;
     // Check the partner's turns more often; reduce server load during ours.
     // Schedule AFTER the previous response, never overlap on mobile.
-    const waiting=prior.current?.turn!==mySeat;
-    const delay=waiting?280:550;
+    const current=prior.current;
+    // Game-over/pre-signature screens need occasional full metadata, not
+    // hundreds of unnecessary D1 queries per minute.
+    const delay=!activeDuoGame.current?700:
+     current?.status==="won"?1800:
+     current?.turn!==mySeat?250:650;
     if(!stopped&&document.visibilityState==="visible")timer=window.setTimeout(()=>{void poll()},delay);
    }
   };
