@@ -87,7 +87,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   const path=move.path;
   if(!path.length)return;
   setMotion({seat:move.seat,pawn:move.pawn,point:pointForPawn(move.seat,move.pawn,move.from),index:0,length:path.length});
-  const STEP_MS=move.from.zone==="base"?850:780,START_MS=530;
+  const STEP_MS=move.from.zone==="base"?900:920,START_MS=430;
   path.forEach((point,i)=>later(()=>{
    if(!loaded.current)return;
    setMotion({seat:move.seat,pawn:move.pawn,point,index:i+1,length:path.length});
