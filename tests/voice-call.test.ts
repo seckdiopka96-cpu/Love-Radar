@@ -55,39 +55,41 @@ test("YouTube co-watch also keeps its player, link editor and conversation on a 
  assert.ok(youtubeStyle.includes(".wt-page:has(.wt-link-line input:focus,.wt-chat-compose input:focus)"));
 });
 
-test("FaceTime-style call is audio-only with functional six-button controls and Love Radar styling",()=>{
+test("voice calling stays intact while HD video is added",()=>{
  const css=readFileSync("src/voice-call.css","utf8");
- assert.ok(call.includes('className="lr-call-sheet lr-call-facetime"'));
+ const videoCss=readFileSync("src/video-call.css","utf8");
+ assert.ok(call.includes('lr-call-sheet lr-call-facetime'));
  assert.ok(call.includes('className="lr-call-identity"'));
  assert.ok(call.includes('className="lr-call-initial"'));
- assert.ok(call.includes('className="lr-call-actions"')||call.includes('"lr-call-actions"+'));
+ assert.ok(call.includes('className={"lr-call-actions"'));
  for(const cls of ["lr-call-speaker","lr-call-mute","lr-call-chat","lr-call-more","lr-call-hangup","lr-call-keypad"]){
-  assert.ok(call.includes(cls),"Missing control "+cls);
+  assert.ok(call.includes(cls),"Missing audio control "+cls);
  }
- assert.ok(call.includes('onClick={selectSpeaker}'));
- assert.ok(call.includes('onClick={toggleMute}'));
- assert.ok(call.includes('onClick={minimizeAndWrite}'));
- assert.ok(call.includes('onClick={hangup}'));
- assert.ok(call.includes('onClick={()=>setCallPanel("more")}'));
- assert.ok(call.includes('onClick={()=>setCallPanel("keypad")}'));
- assert.ok(call.includes('onClick={()=>pressKey(key)}'));
- assert.ok(call.includes('onClick={()=>setCallPanel("info")}'));
- assert.ok(call.includes('onOpenChat()'));
- assert.ok(call.includes('setMinimized(true)'));
+ for(const cls of ["lr-call-camera","lr-call-flip","lr-call-video-stage","lr-call-mini-video","lr-video-trigger"]){
+  assert.ok(call.includes(cls),"Missing video element "+cls);
+ }
+ for(const marker of ["onClick={selectSpeaker}","onClick={toggleMute}","onClick={minimizeAndWrite}","onClick={hangup}","onOpenChat()","setMinimized(true)"]){
+  assert.ok(call.includes(marker),"Existing behavior lost: "+marker);
+ }
+ assert.ok(call.includes('start("audio")'));
+ assert.ok(call.includes('start("video")'));
  assert.ok(call.includes('video:false'));
- assert.ok(!call.includes('lr-call-video'));
+ assert.ok(call.includes('peer.addTransceiver("video"'));
+ assert.ok(call.includes('offerToReceiveVideo:call.mode==="video"'));
+ assert.ok(call.includes('sender.replaceTrack(track)'));
  assert.ok(css.includes('.lr-call-sheet.lr-call-facetime'));
  assert.ok(css.includes('height:100dvh'));
  assert.ok(css.includes('grid-template-columns:repeat(3,minmax(0,1fr))'));
- assert.ok(css.includes('background:#df264e'));
  assert.ok(css.includes('.lr-call-mini'));
+ assert.ok(videoCss.includes('.lr-call-video-stage'));
+ assert.ok(videoCss.includes('.lr-call-mini-video'));
 });
 
 test("call signaling and microphone initialize in parallel to reduce time before ringing",()=>{
- assert.ok(call.includes("const micTask=microphone()"));
- assert.ok(call.includes('const callTask=api("start")'));
+ assert.ok(call.includes("const micTask=microphone(mode)"));
+ assert.ok(call.includes('const callTask=api("start",{mode})'));
  assert.ok(call.includes("Promise.all([callTask,micTask])"));
- assert.ok(call.includes("Promise.all([microphone(),warmNetwork()])"));
+ assert.ok(call.includes("Promise.all([microphone(c.mode==="video"?"video":"audio"),warmNetwork()])"));
  assert.ok(call.includes('void api("end",{id:created.call.id})'));
  assert.ok(!call.includes('await microphone(); // Called immediately after the tap'));
  assert.ok(!call.includes('Love Radar audio'));
