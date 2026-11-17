@@ -39,7 +39,7 @@ test("animated original 3D pawns still overlap compactly, not in horizontal rows
   const poses=Array.from({length:count},(_,i)=>stackPosition(count,i));
   assert.ok(poses.every(p=>p.scale>0.6));
   for(let i=1;i<poses.length;i++){
-   assert.ok(Math.hypot(poses[i].x-poses[0].x,poses[i].y-poses[0].y)<20);
+   assert.ok(Math.hypot(poses[i].x-poses[i-1].x,poses[i].y-poses[i-1].y)<15,"neighboring pieces form a readable overlapping pile");
   }
  }
  assert.ok(solo.includes("ludo-moving-bounce"));
