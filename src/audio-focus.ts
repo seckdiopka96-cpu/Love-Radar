@@ -47,7 +47,8 @@ export function installAudioPlaybackGuard(){
  const onPlay=(event:Event)=>{
   const target=event.target;
   if(!(target instanceof HTMLMediaElement))return;
-  if(target.dataset.lrCallAudio==="true"){
+  // Only the call's own live previews are exempt from the playback guard.
+  if(target.dataset.lrCallAudio==="true"||target.dataset.lrCallVideo==="true"){
    if(mode!=="call")target.pause();
    return;
   }
