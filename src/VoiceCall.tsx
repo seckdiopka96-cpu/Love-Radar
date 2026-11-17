@@ -40,6 +40,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const [cameraBusy,setCameraBusy]=useState(false);
  const [cameraWarning,setCameraWarning]=useState("");
  const [remoteHasVideo,setRemoteHasVideo]=useState(false);
+ const [remoteVideoReady,setRemoteVideoReady]=useState(false);
  const [localPreviewReady,setLocalPreviewReady]=useState(false);
  const [localPreviewHelp,setLocalPreviewHelp]=useState("");
  const current=useRef<Call|null>(null);
@@ -51,6 +52,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const remoteVideo=useRef<HTMLVideoElement|null>(null);
  const localVideo=useRef<HTMLVideoElement|null>(null);
  const cameraSwitching=useRef(false);
+ const cancelPendingStart=useRef(false);
  const playLocalPreview=useCallback(async()=>{
   const element=localVideo.current;
   const track=local.current?.getVideoTracks().find(video=>video.readyState==="live");
@@ -187,7 +189,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(audioSession){try{audioSession.type="auto"}catch{/* Browser controls audio routing. */}}
   previousSinkId.current="";
   setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setSpeakerBusy(false);setMinimized(false);setCallPanel("none");setDialed("");
-  cameraSwitching.current=false;setCameraOff(false);setCameraFacing("user");setCameraBusy(false);setCameraWarning("");setRemoteHasVideo(false);setLocalPreviewReady(false);setLocalPreviewHelp("");
+  cameraSwitching.current=false;setCameraOff(false);setCameraFacing("user");setCameraBusy(false);setCameraWarning("");setRemoteHasVideo(false);setRemoteVideoReady(false);setLocalPreviewReady(false);setLocalPreviewHelp("");
  },[]);
  const reset=useCallback(()=>{
   const endedId=current.current?.id;
@@ -402,10 +404,11 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   try{stream=await navigator.mediaDevices.getUserMedia({audio,video})}
   catch(err){
    if(mode!=="video")throw err;
-   // When camera permission is denied, voice still works and video stays private.
-   stream=await navigator.mediaDevices.getUserMedia({audio,video:false});
-   setCameraOff(true);
-   setCameraWarning("Caméra indisponible. L’appel continue avec le micro uniquement.");
+   // Safari can reject optional HD constraints: retry with basic video.
+   // Never silently ring with audio-only when the caller expects video.
+   try{stream=await navigator.mediaDevices.getUserMedia({audio,video:true})}
+   catch{throw Error("Caméra indisponible. Autorise la caméra pour Love Radar dans les réglages de ton iPhone, puis réessaie.")}
+   setCameraWarning("");
   }
   local.current=stream;
   if(localVideo.current)void playLocalPreview();
@@ -413,17 +416,31 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(audioSession){try{audioSession.type="play-and-record"}catch{/* Unsupported session type. */}}
  }
  async function start(mode:"audio"|"video"="audio"){
-  if(busy||current.current||!hasPartner)return;
+  if(busy||starting.current||current.current||!hasPartner)return;
   claimCallAudio();
-  setBusy(true);starting.current=true;setError("");
-  // iOS getUserMedia begins in the user gesture; signaling starts in parallel
-  // rather than waiting for the microphone permission/initialization.
+  cancelPendingStart.current=false;
+  setBusy(true);starting.current=true;setError("");setCameraWarning("");
+  // iOS camera permission must start in the user gesture, not after signaling.
   const micTask=microphone(mode);
+  if(mode==="video"){
+   setLocalPreviewReady(false);
+   setActive({id:"preparing-video",status:"ringing",direction:"outgoing",mode:"video",
+    createdAt:Date.now(),updatedAt:Date.now(),expiresAt:Date.now()+60000});
+   setPhase("Ouverture de la caméra…");
+  }
   const callTask=api("start",{mode});
-  const networkTask=warmNetwork(); // Ring immediately; ensure fresh TURN credentials before creating the peer.
+  const networkTask=warmNetwork();
   try{
    const [result]=await Promise.all([callTask,micTask]);
+   if(cancelPendingStart.current){
+    if(result.call?.direction==="outgoing")void api("end",{id:result.call.id}).catch(()=>{});
+    reset();return;
+   }
    await networkTask;
+   if(cancelPendingStart.current){
+    if(result.call?.direction==="outgoing")void api("end",{id:result.call.id}).catch(()=>{});
+    reset();return;
+   }
    if(!result.call)throw Error("Appel non créé.");
    if(result.call.direction==="incoming"){
     local.current?.getTracks().forEach(track=>track.stop());
@@ -441,7 +458,8 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
     suppressed.current=created.call.id;
     void api("end",{id:created.call.id}).catch(()=>{});
    }
-   reset();setError(err instanceof Error?err.message:"Impossible d’appeler.");
+   reset();
+   if(!cancelPendingStart.current)setError(err instanceof Error?err.message:"Impossible d’appeler.");
   }finally{starting.current=false;setBusy(false)}
  }
  async function accept(){
@@ -491,6 +509,9 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  },[active?.id,active?.status,active?.direction]);
  async function hangup(){
   const c=current.current;
+  if(!c&&starting.current){
+   cancelPendingStart.current=true;setActive(null);clearAudio();return;
+  }
   if(!c||busy)return;
   suppressed.current=c.id;
   const action=c.status==="ringing"&&c.direction==="incoming"?"decline":"end";
@@ -716,7 +737,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
        <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></span>
        <span className="lr-call-control-label">Plus</span>
       </button>
-      <button type="button" className="lr-call-action lr-call-decline lr-call-hangup" onClick={hangup} aria-label="Raccrocher" disabled={busy}>
+      <button type="button" className="lr-call-action lr-call-decline lr-call-hangup" onClick={hangup} aria-label="Raccrocher" disabled={busy&&!starting.current}>
        <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" aria-hidden="true"><path d="M3 17.5c5.4-4.7 12.6-4.7 18 0M5 17.5V21M19 17.5V21"/></svg></span>
        <span className="lr-call-control-label">Raccrocher</span>
       </button>
