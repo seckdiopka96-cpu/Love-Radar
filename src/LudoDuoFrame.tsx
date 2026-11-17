@@ -4,7 +4,7 @@ import "./ludo-duo-frame.css";
 type DuoColor="blue"|"red"|"green"|"yellow";
 type DuoGameSnapshot={
  id:string;version:number;turn:number;dice:number|null;
- positions:number[][];status:"playing"|"won";winner:number|null;
+ positions:number[][];status:"playing"|"won";winner:number|null;autoCounts:[number,number];
  lastAction:string;deadlineAt:number|null;
 };
 type Motion={seat:number;pawn:number;progress:number;from:number;to:number};
