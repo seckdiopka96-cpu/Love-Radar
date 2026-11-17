@@ -433,7 +433,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    <button type="button" className="ludo-leave" onClick={()=>setMenu(true)} aria-label="Quitter ou abandonner la partie">
     <span aria-hidden="true">‹</span> Quitter
    </button>
-   <div className="ludo-brand"><strong>LUDO <span>♥</span> DUO</strong><small>ARÈNE PRIVÉE · DEUX JOUEURS</small></div>
+   <div className="ludo-brand"><img className="ludo-head-logo" src="/ludo-mark.svg" alt="Logo Ludo"/><strong>LUDO <span>♥</span> DUO</strong><small>ARÈNE PRIVÉE · DEUX JOUEURS</small></div>
    <div className="ludo-top-actions">
     <button type="button" className="ludo-sound" onClick={toggleSound} aria-label={soundOn?"Couper les sons du jeu":"Activer les sons du jeu"} aria-pressed={soundOn}>{soundOn?"🔊":"🔇"}</button>
     <button type="button" className={"ludo-gift-shortcut"+(giftAgreed?" agreed":"")} onClick={()=>setGiftOpen(true)} aria-label="Défi cadeau facultatif" title="Défi cadeau">🎁</button>
