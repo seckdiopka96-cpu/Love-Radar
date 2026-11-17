@@ -1,47 +1,57 @@
 import {useId} from "react";
 
-/**
- * An original, polished 3D-style Ludo peg. A single silhouette is easier to
- * recognize on mobile than a flat numbered disc. Each SVG owns its gradients
- * so red and gold pieces never accidentally share a paint definition.
- */
+/** Original high-density vector map-pin pawn with a bright pearl shell.
+ * The existing CSS color variables preserve each seat and every game rule.
+ * No bitmap assets: remains crisp on Retina and while animated/stacked. */
 export default function PawnShape({index}:{index:number}){
  const uid=useId().replace(/:/g,"");
- const head=uid+"-ludo-head",body=uid+"-ludo-body",base=uid+"-ludo-base";
- return <svg className="ludo-token-art" viewBox="0 0 48 62" focusable="false" aria-hidden="true" data-pawn={index+1}>
+ const rim=uid+"-rim",orb=uid+"-orb",foot=uid+"-foot",metal=uid+"-metal";
+ return <svg className="ludo-token-art" viewBox="0 0 52 70" aria-hidden="true" focusable="false" data-pawn={index+1}>
   <defs>
-   <radialGradient id={head} cx="28%" cy="17%" r="82%">
+   <linearGradient id={metal} x1="9%" y1="8%" x2="88%" y2="95%">
     <stop offset="0%" stopColor="#ffffff"/>
-    <stop offset="12%" stopColor="var(--pawn-light)"/>
-    <stop offset="53%" stopColor="var(--pawn-mid)"/>
-    <stop offset="86%" stopColor="var(--pawn-mid)"/>
+    <stop offset="21%" stopColor="#f8fcff"/>
+    <stop offset="49%" stopColor="#bccbd4"/>
+    <stop offset="74%" stopColor="#fff"/>
+    <stop offset="100%" stopColor="#798b9d"/>
+   </linearGradient>
+   <linearGradient id={rim} x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stopColor="#fff"/>
+    <stop offset="36%" stopColor="#c7d6e1"/>
+    <stop offset="68%" stopColor="#6e7f93"/>
+    <stop offset="100%" stopColor="#f5fcff"/>
+   </linearGradient>
+   <radialGradient id={orb} cx="30%" cy="23%" r="74%">
+    <stop offset="0%" stopColor="#ffffff"/>
+    <stop offset="15%" stopColor="var(--pawn-light)"/>
+    <stop offset="55%" stopColor="var(--pawn-mid)"/>
+    <stop offset="88%" stopColor="var(--pawn-mid)"/>
     <stop offset="100%" stopColor="var(--pawn-dark)"/>
    </radialGradient>
-   <linearGradient id={body} x1="0%" y1="12%" x2="100%" y2="75%">
-    <stop offset="0%" stopColor="var(--pawn-dark)"/>
-    <stop offset="19%" stopColor="var(--pawn-mid)"/>
-    <stop offset="46%" stopColor="var(--pawn-light)"/>
-    <stop offset="74%" stopColor="var(--pawn-mid)"/>
-    <stop offset="100%" stopColor="var(--pawn-dark)"/>
-   </linearGradient>
-   <linearGradient id={base} x1="0%" y1="0%" x2="0%" y2="100%">
+   <linearGradient id={foot} x1="5%" y1="4%" x2="92%" y2="94%">
     <stop offset="0%" stopColor="var(--pawn-light)"/>
-    <stop offset="42%" stopColor="var(--pawn-mid)"/>
+    <stop offset="48%" stopColor="var(--pawn-mid)"/>
     <stop offset="100%" stopColor="var(--pawn-dark)"/>
    </linearGradient>
   </defs>
-  <ellipse cx="24" cy="56.5" rx="17.6" ry="3.7" fill="#1e1724" opacity=".22"/>
-  <path d="M19 29.5 C19 34.5 17.8 37.2 14.5 41.3 C12.2 44.2 9.7 47.3 9.7 50.6 C9.7 55 38.3 55 38.3 50.6 C38.3 47.3 35.8 44.2 33.5 41.3 C30.2 37.2 29 34.5 29 29.5 Z"
-    fill={`url(#${body})`} stroke="var(--pawn-dark)" strokeWidth="1.25" strokeLinejoin="round"/>
-  <path d="M10 50.2 C13 47.1 35 47.1 38 50.2 L38 52.3 C34.8 57.2 13.2 57.2 10 52.3 Z"
-    fill={`url(#${base})`} stroke="var(--pawn-dark)" strokeWidth="1.1"/>
-  <ellipse cx="24" cy="50.1" rx="14.2" ry="4" fill={`url(#${base})`} stroke="var(--pawn-dark)" strokeWidth=".8"/>
-  <path d="M17.2 42 C19.5 40 20.6 36 20.6 32.5" fill="none" stroke="#ffffff" strokeOpacity=".38" strokeWidth="2.3" strokeLinecap="round"/>
-  <ellipse cx="24" cy="30.7" rx="7.5" ry="3.5" fill="var(--pawn-dark)" opacity=".24"/>
-  <circle cx="24" cy="17.3" r="12.9" fill={`url(#${head})`} stroke="var(--pawn-dark)" strokeWidth="1.2"/>
-  <path d="M15.5 12.2 C17.4 8.2 20.8 6.5 24.7 6.4" fill="none" stroke="#ffffff" strokeOpacity=".83" strokeWidth="2.4" strokeLinecap="round"/>
-  <ellipse cx="31.7" cy="22.4" rx="2.2" ry="3.1" fill="var(--pawn-dark)" opacity=".11" transform="rotate(-28 31.7 22.4)"/>
-  <ellipse cx="20.6" cy="15.6" rx="1.65" ry="2.7" fill="#ffffff" opacity=".43" transform="rotate(32 20.6 15.6)"/>
+  <ellipse className="ludo-pawn-shadow" cx="26" cy="65.3" rx="21" ry="4.4" fill="#06152b" opacity=".24"/>
+  <ellipse cx="26" cy="59" rx="17.7" ry="8.8" fill={"url(#"+foot+")"} stroke="var(--pawn-dark)" strokeWidth="2"/>
+  <ellipse cx="26" cy="56.4" rx="15" ry="6.5" fill="#fff" opacity=".92"/>
+  <ellipse cx="26" cy="55.9" rx="11.6" ry="4.3" fill={"url(#"+foot+")"} opacity=".96"/>
+  <path className="ludo-pawn-foot" d="M9.8 58.7c1.8 6.8 30.6 7.1 32.4 0" fill="none" stroke="var(--pawn-dark)" strokeWidth="2" opacity=".8"/>
+  <path className="ludo-pawn-stem" d="M26 2.6C13.3 2.6 4.3 11.8 4.3 24.1c0 7.4 4.7 14.5 10.5 21.6l8.5 10.6c1.3 1.7 4.1 1.7 5.4 0l8.5-10.6c5.8-7.1 10.5-14.2 10.5-21.6C47.7 11.8 38.7 2.6 26 2.6z"
+   fill={"url(#"+metal+")"} stroke="#394b5e" strokeWidth="2.35" strokeLinejoin="round"/>
+  <path d="M8.5 25c.4 9.1 9.1 18.7 17.5 29.7C16.1 34.1 11.6 23.7 17 11.2c-4.7 2.3-8.7 7.6-8.5 13.8z"
+   fill="#ffffff" opacity=".8"/>
+  <path d="M42.2 24c0 11.4-9.8 23.5-16.2 30.7 14.3-17.6 16.3-30.3 9.7-42.2 4.4 3.7 6.5 6.6 6.5 11.5z"
+   fill="#687e90" opacity=".33"/>
+  <circle className="ludo-pawn-head" cx="26" cy="24" r="16.5"
+   fill={"url(#"+rim+")"} stroke="#40596c" strokeWidth="1.2"/>
+  <circle cx="26" cy="23.6" r="13.4" fill={"url(#"+orb+")"}
+   stroke="var(--pawn-dark)" strokeWidth="1.3"/>
+  <path className="ludo-pawn-shine" d="M15.4 18.2C17.9 13.1 22.2 10.9 26.5 11.1"
+   fill="none" stroke="#fff" strokeOpacity=".93" strokeWidth="2.6" strokeLinecap="round"/>
+  <ellipse cx="20.7" cy="16.4" rx="2.9" ry="4.1" transform="rotate(33 20.7 16.4)" fill="#fff" opacity=".3"/>
+  <path d="M34.1 31.2c-4.6 4.5-12.3 5.6-18.4 1.1" fill="none" stroke="#071d33" strokeOpacity=".12" strokeWidth="2" strokeLinecap="round"/>
  </svg>;
 }
-
