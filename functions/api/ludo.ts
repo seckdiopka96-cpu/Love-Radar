@@ -39,7 +39,8 @@ async function ensureTable(db:D1Database){
    "CREATE TABLE IF NOT EXISTS ludo_gifts (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, consent_0 INTEGER NOT NULL DEFAULT 0, consent_1 INTEGER NOT NULL DEFAULT 0, choice TEXT, chosen_by INTEGER, given INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL);"+
    "CREATE TABLE IF NOT EXISTS ludo_agreements (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, signed_0_name TEXT, signed_1_name TEXT, signed_0_at INTEGER, signed_1_at INTEGER, gift_0 INTEGER, gift_1 INTEGER, started_at INTEGER, updated_at INTEGER NOT NULL);"+
    "CREATE TABLE IF NOT EXISTS ludo_challenges (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, from_id TEXT NOT NULL, from_name TEXT NOT NULL, sent_at INTEGER NOT NULL);"+
-   "CREATE TABLE IF NOT EXISTS ludo_palette (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, seat0_color TEXT NOT NULL DEFAULT 'blue', chosen_by INTEGER, updated_at INTEGER NOT NULL)" ).then(()=>{}).catch(e=>{ready=null;throw e});
+   "CREATE TABLE IF NOT EXISTS ludo_palette (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, seat0_color TEXT NOT NULL DEFAULT 'blue', chosen_by INTEGER, updated_at INTEGER NOT NULL);"+
+   "CREATE TABLE IF NOT EXISTS ludo_last_rolls (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, seat INTEGER NOT NULL, face INTEGER NOT NULL, updated_at INTEGER NOT NULL)" ).then(()=>{}).catch(e=>{ready=null;throw e});
  }
  await ready;
 }
@@ -68,6 +69,16 @@ async function createIfMissing(db:D1Database,room:string){
   .bind(room,crypto.randomUUID(),JSON.stringify(initial()),"La partie est prête !",Date.now()).run();
 }
 const movable=(progress:number,dice:number)=>progress===-1?dice===6:progress>=0&&progress<57&&progress+dice<=57;
+async function rememberLastRoll(db:D1Database,g:Game,seat:number,face:number){
+ await db.prepare("INSERT INTO ludo_last_rolls(room_id,game_id,seat,face,updated_at) VALUES(?,?,?,?,?) "+
+ "ON CONFLICT(room_id) DO UPDATE SET game_id=excluded.game_id,seat=excluded.seat,face=excluded.face,updated_at=excluded.updated_at")
+ .bind(g.room_id,g.game_id,seat,face,Date.now()).run();
+}
+async function getLastRoll(db:D1Database,g:Game){
+ const row=await db.prepare("SELECT seat,face FROM ludo_last_rolls WHERE room_id=? AND game_id=?")
+  .bind(g.room_id,g.game_id).first<{seat:number;face:number}>();
+ return row&&row.face>=1&&row.face<=6?{seat:row.seat,face:row.face}:null;
+}
 function die(){
  const byte=new Uint8Array(1);
  do{crypto.getRandomValues(byte)}while(byte[0]>=252);
@@ -245,7 +256,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    reaction:members===2?await reaction(db,player.room_id):null,
    reactions:g?await recentReactions(db,player.room_id,g.game_id):[],
    moveEvent:g?await lastMoveEvent(db,player.room_id,g.game_id):null,
-   gift:g?await gift(db,g):null,agreement:signed,palette:g?await palette(db,g):null,challenge:g?await challenge(db,g):null,serverNow:Date.now()});
+   gift:g?await gift(db,g):null,agreement:signed,palette:g?await palette(db,g):null,lastRoll:g?await getLastRoll(db,g):null,challenge:g?await challenge(db,g):null,serverNow:Date.now()});
   const text=await ctx.request.text();
   if(text.length>1024)return fail("Requête trop grande.",413);
   let data:Record<string,unknown>;
@@ -334,6 +345,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   if(!Number.isInteger(data.version)||data.version!==g.version)return fail("La partie a changé. Actualise le plateau.",409);
   const name=player.name.slice(0,30);
   let completedMove:MoveEvent|null=null;
+  let thrownFace:number|null=null;
   if(action==="forfeit"){
    if(g.status!=="playing")return fail("La partie est déjà terminée.",409);
    g.status="won";g.winner=1-player.seat;g.turn=1-player.seat;g.dice=null;g.streak=0;
@@ -344,6 +356,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    g.turn=g.winner===0?1:0;
    g.dice=null;g.positions=initial();g.status="playing";g.winner=null;g.streak=0;
    g.last_action="Nouvelle partie à deux !";
+   await db.prepare("DELETE FROM ludo_last_rolls WHERE room_id=?").bind(player.room_id).run();
    await db.prepare("DELETE FROM ludo_reactions WHERE room_id=?").bind(player.room_id).run();
   }else{
    if(g.status!=="playing")return fail("La partie est terminée.",409);
@@ -351,6 +364,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    if(action==="roll"){
     if(g.dice!==null)return fail("Déplace d'abord ton pion.",409);
     const roll=die();
+    thrownFace=roll;
     if(roll===6&&g.streak>=2){
      g.dice=null;g.turn=1-player.seat;g.streak=0;
      g.last_action=name+" : troisième 6 consécutif, tour passé.";
@@ -407,6 +421,8 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   }
   if(!await save(db,g))return fail("Ton partenaire a joué entre-temps. Plateau actualisé.",409);
   const updated=await getGame(db,player.room_id);
+  // Keep the server's actual die result even after the move clears dice.
+  if(thrownFace!==null&&updated)await rememberLastRoll(db,updated,player.seat,thrownFace);
   if(completedMove&&updated&&updated.version===completedMove.version){
    try{
     await db.prepare("INSERT INTO ludo_move_events(room_id,game_id,version,seat,pawn,from_progress,to_progress,captures_json,updated_at) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(room_id) DO UPDATE SET game_id=excluded.game_id,version=excluded.version,seat=excluded.seat,pawn=excluded.pawn,from_progress=excluded.from_progress,to_progress=excluded.to_progress,captures_json=excluded.captures_json,updated_at=excluded.updated_at")
@@ -429,7 +445,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   return reply({ok:true,members,seat:player.seat,game:updated?publicGame(updated,nextAgreement):null,
    moveEvent:updated?await lastMoveEvent(db,player.room_id,updated.game_id):null,
    reactions:updated?await recentReactions(db,player.room_id,updated.game_id):[],
-   gift:updated?await gift(db,updated):null,agreement:nextAgreement,palette:updated?await palette(db,updated):null,challenge:updated?await challenge(db,updated):null,serverNow:Date.now()});
+   gift:updated?await gift(db,updated):null,agreement:nextAgreement,palette:updated?await palette(db,updated):null,lastRoll:updated?await getLastRoll(db,updated):null,challenge:updated?await challenge(db,updated):null,serverNow:Date.now()});
  }catch(e){console.error("Love Radar Ludo",e);return fail("Le jeu est temporairement indisponible.",500)}
 }
 export const onRequestGet=(ctx:Ctx)=>handle(ctx,"GET");
