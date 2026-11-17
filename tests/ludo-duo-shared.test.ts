@@ -119,3 +119,33 @@ test("live Duo synchronizes promptly with conditional server reads",()=>{
 
  assert.ok(server.includes('at:row.at'),"dice results keep unique timestamp");
 });
+
+test("both players show the real app profile photos throughout Ludo Duo",()=>{
+ const app=readFileSync("src/App.tsx","utf8");
+ const css=readFileSync("public/ludo-duo/style.css","utf8");
+ const hook=readFileSync("src/use-profile-avatars.ts","utf8");
+ assert.ok(app.includes("myAvatar={avatars.mine} partnerAvatar={avatars.partner}"),
+  "use the authenticated private profile pictures already loaded in the parent app");
+ assert.ok(parent.includes("myAvatar={myAvatar} partnerAvatar={partnerAvatar}"),
+  "Duo forwards both photos to the modern board");
+ assert.ok(bridge.includes('myAvatar:props.myAvatar||""'));
+ assert.ok(bridge.includes('partnerAvatar:props.partnerAvatar||""'));
+ assert.ok(bridge.includes("props.myAvatar,props.partnerAvatar"),
+  "photo changes are sent to the open board without leaving the game");
+ assert.ok(duoHTML.includes('class="duo-profile-photo" alt="" hidden'),
+  "both player slots need a photo and a safe fallback");
+ assert.equal((duoHTML.match(/class="duo-profile-photo" alt="" hidden/g)||[]).length,2);
+ assert.ok(duoJS.includes('renderProfilePhoto(".player--human",state.myAvatar)'));
+ assert.ok(duoJS.includes('renderProfilePhoto(".player--cpu",state.partnerAvatar)'));
+ assert.ok(duoJS.includes('src.startsWith("blob:"+location.origin+"/")'),
+  "only private same-origin object URLs are passed from parent to child");
+ assert.ok(duoJS.includes('picture.dataset.photoUrl===next'),
+  "periodic multiplayer refresh must not reload the avatar on each poll");
+ assert.ok(duoJS.includes("picture.onload="));
+ assert.ok(duoJS.includes("picture.onerror="),"broken or removed photos show their original placeholders");
+ assert.ok(css.includes(".avatar.has-photo .avatar-fallback"));
+ assert.ok(css.includes("object-fit:cover"));
+ assert.ok(hook.includes('URL.createObjectURL(blob)'),
+  "do not fetch private media again or expose authentication tokens in the iframe");
+ assert.ok(!duoJS.includes("Authorization"));
+});
