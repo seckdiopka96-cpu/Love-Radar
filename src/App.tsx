@@ -52,7 +52,7 @@ import QuoteCard from "./QuoteCard";
 import {quoteAuthor,type QuoteKind} from "./message-quote";
 import {mergeOptimisticMessages,shouldKeepVoiceDraft,type AudioOutboxStatus} from "./voice-outbox";
 import {formatPartnerLastSeen} from "./last-seen";
-import {receiptState,receiptGlyph,receiptAccessibleLabel} from "./message-delivery";
+import {receiptState,receiptGlyph,receiptDisplayLabel,receiptAccessibleLabel} from "./message-delivery";
 import "./redesign.css";
 import "./redesign-features.css";
 import "./chat-stability.css";
@@ -76,6 +76,7 @@ import "./voice-alignment.css";
 import "./premium-design-polish.css";
 import "./call-history.css";
 import "./message-context-premium.css";
+import "./delivery-status-ui.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "rps" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
@@ -1816,7 +1817,7 @@ export default function LoveRadar(){
   if(chatFocused||chatAtBottomRef.current)scrollToLatest();
  },[tab,partnerActivityKind,chatFocused,scrollToLatest]);
  const images=room?.messages.filter(m=>m.kind==="image"&&!m.view_once)||[];
- const lastOwnMessage=[...chatMessages].reverse().find(m=>m.sender_id===room?.user.id&&!voiceOutbox.some(v=>v.id===m.id&&v.status!=="sent")&&!textOutbox.some(v=>v.id===m.id));
+ // Each outgoing message displays its own receipt, not just the most recent one.
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
  return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
@@ -1855,7 +1856,10 @@ export default function LoveRadar(){
    <span className="lr-push-toast-x" aria-hidden="true">×</span>
   </div>:null}
   {error&&room?<div className="lr-error" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
-  {initializing?<main className="lr-loading">Un petit moment de magie… 💕</main>:!room&&token&&!recoverMode?
+  {initializing?<main className="lr-loading">
+    <span className="lr-loading-message">Un petit moment de magie… 💕</span>
+    <div className="lr-loading-credit">Créé par <strong>Diao-Tech.com</strong></div>
+   </main>:!room&&token&&!recoverMode?
    <main className="lr-auth lr-auth-simple">
     <section className="lr-auth-story" aria-label="Reconnexion à votre espace">
      <span className="lr-auth-heart" aria-hidden="true">♥</span>
@@ -2053,7 +2057,7 @@ export default function LoveRadar(){
           media[m.id]?<VoiceMessage id={m.id} src={media[m.id]} mine={mine} time={time}
            avatarSrc={mine?avatars.mine:avatars.partner} avatarName={mine?room.user.name:partner}
            onOpenProfile={mine?()=>navigate("settings"):()=>setPartnerPhotoOpen(true)}
-           delivery={mine&&m.id===lastOwnMessage?.id?delivery:undefined}
+           delivery={mine&&voiceOutbox.every(v=>v.id!==m.id||v.status==="sent")?delivery:undefined}
            speed={voiceSpeed} onSpeedChange={setVoiceSpeed}
            autoPlay={nextAutoVoiceId===m.id}
            onAutoPlayConsumed={()=>setNextAutoVoiceId(null)}
@@ -2073,14 +2077,17 @@ export default function LoveRadar(){
             aria-label={"Réaction "+reaction.emoji+" de "+quoteAuthor(reaction.member_id,room.user.id,partner)}
             onClick={()=>void reactToMessage(m,reaction.emoji)}>{reaction.emoji}</button>)}
           </div>:null}
-          {m.kind==="text"&&textOutbox.some(v=>v.id===m.id)?<div className={"lr-text-send-state "+(textOutbox.find(v=>v.id===m.id)?.status||"sending")} role="status">
+          {m.kind==="text"&&textOutbox.some(v=>v.id===m.id&&v.status!=="sent")?<div className={"lr-text-send-state "+(textOutbox.find(v=>v.id===m.id)?.status||"sending")} role="status">
            {textOutbox.find(v=>v.id===m.id)?.status==="failed"?<>
             <span>{textOutbox.find(v=>v.id===m.id)?.retryable?"Connexion instable · nouvelle tentative automatique":"Échec de l’envoi"}</span>
             <button type="button" aria-label="Réessayer l’envoi du message" onClick={()=>{const entry=textOutbox.find(v=>v.id===m.id);if(entry)void sendQueuedText(entry)}}>Réessayer</button>
            </>:<span>{textOutbox.find(v=>v.id===m.id)?.status==="sent"?"✓":"◌ Envoi…"}</span>}
           </div>:null}
           {!groupedAfter&&m.kind!=="audio"?<time className="lr-message-time" dateTime={new Date(m.created_at).toISOString()}>{time}{m.edited_at?<span className="lr-edited-label"> · modifié</span>:null}</time>:null}
-          {mine&&m.kind!=="audio"&&m.id===lastOwnMessage?.id?<span className={"lr-read-receipt "+(delivery==="read"?"is-read":"")} aria-label={receiptAccessibleLabel(delivery)}>{receiptGlyph(delivery)}</span>:null}
+          {mine&&m.kind!=="audio"&&textOutbox.every(v=>v.id!==m.id||v.status==="sent")?
+            <span className={"lr-read-receipt lr-message-delivery-state "+(delivery==="read"?"is-read":delivery==="delivered"?"is-delivered":"is-sent")} aria-label={receiptAccessibleLabel(delivery)} title={receiptAccessibleLabel(delivery)}>
+             <span className="lr-receipt-ticks" aria-hidden="true">{receiptGlyph(delivery)}</span><span className="lr-receipt-word">{receiptDisplayLabel(delivery)}</span>
+            </span>:null}
          </div>
         </div>
        </Fragment>
