@@ -267,6 +267,7 @@
   if(!state?.game)return;
   const g=state.game,colors=state.palette.colors;
   app.dataset.player=colors[state.mySeat];
+  app.dataset.diceColor=colors[g.turn];
   app.dataset.computer=colors[1-state.mySeat];
   const me=color(state.mySeat),other=color(1-state.mySeat);
   // Label the two occupied houses, leave the other two empty.
@@ -306,7 +307,7 @@
   const previousValue=/(?:lanc[eé]\s+un\s+|Dé\s*:\s*)([1-6])/.exec(g.lastAction||"");
   const diceValue=g.dice??last?.face??(previousValue?Number(previousValue[1]):1);
   dice.dataset.face=String(diceValue);
-  dice.dataset.side=(last?.seat??g.turn)===state.mySeat?"human":"cpu";
+  dice.dataset.side=g.turn===state.mySeat?"human":"cpu";
   dieResult.textContent=rollingNow?"·":String(diceValue);
   dieResult.value=rollingNow?"":String(diceValue);
   dieResult.setAttribute("aria-label",rollingNow?"Le dé tourne":"Dernier lancer : "+diceValue);
