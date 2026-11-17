@@ -99,6 +99,31 @@ test("a declined call is not misreported as a completed conversation",async()=>{
  assert.equal(result.data.calls[0].durationSeconds,0);
  sqlite.close();
 });
+test("video call intent persists to both partners and call history without affecting voice calls",async()=>{
+ const {sqlite,invoke}=setup();
+ const bad=await invoke("POST","a",{action:"start",mode:"screen-share"});
+ assert.equal(bad.status,400);
+ const launched=await invoke("POST","a",{action:"start",mode:"video"});
+ assert.equal(launched.status,200);
+ assert.equal(launched.data.call.mode,"video");
+ const id=launched.data.call.id;
+ const callee=await invoke("GET","b");
+ assert.equal(callee.data.call.mode,"video");
+ assert.equal(callee.data.call.direction,"incoming");
+ const collision=await invoke("POST","b",{action:"start",mode:"audio"});
+ assert.equal(collision.data.call.id,id);
+ assert.equal(collision.data.call.mode,"video");
+ assert.equal((await invoke("POST","b",{action:"accept",id})).status,200);
+ const history=await invoke("GET","a",undefined,true);
+ assert.equal(history.data.calls[0].mode,"video");
+ assert.equal((await invoke("POST","a",{action:"end",id})).status,200);
+ const voice=await invoke("POST","a",{action:"start",mode:"audio"});
+ assert.equal(voice.status,200);
+ assert.equal(voice.data.call.mode,"audio");
+ assert.notEqual(voice.data.call.id,id);
+ sqlite.close();
+});
+
 test("chat mixes call bubbles with messages and preserves current voice call controls",()=>{
  const app=readFileSync("src/App.tsx","utf8");
  const api=readFileSync("functions/api/call.ts","utf8");
