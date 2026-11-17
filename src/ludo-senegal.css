@@ -110,3 +110,49 @@
 /* Keep the Senegal Ludo board clean while preserving its essential move choices. */
 .ludo-senegal .ludo-last-move,
 .ludo-senegal .ludo-senegal-step{display:none!important}
+
+
+/* Separate personalities, shared Senegalese game rules and routes. */
+.ludo-experience.ludo-senegal-solo{
+ background:radial-gradient(circle at 48% 31%,#c68b435c,transparent 62%),
+ linear-gradient(166deg,#5c2d38,#2f2334 62%,#6b4433)!important;
+ border-color:#e6b77e
+}
+.ludo-senegal-solo .ludo-brand strong>span{filter:drop-shadow(0 2px 4px #0009)}
+.ludo-senegal-solo .ludo-players{filter:drop-shadow(0 5px 6px #150a21bc)}
+.ludo-senegal-solo .ludo-turn-banner{
+ background:linear-gradient(110deg,#81464a,#704943)!important;
+ border-color:#e8bd85!important
+}
+.ludo-senegal-solo .ludo-board-wrap-immersive{
+ border-color:#ffdf9a!important;
+ box-shadow:0 18px 36px #1b0922dd,0 0 0 2px #e6b96c9a,0 0 25px #e5b76451!important
+}
+.ludo-senegal-solo .ludo-main-action:not(:disabled){
+ background:linear-gradient(110deg,#ce584b,#e1a343 75%,#f2cd70)!important
+}
+.ludo-experience.ludo-senegal-duo{
+ background:radial-gradient(circle at 45% 27%,#14b68b3f,transparent 58%),
+ linear-gradient(166deg,#153f45,#172b43 61%,#174f50)!important;
+ border-color:#81e4b6
+}
+.ludo-senegal-duo .ludo-topbar{border-bottom:1px solid #7de1be66}
+.ludo-senegal-duo .ludo-player{border-color:#6ecdaa85;background:linear-gradient(140deg,#244d55,#292b4b)}
+.ludo-senegal-duo .ludo-player.is-active{box-shadow:inset 0 0 0 1px #e8d38c,0 0 10px #5acc9e69}
+.ludo-senegal-duo .ludo-turn-banner{
+ background:linear-gradient(110deg,#175d59,#324f64)!important;border-color:#90dba8!important
+}
+.ludo-senegal-duo .ludo-board-wrap-immersive{
+ border-color:#a5efd5!important;
+ box-shadow:0 19px 39px #041b26e3,0 0 0 2px #a4e9cf9e,0 0 30px #51bfad4a!important
+}
+.ludo-senegal-duo .ludo-main-action:not(:disabled){
+ background:linear-gradient(110deg,#169267,#278b83 55%,#59b3a4)!important
+}
+.ludo-senegal .ludo-star{
+ color:#36425a!important;text-shadow:0 1px #fff9e0,0 0 4px #f8d47a!important;
+ -webkit-text-stroke:.2px #38425b
+}
+.ludo-senegal .ludo-moving-pawn .ludo-moving-bounce{
+ filter:drop-shadow(0 11px 8px #071225d9) drop-shadow(0 4px 5px #051228bc)!important
+}
