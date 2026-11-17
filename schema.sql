@@ -219,3 +219,9 @@ CREATE TABLE IF NOT EXISTS ludo_palette (
  room_id TEXT PRIMARY KEY,game_id TEXT NOT NULL,seat0_color TEXT NOT NULL DEFAULT 'blue',
  chosen_by INTEGER,updated_at INTEGER NOT NULL
 );
+
+-- Persistent last real server die result for the Duo, shared on both phones.
+CREATE TABLE IF NOT EXISTS ludo_last_rolls (
+ room_id TEXT PRIMARY KEY,game_id TEXT NOT NULL,seat INTEGER NOT NULL,
+ face INTEGER NOT NULL,updated_at INTEGER NOT NULL
+);
