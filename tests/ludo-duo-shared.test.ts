@@ -113,6 +113,7 @@ test("live Duo synchronizes promptly with conditional server reads",()=>{
  assert.ok(server.includes('const [moveEvent,lastRoll]=await Promise.all(['),"fetch motion and die state together");
  assert.ok(server.includes('updated.status==="playing"&&(action==="roll"||action==="move")'),"do not delay real rolls with secondary metadata");
  assert.ok(server.includes('if(updated&&action==="restart")'),"do not bootstrap tables on every roll");
+ assert.ok(server.includes("if(!signed.startedAt)"),"read-only signed games skip redundant pre-action upserts");
  assert.ok(server.includes('const [members,existingGame]=await Promise.all(['),"parallelize independent room and game reads");
  assert.ok(server.includes("rollAndChallenge"),"cap simultaneous D1 read connections");
 
