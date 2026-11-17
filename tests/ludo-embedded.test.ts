@@ -54,8 +54,8 @@ test("real classic rules, computer opponent and scoped save stay available",()=>
 });
 
 test("Solo always places the two players in opposing physical camps",()=>{
- const cpuDecl=js.match(/^\\s*const CPU_COLOR = Object.freeze\\((\\{[^\\n]+\\})\\);/m);
- const spawnsDecl=js.match(/^\\s*const SPAWNS = Object.freeze\\((\\{[^\\n]+\\})\\);/m);
+ const cpuDecl=js.match(/^\s*const CPU_COLOR = Object.freeze\((\{[^\n]+\})\);/m);
+ const spawnsDecl=js.match(/^\s*const SPAWNS = Object.freeze\((\{[^\n]+\})\);/m);
  assert.ok(cpuDecl&&spawnsDecl,"solo needs one authoritative color and spawn mapping");
  const cpu=runInNewContext("("+cpuDecl[1]+")") as Record<string,string>;
  const spawn=runInNewContext("("+spawnsDecl[1]+")") as Record<string,number>;
@@ -73,7 +73,7 @@ test("Solo always places the two players in opposing physical camps",()=>{
 
 test("old saved Solo games migrate from adjacent computer camps without resetting pawns",()=>{
  const decl=name=>{
-  const found=js.match(new RegExp("^\\\\s*const "+name+" = Object\\\\.freeze\\\\(\\\\{[^\\\\n]+\\\\}\\\\);","m"));
+  const found=js.match(new RegExp("^\\s*const "+name+" = Object\\.freeze\\(\\{[^\\n]+\\}\\);","m"));
   assert.ok(found,name+" declaration missing");
   return found[0];
  };
