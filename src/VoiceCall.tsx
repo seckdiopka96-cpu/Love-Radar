@@ -616,8 +616,10 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   }finally{setSpeakerBusy(false)}
  }
  function minimizeAndWrite(){
-  if(!current.current||current.current.status!=="active")return;
-  // Navigation changes the page only; the VoiceCall component and WebRTC peer stay mounted.
+  const call=current.current;
+  if(!call)return;
+  // Keep the video peer and camera alive while sending messages, even during ringing.
+  if(call.status!=="active"&&!(call.status==="ringing"&&call.direction==="outgoing"))return;
   setCallPanel("none");setMinimized(true);
   onOpenChat();
  }
@@ -634,12 +636,12 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const total=String(Math.floor(duration/60)).padStart(2,"0")+":"+String(duration%60).padStart(2,"0");
  const isVideo=active?.mode==="video";
  const callStatus=isIncoming?(isVideo?"Appel vidéo entrant…":"Appel vocal entrant…"):isOutgoing?(isVideo?"Appel vidéo sortant…":"Appel en cours…"):phase||"Connexion en cours…";
- const display=active&&(!minimized||active.status==="ringing")?createPortal(
+ const display=active&&(!minimized||(active.status==="ringing"&&active.direction==="incoming"))?createPortal(
   <div className="lr-call-backdrop" role="dialog" aria-modal="true" aria-label={isVideo?"Appel vidéo":"Appel audio"}>
    <div className={"lr-call-sheet lr-call-facetime"+(isVideo?" lr-video-call":"")}>
     <div className="lr-call-upper">
      <div className="lr-call-topbar">
-      {active.status==="active"?<button type="button" className="lr-call-minimize" onClick={minimizeAndWrite} aria-label="Réduire l’appel et écrire des messages">
+      {(active.status==="active"||active.direction==="outgoing")?<button type="button" className="lr-call-minimize" onClick={minimizeAndWrite} aria-label="Réduire l’appel et écrire des messages">
        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg><span>Réduire</span>
       </button>:<span className="lr-call-top-spacer" aria-hidden="true"/>}
       <button type="button" className="lr-call-info-button" aria-label="Informations sur l’appel" onClick={()=>setCallPanel("info")}>
@@ -724,7 +726,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
       </button>
      </>}
     </div>
-    {callPanel!=="none"?<div className="lr-call-panel-backdrop" onClick={()=>setCallPanel("none")}>
+    {!isVideo&&callPanel!=="none"?<div className="lr-call-panel-backdrop" onClick={()=>setCallPanel("none")}>
      <div className="lr-call-panel" role="dialog" aria-modal="true" aria-label={callPanel==="info"?"Informations de l’appel":callPanel==="more"?"Plus d’options":"Clavier d’appel"} onClick={e=>e.stopPropagation()}>
       <div className="lr-call-panel-head">
        <strong>{callPanel==="info"?"Informations de l’appel":callPanel==="more"?"Plus d’options":"Clavier d’appel"}</strong>
@@ -753,12 +755,12 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
     </div>:null}
    </div>
   </div>,document.body):null;
- const mini=active?.status==="active"&&minimized?createPortal(
+ const mini=active&&minimized&&(active.status==="active"||(active.status==="ringing"&&active.direction==="outgoing"))?createPortal(
   <div className={"lr-call-mini"+(isVideo?" lr-call-mini-video":"")} role="region" aria-label={(isVideo?"Appel vidéo":"Appel vocal")+" en cours avec "+partner}>
    {isVideo?<div className="lr-call-mini-preview" aria-hidden="true"><video ref={attachRemoteVideo} autoPlay playsInline muted/>{!remoteHasVideo?<span>📹</span>:null}</div>:null}
    <button type="button" className="lr-call-mini-expand" onClick={()=>setMinimized(false)} aria-label="Agrandir l’appel" title="Revenir à l’appel">
     <span className="lr-call-mini-pulse" aria-hidden="true">●</span>
-    <span className="lr-call-mini-info"><strong>{phase==="Connecté"?"En appel":phase||"Appel en cours"} · {partner}</strong><small>{total} · Appuyer pour agrandir</small></span>
+    <span className="lr-call-mini-info"><strong>{active.status==="ringing"?"Appel sortant…":phase==="Connecté"?"En appel":phase||"Appel en cours"} · {partner}</strong><small>{total} · Appuyer pour agrandir</small></span>
     <span className="lr-call-mini-up" aria-hidden="true">⌃</span>
    </button>
    <div className="lr-call-mini-actions">
@@ -769,6 +771,40 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
     <button type="button" className="lr-call-mini-end" onClick={hangup} disabled={busy} aria-label="Raccrocher">✕</button>
    </div>
   </div>,document.body):null;
+ const videoOptions=active&&isVideo&&callPanel!=="none"?createPortal(
+  <div className="lr-video-options-backdrop" onClick={event=>{if(event.target===event.currentTarget)setCallPanel("none")}}>
+   <section className="lr-video-options-sheet" role="dialog" aria-modal="true" aria-label={callPanel==="info"?"Informations de l’appel vidéo":"Options de l’appel vidéo"}>
+    <div className="lr-video-options-grip" aria-hidden="true"/>
+    <div className="lr-video-options-head">
+     <div><small>LOVE RADAR · APPEL VIDÉO</small><h3>{callPanel==="info"?"Détails de l’appel":"Options de l’appel"}</h3></div>
+     <button type="button" className="lr-video-options-close" onClick={()=>setCallPanel("none")} aria-label="Fermer les options">×</button>
+    </div>
+    {callPanel==="info"?<div className="lr-video-options-detail">
+     <p><span>Avec</span><strong>{partner}</strong></p>
+     <p><span>Statut</span><strong>{callStatus}</strong></p>
+     <p><span>Durée</span><strong>{total}</strong></p>
+     <p><span>Type</span><strong>Vidéo privée</strong></p>
+     <p><span>Relais réseau</span><strong>{relayEnabled?"Disponible":"Non confirmé"}</strong></p>
+     <button type="button" onClick={()=>setCallPanel("more")}>Retour aux options</button>
+    </div>:<div className="lr-video-options-list">
+     <button type="button" onClick={minimizeAndWrite}>
+      <span className="lr-video-options-glyph" aria-hidden="true">✉</span><span><strong>Messages</strong><small>Écrire sans raccrocher, même pendant la sonnerie</small></span><b aria-hidden="true">›</b>
+     </button>
+     <button type="button" onClick={()=>{setCallPanel("none");toggleCamera()}}>
+      <span className="lr-video-options-glyph" aria-hidden="true">▣</span><span><strong>{cameraOff?"Réactiver la caméra":"Désactiver la caméra"}</strong><small>Gérer ce que voit ton partenaire</small></span><b aria-hidden="true">›</b>
+     </button>
+     <button type="button" onClick={()=>{setCallPanel("none");void switchCamera()}}>
+      <span className="lr-video-options-glyph" aria-hidden="true">⇄</span><span><strong>Retourner la caméra</strong><small>Passer de la caméra avant à l’arrière</small></span><b aria-hidden="true">›</b>
+     </button>
+     <button type="button" onClick={()=>{setCallPanel("none");void selectSpeaker()}}>
+      <span className="lr-video-options-glyph" aria-hidden="true">◖))</span><span><strong>Sortie audio</strong><small>{speakerSelected?"Haut-parleur sélectionné":"Choisir un haut-parleur disponible"}</small></span><b aria-hidden="true">›</b>
+     </button>
+     <button type="button" onClick={()=>setCallPanel("info")}>
+      <span className="lr-video-options-glyph" aria-hidden="true">ⓘ</span><span><strong>Informations de connexion</strong><small>Statut, durée et réseau</small></span><b aria-hidden="true">›</b>
+     </button>
+    </div>}
+   </section>
+  </div>,document.body):null;
  return <>
   {anchor&&createPortal(<><button type="button" className="lr-call-trigger" onClick={()=>void start("audio")} disabled={!hasPartner||busy||Boolean(active)} aria-label="Appeler en vocal" title="Appeler en vocal"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.8v3a2 2 0 0 1-2.2 2A19.5 19.5 0 0 1 2.2 4.2 2 2 0 0 1 4.2 2h3a2 2 0 0 1 2 1.7l.6 3.1a2 2 0 0 1-.6 1.9L7.7 10a16 16 0 0 0 6.3 6.3l1.4-1.5a2 2 0 0 1 1.9-.6l3.1.6a2 2 0 0 1 1.6 1.9Z"/></svg></button>
    <button type="button" className="lr-video-trigger" onClick={()=>void start("video")} disabled={!hasPartner||busy||Boolean(active)} aria-label="Appeler en vidéo HD" title="Appeler en vidéo">
@@ -778,5 +814,6 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   <audio ref={remote} data-lr-call-audio="true" autoPlay playsInline aria-label="Voix de ton partenaire"/>
   {display}
   {mini}
+  {videoOptions}
  </>;
 }
