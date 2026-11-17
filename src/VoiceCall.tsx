@@ -71,10 +71,9 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   element.playsInline=true;
   try{
    await element.play();
-   if(localVideo.current===element&&track.readyState==="live"){
-    setLocalPreviewReady(true);
-    setLocalPreviewHelp("");
-   }
+   if(localVideo.current===element&&track.readyState==="live"&&!track.muted&&element.videoWidth>0){
+    setLocalPreviewReady(true);setLocalPreviewHelp("");
+   }else if(localVideo.current===element){setLocalPreviewHelp("Ouverture de la caméra…")}
   }catch{
    if(localVideo.current===element){
     setLocalPreviewReady(false);
@@ -85,6 +84,12 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const attachRemoteVideo=useCallback((element:HTMLVideoElement|null)=>{
   remoteVideo.current=element;
   if(element){element.srcObject=remoteStream.current;if(remoteStream.current)void element.play().catch(()=>{})}
+ },[]);
+ const revealLocalFrame=useCallback(()=>{
+  const element=localVideo.current;
+  if(element&&element.videoWidth>0&&element.readyState>=2){
+   setLocalPreviewReady(true);setLocalPreviewHelp("");
+  }
  },[]);
  const attachLocalVideo=useCallback((element:HTMLVideoElement|null)=>{
   localVideo.current=element;
@@ -656,10 +661,11 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const isOutgoing=active?.direction==="outgoing"&&active.status==="ringing";
  const total=String(Math.floor(duration/60)).padStart(2,"0")+":"+String(duration%60).padStart(2,"0");
  const isVideo=active?.mode==="video";
+ const showPartnerFullscreen=Boolean(isVideo&&active?.status==="active"&&remoteVideoReady);
  const callStatus=isIncoming?(isVideo?"Appel vidéo entrant…":"Appel vocal entrant…"):isOutgoing?(isVideo?"Appel vidéo sortant…":"Appel en cours…"):phase||"Connexion en cours…";
  const display=active&&(!minimized||(active.status==="ringing"&&active.direction==="incoming"))?createPortal(
   <div className="lr-call-backdrop" role="dialog" aria-modal="true" aria-label={isVideo?"Appel vidéo":"Appel audio"}>
-   <div className={"lr-call-sheet lr-call-facetime"+(isVideo?" lr-video-call":"")}>
+   <div className={"lr-call-sheet lr-call-facetime"+(isVideo?" lr-video-call"+(active.direction==="outgoing"?" is-video-outgoing":""):"")}>
     <div className="lr-call-upper">
      <div className="lr-call-topbar">
       {(active.status==="active"||active.direction==="outgoing")?<button type="button" className="lr-call-minimize" onClick={minimizeAndWrite} aria-label="Réduire l’appel et écrire des messages">
