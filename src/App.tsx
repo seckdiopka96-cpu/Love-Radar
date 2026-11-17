@@ -36,6 +36,7 @@ import {useProfileAvatars} from "./use-profile-avatars";
 import PartnerRecoveryClaim from "./PartnerRecoveryClaim";
 import {claimRecordingAudio,releaseRecordingAudio,isCallAudioActive,installAudioPlaybackGuard,type AudioInterrupt} from "./audio-focus";
 import PartnerProfileViewer from "./PartnerProfileViewer";
+import PartnerPresenceDetails from "./PartnerPresenceDetails";
 import VoiceMessage from "./VoiceMessage";
 import {nextConsecutiveVoiceId,type VoiceSpeed} from "./voice-sequence";
 import LiveVoiceWaveform from "./LiveVoiceWaveform";
@@ -178,6 +179,9 @@ export default function LoveRadar(){
  const profilePicker=useRef<HTMLInputElement|null>(null);
  const [profileFile,setProfileFile]=useState<File|null>(null);
  const [partnerPhotoOpen,setPartnerPhotoOpen]=useState(false);
+ const [partnerPresenceOpen,setPartnerPresenceOpen]=useState(false);
+ const partnerPresenceTrigger=useRef<HTMLButtonElement|null>(null);
+ const closePartnerPresence=useCallback(()=>setPartnerPresenceOpen(false),[]);
  const [profileBusy,setProfileBusy]=useState(false);
  const [profileError,setProfileError]=useState("");
  const [initializing,setInitializing]=useState(true);
@@ -197,7 +201,7 @@ export default function LoveRadar(){
  // A recovered/different private room must never see the previous couple's call cards.
  useEffect(()=>{setCallHistory([]);setCallClockOffset(0);setScreenshotHistory([])},[room?.roomId,token]);
  // Leave chat / switch couple: never auto-start an old private message.
- useEffect(()=>{setNextAutoVoiceId(null)},[tab,room?.roomId]);
+ useEffect(()=>{setNextAutoVoiceId(null);setPartnerPresenceOpen(false)},[tab,room?.roomId]);
  const currentTab=useRef(tab);
  currentTab.current=tab;
  const chatReturnTab=useRef<Tab>("home");
@@ -1972,7 +1976,12 @@ export default function LoveRadar(){
       <div className="lr-chat-partner"><button type="button" className="lr-partner-photo-trigger"
         aria-label={"Agrandir la photo de profil de "+partner} title={"Photo de profil de "+partner}
         onClick={()=>setPartnerPhotoOpen(true)}><Initials name={partner} size="small" src={avatars.partner}/></button>
-       <div><h2>{partner}</h2><span className={"lr-chat-status "+(partnerOnline?"online":"offline")}>{partnerStatusText}</span></div>
+       <div><h2>{partner}</h2><button ref={partnerPresenceTrigger} type="button" className="lr-chat-status-trigger"
+          disabled={!room.partner} aria-label={"Voir les détails de présence de "+partner+". "+partnerStatusText}
+          aria-haspopup="dialog" aria-expanded={partnerPresenceOpen}
+          onClick={()=>setPartnerPresenceOpen(true)}>
+          <span className={"lr-chat-status "+(partnerOnline?"online":"offline")}>{partnerStatusText}</span>
+         </button></div>
       </div>
       <div id="lr-voice-button-slot"/>
      </div>
@@ -2209,6 +2218,10 @@ export default function LoveRadar(){
     </section>:null}
     {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Retrouvez les photos partagées dans votre conversation.</p></div><button type="button" className="lr-story-album-entry" onClick={()=>navigate("story")}><span aria-hidden="true">💑</span><span><strong>Notre histoire</strong><small>Notre photo, nos jours ensemble et nos souvenirs marquants.</small></span><b aria-hidden="true">→</b></button><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>navigate("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt="Souvenir du couple" enabled={privacyEnabled} viewer={room.user.name} variant="album"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
    </main>
+      {partnerPresenceOpen&&tab==="chat"&&room?.partner&&typeof document!=="undefined"?
+       createPortal(<PartnerPresenceDetails partner={partner} lastSeenAt={lastSeen}
+        online={partnerOnline} now={presenceNow} onClose={closePartnerPresence}
+        returnFocusTo={partnerPresenceTrigger}/>,document.body):null}
       {partnerPhotoOpen&&token&&room?.partner?<PartnerProfileViewer
        name={partner} src={avatars.partner} onClose={()=>setPartnerPhotoOpen(false)}/>:null}
       {profileFile?<ProfilePhotoEditor key={profileFile.name+":"+profileFile.lastModified+":"+profileFile.size} file={profileFile} onCancel={()=>{if(!profileBusy){setProfileFile(null);setProfileError("")}}} onSave={saveProfilePhoto}/>:null}
