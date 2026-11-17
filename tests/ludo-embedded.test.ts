@@ -24,8 +24,8 @@ test("Jeux > Ludo contre l'ordinateur opens the new complete HTML/CSS/JS game in
 });
 test("complete standalone game is bundled as three first-party static files",()=>{
  assert.ok(page.startsWith("<!doctype html>"));
- assert.ok(page.includes('href="./style.css?v=ludo-room-20261117-v3"'));
- assert.ok(page.includes('src="./script.js?v=ludo-room-20261117-v3" defer'));
+ assert.ok(page.includes('href="./style.css?v=ludo-room-20261117-v4"'));
+ assert.ok(page.includes('src="./script.js?v=ludo-room-20261117-v4" defer'));
  assert.ok(page.includes('id="couleur-blue"'));
  assert.ok(page.includes('id="couleur-red"'));
  assert.ok(page.includes('id="couleur-green"'));
