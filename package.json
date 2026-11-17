@@ -15,7 +15,7 @@
     "test:watch": "tsx --test tests/watch-together.test.ts tests/watch-notify.test.ts",
     "test:privacy": "tsx --test tests/privacy-overlay.test.ts tests/screenshot-alert.test.ts",
     "test:puzzle": "tsx --test tests/puzzle.test.ts",
-    "test:call": "tsx --test tests/voice-call.test.ts tests/call-history.test.ts tests/native-voip.test.ts tests/android-voip.test.ts",
+    "test:call": "tsx --test tests/voice-call.test.ts tests/call-history.test.ts tests/native-voip.test.ts tests/android-voip.test.ts tests/call-resilience.test.ts",
     "test:care": "tsx --test tests/couple-care.test.ts",
     "test:background-call": "tsx --test tests/native-background-call.test.ts",
     "test:iphone": "tsx --test tests/iphone-testflight.test.ts",
