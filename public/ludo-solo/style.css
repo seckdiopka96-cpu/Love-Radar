@@ -740,3 +740,104 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
   .dice-3d.is-rolling, .piece--selectable, .piece--moving.is-hopping .piece-svg { animation: none !important; }
   .piece--moving { transition: none !important; }
 }
+
+
+/* HD 3D die fix — Safari flattened the entire cube because filter was
+ * applied to the transformed preserve-3d container. Perspective belongs
+ * on the holder, never on the cube itself. All six pip faces are real. */
+.dice-holder{
+ position:relative;
+ perspective:360px;
+ -webkit-perspective:360px;
+ transform-style:preserve-3d;
+ overflow:visible;
+}
+.dice-3d{
+ perspective:none!important;
+ filter:none!important;
+ transform-style:preserve-3d!important;
+ -webkit-transform-style:preserve-3d!important;
+ will-change:transform;
+ transition:transform .38s cubic-bezier(.14,.87,.24,1);
+}
+.dice-face{
+ transform-style:preserve-3d;
+ -webkit-transform-style:preserve-3d;
+ backface-visibility:hidden!important;
+ -webkit-backface-visibility:hidden!important;
+}
+.dice-face::after{
+ content:"";position:absolute;inset:1px;
+ border-radius:inherit;pointer-events:none;
+ border:1px solid #ffffff30;
+ background:linear-gradient(135deg,#ffffff3b,transparent 46%);
+}
+.dice-3d:not(.is-rolling)[data-face="1"]{transform:rotateX(-18deg) rotateY(-18deg)!important}
+.dice-3d:not(.is-rolling)[data-face="2"]{transform:rotateX(-98deg) rotateY(-12deg)!important}
+.dice-3d:not(.is-rolling)[data-face="3"]{transform:rotateX(-13deg) rotateY(-100deg)!important}
+.dice-3d:not(.is-rolling)[data-face="4"]{transform:rotateX(-13deg) rotateY(80deg)!important}
+.dice-3d:not(.is-rolling)[data-face="5"]{transform:rotateX(82deg) rotateY(-12deg)!important}
+.dice-3d:not(.is-rolling)[data-face="6"]{transform:rotateX(-12deg) rotateY(170deg)!important}
+/* The whole physical cube tumbles and rises, then settles on its actual face. */
+.dice-3d.is-rolling{
+ transition:none!important;
+ animation:dice-tumble-real .85s cubic-bezier(.38,.15,.58,.85) infinite!important;
+}
+@keyframes dice-tumble-real{
+ 0%{transform:translate3d(0,0,0) rotateX(-12deg) rotateY(-24deg) rotateZ(0deg) scale(1)}
+ 25%{transform:translate3d(0,-19px,0) rotateX(116deg) rotateY(158deg) rotateZ(35deg) scale(1.32)}
+ 53%{transform:translate3d(0,-28px,0) rotateX(288deg) rotateY(325deg) rotateZ(76deg) scale(1.52)}
+ 77%{transform:translate3d(0,-13px,0) rotateX(475deg) rotateY(490deg) rotateZ(43deg) scale(1.31)}
+ 100%{transform:translate3d(0,0,0) rotateX(690deg) rotateY(720deg) rotateZ(100deg) scale(1)}
+}
+.die-result{
+ position:absolute;right:-5px;bottom:-7px;z-index:5;
+ display:grid;place-items:center;
+ min-width:24px;height:24px;padding:0 5px;
+ border:1.5px solid #fffad5;border-radius:10px;
+ background:linear-gradient(160deg,#143b75,#092651);
+ box-shadow:0 2px 5px #071936a8;
+ color:#fff8d5;font:850 13px/1 -apple-system,BlinkMacSystemFont,Arial,sans-serif;
+ text-shadow:0 1px 1px #031a40;
+}
+.dice-holder.is-busy .die-result{opacity:.3}
+.dice-holder.is-result .die-result{animation:die-result-pop .38s cubic-bezier(.18,1.6,.37,1)}
+@keyframes die-result-pop{from{transform:scale(.65)}to{transform:scale(1)}}
+/* Make movement observable across a full square before arriving on the next.
+ * The animated pawn is never re-rendered mid-step in the Solo engine. */
+.piece--moving{
+ transition:left .205s cubic-bezier(.19,.72,.27,1),top .205s cubic-bezier(.19,.72,.27,1)!important;
+ z-index:30!important;
+ filter:drop-shadow(0 0 4px #ffffffaa);
+}
+.piece--moving.is-hopping .piece-svg{
+ animation:pawn-hop-hd .24s cubic-bezier(.23,.62,.45,1) both!important;
+}
+@keyframes pawn-hop-hd{
+ 0%,100%{transform:translateY(0) scale(1)}
+ 45%{transform:translateY(-9px) scale(1.13)}
+}
+.piece--captured{z-index:25!important;filter:drop-shadow(0 0 6px #ff7d86)}
+.piece--captured .piece-svg{animation:captured-return .26s ease-in-out both}
+@keyframes captured-return{
+ 0%{transform:scale(1)}
+ 50%{transform:translateY(-8px) scale(.86) rotate(-8deg)}
+ 100%{transform:scale(.88)}
+}
+.piece--moving .piece-step-counter{
+ position:absolute;left:50%;top:-9px;transform:translate(-50%,-100%);
+ z-index:3;min-width:26px;padding:2px 4px;
+ color:white;background:#0e3479d9;border:1px solid #ffe597;
+ border-radius:7px;font:800 10px/1.2 -apple-system,BlinkMacSystemFont,Arial,sans-serif;
+}
+@media(max-width:390px){
+ .die-result{min-width:22px;height:22px;font-size:12px;right:-4px;bottom:-6px}
+ .piece--moving .piece-step-counter{font-size:9px;min-width:22px}
+}
+@media(prefers-reduced-motion:reduce){
+ .dice-3d.is-rolling,.dice-holder.is-result .die-result,
+ .piece--moving.is-hopping .piece-svg,.piece--captured .piece-svg{
+  animation:none!important;
+ }
+ .piece--moving,.dice-3d{transition:none!important}
+}
