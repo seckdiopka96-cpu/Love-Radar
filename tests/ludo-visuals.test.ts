@@ -8,7 +8,7 @@ test("authentic 52-square outer path, six-square home, 225-cell board",()=>{
  assert.equal(CELL.length,225);
  assert.equal(HOME[0].length,6);
  assert.equal(HOME[1].length,6);
- assert.equal(SAFE.size,8);
+ assert.deepEqual([...SAFE],[8,21,34,47]);
 });
 test("progress follows one visible cell at a time, including entering and finishing",()=>{
  assert.deepEqual(movementSteps(-1,0),[0]);
