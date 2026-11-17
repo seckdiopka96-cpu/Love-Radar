@@ -65,3 +65,14 @@ test("online presence dot stays on the same line immediately before En ligne",()
  assert.ok(dot.includes("align-self:center"),"dot must be centered alongside En ligne");
  assert.ok(!status.includes("display:block!important"),"block layout separates the dot from its label");
 });
+
+test("consecutive chat bubbles have comfortable spacing without breaking grouping",()=>{
+ assert.ok(app.includes('groupedBefore=previous&&!newDay&&previous.sender_id===m.sender_id'),
+  "only consecutive messages from the same sender are grouped");
+ assert.ok(app.includes('groupedBefore?"lr-grouped "'),"chat preserves sender grouping");
+ const normal=css.match(/\.lr-app\.lr-chat-mode \.lr-chat \.lr-bubble-row\{([^}]+)\}/)?.[1]||"";
+ const grouped=css.match(/\.lr-app\.lr-chat-mode \.lr-chat \.lr-bubble-row\.lr-grouped\{([^}]+)\}/)?.[1]||"";
+ assert.ok(normal.includes("margin-top:14px!important"),"different messages get enough breathing room");
+ assert.ok(grouped.includes("margin-top:8px!important"),"consecutive partner bubbles must not touch");
+ assert.ok(css.includes(".lr-chat .lr-message-time"),"timestamps remain untouched");
+});
