@@ -53,10 +53,10 @@ test("two on the die lets the red pawn capture blue and returns blue to its home
  assert.equal(captured?.game.turn,0);
 });
 test("safe square protects opponent and normal move passes turn",()=>{
- // Red index 8, yellow progress 34 => index 8; square 8 is safe.
- const game=position([7,-1,-1,-1],[34,-1,-1,-1],0,1);
+ // Red enters its protected starting square at index 13; yellow progress 39 shares it.
+ const game=position([12,-1,-1,-1],[39,-1,-1,-1],0,1);
  const result=moveSolo(game,0);
- assert.equal(result?.game.positions[1][0],34);
+ assert.equal(result?.game.positions[1][0],39);
  assert.equal(result?.move.captured.length,0);
  assert.equal(result?.game.turn,1);
 });
