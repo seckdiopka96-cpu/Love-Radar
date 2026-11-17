@@ -17,9 +17,9 @@ test("Ludo screenshot fixes: compact pawns, correct capture and clean HUD",()=>{
  const senegal=readFileSync("src/ludo-senegal-engine.ts","utf8");
  const boardRules=readFileSync("src/ludo-visuals.ts","utf8");
  // Starting squares and star refuges still have standard protection.
- assert.ok(solo.includes('new Set(Object.values(SPAWNS).map(i=>TRACK[i].join(",")))'));
- assert.ok(server.includes("const SAFE=new Set([0,13,26,39])"));
- assert.ok(boardRules.includes("export const SAFE=new Set([0,13,26,39])"));
+ assert.ok(solo.includes('new Set([0,8,13,21,26,34,39,47].map(i=>TRACK[i].join(",")))'));
+ assert.ok(server.includes("const SAFE=new Set([0,8,13,21,26,34,39,47])"));
+ assert.ok(boardRules.includes("export const SAFE=new Set([0,8,13,21,26,34,39,47])"));
  // Red from its own start + 2 must capture a single blue pawn at row 6, col 3.
  assert.ok(solo.includes("game.pieces[otherSide][opponentPawn]=HOME"));
  assert.ok(solo.includes("if(captured.length)renderPawns()"));
@@ -244,13 +244,13 @@ test("Solo and synchronized Duo do not skip fast between board squares",()=>{
  assert.ok(duo.includes('pawn.style.top=to.y'));
 });
 
-test("stars mark only the four colored start cells, with matching capture protection",()=>{
+test("stars protect four launch cells and four further refuge cells",()=>{
  for(const html of [soloHTML,duoHTML]){
   assert.equal((html.match(/cell--entry cell--safe/g)||[]).length,4);
-  assert.equal((html.match(/<span class="star">★<\/span>/g)||[]).length,4);
+  assert.equal((html.match(/<span class="star">★<\/span>/g)||[]).length,8);
  }
- assert.ok(server.includes("const SAFE=new Set([0,13,26,39])"));
- assert.ok(solo.includes("new Set(Object.values(SPAWNS).map("));
+ assert.ok(server.includes("const SAFE=new Set([0,8,13,21,26,34,39,47])"));
+ assert.ok(solo.includes("new Set([0,8,13,21,26,34,39,47].map("));
 });
 test("player dice color, fixed board and reverse captures are wired in every mode",()=>{
  const reactDuo=readFileSync("src/Ludo.tsx","utf8");
