@@ -128,7 +128,6 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    setMotion(null);setLanding(pointForPawn(move.seat,move.pawn,move.to));
    if(move.captures.length){
     playSound("capture");setReaction("💥");
-    if(move.seat===seat)setEmotes(true);
     const returns=move.captures.map(captured=>({...captured,path:captureReversePoints(captured)}));
     returns.forEach(item=>item.path.forEach((point,index)=>later(()=>{
      if(!loaded.current)return;
@@ -406,8 +405,6 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
       </div>:null}
      </div>
     </div>
-    <LudoReactionBurst sticker={sticker}/>
-    {reaction&&!sticker?<div className="ludo-solo-reaction" role="status">{reaction}</div>:null}
     {game.status==="won"&&!motion?<div className="ludo-victory ludo-solo-win" role="dialog" aria-label="Victoire Ludo Sénégal">
      <div className="ludo-celebrate">🏆🇸🇳</div>
      <strong>{game.winner===seat?"Tu as gagné !":"Ton adversaire a gagné !"}</strong>
@@ -421,7 +418,6 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
     </div>:null}
    </div>
    <div className="ludo-game-footer">
-    <LudoReactionPicker open={emotes} disabled={reactionBusy} onPick={sendSticker} onClose={()=>setEmotes(false)}/>
     {chosen&&chosen.length?<div className={"ludo-senegal-choice"+(invasionChoice?" is-raid-decision":"")} role="dialog" aria-label={invasionChoice?"Entrer dans la cage adverse ou continuer le tour":"Choisis ton chemin"}>
      <div><strong>{invasionChoice?"😈 Entrer dans sa cage ou continuer ?":"🇸🇳 Où veux-tu aller ?"}</strong><span>Pion {chosen[0].pawn+1} · dé {game.dice}</span></div>
      {invasionChoice?<p className="ludo-senegal-cage-hint" role="status">
@@ -447,7 +443,6 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
       {!solo&&!online?"CONNEXION…":rolling?"LE DÉ ROULE…":motion?"DÉPLACEMENT…":
        !turnOwner?"⏳ TOUR ADVERSE":game.dice!==null?"TOUCHE UN PION":assisted?"🤖 COUP AUTOMATIQUE":"🎲 LANCER LE DÉ"}
      </button>
-     <button type="button" className="ludo-reaction-toggle" onClick={()=>setEmotes(open=>!open)} disabled={reactionBusy||(!solo&&members!==2)} aria-label="Envoyer une réaction animée" aria-expanded={emotes}>😝</button>
     </div>
 
     <div className="ludo-last-move" role="status">{game.lastAction}</div>
