@@ -28,9 +28,10 @@ test("status details show the real stored partner activity in the viewer local t
  assert.ok(sheet.includes('ne signifie pas que tes messages ont été lus'));
  assert.ok(app.includes('lastSeenAt={lastSeen}'));
  assert.ok(app.includes('online={partnerOnline} now={presenceNow}'));
- const now=new Date("2026-11-17T12:43:00-05:00").getTime();
- const seen=new Date("2026-11-17T12:12:00-05:00").getTime();
- assert.match(formatPartnerLastSeen(seen,now),/Dernière vue aujourd’hui à 12:12/);
+ const now=new Date(2026,10,17,12,43).getTime();
+ const seen=new Date(2026,10,17,12,12).getTime();
+ const localTime=new Date(seen).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+ assert.equal(formatPartnerLastSeen(seen,now),"Dernière vue aujourd’hui à "+localTime);
  assert.equal(formatPartnerLastSeen(0,now),"Hors ligne");
 });
 test("modal is dismissible with close, outside tap and Escape, without changing chat calls",()=>{
