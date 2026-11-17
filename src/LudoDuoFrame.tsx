@@ -9,6 +9,7 @@ type DuoGameSnapshot={
 };
 type Motion={seat:number;pawn:number;progress:number;from:number;to:number};
 type CapturedMotion={seat:number;pawn:number;from:number;returning:boolean;progress:number};
+type DuoReaction={id?:string;seat:number;emoji:string;at:number};
 type Props={
  game:DuoGameSnapshot;
  palette:{colors:[DuoColor,DuoColor];chosenBy:number|null};
@@ -16,7 +17,7 @@ type Props={
  mySeat:number;myName:string;partnerName:string|null;
  remaining:number|null;rolling:boolean;rollingFace:number;
  busy:boolean;animationBusy:boolean;
- motion:Motion|null;capturedMotions:CapturedMotion[];
+ motion:Motion|null;capturedMotions:CapturedMotion[];reactions:DuoReaction[];
  error:string;
  onAction:(action:"roll"|"move"|"restart"|"exit"|"react"|"gift"|"menu",pawn?:number,emoji?:string)=>void;
 };
@@ -36,11 +37,11 @@ export default function LudoDuoFrame(props:Props){
    myName:props.myName,partnerName:props.partnerName,
    remaining:props.remaining,rolling:props.rolling,rollingFace:props.rollingFace,
    busy:props.busy,animationBusy:props.animationBusy,
-   motion:props.motion,capturedMotions:props.capturedMotions,error:props.error
+   motion:props.motion,capturedMotions:props.capturedMotions,reactions:props.reactions,error:props.error
   },window.location.origin);
  },[props.game,props.palette,props.lastRoll,props.mySeat,props.myName,props.partnerName,
     props.remaining,props.rolling,props.rollingFace,props.busy,props.animationBusy,
-    props.motion,props.capturedMotions,props.error]);
+    props.motion,props.capturedMotions,props.reactions,props.error]);
  useEffect(()=>{if(ready)send()},[ready,send]);
  useEffect(()=>{
   const message=(event:MessageEvent)=>{
@@ -57,7 +58,7 @@ export default function LudoDuoFrame(props:Props){
      if(Number.isInteger(data.pawn)&&data.pawn>=0&&data.pawn<4)props.onAction("move",data.pawn);
      break;
     case "react":
-     if(typeof data.emoji==="string"&&["❤️","😂","🔥","👏","😍","💋","😱"].includes(data.emoji))
+     if(typeof data.emoji==="string"&&["❤️","😂","🤣","😝","🤪","😭","🔥","👏","😍","💋","😱","🤯","😤","😘","😎","🥹","😮","😡"].includes(data.emoji))
       props.onAction("react",undefined,data.emoji);
      break;
    }
