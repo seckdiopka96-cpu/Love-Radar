@@ -1,0 +1,48 @@
+/* The native Love Radar games route now displays the standalone three-file
+   Ludo in a contained, scrollable browser viewport; no second app is needed. */
+.lr-app.lr-ludo-mode .lr-ludo-embedded{
+ display:flex!important;flex-direction:column!important;
+ flex:1 1 auto!important;width:100%!important;height:100%!important;min-height:0!important;
+ max-height:100%!important;
+ border:0!important;border-radius:0!important;margin:0!important;
+ overflow:hidden!important;isolation:isolate;
+ background:#081d3a!important;color:#f6f7ff!important;
+}
+.lr-ludo-embedded-header{
+ flex:0 0 auto;min-height:calc(48px + env(safe-area-inset-top));
+ padding:calc(5px + env(safe-area-inset-top)) 12px 5px;
+ display:grid;grid-template-columns:76px 1fr 46px;align-items:center;gap:8px;
+ background:#0b2447;
+ border-bottom:1px solid #fff3a837;
+ font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Arial,sans-serif;
+}
+.lr-ludo-embedded-header>button{
+ display:flex;justify-content:center;align-items:center;gap:4px;
+ min-height:36px;padding:6px 9px;
+ border:1px solid #f2ce7686;border-radius:11px;
+ color:#ffebad;background:#164579;
+ font-size:14px;font-weight:790;white-space:nowrap;cursor:pointer;
+}
+.lr-ludo-embedded-header>button span{font-size:24px;line-height:16px}
+.lr-ludo-embedded-header>button:focus-visible{
+ outline:2px solid #fff;outline-offset:2px;
+}
+.lr-ludo-embedded-title{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ text-align:center;
+ font-size:clamp(13px,4vw,20px);font-weight:900;letter-spacing:.7px;line-height:1.15;
+}
+.lr-ludo-embedded-title small{
+ margin-top:3px;font-size:8px;letter-spacing:1.1px;color:#bdd6ee;font-weight:700;
+}
+.lr-ludo-embedded-heart{font-size:23px;text-align:center;color:#ed9cbc}
+.lr-ludo-embedded-frame{
+ display:block;flex:1 1 auto;width:100%;height:100%;min-height:0;
+ border:0;background:#081d3a;overflow:auto;
+}
+@media(max-width:360px){
+ .lr-ludo-embedded-header{grid-template-columns:61px minmax(0,1fr) 28px;gap:4px;padding-left:7px;padding-right:7px}
+ .lr-ludo-embedded-header>button{font-size:11px;padding:5px}
+ .lr-ludo-embedded-title{font-size:13px}
+ .lr-ludo-embedded-heart{font-size:18px}
+}
