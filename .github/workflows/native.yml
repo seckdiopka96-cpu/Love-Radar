@@ -14,6 +14,8 @@ on:
       - 'src/native-privacy.ts'
       - 'functions/api/screenshot.ts'
       - 'functions/lib/apns-voip.ts'
+      - 'functions/lib/fcm-call.ts'
+      - 'functions/api/android-voip.ts'
       - 'functions/api/voip.ts'
       - 'functions/api/call.ts'
       - 'tests/native-voip.test.ts'
@@ -50,6 +52,11 @@ jobs:
           npm install
           npm run build
       - name: Générer Android et ses permissions
+        env:
+          FCM_ANDROID_APP_ID: ${{ vars.FCM_ANDROID_APP_ID }}
+          FCM_ANDROID_SENDER_ID: ${{ vars.FCM_ANDROID_SENDER_ID }}
+          FCM_ANDROID_API_KEY: ${{ vars.FCM_ANDROID_API_KEY }}
+          FCM_ANDROID_PROJECT_ID: ${{ vars.FCM_ANDROID_PROJECT_ID }}
         run: |
           npx cap add android
           node scripts/configure-native.mjs android
