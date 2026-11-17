@@ -78,3 +78,15 @@
  .lr-chat .lr-message-delivery-state{font-size:9px!important;gap:4px}
  .lr-app .lr-loading-credit{font-size:11px}
 }
+
+/* A notification opens the actual chat bubble, rather than another popup.
+   Highlight is scoped to the notification target only. */
+.lr-chat-messages .lr-bubble-row.lr-notified-bubble{
+ scroll-margin-block:100px;
+}
+.lr-chat-messages .lr-bubble-row.lr-notified-bubble .lr-bubble{
+ outline:2px solid #f7ca82;
+ outline-offset:3px;
+ box-shadow:0 0 0 6px rgba(247,202,130,.12),0 5px 20px rgba(0,0,0,.22);
+ border-radius:15px;
+}
