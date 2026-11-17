@@ -14,6 +14,11 @@ type Gift={consents:[boolean,boolean];choice:"credit"|"internet"|"wave2000"|null
 type AgreementRow={room_id:string;game_id:string;signed_0_name:string|null;signed_1_name:string|null;signed_0_at:number|null;signed_1_at:number|null;gift_0:number|null;gift_1:number|null;started_at:number|null;updated_at:number};
 type Agreement={signed:[boolean,boolean];names:[string|null,string|null];giftChoices:[boolean|null,boolean|null];signedAt:[number|null,number|null];startedAt:number|null};
 type Challenge={gameId:string;fromId:string;fromName:string;fromSeat:number;sentAt:number};
+type LudoColor="blue"|"red"|"green"|"yellow";
+type Palette={colors:[LudoColor,LudoColor];chosenBy:number|null};
+type PaletteRow={game_id:string;seat0_color:string;chosen_by:number|null};
+const OPPOSITE:Record<LudoColor,LudoColor>={blue:"green",green:"blue",red:"yellow",yellow:"red"};
+const isLudoColor=(c:unknown):c is LudoColor=>typeof c==="string"&&Object.hasOwn(OPPOSITE,c);
 type CapturedPawn={seat:number;pawn:number;from:number};
 type MoveEvent={gameId:string;version:number;seat:number;pawn:number;from:number;to:number;captures:CapturedPawn[];at:number};
 type MoveRow={game_id:string;version:number;seat:number;pawn:number;from_progress:number;to_progress:number;captures_json:string;updated_at:number};
@@ -33,7 +38,8 @@ async function ensureTable(db:D1Database){
    "CREATE TABLE IF NOT EXISTS ludo_move_events (room_id TEXT PRIMARY KEY,game_id TEXT NOT NULL,version INTEGER NOT NULL,seat INTEGER NOT NULL,pawn INTEGER NOT NULL,from_progress INTEGER NOT NULL,to_progress INTEGER NOT NULL,captures_json TEXT NOT NULL,updated_at INTEGER NOT NULL);"+
    "CREATE TABLE IF NOT EXISTS ludo_gifts (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, consent_0 INTEGER NOT NULL DEFAULT 0, consent_1 INTEGER NOT NULL DEFAULT 0, choice TEXT, chosen_by INTEGER, given INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL);"+
    "CREATE TABLE IF NOT EXISTS ludo_agreements (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, signed_0_name TEXT, signed_1_name TEXT, signed_0_at INTEGER, signed_1_at INTEGER, gift_0 INTEGER, gift_1 INTEGER, started_at INTEGER, updated_at INTEGER NOT NULL);"+
-   "CREATE TABLE IF NOT EXISTS ludo_challenges (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, from_id TEXT NOT NULL, from_name TEXT NOT NULL, sent_at INTEGER NOT NULL)" ).then(()=>{}).catch(e=>{ready=null;throw e});
+   "CREATE TABLE IF NOT EXISTS ludo_challenges (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, from_id TEXT NOT NULL, from_name TEXT NOT NULL, sent_at INTEGER NOT NULL);"+
+   "CREATE TABLE IF NOT EXISTS ludo_palette (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, seat0_color TEXT NOT NULL DEFAULT 'blue', chosen_by INTEGER, updated_at INTEGER NOT NULL)" ).then(()=>{}).catch(e=>{ready=null;throw e});
  }
  await ready;
 }
@@ -113,6 +119,17 @@ async function syncAgreement(db:D1Database,g:Game){
  ).bind(g.room_id,g.game_id,Date.now()).run();
 }
 
+async function syncPalette(db:D1Database,g:Game){
+ await db.prepare("INSERT INTO ludo_palette(room_id,game_id,seat0_color,chosen_by,updated_at) VALUES(?,?,'blue',NULL,?) "+
+ "ON CONFLICT(room_id) DO UPDATE SET game_id=excluded.game_id,seat0_color='blue',chosen_by=NULL,updated_at=excluded.updated_at "+
+ "WHERE ludo_palette.game_id<>excluded.game_id").bind(g.room_id,g.game_id,Date.now()).run();
+}
+async function palette(db:D1Database,g:Game):Promise<Palette>{
+ const row=await db.prepare("SELECT game_id,seat0_color,chosen_by FROM ludo_palette WHERE room_id=? AND game_id=?")
+  .bind(g.room_id,g.game_id).first<PaletteRow>();
+ const color=isLudoColor(row?.seat0_color)?row.seat0_color:"blue";
+ return {colors:[color,OPPOSITE[color]],chosenBy:row?.chosen_by??null};
+}
 async function challenge(db:D1Database,g:Game):Promise<Challenge|null>{
  const r=await db.prepare("SELECT c.game_id AS gameId,c.from_id AS fromId,c.from_name AS fromName,m.seat AS fromSeat,c.sent_at AS sentAt FROM ludo_challenges c JOIN members m ON m.id=c.from_id WHERE c.room_id=? AND c.game_id=?")
  .bind(g.room_id,g.game_id).first<Challenge>();
@@ -220,6 +237,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   if(g){
    await syncGift(db,g);
    await syncAgreement(db,g);
+   await syncPalette(db,g);
    signed=await agreement(db,g);
    g=await autoIfLate(db,g,signed);
   }
@@ -227,7 +245,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    reaction:members===2?await reaction(db,player.room_id):null,
    reactions:g?await recentReactions(db,player.room_id,g.game_id):[],
    moveEvent:g?await lastMoveEvent(db,player.room_id,g.game_id):null,
-   gift:g?await gift(db,g):null,agreement:signed,challenge:g?await challenge(db,g):null,serverNow:Date.now()});
+   gift:g?await gift(db,g):null,agreement:signed,palette:g?await palette(db,g):null,challenge:g?await challenge(db,g):null,serverNow:Date.now()});
   const text=await ctx.request.text();
   if(text.length>1024)return fail("Requête trop grande.",413);
   let data:Record<string,unknown>;
@@ -235,6 +253,16 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   if(members!==2)return fail("Il faut exactement deux partenaires pour jouer.",409);
   if(!g)return fail("La partie n'est pas disponible.",503);
   const action=data.action;
+  if(action==="choose_color"){
+   if(g.status!=="playing"||signed?.startedAt||signed?.signed.some(Boolean))return fail("Les couleurs sont fixées après la première signature.",409);
+   if(!isLudoColor(data.color))return fail("Couleur Ludo invalide.",400);
+   // Opposite starting squares preserve the 26-square server game geometry.
+   const chosen=player.seat===0?data.color:OPPOSITE[data.color];
+   const r=await db.prepare("UPDATE ludo_palette SET seat0_color=?,chosen_by=?,updated_at=? WHERE room_id=? AND game_id=?")
+    .bind(chosen,player.seat,Date.now(),player.room_id,g.game_id).run();
+   if(r.meta.changes!==1)return fail("La manche a changé. Actualise la page.",409);
+   return reply({ok:true,palette:await palette(db,g),game:publicGame(g,signed),serverNow:Date.now()});
+  }
   if(action==="react"){
    if(typeof data.emoji!=="string"||!EMOJIS.has(data.emoji))return fail("Réaction inconnue.",400);
    const now=Date.now();
@@ -265,6 +293,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    if(g.status!=="playing")return fail("Cette manche est déjà terminée.",409);
    if(signed?.startedAt)return fail("La partie a déjà commencé. Un nouvel accord sera proposé à la prochaine manche.",409);
    if(data.acceptRules!==true||data.signed!==true)return fail("Lis les règles et coche la case de signature pour valider.",400);
+   if((await palette(db,g)).chosenBy===null)return fail("Choisis d’abord une couleur pour vos pions.",409);
    if(typeof data.giftConsent!=="boolean")return fail("Indique si tu acceptes ou refuses le défi cadeau.",400);
    const seat=player.seat;
    const now=Date.now();
@@ -388,6 +417,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   if(updated){
    await syncGift(db,updated);
    await syncAgreement(db,updated);
+   await syncPalette(db,updated);
    nextAgreement=await agreement(db,updated);
    if(action==="restart"){
     await db.prepare("DELETE FROM ludo_reaction_events WHERE room_id=?").bind(player.room_id).run();
@@ -399,7 +429,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   return reply({ok:true,members,seat:player.seat,game:updated?publicGame(updated,nextAgreement):null,
    moveEvent:updated?await lastMoveEvent(db,player.room_id,updated.game_id):null,
    reactions:updated?await recentReactions(db,player.room_id,updated.game_id):[],
-   gift:updated?await gift(db,updated):null,agreement:nextAgreement,challenge:updated?await challenge(db,updated):null,serverNow:Date.now()});
+   gift:updated?await gift(db,updated):null,agreement:nextAgreement,palette:updated?await palette(db,updated):null,challenge:updated?await challenge(db,updated):null,serverNow:Date.now()});
  }catch(e){console.error("Love Radar Ludo",e);return fail("Le jeu est temporairement indisponible.",500)}
 }
 export const onRequestGet=(ctx:Ctx)=>handle(ctx,"GET");
