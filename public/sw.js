@@ -1,7 +1,7 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
-const CACHE="love-radar-static-v83";
+const CACHE="love-radar-static-v84";
 const PRIVATE_AVATAR_CACHE="love-radar-private-notification-avatar-v1";
-const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png"];
+const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png","/ludo-solo/index.html","/ludo-solo/style.css","/ludo-solo/script.js"];
 self.addEventListener("install",event=>{
  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
 });
@@ -13,7 +13,16 @@ self.addEventListener("fetch",event=>{
  if(request.method!=="GET")return;
  const url=new URL(request.url);
  if(url.origin!==self.location.origin||url.pathname.startsWith("/api/"))return;
+ // The solo game is a real static page inside Love Radar. Never store it
+ // as the root app shell: that could replace the app when offline.
+ if(url.pathname.startsWith("/ludo-solo/")){
+  event.respondWith(fetch(request).catch(()=>caches.match(url.pathname)
+   .then(response=>response||Response.error())));
+  return;
+ }
  if(request.mode==="navigate"){
+  // Only the main SPA entry may populate the offline root cache.
+  if(url.pathname!=="/"&&url.pathname!=="/index.html")return;
   event.respondWith(fetch(request).then(async response=>{
     if(response.ok){const cache=await caches.open(CACHE);await cache.put("/",response.clone())}
     return response;
