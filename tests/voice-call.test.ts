@@ -89,8 +89,9 @@ test("iPhone shows local camera frames and can flip while the partner has not an
  const videoCss=readFileSync("src/video-call.css","utf8");
  assert.ok(call.includes('element.srcObject=new MediaStream([track])'),"self-preview uses video-only stream");
  assert.ok(call.includes('element.muted=true'));
+ assert.ok(call.includes('data-lr-call-video="true"'));
  assert.ok(call.includes('await element.play()'));
- assert.ok(call.includes('onPlaying={()=>{setLocalPreviewReady(true)'));
+ assert.ok(call.includes('onPlaying={revealLocalFrame}'));
  assert.ok(call.includes('className="lr-call-video-self-help"'));
  assert.ok(call.includes('className="lr-call-video-retry"'));
  assert.ok(call.includes('onClick={()=>void playLocalPreview()}'));
@@ -100,6 +101,19 @@ test("iPhone shows local camera frames and can flip while the partner has not an
  assert.ok(videoCss.includes('.lr-call-video-self .lr-call-video-retry'));
 });
 
+test("local camera is fullscreen before pickup and becomes PiP after partner video plays",()=>{
+ const css=readFileSync("src/video-call.css","utf8");
+ const focus=readFileSync("src/audio-focus.ts","utf8");
+ assert.ok(call.includes('setActive({id:"preparing-video"'));
+ assert.ok(call.includes('showPartnerFullscreen'));
+ assert.ok(call.includes('" has-partner-video":" is-self-first"'));
+ assert.ok(call.includes('onPlaying={()=>setRemoteVideoReady(true)}'));
+ assert.ok(call.includes('onPlaying={revealLocalFrame}'));
+ assert.ok(css.includes('Full-screen video calling v3'));
+ assert.ok(css.includes('.lr-call-video-stage.has-partner-video .lr-call-video-self'));
+ assert.ok(focus.includes('target.dataset.lrCallVideo==="true"'));
+ assert.ok(focus.includes('if(mode!=="call")target.pause()'));
+});
 test("video Messages minimizes during outgoing ringing without ending the call",()=>{
  assert.ok(call.includes('call.status==="ringing"&&call.direction==="outgoing"'));
  assert.ok(call.includes('setCallPanel("none");setMinimized(true)'));
