@@ -40,3 +40,33 @@
 .app .ludo-duo-capture-overlay .piece--captured.is-returning{
  transition:left .045s linear,top .045s linear!important;
 }
+
+/* Emoji choices float above the rail instead of pushing the board upward. */
+.app .game-bottom{position:relative}
+.app .duo-side-actions{position:relative;z-index:40}
+.app .duo-side-actions button:last-child{
+ border-color:#ffe19d;background:linear-gradient(145deg,#2a5ba4,#18396d);
+ font-size:16px
+}
+.app .duo-side-emotes{
+ position:absolute;bottom:calc(100% + 8px);right:0;z-index:145;
+ width:min(250px,calc(100vw - 30px));display:grid;
+ grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;
+ padding:9px;border:1.5px solid #f4de9d;
+ background:linear-gradient(145deg,#24447ff5,#0d234cee);
+ box-shadow:0 14px 30px #001331bb;border-radius:16px
+}
+.app .duo-side-emotes button{
+ display:grid;place-items:center;width:100%;min-width:0;height:43px;
+ font-size:29px;touch-action:manipulation;animation:lr-emoji-button-in .25s both
+}
+@keyframes lr-emoji-button-in{
+ from{opacity:0;transform:translateY(6px) scale(.75)}
+ to{opacity:1;transform:translateY(0) scale(1)}
+}
+.lr-reaction-label{
+ position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);
+ color:#fff6c5;background:#103971ec;border:1px solid #ffe19d;
+ border-radius:14px;padding:2px 8px;font:800 10px/1.5 -apple-system,Arial,sans-serif;
+ white-space:nowrap
+}
