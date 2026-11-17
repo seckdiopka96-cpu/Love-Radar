@@ -225,11 +225,17 @@
  overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
 }
 .lr-app.lr-chat-mode .lr-chat .lr-chat-status{
- display:block!important;max-width:100%!important;overflow:hidden!important;
+ /* Keep the presence dot and "En ligne" on exactly the same row. */
+ display:inline-flex!important;align-items:center!important;gap:7px!important;
+ max-width:100%!important;vertical-align:middle!important;overflow:hidden!important;
  white-space:nowrap!important;text-overflow:ellipsis!important;
  font-family:inherit!important;font-size:12px!important;line-height:1.35!important;
  font-weight:450!important;letter-spacing:0!important;
  color:#aebecb!important;
+}
+.lr-app.lr-chat-mode .lr-chat .lr-chat-status::before{
+ content:"";display:block;flex:0 0 8px;width:8px;height:8px;
+ border-radius:50%;align-self:center;
 }
 .lr-app.lr-chat-mode .lr-chat .lr-chat-head #lr-voice-button-slot{
  display:flex!important;align-items:center!important;gap:4px!important;
