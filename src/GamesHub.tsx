@@ -1,6 +1,6 @@
 import "./games-hub.css";
 
-type Game="rapid"|"truth"|"rps"|"ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo"|"memory";
+type Game="rapid"|"truth"|"rps"|"ludo-room"|"ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo"|"memory";
 type Props={onOpenGame:(game:Game)=>void;partnerName:string|null};
 
 /** Original, consistent vector artwork — no robot or emoji graphics. */
@@ -82,21 +82,9 @@ export default function GamesHub({onOpenGame,partnerName}:Props){
     <GameArtwork game="rps"/>
     <span className="lr-games-copy"><small>EN DIRECT · À DEUX</small><strong>Pierre · Papier · Ciseaux</strong><span>Choix secrets, révélation simultanée, points et revanche en temps réel.</span><b>Défier mon partenaire →</b></span>
    </button>
-   <button type="button" className="lr-games-choice lr-games-ludo" onClick={()=>onOpenGame("ludo")}>
+   <button type="button" className="lr-games-choice lr-games-ludo lr-games-ludo-room-card" onClick={()=>onOpenGame("ludo-room")}>
     <GameArtwork game="ludo"/>
-    <span className="lr-games-copy"><small>JEU DE PLATEAU · À DEUX</small><strong>Ludo Duo</strong><span>Une partie à deux, même à distance.</span><b>Jouer à Ludo →</b></span>
-   </button>
-   <button type="button" className="lr-games-choice lr-games-solo" onClick={()=>onOpenGame("ludo-solo")}>
-    <GameArtwork game="ludo-solo"/>
-    <span className="lr-games-copy"><small>MODE SOLO · AUCUN PARTENAIRE</small><strong>Ludo contre l’ordinateur</strong><span>Un vrai adversaire automatique, à tout moment.</span><b>Jouer en solo →</b></span>
-   </button>
-   <button type="button" className="lr-games-choice lr-games-senegal" onClick={()=>onOpenGame("ludo-senegal")}>
-    <GameArtwork game="ludo-senegal"/>
-    <span className="lr-games-copy"><small>RÈGLES SÉNÉGALAISES · À DEUX</small><strong>Ludo Sénégal · Duo</strong><span>Plusieurs tours, attaque dans la cage adverse et demi-tour avec un 6.</span><b>Défier mon partenaire →</b></span>
-   </button>
-   <button type="button" className="lr-games-choice lr-games-senegal-solo" onClick={()=>onOpenGame("ludo-senegal-solo")}>
-    <GameArtwork game="ludo-senegal-solo"/>
-    <span className="lr-games-copy"><small>RÈGLES SÉNÉGALAISES · SOLO</small><strong>Ludo Sénégal · Ordinateur</strong><span>La même stratégie sénégalaise face à l’ordinateur.</span><b>Jouer en solo →</b></span>
+    <span className="lr-games-copy"><small>🎲 UNE SEULE SALLE · 4 MODES</small><strong>La salle Ludo</strong><span>Classique ou Sénégal, en Solo ou Duo : choisis ton plateau dans notre salle Ludo.</span><b>Découvrir les quatre jeux ›</b></span>
    </button>
    <button type="button" className="lr-games-choice lr-games-memory" onClick={()=>onOpenGame("memory")}>
     <GameArtwork game="memory"/>
