@@ -4,7 +4,7 @@ export type LudoMode="ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo";
 
 const MODES=[
  {id:"ludo-solo",tag:"CLASSIQUE",title:"Ludo Solo",meta:"Toi contre l’ordinateur",description:"Le vrai Ludo traditionnel, à ton rythme.",icon:"🎲",number:"01",kind:"classic-solo"},
- {id:"ludo",tag:"EN COUPLE",title:"Ludo Duo",meta:"Deux joueurs · En direct",description:"Une partie partagée, avec défis et réactions.",icon:"♥",number:"02",kind:"classic-duo"},
+ {id:"ludo",tag:"EN COUPLE",title:"Ludo Duo",meta:"Deux joueurs · En direct",description:"Une partie partagée avec défis et pions animés.",icon:"♥",number:"02",kind:"classic-duo"},
  {id:"ludo-senegal-solo",tag:"🇸🇳 SÉNÉGAL",title:"Sunu Ludo Solo",meta:"Toi contre l’ordinateur",description:"Tours supplémentaires et stratégie sénégalaise.",icon:"★",number:"03",kind:"senegal-solo"},
  {id:"ludo-senegal",tag:"🇸🇳 SÉNÉGAL",title:"Sunu Ludo Duo",meta:"Deux joueurs · En direct",description:"Entre dans la cage adverse et tente ta chance.",icon:"⚔",number:"04",kind:"senegal-duo"},
 ] as const;
