@@ -519,18 +519,10 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
      <LudoDie3D value={dice||0} color={myTurn?"blue":"green"} rolling={rolling}/>
     </button>
     <button type="button" className="ludo-main-action" disabled={busy||animationBusy||Boolean(game&&(!myTurn||rolling||game.status==="won"||game.dice!==null))}
-     onClick={()=>{if(game)void act("roll");else void load()}}>{!game?"ACTUALISER":game.dice!==null?"DÉPLACE UN PION":myTurn?rolling?"LANCEMENT…":"LANCER LE DÉ":"ATTENDRE…"}</button>
+     onClick={()=>{if(game)void act("roll");else void load()}}>{!game?"ACTUALISER":game.dice!==null?"TOUCHE UN PION":myTurn?rolling?"LANCEMENT…":"LANCER LE DÉ":"ATTENDRE…"}</button>
     <button type="button" className={"ludo-emoji-button"+(emotes?" is-open":"")} onClick={()=>setEmotes(!emotes)} aria-label="Envoyer une réaction" aria-expanded={emotes} disabled={members<2}>😂</button>
    </div>
-   <div className="ludo-pick-row" aria-label="Choisir un de tes quatre pions">
-    <span className="ludo-pick-label">MES PIONS</span>
-    {[0,1,2,3].map(i=><button key={i} type="button"
-     disabled={!canPlay||!legal[i]} onClick={()=>void act("move",i)}
-     aria-label={"Jouer le pion "+(i+1)+", "+labelPosition(game?.positions[mySeat]?.[i]??-1)}
-     className={"ludo-pick ludo-pawn-"+(red?"red":"gold")+(canPlay&&legal[i]?" can-play":"")}>
-      <PawnShape index={i}/>
-     </button>)}
-   </div>
+
    <div className="ludo-last-move" role="status" aria-live="polite">{error?"⚠ "+error:(game?.lastAction||"Plateau visible · La partie commencera quand vous serez deux ♥")}</div>
    {emotes?<div className="ludo-emote-tray" role="group" aria-label="Réactions rapides à deux">
     <div className="ludo-emote-heading"><strong>Réagis en direct 💬</strong><button type="button" aria-label="Fermer les réactions" onClick={()=>setEmotes(false)}>×</button></div>
