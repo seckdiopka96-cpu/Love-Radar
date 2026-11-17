@@ -180,12 +180,14 @@ function botChoose(g:Game,seat:number,rolled:number){
  available.sort((a,b)=>score(b)-score(a)||a.pawn-b.pawn);
  return available[0].pawn;
 }
-function botTurn(g:Game,name:string){
+function botTurn(g:Game,name:string):number|null{
  const seat=g.turn;
+ let lastThrown:number|null=null;
  let last="L'ordinateur a passé le tour.";
  for(let tries=0;tries<12&&g.status==="playing"&&g.turn===seat;tries++){
   if(g.dice===null){
    const rolled=die();
+   lastThrown=rolled;
    if(rolled===6&&g.streak>=2){
     g.dice=null;g.turn=1-seat;g.streak=0;last="Troisième 6 : tour passé.";break;
    }
@@ -221,14 +223,17 @@ function botTurn(g:Game,name:string){
  }
  if(g.status==="playing"&&g.turn===seat){g.turn=1-seat;g.dice=null;g.streak=0}
  g.last_action="🤖 Après 15 s sans action, l'ordinateur a joué pour "+name+". "+last;
+ return lastThrown;
 }
 async function autoIfLate(db:D1Database,g:Game,a:Agreement):Promise<Game>{
  if(g.status!=="playing"||!a.startedAt||Date.now()<Math.max(g.updated_at,a.startedAt)+TURN_MS)return g;
  const acting=g.turn;
  const row=await db.prepare("SELECT name FROM members WHERE room_id=? AND seat=?").bind(g.room_id,acting).first<{name:string}>();
- botTurn(g,(row?.name||"le joueur").slice(0,30));
+ const autoRoll=botTurn(g,(row?.name||"le joueur").slice(0,30));
  if(!await save(db,g))return await getGame(db,g.room_id)||g;
- return await getGame(db,g.room_id)||g;
+ const updated=await getGame(db,g.room_id)||g;
+ if(autoRoll!==null)await rememberLastRoll(db,updated,acting,autoRoll);
+ return updated;
 }
 
 async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
