@@ -592,10 +592,11 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const isIncoming=active?.direction==="incoming"&&active.status==="ringing";
  const isOutgoing=active?.direction==="outgoing"&&active.status==="ringing";
  const total=String(Math.floor(duration/60)).padStart(2,"0")+":"+String(duration%60).padStart(2,"0");
- const callStatus=isIncoming?"Appel vocal entrant…":isOutgoing?"Appel en cours…":phase||"Connexion en cours…";
+ const isVideo=active?.mode==="video";
+ const callStatus=isIncoming?(isVideo?"Appel vidéo entrant…":"Appel vocal entrant…"):isOutgoing?(isVideo?"Appel vidéo sortant…":"Appel en cours…"):phase||"Connexion en cours…";
  const display=active&&(!minimized||active.status==="ringing")?createPortal(
-  <div className="lr-call-backdrop" role="dialog" aria-modal="true" aria-label="Appel audio">
-   <div className="lr-call-sheet lr-call-facetime">
+  <div className="lr-call-backdrop" role="dialog" aria-modal="true" aria-label={isVideo?"Appel vidéo":"Appel audio"}>
+   <div className={"lr-call-sheet lr-call-facetime"+(isVideo?" lr-video-call":"")}>
     <div className="lr-call-upper">
      <div className="lr-call-topbar">
       {active.status==="active"?<button type="button" className="lr-call-minimize" onClick={minimizeAndWrite} aria-label="Réduire l’appel et écrire des messages">
@@ -608,10 +609,10 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
      <div className="lr-call-identity">
       <div className="lr-call-initial" aria-label={"Avatar de "+partner}>{avatarSrc?<img src={avatarSrc} alt={"Photo de "+partner}/>:partner.trim().charAt(0).toUpperCase()||"♡"}</div>
       <div className="lr-call-identification">
-       <div className="lr-call-brand">Appel audio</div>
+       <div className="lr-call-brand">{isVideo?"Appel vidéo HD":"Appel audio"}</div>
        <div className="lr-call-duration" aria-label={"Durée de l’appel : "+total}>{active.status==="active"&&connectedSince.current?total:callStatus}</div>
        <h2>{partner}</h2>
-       {active.status==="active"&&phase!=="Connecté"?<p className="lr-call-status" aria-live="polite">{phase||"Connexion audio…"}</p>:null}
+       {active.status==="active"&&phase!=="Connecté"?<p className="lr-call-status" aria-live="polite">{phase||(isVideo?"Connexion vidéo…":"Connexion audio…")}</p>:null}
       </div>
      </div>
      <div className="lr-call-feedback">
@@ -619,8 +620,20 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
       {needsPlay?<button type="button" className="lr-call-sound" onClick={enableAudio}>Activer le son</button>:null}
       {speakerHelp?<div className="lr-call-audio-hint" role="status">{speakerHelp}</div>:null}
       {networkHint&&active.status==="active"&&phase!=="Connecté"?<div className="lr-call-audio-hint" role="status">{networkHint}</div>:null}
+      {cameraWarning&&isVideo?<div className="lr-call-audio-hint" role="status">{cameraWarning}</div>:null}
      </div>
     </div>
+    {isVideo?<div className="lr-call-video-stage" aria-label="Vidéo privée du couple">
+     <div className="lr-call-video-remote">
+      <video ref={attachRemoteVideo} autoPlay playsInline muted aria-label={"Vidéo de "+partner}/>
+      {!remoteHasVideo?<div className="lr-call-video-wait"><div className="lr-call-video-avatar">{avatarSrc?<img src={avatarSrc} alt=""/>:partner.trim().charAt(0).toUpperCase()||"♡"}</div><strong>{partner}</strong><span>{active.status==="ringing"?"En attente de réponse…":"En attente de la caméra du partenaire…"}</span></div>:null}
+     </div>
+     <div className={"lr-call-video-self"+(cameraOff||!local.current?.getVideoTracks().length?" is-camera-off":"")}>
+      <video ref={attachLocalVideo} autoPlay playsInline muted aria-label="Ma caméra"/>
+      {cameraOff||!local.current?.getVideoTracks().length?<span>Caméra désactivée</span>:null}
+     </div>
+     <div className="lr-call-video-tag">VIDÉO · HD automatique</div>
+    </div>:null}
     <div className={"lr-call-actions"+(isIncoming?" is-ringing":"")} aria-label="Commandes de l’appel">
      {isIncoming?<>
       <button type="button" className="lr-call-action lr-call-decline" onClick={hangup} aria-label="Refuser l’appel" disabled={busy}>
@@ -640,6 +653,14 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
        <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/>{muted?<path d="M3 3 21 21" strokeWidth="2.5"/>:null}</svg></span>
        <span className="lr-call-control-label">{muted?"Réactiver":"Couper le son"}</span>
       </button>
+      {isVideo?<button type="button" className={"lr-call-action lr-call-camera"+(cameraOff?" is-muted":"")} onClick={toggleCamera} aria-label={cameraOff?"Activer la caméra":"Désactiver la caméra"} aria-pressed={!cameraOff}>
+       <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3"/>{cameraOff?<path d="M3 3 21 21" strokeWidth="2.6"/>:null}</svg></span>
+       <span className="lr-call-control-label">{cameraOff?"Caméra off":"Caméra"}</span>
+      </button>:null}
+      {isVideo?<button type="button" className="lr-call-action lr-call-flip" onClick={()=>void switchCamera()} disabled={cameraBusy||!local.current?.getVideoTracks().length} aria-label="Changer de caméra">
+       <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 10a5 5 0 0 1 8-2m0 0V5m0 3h-3M17 14a5 5 0 0 1-8 2m0 0v3m0-3h3"/></svg></span>
+       <span className="lr-call-control-label">{cameraBusy?"Changement…":"Retourner"}</span>
+      </button>:null}
       <button type="button" className="lr-call-action lr-call-chat" onClick={minimizeAndWrite} aria-label="Réduire l’appel et ouvrir les messages">
        <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 11.2a8.3 8.3 0 0 1-8.5 8.3 10 10 0 0 1-3.6-.8L3 21l1.5-4.7a8.4 8.4 0 1 1 15.5-5.1Z"/><path d="M8 11h8M8 14.5h5"/></svg></span>
        <span className="lr-call-control-label">Messages</span>
@@ -666,12 +687,13 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
       </div>
       {callPanel==="info"?<div className="lr-call-panel-details">
        <p><span>Avec</span><strong>{partner}</strong></p>
-       <p><span>Type</span><strong>Appel audio</strong></p>
+       <p><span>Type</span><strong>{isVideo?"Appel vidéo":"Appel audio"}</strong></p>
        <p><span>État</span><strong>{callStatus}</strong></p>
        <p><span>Durée</span><strong>{total}</strong></p>
        <p><span>Relais audio</span><strong>{relayEnabled?"Disponible":"Non confirmé"}</strong></p>
       </div>:callPanel==="more"?<div className="lr-call-panel-options">
        <button type="button" onClick={minimizeAndWrite}>Écrire un message pendant l’appel</button>
+       {isVideo?<button type="button" onClick={()=>{setCallPanel("none");toggleCamera()}}>{cameraOff?"Activer ma caméra":"Couper ma caméra"}</button>:null}
        <button type="button" onClick={()=>{setCallPanel("none");void selectSpeaker()}}>Changer la sortie audio</button>
        <button type="button" onClick={()=>setCallPanel("info")}>Informations de la connexion</button>
       </div>:<div className="lr-call-keypad-area">
