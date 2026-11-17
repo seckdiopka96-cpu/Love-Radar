@@ -311,19 +311,10 @@
         layer.append(piece);
       });
     }
-    // Accessible alternatives for very small mobile pieces or overlapping pawns.
+    // Selection happens by touching the real pawn in its home or on the track.
+    // The old numbered buttons are deliberately never rendered.
     pawnChoices.replaceChildren();
-    pawnChoices.hidden=!canChoose;
-    if (canChoose) {
-      const title=document.createElement("span");title.textContent="Quel pion déplacer ?";
-      pawnChoices.append(title);
-      for (const index of playable) {
-        const button=document.createElement("button");
-        button.type="button";button.textContent="Pion "+(index+1);
-        button.addEventListener("click",()=>{void movePiece("human",index)});
-        pawnChoices.append(button);
-      }
-    }
+    pawnChoices.hidden=true;
   }
 
   function render() {
@@ -357,7 +348,7 @@
       game.phase==="no-move" ? "Aucun déplacement possible" :
       !isHuman ? "🤖 L’ordinateur joue…" :
       game.phase==="roll" ? "À toi de jouer : lance le dé !" :
-      choices.length>1 ? "Choisis un pion qui brille" :
+      choices.length>1 ? "Touche le pion à déplacer" :
       choices.length===1 ? "Ton pion avance automatiquement…" : "À toi de jouer !";
     statusText.textContent=prompt;
     statusMeta.textContent=game.phase==="choose"&&game.die!==null ? "Dé : "+game.die :
