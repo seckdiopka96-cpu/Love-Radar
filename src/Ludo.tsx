@@ -523,7 +523,16 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   </footer>
   </div>
 
-  {game&&agreement?.startedAt&&palette?
+  {!game||!palette?<div className="ludo-duo-loading" role="status" aria-live="polite">
+   <img src="/ludo-mark.svg" alt="Ludo" className="ludo-duo-loading-logo"/>
+   <strong>LUDO DUO</strong>
+   <p>{error||(!game?"Préparation de la partie à deux…":"Synchronisation du plateau…")}</p>
+   <div className="ludo-duo-loading-actions">
+    <button type="button" onClick={()=>void load()}>↻ Réessayer</button>
+    <button type="button" onClick={onExit}>‹ Retour aux jeux</button>
+   </div>
+  </div>:null}
+  {game&&palette?
    <LudoDuoFrame game={game} palette={palette} lastRoll={lastRoll} mySeat={mySeat} myName={myName} partnerName={partnerName}
     remaining={remaining} rolling={rolling} rollingFace={rollingFace}
     busy={busy} animationBusy={animationBusy} motion={motion} capturedMotions={capturedMotions}
