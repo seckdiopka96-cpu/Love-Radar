@@ -692,21 +692,32 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
       {cameraWarning&&isVideo?<div className="lr-call-audio-hint" role="status">{cameraWarning}</div>:null}
      </div>
     </div>
-    {isVideo?<div className="lr-call-video-stage" aria-label="Vidéo privée du couple">
+    {isVideo?<div className={"lr-call-video-stage"+(showPartnerFullscreen?" has-partner-video":" is-self-first")} aria-label={showPartnerFullscreen?"Vidéo de ton partenaire":"Ma caméra en plein écran"}>
      <div className="lr-call-video-remote">
-      <video ref={attachRemoteVideo} autoPlay playsInline muted aria-label={"Vidéo de "+partner}/>
-      {!remoteHasVideo?<div className="lr-call-video-wait"><div className="lr-call-video-avatar">{avatarSrc?<img src={avatarSrc} alt=""/>:partner.trim().charAt(0).toUpperCase()||"♡"}</div><strong>{partner}</strong><span>{active.status==="ringing"?"En attente de réponse…":"En attente de la caméra du partenaire…"}</span></div>:null}
+      <video ref={attachRemoteVideo} autoPlay playsInline muted
+       onPlaying={()=>setRemoteVideoReady(true)}
+       onPause={()=>setRemoteVideoReady(false)}
+       onWaiting={()=>setRemoteVideoReady(false)}
+       aria-label={"Vidéo de "+partner}/>
+      {!remoteVideoReady&&!localPreviewReady?<div className="lr-call-video-wait">
+       <div className="lr-call-video-avatar">{avatarSrc?<img src={avatarSrc} alt=""/>:partner.trim().charAt(0).toUpperCase()||"♡"}</div>
+       <strong>{partner}</strong>
+       <span>{active.id==="preparing-video"?"Activation de ta caméra…":active.status==="ringing"?"En attente de réponse…":"En attente de la caméra du partenaire…"}</span>
+      </div>:null}
      </div>
      <div className={"lr-call-video-self"+(cameraOff||!local.current?.getVideoTracks().some(track=>track.readyState==="live")?" is-camera-off":"")}>
-      <video ref={attachLocalVideo} autoPlay playsInline muted onPlaying={()=>{setLocalPreviewReady(true);setLocalPreviewHelp("")}} onError={()=>{setLocalPreviewReady(false);setLocalPreviewHelp("Aperçu indisponible. Appuie pour réessayer.")}} aria-label="Ma caméra"/>
+      <video ref={attachLocalVideo} autoPlay playsInline muted
+       onPlaying={revealLocalFrame} onLoadedData={revealLocalFrame} onLoadedMetadata={revealLocalFrame}
+       onError={()=>{setLocalPreviewReady(false);setLocalPreviewHelp("Aperçu indisponible. Appuie pour réessayer.")}}
+       aria-label="Ma caméra"/>
       {cameraOff||!local.current?.getVideoTracks().some(track=>track.readyState==="live")?
-       <span>Caméra indisponible</span>
+       <span>{active.id==="preparing-video"?"Ouverture de la caméra…":"Caméra indisponible"}</span>
       :!localPreviewReady?
-       <button type="button" className="lr-call-video-self-help" onClick={()=>void playLocalPreview()} aria-label="Activer l’aperçu de ma caméra">{localPreviewHelp||"Afficher ma caméra"}</button>
+       <button type="button" className="lr-call-video-self-help" onClick={()=>void playLocalPreview()} aria-label="Relancer ma caméra">{localPreviewHelp||"Afficher ma caméra"}</button>
       :null}
-      <button type="button" className="lr-call-video-retry" onClick={()=>void playLocalPreview()} title="Rafraîchir ma caméra" aria-label="Rafraîchir l’aperçu de ma caméra">↻</button>
+      <button type="button" className="lr-call-video-retry" onClick={()=>void playLocalPreview()} title="Rafraîchir ma caméra" aria-label="Rafraîchir ma caméra">↻</button>
      </div>
-     <div className="lr-call-video-tag">VIDÉO · HD automatique</div>
+     <div className="lr-call-video-tag">{showPartnerFullscreen?"EN APPEL · VIDÉO":"MA CAMÉRA · EN DIRECT"}</div>
     </div>:null}
     <div className={"lr-call-actions"+(isIncoming?" is-ringing":"")} aria-label="Commandes de l’appel">
      {isIncoming?<>
