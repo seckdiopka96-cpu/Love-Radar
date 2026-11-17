@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useRef,useState} from "react";
 import LudoDie3D from "./LudoDie3D";
 import PawnShape from "./LudoPawn";
+import {LudoReactionBurst,LudoReactionPicker,type LudoSticker} from "./LudoReactions";
 import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,BASE,SAFE,CELL,key,stackCellStyle,type Point} from "./ludo-visuals";
 import {
@@ -18,7 +19,8 @@ type Props={
  partnerName:string|null;storageKey:string;onExit:()=>void
 };
 type ServerGame=SenegalGame&{id:string;version:number;deadlineAt:number|null};
-type ServerResponse={ok:boolean;error?:string;members?:number;seat?:number;game?:ServerGame|null;move?:SenegalMove|null;moveVersion?:number|null;serverNow?:number};
+type ReactionEvent={id:string;seat:Seat;emoji:string;at:number};
+type ServerResponse={ok:boolean;error?:string;members?:number;seat?:number;game?:ServerGame|null;move?:SenegalMove|null;moveVersion?:number|null;serverNow?:number;reactions?:ReactionEvent[]};
 type Moving={seat:Seat;pawn:number;point:Point;index:number;length:number};
 type CaptureBack={seat:Seat;pawn:number;point:Point};
 type CapturedSenegalPawn=SenegalMove["captures"][number];
@@ -67,6 +69,9 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const [chosen,setChosen]=useState<MoveOption[]|null>(null);
  const [landing,setLanding]=useState<Point|null>(null);
  const [reaction,setReaction]=useState("");
+ const [emotes,setEmotes]=useState(false);
+ const [sticker,setSticker]=useState<LudoSticker|null>(null);
+ const [reactionBusy,setReactionBusy]=useState(false);
  const [confirmReset,setConfirmReset]=useState(false);
  const [boardSize,setBoardSize]=useState(0);
  const {enabled:soundOn,unlock:unlockSound,play:playSound,toggle:toggleSound}=useLudoSounds();
@@ -77,6 +82,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const idRef=useRef("");
  const busyRef=useRef(false);
  const lastAnimated=useRef("");
+ const lastReactionId=useRef("");
  const clearTimers=()=>{for(const t of timers.current)window.clearTimeout(t);timers.current=[];};
  const later=(callback:()=>void,delay:number)=>{
   const id=window.setTimeout(callback,delay);timers.current.push(id);
@@ -122,6 +128,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    setMotion(null);setLanding(pointForPawn(move.seat,move.pawn,move.to));
    if(move.captures.length){
     playSound("capture");setReaction("💥");
+    if(move.seat===seat)setEmotes(true);
     const returns=move.captures.map(captured=>({...captured,path:captureReversePoints(captured)}));
     returns.forEach(item=>item.path.forEach((point,index)=>later(()=>{
      if(!loaded.current)return;
@@ -136,12 +143,20 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    else if(move.action==="home")setReaction("🏠");
    later(()=>{if(loaded.current){setReaction("");setLanding(null)}},1300);
   },done);
- },[playSound]);
+ },[playSound,seat]);
  const accept=useCallback((data:ServerResponse)=>{
   if(!loaded.current)return;
   if(data.serverNow)setServerOffset(Date.now()-data.serverNow);
   if(data.members!==undefined)setMembers(data.members);
   setOnline(true);
+  const recent=data.reactions?.[0];
+  if(recent&&recent.id!==lastReactionId.current&&Date.now()-recent.at<8000){
+   lastReactionId.current=recent.id;
+   const label=recent.seat===seat?"Ta réaction":"Réaction de ton partenaire";
+   const id=recent.at;
+   setSticker({id,emoji:recent.emoji,label});
+   later(()=>setSticker(prev=>prev?.id===id?null:prev),2700);
+  }
   if(!data.game)return;
   const next=data.game;
   const oldVersion=versionRef.current,oldId=idRef.current;
@@ -159,7 +174,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   if(data.move&&moveVersion!==null&&oldId===next.id&&oldVersion<moveVersion&&lastAnimated.current!==animationKey){
    lastAnimated.current=animationKey;animate(data.move);
   }
- },[animate]);
+ },[animate,seat]);
  const refresh=useCallback(async()=>{
   if(solo||busyRef.current||document.visibilityState!=="visible")return;
   try{
@@ -198,6 +213,29 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    setError(e instanceof Error?e.message:"Action refusée.");
    void refresh();return null;
   }finally{busyRef.current=false;setBusy(false)}
+ }
+ async function sendSticker(emoji:string,label:string){
+  setEmotes(false);
+  if(solo){
+   const id=Date.now();
+   setSticker({id,emoji,label});
+   playSound("reaction");haptic();
+   later(()=>setSticker(prev=>prev?.id===id?null:prev),2700);
+   return;
+  }
+  if(reactionBusy||!online||members!==2)return;
+  setReactionBusy(true);
+  try{
+   const response=await fetch("/api/ludo-senegal",{
+    method:"POST",
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    body:JSON.stringify({action:"react",emoji})
+   });
+   const data=await response.json() as ServerResponse;
+   if(!response.ok||!data.ok)throw Error(data.error||"Réaction non envoyée.");
+   accept(data);playSound("reaction");haptic();
+  }catch(e){setError(e instanceof Error?e.message:"Réaction non envoyée.");}
+  finally{setReactionBusy(false);}
  }
  async function roll(automatic=false){
   if(game.status!=="playing"||game.dice!==null||rolling||busy||motion||captureBack.length||chosen||(!solo&&(!online||members!==2||game.turn!==seat))||
@@ -261,7 +299,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  },[solo,game,rolling,motion,busy,chosen,confirmReset,assisted]);
  function reset(){
   setConfirmReset(false);setChosen(null);setAssisted(false);
-  clearTimers();setMotion(null);setCaptureBack([]);setReaction("");setRolling(false);
+  clearTimers();setMotion(null);setCaptureBack([]);setReaction("");setSticker(null);setEmotes(false);setRolling(false);
   if(solo)setGame(newSenegalGame());
   else void sendAction({action:"restart"});
  }
@@ -368,7 +406,8 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
       </div>:null}
      </div>
     </div>
-    {reaction?<div className="ludo-solo-reaction" role="status">{reaction}</div>:null}
+    <LudoReactionBurst sticker={sticker}/>
+    {reaction&&!sticker?<div className="ludo-solo-reaction" role="status">{reaction}</div>:null}
     {game.status==="won"&&!motion?<div className="ludo-victory ludo-solo-win" role="dialog" aria-label="Victoire Ludo Sénégal">
      <div className="ludo-celebrate">🏆🇸🇳</div>
      <strong>{game.winner===seat?"Tu as gagné !":"Ton adversaire a gagné !"}</strong>
@@ -382,6 +421,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
     </div>:null}
    </div>
    <div className="ludo-game-footer">
+    <LudoReactionPicker open={emotes} disabled={reactionBusy} onPick={sendSticker} onClose={()=>setEmotes(false)}/>
     {chosen&&chosen.length?<div className={"ludo-senegal-choice"+(invasionChoice?" is-raid-decision":"")} role="dialog" aria-label={invasionChoice?"Entrer dans la cage adverse ou continuer le tour":"Choisis ton chemin"}>
      <div><strong>{invasionChoice?"😈 Entrer dans sa cage ou continuer ?":"🇸🇳 Où veux-tu aller ?"}</strong><span>Pion {chosen[0].pawn+1} · dé {game.dice}</span></div>
      {invasionChoice?<p className="ludo-senegal-cage-hint" role="status">
@@ -407,6 +447,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
       {!solo&&!online?"CONNEXION…":rolling?"LE DÉ ROULE…":motion?"DÉPLACEMENT…":
        !turnOwner?"⏳ TOUR ADVERSE":game.dice!==null?"TOUCHE UN PION":assisted?"🤖 COUP AUTOMATIQUE":"🎲 LANCER LE DÉ"}
      </button>
+     <button type="button" className="ludo-reaction-toggle" onClick={()=>setEmotes(open=>!open)} disabled={reactionBusy||(!solo&&members!==2)} aria-label="Envoyer une réaction animée" aria-expanded={emotes}>😝</button>
     </div>
 
     <div className="ludo-last-move" role="status">{game.lastAction}</div>
