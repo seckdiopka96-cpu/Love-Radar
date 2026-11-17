@@ -90,3 +90,21 @@ test("Duo iframe works offline and uses only a same-origin parent, never replaci
  assert.ok(sw.includes('url.pathname.startsWith("/ludo-duo/")'));
  assert.ok(sw.includes("love-radar-static-v100"),"new PWA release must invalidate old shell");
 });
+
+test("live Duo synchronizes promptly with conditional server reads",()=>{
+ assert.ok(parent.includes('activeDuoGame=useRef(false)'),"avoid fast path until both signed");
+ assert.ok(parent.includes('"/api/ludo?since="+previous.version'),"send the last synchronized version");
+ assert.ok(parent.includes('if(data.unchanged)'),"avoid repainting unchanged game");
+ assert.ok(parent.includes('window.setTimeout(()=>{void poll()},500)'),"poll within half a second after completion");
+ assert.ok(parent.includes('inFlight=true'),"never stack network checks");
+ assert.ok(!parent.includes('setInterval(()=>{if(document.visibilityState==="visible")void load()},1600)'),"remove 1.6s polling delay");
+ assert.ok(parent.includes('Math.max(0,690-(Date.now()-actionStarted))'),"finish dice animation sooner");
+ assert.ok(duoJS.includes('remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},650)'),"partner dice resolves promptly");
+ const server=backend;
+ assert.ok(server.includes('if(method==="GET"&&g?.status==="playing")'),"fast path only for active game");
+ assert.ok(server.includes('params.get("game")===g.game_id'),"refuse stale game ids");
+ assert.ok(server.includes('Number(since)===g.version'),"compare authoritative versions");
+ assert.ok(server.includes('Math.max(g.updated_at,activeAgreement.startedAt)+TURN_MS'),"do not skip turn deadline");
+ assert.ok(server.includes('unchanged:true'),"send small unchanged response");
+ assert.ok(server.includes('at:row.at'),"dice results keep unique timestamp");
+});
