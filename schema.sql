@@ -57,6 +57,12 @@ CREATE TABLE IF NOT EXISTS voice_call_history (
  connected_at INTEGER,ended_at INTEGER,outcome TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_voice_call_history_room ON voice_call_history(room_id);
+CREATE TABLE IF NOT EXISTS voice_call_modes (
+ call_id TEXT PRIMARY KEY,
+ room_id TEXT NOT NULL,
+ mode TEXT NOT NULL CHECK(mode IN ('audio','video'))
+);
+CREATE INDEX IF NOT EXISTS idx_voice_call_modes_room ON voice_call_modes(room_id);
 
 -- Two-player Ludo, created automatically on first access for existing couples.
 CREATE TABLE IF NOT EXISTS ludo_games (
