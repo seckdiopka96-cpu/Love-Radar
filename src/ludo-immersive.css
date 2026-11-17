@@ -669,3 +669,73 @@
 }
 /* Never animate the entire board when a piece is moving. */
 .ludo-experience .ludo-board-move{animation:none!important}
+
+/* Reactions are animated floating stickers; never resize/recenter the board. */
+.ludo-reaction-burst{
+ position:absolute;z-index:170;left:50%;top:27%;
+ transform:translate(-50%,-50%);width:112px;height:112px;
+ display:grid;place-items:center;pointer-events:none;
+ border-radius:50%;
+ background:radial-gradient(circle,#fff9c45c 0%,#ffb52d22 47%,transparent 79%);
+ filter:drop-shadow(0 8px 9px #041a3688);
+ animation:lr-react-taunt-arrive 2.65s ease-out both;
+}
+.ludo-reaction-face{font-size:clamp(62px,14vw,95px);line-height:1;transform-origin:50% 70%;display:block}
+.ludo-reaction-burst[data-kind="tongue"] .ludo-reaction-face{animation:lr-react-tongue .58s ease-in-out 4}
+.ludo-reaction-burst[data-kind="laugh"] .ludo-reaction-face{animation:lr-react-laugh .4s ease-in-out 6}
+.ludo-reaction-burst[data-kind="cry"] .ludo-reaction-face{animation:lr-react-cry .6s ease-in-out 4}
+.ludo-reaction-burst[data-kind="shock"] .ludo-reaction-face{animation:lr-react-shock .61s ease-in-out 4}
+.ludo-reaction-burst[data-kind="cool"] .ludo-reaction-face,
+.ludo-reaction-burst[data-kind="clap"] .ludo-reaction-face{animation:lr-react-laugh .61s ease-in-out 4}
+@keyframes lr-react-taunt-arrive{
+ 0%{opacity:0;transform:translate(-50%,-24%) scale(.2)}
+ 12%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
+ 22%,76%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+ 100%{opacity:0;transform:translate(-50%,-95%) scale(.76)}
+}
+@keyframes lr-react-tongue{
+ 0%,100%{transform:rotate(0) translateY(0) scale(1)}
+ 25%{transform:rotate(-16deg) translateY(-8px) scale(1.16)}
+ 65%{transform:rotate(16deg) translateY(1px) scale(.94)}
+}
+@keyframes lr-react-laugh{
+ 0%,100%{transform:translateY(0) rotate(0)}
+ 30%{transform:translateY(-13px) rotate(-12deg) scale(1.09)}
+ 70%{transform:translateY(3px) rotate(12deg)}
+}
+@keyframes lr-react-cry{
+ 0%,100%{transform:translateX(0) scale(1)}
+ 24%{transform:translateX(-8px) scale(1.1)}
+ 56%{transform:translateX(8px) scale(.94)}
+}
+@keyframes lr-react-shock{
+ 0%,100%{transform:scale(1)}
+ 40%{transform:scale(1.30)}
+}
+.ludo-reaction-toggle{
+ flex:0 0 41px;height:42px;border:1px solid #ffe49a;border-radius:12px;
+ background:linear-gradient(145deg,#2358a1,#103369);color:#fff;
+ font-size:25px;display:grid;place-items:center;cursor:pointer;touch-action:manipulation;
+ box-shadow:inset 0 1px #ffffff4c,0 3px 7px #021c37af
+}
+.ludo-reaction-toggle[aria-expanded="true"]{background:#8953a3}
+.ludo-reaction-picker{
+ position:absolute;right:3px;bottom:calc(100% + 9px);z-index:180;
+ width:min(284px,calc(100vw - 26px));padding:10px;border-radius:17px;
+ background:linear-gradient(145deg,#21457ff5,#15244de9);
+ border:1.5px solid #f3dc93;box-shadow:0 12px 26px #04182dba;
+ backdrop-filter:blur(7px)
+}
+.ludo-reaction-picker-title{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#ffe9b8;font-size:12px;margin-bottom:7px}
+.ludo-reaction-picker-title button{width:25px;height:25px;border:1px solid #ffffff5c;border-radius:8px;background:#ffffff25;color:#fff;font-size:20px}
+.ludo-reaction-picker-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.ludo-reaction-picker-grid>button{
+ width:100%;height:44px;padding:0;display:grid;place-items:center;
+ background:#ffffff1f;color:#fff;border:1px solid #ffffff38;
+ border-radius:11px;font-size:28px;cursor:pointer;touch-action:manipulation
+}
+.ludo-reaction-picker-grid>button:active{transform:scale(.86);background:#ffe48b4c}
+@media(prefers-reduced-motion:reduce){
+ .ludo-reaction-burst,.ludo-reaction-face{animation:none!important}
+ .ludo-reaction-burst{transform:translate(-50%,-50%)}
+}
