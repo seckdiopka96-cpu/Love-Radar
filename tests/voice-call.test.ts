@@ -170,6 +170,7 @@ test("recover ICE on both sides without closing the call or recapturing camera",
  assert.ok(call.includes('kind:"offer",sdp:peer.localDescription?.sdp||"",restart:true'));
  assert.ok(call.includes('kind:"answer",sdp:peer.localDescription?.sdp||"",restart:renegotiating'));
  assert.ok(call.includes('if(signal.kind==="restart"&&call.direction==="outgoing")'));
+ assert.ok(call.includes('if(!sessionDescriptionSent.current&&peer.localDescription?.type==="answer")'),"retry unanswered SDP on unstable network");
  assert.ok(call.includes('if(signal.kind==="offer"&&call.direction==="incoming")'));
  assert.ok(call.includes('window.addEventListener("online",online)'));
  assert.ok(call.includes('window.addEventListener("offline",offline)'));
