@@ -320,7 +320,12 @@
  }
  window.addEventListener("message",e=>{
   if(e.origin!==location.origin||e.source!==window.parent)return;
-  if(!e.data||e.data.source!=="love-radar-ludo-duo-parent"||e.data.type!=="state")return;
+  if(!e.data||e.data.source!=="love-radar-ludo-duo-parent")return;
+  if(e.data.type==="ping"){
+   window.parent.postMessage({source:"love-radar-ludo-duo",type:"ready"},location.origin);
+   return;
+  }
+  if(e.data.type!=="state")return;
   const p=e.data;
   if(!p.game||!Array.isArray(p.game.positions)||p.game.positions.length!==2||!Array.isArray(p.palette?.colors))return;
   state=p;
