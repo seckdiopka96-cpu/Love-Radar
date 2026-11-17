@@ -817,7 +817,7 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
  0%,100%{transform:translateY(0) scale(1)}
  45%{transform:translateY(-9px) scale(1.13)}
 }
-.piece--captured{z-index:25!important;filter:drop-shadow(0 0 6px #ff7d86)}
+.piece--captured{z-index:25!important;filter:drop-shadow(0 0 6px #ff7d86);transition:left .54s cubic-bezier(.25,.7,.27,1),top .54s cubic-bezier(.25,.7,.27,1)!important}
 .piece--captured .piece-svg{animation:captured-return .26s ease-in-out both}
 @keyframes captured-return{
  0%{transform:scale(1)}
