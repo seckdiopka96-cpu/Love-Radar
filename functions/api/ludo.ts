@@ -244,23 +244,33 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   const player=await session(ctx.request,db);
   if(!player)return fail("Session expirée, reconnecte-toi à Love Radar.",401);
   await ensureTable(db);
-  const members=await countMembers(db,player.room_id);
-  let g=members===2?await getGame(db,player.room_id):null;
+  // Concurrent independent reads avoid stacking D1 round-trip latency.
+  const [members,existingGame]=await Promise.all([
+   countMembers(db,player.room_id),getGame(db,player.room_id)
+  ]);
+  let g=members===2?existingGame:null;
   if(members===2&&!g){
    await createIfMissing(db,player.room_id);
    g=await getGame(db,player.room_id);
   }
-  // Fast conditional polling: no expensive gift, palette, challenge or
-  // move-event queries if both phones already have this game version.
-  // Verify server-side deadlines to keep automatic timeout turns active.
+  // Active matches use the authenticated versioned delta protocol. Most
+  // polls are unchanged; a real roll/move returns only the essentials.
+  // Signed pre-game flows and completed matches still return complete state.
   if(method==="GET"&&g?.status==="playing"){
    const params=new URL(ctx.request.url).searchParams;
    const since=params.get("since");
-   if(since!==null&&/^\d{1,10}$/.test(since)&&Number(since)===g.version&&
+   if(since!==null&&/^\d{1,10}$/.test(since)&&Number(since)<=g.version&&
       params.get("game")===g.game_id){
     const activeAgreement=await agreement(db,g);
     if(activeAgreement.startedAt&&Date.now()+350<Math.max(g.updated_at,activeAgreement.startedAt)+TURN_MS){
-     return reply({ok:true,unchanged:true,version:g.version,serverNow:Date.now()});
+     if(Number(since)===g.version){
+      return reply({ok:true,unchanged:true,version:g.version,serverNow:Date.now()});
+     }
+     const [moveEvent,lastRoll]=await Promise.all([
+      lastMoveEvent(db,player.room_id,g.game_id),getLastRoll(db,g)
+     ]);
+     return reply({ok:true,delta:true,game:publicGame(g,activeAgreement),
+      moveEvent,lastRoll,serverNow:Date.now()});
     }
    }
   }
@@ -272,11 +282,20 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    signed=await agreement(db,g);
    g=await autoIfLate(db,g,signed);
   }
-  if(method==="GET")return reply({ok:true,members,seat:player.seat,game:g?publicGame(g,signed):null,
-   reaction:members===2?await reaction(db,player.room_id):null,
-   reactions:g?await recentReactions(db,player.room_id,g.game_id):[],
-   moveEvent:g?await lastMoveEvent(db,player.room_id,g.game_id):null,
-   gift:g?await gift(db,g):null,agreement:signed,palette:g?await palette(db,g):null,lastRoll:g?await getLastRoll(db,g):null,challenge:g?await challenge(db,g):null,serverNow:Date.now()});
+  if(method==="GET"){
+   const [reactionValue,reactions,moveEvent,giftValue,paletteValue,lastRoll,challengeValue]=await Promise.all([
+    members===2?reaction(db,player.room_id):Promise.resolve(null),
+    g?recentReactions(db,player.room_id,g.game_id):Promise.resolve([]),
+    g?lastMoveEvent(db,player.room_id,g.game_id):Promise.resolve(null),
+    g?gift(db,g):Promise.resolve(null),
+    g?palette(db,g):Promise.resolve(null),
+    g?getLastRoll(db,g):Promise.resolve(null),
+    g?challenge(db,g):Promise.resolve(null)
+   ]);
+   return reply({ok:true,members,seat:player.seat,game:g?publicGame(g,signed):null,
+    reaction:reactionValue,reactions,moveEvent,gift:giftValue,agreement:signed,
+    palette:paletteValue,lastRoll,challenge:challengeValue,serverNow:Date.now()});
+  }
   const text=await ctx.request.text();
   if(text.length>1024)return fail("Requête trop grande.",413);
   let data:Record<string,unknown>;
@@ -462,10 +481,28 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
     await db.prepare("DELETE FROM ludo_challenges WHERE room_id=?").bind(player.room_id).run();
    }
   }
+  // Roll/move responses should reach the tapping phone immediately.
+  // Gifts, reactions, colors and challenges cannot change during active play.
+  if(updated&&updated.status==="playing"&&(action==="roll"||action==="move")&&nextAgreement?.startedAt){
+   const [moveEvent,lastRoll]=await Promise.all([
+    completedMove&&completedMove.version===updated.version?
+     Promise.resolve(completedMove):lastMoveEvent(db,player.room_id,updated.game_id),
+    getLastRoll(db,updated)
+   ]);
+   return reply({ok:true,delta:true,game:publicGame(updated,nextAgreement),
+    moveEvent,lastRoll,serverNow:Date.now()});
+  }
+  const [moveEvent,reactions,giftValue,paletteValue,lastRoll,challengeValue]=await Promise.all([
+   updated?lastMoveEvent(db,player.room_id,updated.game_id):Promise.resolve(null),
+   updated?recentReactions(db,player.room_id,updated.game_id):Promise.resolve([]),
+   updated?gift(db,updated):Promise.resolve(null),
+   updated?palette(db,updated):Promise.resolve(null),
+   updated?getLastRoll(db,updated):Promise.resolve(null),
+   updated?challenge(db,updated):Promise.resolve(null)
+  ]);
   return reply({ok:true,members,seat:player.seat,game:updated?publicGame(updated,nextAgreement):null,
-   moveEvent:updated?await lastMoveEvent(db,player.room_id,updated.game_id):null,
-   reactions:updated?await recentReactions(db,player.room_id,updated.game_id):[],
-   gift:updated?await gift(db,updated):null,agreement:nextAgreement,palette:updated?await palette(db,updated):null,lastRoll:updated?await getLastRoll(db,updated):null,challenge:updated?await challenge(db,updated):null,serverNow:Date.now()});
+   moveEvent,reactions,gift:giftValue,agreement:nextAgreement,palette:paletteValue,
+   lastRoll,challenge:challengeValue,serverNow:Date.now()});
  }catch(e){console.error("Love Radar Ludo",e);return fail("Le jeu est temporairement indisponible.",500)}
 }
 export const onRequestGet=(ctx:Ctx)=>handle(ctx,"GET");
