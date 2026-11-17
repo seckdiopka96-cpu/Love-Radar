@@ -179,7 +179,7 @@
  font-size:20px!important;color:#9fb4c3!important;opacity:.75;
 }
 .lr-app.lr-home-mode .lr-home-compact-footer{
- color:var(--lr-clean-muted)!important;font:450 12px/1.6 inherit!important;
+ color:var(--lr-clean-muted)!important;font-family:inherit!important;font-size:12px!important;line-height:1.6!important;font-weight:450!important;
 }
 .lr-app.lr-home-mode .lr-home-compact-footer button{
  color:var(--lr-clean-accent)!important;text-decoration:none!important;
