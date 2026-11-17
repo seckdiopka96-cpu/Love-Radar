@@ -269,3 +269,50 @@ test("player dice color, fixed board and reverse captures are wired in every mod
  assert.ok(reactSolo.includes("function reverseCaptured("));
  assert.ok(senegal.includes("function captureReversePoints("));
 });
+
+test("capture taunts are animated and selectable from every Ludo mode",()=>{
+ const nativeSolo=readFileSync("src/SoloLudo.tsx","utf8");
+ const senegal=readFileSync("src/SenegalLudo.tsx","utf8");
+ const senateApi=readFileSync("functions/api/ludo-senegal.ts","utf8");
+ const emotes=readFileSync("src/LudoReactions.tsx","utf8");
+ const immersive=readFileSync("src/ludo-immersive.css","utf8");
+ const deletion=readFileSync("functions/lib/delete-room.ts","utf8");
+ for(const emoji of ["😝","🤪","🤣","😂","😭","😱","😎","👏"]){
+  assert.ok(solo.includes(emoji),"Solo must include "+emoji);
+  assert.ok(duo.includes(emoji),"Duo must include "+emoji);
+  assert.ok(emotes.includes(emoji),"React must include "+emoji);
+  assert.ok(senateApi.includes(emoji),"Senegal server must allow "+emoji);
+ }
+ assert.ok(solo.includes('if(captured.length&&side==="human")openEmojiPicker()'));
+ assert.ok(solo.includes('sticker.dataset.kind=kind'));
+ assert.ok(soloCSS.includes('@keyframes lr-taunt-tongue'));
+ assert.ok(soloCSS.includes('@keyframes lr-taunt-laugh'));
+ assert.ok(soloCSS.includes('@keyframes lr-taunt-cry'));
+ assert.ok(soloCSS.includes('.lr-reaction-burst[hidden]{display:none!important}')||
+  soloCSS.includes('.lr-reaction-picker[hidden],.lr-reaction-burst[hidden]{display:none!important}'));
+ assert.ok(nativeSolo.includes('if(move.seat===0)setEmotes(true)'));
+ assert.ok(nativeSolo.includes('<LudoReactionPicker open={emotes}'));
+ assert.ok(senegal.includes('<LudoReactionPicker open={emotes}'));
+ assert.ok(senegal.includes('if(move.seat===seat)setEmotes(true)'));
+ assert.ok(senegal.includes('action:"react",emoji'));
+ assert.ok(immersive.includes('@keyframes lr-react-tongue'));
+ assert.ok(immersive.includes('@keyframes lr-react-laugh'));
+ assert.ok(immersive.includes('@keyframes lr-react-cry'));
+ assert.ok(deletion.includes('"ludo_senegal_reactions"'));
+});
+
+test("Duo reactions are sent to both phones and appear without shifting the board",()=>{
+ const duoCSS=readFileSync("public/ludo-duo/style.css","utf8");
+ const senegal=readFileSync("functions/api/ludo-senegal.ts","utf8");
+ assert.ok(bridge.includes("reactions:props.reactions"));
+ assert.ok(parent.includes("reactions={visibleReactions}"));
+ assert.ok(server.includes('new Set(["❤️","😂","🤣","😝","🤪"'));
+ assert.ok(duo.includes("lastReactionKey"));
+ assert.ok(duo.includes("showReaction(newest.emoji,newest.seat)"));
+ assert.ok(duo.includes('emojiTray.hidden=false;emojiButton.setAttribute("aria-expanded","true")'));
+ assert.ok(duoCSS.includes(".app .duo-side-emotes{"));
+ assert.ok(duoCSS.includes("position:absolute;bottom:calc(100% + 8px)"));
+ assert.ok(senegal.includes('if(action==="react"){'));
+ assert.ok(senegal.includes("REACTION_EMOJIS.has(data.emoji)"));
+ assert.ok(senegal.includes("await recentReactions(db,player.room_id,game.id)"));
+});
