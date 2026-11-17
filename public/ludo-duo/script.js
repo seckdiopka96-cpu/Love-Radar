@@ -287,7 +287,7 @@
    // Recreate a short dice roll for the partner, once per server roll.
    if(receivedState&&last.seat!==state.mySeat&&!state.rolling){
     if(remoteDieTimer!==null)clearTimeout(remoteDieTimer);
-    remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},750);
+    remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},650);
    }
   }
   const rollingNow=Boolean(state.rolling)||remoteDieTimer!==null;
