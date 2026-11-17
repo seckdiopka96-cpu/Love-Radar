@@ -1,5 +1,5 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
-const CACHE="love-radar-static-v101";
+const CACHE="love-radar-static-v102";
 const PRIVATE_AVATAR_CACHE="love-radar-private-notification-avatar-v1";
 const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png","/ludo-mark.svg","/ludo-solo/index.html","/ludo-solo/style.css","/ludo-solo/script.js","/ludo-duo/index.html","/ludo-duo/style.css","/ludo-duo/script.js"];
 self.addEventListener("install",event=>{
@@ -112,26 +112,55 @@ self.addEventListener("push",event=>{
   for(const client of windows)client.postMessage({type:"love-radar-push-received",tab:destination.tab,kind:destination.kind});
  })());
 });
+// iOS may reopen an installed PWA at its manifest start_url rather than the
+// tapped notification URL. Keep ONLY its destination (never message content).
+// The SPA consumes it once it has installed its event listeners.
+const PENDING_ROUTE_CACHE="love-radar-notification-route-v1";
+const PENDING_ROUTE_URL="/__lr_pending_notification_route__";
+async function rememberNotificationRoute(destination){
+ const cache=await caches.open(PENDING_ROUTE_CACHE);
+ await cache.put(PENDING_ROUTE_URL,new Response(JSON.stringify({destination,at:Date.now()}),{
+  headers:{"Content-Type":"application/json","Cache-Control":"no-store"}
+ }));
+}
+async function deliverPendingRoute(client){
+ const cache=await caches.open(PENDING_ROUTE_CACHE);
+ const stored=await cache.match(PENDING_ROUTE_URL);
+ if(!stored)return;
+ await cache.delete(PENDING_ROUTE_URL);
+ try{
+  const record=await stored.json();
+  if(!Number.isFinite(record.at)||Date.now()-record.at>120000)return;
+  const destination=notificationTarget(record.destination);
+  client.postMessage({type:"love-radar-open-notification",...destination});
+ }catch{/* Invalid/expired routes must not cause navigation. */}
+}
+self.addEventListener("message",event=>{
+ if(event.data?.type!=="love-radar-request-pending-notification")return;
+ if(!event.source||!event.source.postMessage)return;
+ event.waitUntil(deliverPendingRoute(event.source));
+});
 self.addEventListener("notificationclick",event=>{
  event.notification.close();
  const destination=notificationTarget(event.notification.data||{});
  const url=new URL(destination.url,self.location.origin).href;
  event.waitUntil((async()=>{
   const clientsList=await self.clients.matchAll({type:"window",includeUncontrolled:true});
-  for(const client of clientsList){
-   if(new URL(client.url).origin!==self.location.origin)continue;
+  // Never focus a different origin or a random preview window.
+  const owned=clientsList.filter(client=>{
+   try{return new URL(client.url).origin===self.location.origin}catch{return false}
+  });
+  for(const client of owned){
    try{
-    // Focus first so iOS uses the already-installed PWA window.
-    const focused="focus" in client?await client.focus():client;
-    // Message is also consumed by the open SPA if navigation does not reload.
-    (focused||client).postMessage({type:"love-radar-open-notification",...destination});
-    if("navigate" in focused){
-     const navigated=await focused.navigate(url);
-     if(navigated)return;
-    }
+    const focused=await client.focus();
+    // An already-running app handles this in place, without reloading its
+    // whole session and possibly falling back to the home page.
+    focused.postMessage({type:"love-radar-open-notification",...destination});
     return;
-   }catch{/* Fall back to opening the exact deep link below. */}
+   }catch{/* A cold-started/closed page is handled below. */}
   }
+  await rememberNotificationRoute(destination);
+  // This preserves the exact message, game challenge or moment deep link.
   await self.clients.openWindow(url);
  })());
 });
