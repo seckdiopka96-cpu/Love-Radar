@@ -107,7 +107,7 @@ test("die sits between blue TOI and green ORDI without duplicate solo roll butto
  assert.ok(solo.includes('<strong>TOI</strong>'));
  assert.ok(solo.includes('onClick={()=>performRoll(0)}'));
  assert.ok(solo.includes('ludo-arena-roll-tip'));
- assert.ok(solo.includes('{canPick?<div className="ludo-pick-row"'));
+ assert.ok(!solo.includes('className="ludo-pick-row"'),"No duplicate pawn selection buttons");
  assert.equal((solo.match(/onClick=\{\(\)=>performRoll\(0\)\}/g)||[]).length,1,
   "one physical die is the single visible roll control");
  assert.ok(style.includes(".ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail{"));
@@ -127,6 +127,6 @@ test("solo shows no meaningless 'choose a pawn' when one legal pawn must auto-mo
  assert.ok(solo.includes("window.setTimeout(()=>performMove(0,onlyPawn),320)"));
  assert.ok(solo.includes('availableSoloPawns(game,0).length>1;'));
  assert.ok(solo.includes('solePlayableSoloPawn(game,0)!==null?"Ton pion avance automatiquement…"'));
- assert.ok(solo.includes('{canPick?<div className="ludo-pick-row"'));
+ assert.ok(!solo.includes('className="ludo-pick-row"'),"No duplicate pawn selection buttons");
  assert.ok(solo.includes("return ()=>window.clearTimeout(timer)"));
 });
