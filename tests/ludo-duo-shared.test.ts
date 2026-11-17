@@ -28,7 +28,7 @@ test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()
 });
 test("Duo JavaScript is syntactically valid and only receives authoritative data",()=>{
  assert.doesNotThrow(()=>new Script(duoJS,{filename:"public/ludo-duo/script.js"}));
- for(const word of ['source:"love-radar-ludo-duo"','type:"ready"','type:"action"','type:"state"',
+ for(const word of ['source:"love-radar-ludo-duo"','type:"ready"','type:"action"','e.data.type!=="state"',
   'game.positions[state.mySeat]','game.turn','const legal=legalPawns()',
   'if(progress===57)','if(progress>=51)','return TRACK[(SPAWNS[color]+progress)%52]',
   'window.parent.postMessage','e.origin!==location.origin','e.source!==window.parent']){
