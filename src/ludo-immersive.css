@@ -649,3 +649,24 @@
 @media(prefers-reduced-motion:reduce){
  .ludo-experience .ludo-moving-pawn::after{animation:none;opacity:.72}
 }
+
+/* Shadow is attached to the moving pin rather than the board. Every hop
+   briefly raises the pin and reduces its soft oval ground shadow. */
+.ludo-experience .ludo-moving-pawn::before{
+ content:"";position:absolute;left:50%;bottom:0;z-index:0;
+ width:78%;height:13%;pointer-events:none;border-radius:50%;
+ background:radial-gradient(ellipse,#091a32bf 0%,#102b4c80 42%,transparent 79%);
+ filter:blur(1.6px);
+ animation:lr-react-pawn-shadow .54s ease-in-out infinite;
+}
+.ludo-experience .ludo-moving-pawn .ludo-moving-bounce,
+.ludo-experience .ludo-moving-pawn .ludo-motion-aura{position:relative;z-index:1}
+@keyframes lr-react-pawn-shadow{
+ 0%,100%{opacity:.76;transform:translateX(-50%) scale(1)}
+ 50%{opacity:.25;transform:translateX(-50%) scale(.54)}
+}
+@media(prefers-reduced-motion:reduce){
+ .ludo-experience .ludo-moving-pawn::before{animation:none;opacity:.58;transform:translateX(-50%) scale(.8)}
+}
+/* Never animate the entire board when a piece is moving. */
+.ludo-experience .ludo-board-move{animation:none!important}
