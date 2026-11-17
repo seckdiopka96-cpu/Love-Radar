@@ -283,15 +283,16 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    g=await autoIfLate(db,g,signed);
   }
   if(method==="GET"){
-   const [reactionValue,reactions,moveEvent,giftValue,paletteValue,lastRoll,challengeValue]=await Promise.all([
+   // D1 permits at most six concurrent connections per invocation.
+   const [reactionValue,reactions,moveEvent,giftValue,paletteValue,rollAndChallenge]=await Promise.all([
     members===2?reaction(db,player.room_id):Promise.resolve(null),
     g?recentReactions(db,player.room_id,g.game_id):Promise.resolve([]),
     g?lastMoveEvent(db,player.room_id,g.game_id):Promise.resolve(null),
     g?gift(db,g):Promise.resolve(null),
     g?palette(db,g):Promise.resolve(null),
-    g?getLastRoll(db,g):Promise.resolve(null),
-    g?challenge(db,g):Promise.resolve(null)
+    (async()=>[g?await getLastRoll(db,g):null,g?await challenge(db,g):null] as const)()
    ]);
+   const [lastRoll,challengeValue]=rollAndChallenge;
    return reply({ok:true,members,seat:player.seat,game:g?publicGame(g,signed):null,
     reaction:reactionValue,reactions,moveEvent,gift:giftValue,agreement:signed,
     palette:paletteValue,lastRoll,challenge:challengeValue,serverNow:Date.now()});
@@ -468,8 +469,10 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
      .bind(player.room_id,completedMove.gameId,completedMove.version,completedMove.seat,completedMove.pawn,completedMove.from,completedMove.to,JSON.stringify(completedMove.captures),Date.now()).run();
    }catch(e){console.error("Ludo optional move animation record",e)}
   }
-  let nextAgreement:Agreement|null=null;
-  if(updated){
+  // No database bootstrap writes for ordinary rolls and moves.
+  // Only a brand-new game id needs fresh gift/agreement/palette rows.
+  let nextAgreement:Agreement|null=signed;
+  if(updated&&action==="restart"){
    await syncGift(db,updated);
    await syncAgreement(db,updated);
    await syncPalette(db,updated);
