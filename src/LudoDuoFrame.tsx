@@ -68,7 +68,7 @@ export default function LudoDuoFrame(props:Props){
  },[props.onAction,send]);
  return <section className="ludo-duo-shared-frame" aria-label="Plateau Ludo Duo identique au Ludo Solo">
   <iframe ref={ref} className="ludo-duo-shared-iframe"
-   src="/ludo-duo/index.html" title="Ludo Duo : plateau et dé synchronisés avec ton partenaire"
+   src="/ludo-duo/index.html?v=ludo-room-20261117-v3" title="Ludo Duo : plateau et dé synchronisés avec ton partenaire"
    referrerPolicy="same-origin" loading="eager" onLoad={()=>setReady(true)}/>
  </section>;
 }
