@@ -67,7 +67,7 @@
  const lastColor=document.getElementById("duo-colors-label");
  let state=null;
  let lastBoardKey="";
- let lastAnimatedRoll="",remoteDieTimer=null;
+ let lastAnimatedRoll="",remoteDieTimer=null,receivedState=false;
  // Keep the moving pawn in its own layer. Redrawing its DOM on every square
  // prevents WebKit/iOS from animating the left/top transition.
  const movementLayer=document.createElement("div");
@@ -277,10 +277,9 @@
   const last=state.lastRoll;
   const stamp=last?g.id+":"+last.at:"";
   if(stamp&&lastAnimatedRoll!==stamp){
-   const previous=lastAnimatedRoll;
    lastAnimatedRoll=stamp;
-   // Recreate a short dice roll for the partner, once per actual server roll.
-   if(previous&&last.seat!==state.mySeat&&!state.rolling){
+   // Recreate a short dice roll for the partner, once per server roll.
+   if(receivedState&&last.seat!==state.mySeat&&!state.rolling){
     if(remoteDieTimer!==null)clearTimeout(remoteDieTimer);
     remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},750);
    }
@@ -289,7 +288,7 @@
   dice.classList.toggle("is-rolling",rollingNow);
   // The game may clear g.dice immediately after a move; never fall back to
   // a fake "1" when the server has persisted the real last die result.
-  const previousValue=/(?:lanc[eé]|dé\\s*:)\\s*(?:un\\s*)?([1-6])/.exec(g.lastAction||"");
+  const previousValue=/(?:lanc[eé]\s+un\s+|Dé\s*:\s*)([1-6])/.exec(g.lastAction||"");
   const diceValue=g.dice??last?.face??(previousValue?Number(previousValue[1]):1);
   dice.dataset.face=String(diceValue);
   dice.dataset.side=(last?.seat??g.turn)===state.mySeat?"human":"cpu";
@@ -310,6 +309,7 @@
   const renderKey=JSON.stringify([g.id,g.version,g.positions,g.dice,g.turn,g.status,colors,state.motion,state.capturedMotions,legal]);
   if(renderKey!==lastBoardKey){lastBoardKey=renderKey;drawPawns()}
   updateClock();
+  receivedState=true;
   if(g.status==="won")showVictory();else closeVictory();
  }
  window.addEventListener("message",e=>{
