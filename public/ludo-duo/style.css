@@ -70,3 +70,43 @@
  border-radius:14px;padding:2px 8px;font:800 10px/1.5 -apple-system,Arial,sans-serif;
  white-space:nowrap
 }
+
+
+/* DUO V3 · distinct premium twin-player identity, not a stale Solo skin.
+   Keep exactly the same 52-cell geometry and authoritative two-player rules. */
+.lr-ludo-duo-ui .app{
+ --ludo-duo-rose:#ffa9d1;
+ background:radial-gradient(circle at 48% 19%,#774c9d43,transparent 54%),
+ linear-gradient(170deg,#281b43,#1e1b43 58%,#402748)!important
+}
+.lr-ludo-duo-ui .game-screen{
+ background:radial-gradient(circle at 50% 43%,#8455b533,transparent 61%),
+ linear-gradient(170deg,#2b214d,#1b1d46 64%,#422a4d)!important
+}
+.lr-ludo-duo-ui .game-header{
+ border-bottom:1px solid #eeb7d86b;
+ color:#fff3f9
+}
+.lr-ludo-duo-ui .game-title strong span{color:#ffa9d1;text-shadow:0 0 10px #ff94c2a0}
+.lr-ludo-duo-ui .turn-banner{
+ border:1.5px solid #ed9bca!important;
+ background:linear-gradient(110deg,#774273,#3d315f)!important;
+ box-shadow:0 6px 14px #150e2d89,inset 0 1px #ffffff29!important
+}
+.lr-ludo-duo-ui .board-frame{
+ border-color:#eaa6d3!important;
+ box-shadow:0 17px 36px #100e2bdd,0 0 0 2px #ffe0f27a,0 0 28px #b569b14c!important
+}
+.lr-ludo-duo-ui .players-rail{
+ background:linear-gradient(105deg,#4d3579,#292a61)!important;
+ border-color:#f3abd8!important;
+ box-shadow:0 8px 19px #120c2cc7,inset 0 1px #ffffff41!important
+}
+.lr-ludo-duo-ui .player.is-turn{box-shadow:inset 0 0 0 1.5px #f1b8e6,0 0 12px #ffa4d47b!important}
+.lr-ludo-duo-ui .dice-holder{border-color:#f9b3dc!important;filter:drop-shadow(0 8px 10px #170b36cc)}
+.lr-ludo-duo-ui .back-link,.lr-ludo-duo-ui .header-help{
+ background:linear-gradient(145deg,#885185,#583d7e)!important;
+ border-color:#eeb0db!important
+}
+.lr-ludo-duo-ui .game-title .ludo-header-logo{filter:drop-shadow(0 4px 7px #110b30d8)}
+.lr-ludo-duo-ui .lr-reaction-toggle{background:linear-gradient(145deg,#ab5a9c,#644285)}
