@@ -679,11 +679,28 @@ export default function LoveRadar(){
    const dest=parseNotice(window.location.search);
    if(dest){setNoticeTarget(dest);setTab(dest.tab);firstPoll.current=true}
   };
+  const requestPendingNotification=()=>{
+   navigator.serviceWorker?.controller?.postMessage({type:"love-radar-request-pending-notification"});
+  };
+  const onPageShow=()=>{
+   onRoute();
+   requestPendingNotification();
+  };
   navigator.serviceWorker?.addEventListener("message",onMessage);
   window.addEventListener("popstate",onRoute);
+  window.addEventListener("pageshow",onPageShow);
+  // On a cold iOS PWA launch the manifest can reopen "/" despite a push deep
+  // link. The worker hands over the tapped destination after React mounts.
+  requestPendingNotification();
+  void navigator.serviceWorker?.ready.then(reg=>{
+   (navigator.serviceWorker?.controller||reg.active)?.postMessage({
+    type:"love-radar-request-pending-notification"
+   });
+  }).catch(()=>{});
   return()=>{
    navigator.serviceWorker?.removeEventListener("message",onMessage);
    window.removeEventListener("popstate",onRoute);
+   window.removeEventListener("pageshow",onPageShow);
   };
  },[]);
 
@@ -1285,9 +1302,23 @@ export default function LoveRadar(){
   const list=chatScroller.current;
   if(!list)return;
   const closeToBottom=list.scrollHeight-list.scrollTop-list.clientHeight<155;
-  if(firstPoll.current||chatFocused||closeToBottom)scrollToLatest();
+  const notified=noticeTarget?.id&&["message","photo","audio"].includes(noticeTarget.kind||"");
+  if(!notified&&(firstPoll.current||chatFocused||closeToBottom))scrollToLatest();
   firstPoll.current=false;
- },[chatMessages.at(-1)?.id,callHistory.at(-1)?.id,callHistory.at(-1)?.status,tab,chatFocused,scrollToLatest]);
+ },[chatMessages.at(-1)?.id,callHistory.at(-1)?.id,callHistory.at(-1)?.status,tab,chatFocused,scrollToLatest,noticeTarget?.id,noticeTarget?.kind]);
+ // A push to a recent message should land on its actual chat bubble, not
+ // cover the entire conversation with a separate message popup.
+ useEffect(()=>{
+  const id=noticeTarget?.id;
+  if(tab!=="chat"||!id||!["message","photo","audio"].includes(noticeTarget?.kind||""))return;
+  if(!room?.messages.some(message=>message.id===id))return;
+  const target=document.getElementById("lr-chat-message-"+id);
+  if(!target)return;
+  const frame=window.requestAnimationFrame(()=>{
+   target.scrollIntoView({block:"center",behavior:"auto"});
+  });
+  return()=>window.cancelAnimationFrame(frame);
+ },[tab,noticeTarget?.id,noticeTarget?.kind,room?.messages]);
  useEffect(()=>()=>{if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current)},[]);
  // Keyboard changes the visible area: keep recent messages anchored, but
  // don't jump down when a user deliberately reads older messages.
@@ -2042,7 +2073,7 @@ export default function LoveRadar(){
        return <Fragment key={m.id}>
         {newDay?<div className="lr-chat-day">{date}</div>:null}
         <div id={"lr-chat-message-"+m.id}
-          className={"lr-bubble-row lr-reply-gesture "+(mine?"mine ":"other ")+(groupedBefore?"lr-grouped ":"")+(groupedAfter?"lr-group-next":"")}
+          className={"lr-bubble-row lr-reply-gesture "+(mine?"mine ":"other ")+(groupedBefore?"lr-grouped ":"")+(groupedAfter?"lr-group-next":"")+(noticeTarget?.id===m.id&&tab==="chat"?" lr-notified-bubble":"")}
           onPointerDown={e=>messagePointerDown(e,m)}
           onPointerMove={messagePointerMove}
           onPointerUp={e=>messagePointerUp(e,m)}
@@ -2229,7 +2260,7 @@ export default function LoveRadar(){
        name={partner} src={avatars.partner} onClose={()=>setPartnerPhotoOpen(false)}/>:null}
       {profileFile?<ProfilePhotoEditor key={profileFile.name+":"+profileFile.lastModified+":"+profileFile.size} file={profileFile} onCancel={()=>{if(!profileBusy){setProfileFile(null);setProfileError("")}}} onSave={saveProfilePhoto}/>:null}
    {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} avatarSrc={avatars.partner} hasPartner={Boolean(room.partner)} showButton={tab==="chat"||tab==="watch"||tab==="watch-tiktok"||tab==="reconcile"} onOpenChat={()=>navigate("chat")}/>:null}
-   {room&&token&&tab==="chat"&&noticeTarget?.id&&["message","photo","audio"].includes(noticeTarget.kind||"")?<div className="lr-push-focus-backdrop" role="dialog" aria-modal="true" aria-label="Contenu de la notification">
+   {room&&token&&tab==="chat"&&noticeTarget?.id&&!room.messages.some(m=>m.id===noticeTarget.id)&&["message","photo","audio"].includes(noticeTarget.kind||"")?<div className="lr-push-focus-backdrop" role="dialog" aria-modal="true" aria-label="Contenu de la notification">
     <div className="lr-push-focus-card">
      <div className="lr-push-focus-header"><strong>{noticeTarget.kind==="photo"?"📸 Photo reçue":noticeTarget.kind==="audio"?"🎙️ Message vocal reçu":"💌 Message reçu"}</strong><button type="button" onClick={closeNotice} aria-label="Fermer le contenu">×</button></div>
      {focusLoading?<p>Ouverture du contenu…</p>:focusError?<p role="alert">{focusError}</p>:focusMessage?
