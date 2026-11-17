@@ -22,7 +22,8 @@ export const BASE:Point[][]=[
  [[1,1],[1,4],[4,1],[4,4]],
  [[10,10],[10,13],[13,10],[13,13]],
 ];
-export const SAFE=new Set([0,8,13,21,26,34,39,47]);
+// Starting positions can be captured; only starred refuges are safe.
+export const SAFE=new Set([8,21,34,47]);
 export const CELL=Array.from({length:225},(_,i)=>[Math.floor(i/15),i%15] as Point);
 export const key=(r:number,c:number)=>r+"-"+c;
 /** -1=base, 0..50=outer ring, 51..56=home lane, 57=center. */
