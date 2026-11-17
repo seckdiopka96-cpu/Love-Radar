@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {freshSoloGame,rollSolo,moveSolo,canSoloMove,chooseSoloBotPawn,isSoloGame,SOLO_TURN_MS,shouldAutoPlaySolo,type SoloGame} from "../src/ludo-solo-engine";
+import {freshSoloGame,rollSolo,moveSolo,canSoloMove,availableSoloPawns,solePlayableSoloPawn,chooseSoloBotPawn,isSoloGame,SOLO_TURN_MS,shouldAutoPlaySolo,type SoloGame} from "../src/ludo-solo-engine";
 
 const position=(my:number[],cpu:number[],turn:0|1=0,dice:number|null=null):SoloGame=>({
  ...freshSoloGame(),positions:[my,cpu],turn,dice
@@ -91,4 +91,37 @@ test("computer can choose a legal pawn for the human when the human is idle",()=
  const moved=moveSolo(game,0);
  assert.equal(moved?.game.positions[1][0],-1);
  assert.equal(moved?.game.turn,0);
+});
+
+test("a roll of five with exactly one pawn on the path auto-selects that pawn",()=>{
+ const game=position([11,-1,-1,-1],[-1,-1,-1,-1],0,null);
+ const rolled=rollSolo(game,5);
+ assert.deepEqual(availableSoloPawns(rolled,0),[0]);
+ assert.equal(solePlayableSoloPawn(rolled,0),0);
+ assert.match(rolled.lastAction,/seul pion jouable avance automatiquement/);
+ assert.equal(moveSolo(rolled,0)?.game.positions[0][0],16);
+});
+test("six with several playable pieces still allows a real choice",()=>{
+ const game=rollSolo(position([11,-1,-1,-1],[-1,-1,-1,-1],0,null),6);
+ assert.deepEqual(availableSoloPawns(game,0),[0,1,2,3]);
+ assert.equal(solePlayableSoloPawn(game,0),null);
+ assert.match(game.lastAction,/Choisis un pion/);
+});
+test("exactly two legal pawns need a choice; a finished piece is excluded",()=>{
+ const game=rollSolo(position([3,12,-1,-1],[-1,-1,-1,-1],0,null),4);
+ assert.deepEqual(availableSoloPawns(game,0),[0,1]);
+ assert.equal(solePlayableSoloPawn(game,0),null);
+ const nearEnd=rollSolo(position([54,57,-1,-1],[-1,-1,-1,-1],0,null),3);
+ assert.deepEqual(availableSoloPawns(nearEnd,0),[0]);
+ assert.equal(solePlayableSoloPawn(nearEnd,0),0);
+ assert.equal(solePlayableSoloPawn({...nearEnd,turn:1},0),null);
+ assert.equal(solePlayableSoloPawn({...nearEnd,status:"won"},0),null);
+});
+test("no playable pawn simply passes the turn, never requests a choice",()=>{
+ const game=rollSolo(freshSoloGame(),5);
+ assert.equal(game.turn,1);
+ assert.equal(game.dice,null);
+ assert.deepEqual(availableSoloPawns(game,0),[]);
+ assert.equal(solePlayableSoloPawn(game,0),null);
+ assert.match(game.lastAction,/aucun déplacement possible/);
 });
