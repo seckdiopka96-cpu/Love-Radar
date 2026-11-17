@@ -79,7 +79,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  },[]);
  // 15 seconds per move opportunity: no extra delay for an inactive player.
  useEffect(()=>{
-  if(game.status!=="playing"||game.turn!==0||assisted||rolling||motion||confirmRestart||tutorialOpen)return;
+  if(game.status!=="playing"||game.turn!==0||assisted||rolling||motion||captureBack.length||confirmRestart||tutorialOpen)return;
   const delay=Math.max(0,game.updatedAt+SOLO_TURN_MS-Date.now());
   const id=window.setTimeout(()=>{if(shouldAutoPlaySolo(game,Date.now()))setAssisted(true);},delay);
   return ()=>window.clearTimeout(id);
@@ -88,7 +88,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   if(game.turn!==0||game.status!=="playing")setAssisted(false);
  },[game.turn,game.status]);
  function performRoll(seat:SoloSeat,automatic=false){
-  if(game.turn!==seat||game.dice!==null||game.status!=="playing"||rolling||motion||(seat===0&&assisted&&!automatic))return;
+  if(game.turn!==seat||game.dice!==null||game.status!=="playing"||rolling||motion||captureBack.length||(seat===0&&assisted&&!automatic))return;
   if(seat===0&&!automatic)unlockSound();
   playSound("roll");
   const outcome=soloDie();
@@ -104,7 +104,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   },620);
  }
  function performMove(seat:SoloSeat,pawn:number,automatic=false){
-  if(game.turn!==seat||game.status!=="playing"||game.dice===null||rolling||motion||(seat===0&&assisted&&!automatic))return;
+  if(game.turn!==seat||game.status!=="playing"||game.dice===null||rolling||motion||captureBack.length||(seat===0&&assisted&&!automatic))return;
   const result=moveSolo(game,pawn);
   if(!result)return;
   const {move}=result;
@@ -158,7 +158,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  }
  // AI controls its own turn, or finishes the human turn when 15 s expires.
  useEffect(()=>{
-  if(game.status!=="playing"||rolling||motion||confirmRestart||tutorialOpen)return;
+  if(game.status!=="playing"||rolling||motion||captureBack.length||confirmRestart||tutorialOpen)return;
   if(game.turn!==1&&!(game.turn===0&&assisted))return;
   const id=window.setTimeout(()=>{
    const seat=game.turn;
@@ -173,7 +173,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  // If only one pawn can move, don't require a meaningless tap. Animate it as
  // any other move, after the dice roll animation has finished.
  useEffect(()=>{
-  if(game.status!=="playing"||game.turn!==0||game.dice===null||rolling||motion||
+  if(game.status!=="playing"||game.turn!==0||game.dice===null||rolling||motion||captureBack.length||
      assisted||confirmRestart||tutorialOpen)return;
   const onlyPawn=solePlayableSoloPawn(game,0);
   if(onlyPawn===null)return;
