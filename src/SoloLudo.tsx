@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from "react";
 import LudoDie3D from "./LudoDie3D";
 import PawnShape from "./LudoPawn";
+import {LudoReactionBurst,LudoReactionPicker,type LudoSticker} from "./LudoReactions";
 import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,SAFE,CELL,key,pointForProgress,movementSteps,stackCellStyle,type Point} from "./ludo-visuals";
 import {freshSoloGame,isSoloGame,rollSolo,moveSolo,chooseSoloBotPawn,canSoloMove,availableSoloPawns,solePlayableSoloPawn,soloDie,SOLO_TURN_MS,shouldAutoPlaySolo,
@@ -39,6 +40,8 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  const [boardSize,setBoardSize]=useState(0);
  const [landing,setLanding]=useState<Point|null>(null);
  const [reaction,setReaction]=useState("");
+ const [emotes,setEmotes]=useState(false);
+ const [sticker,setSticker]=useState<LudoSticker|null>(null);
  const [confirmRestart,setConfirmRestart]=useState(false);
  const [tutorialOpen,setTutorialOpen]=useState(()=>!ludoGuideWasSeen("solo")&&game.positions.every(row=>row.every(pawn=>pawn===-1)));
  const {enabled:soundOn,unlock:unlockSound,play:playSound,toggle:toggleSound}=useLudoSounds();
@@ -143,10 +146,18 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   later(()=>setCaptureBack(prev=>prev.map(row=>({...row,progress:-1}))),90+longest*50);
   later(()=>setCaptureBack([]),240+longest*50);
  }
+ function sendSticker(emoji:string,label:string){
+  setEmotes(false);
+  const id=Date.now();
+  setSticker({id,emoji,label});
+  playSound("reaction");haptic();
+  later(()=>setSticker(prev=>prev?.id===id?null:prev),2700);
+ }
  function playMoveEffects(move:SoloMove,winner:SoloSeat|null){
   if(move.captured.length){
    playSound("capture");
    setReaction(move.seat===0?"🎯":"😱");
+   if(move.seat===0)setEmotes(true);
   }else if(winner!==null){
    playSound("win");
    setReaction(winner===0?"🏆":"🤖");
@@ -212,7 +223,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   clearTimers();
   setGame(freshSoloGame());
   setAssisted(false);
-  setMotion(null);setCaptureBack([]);setRolling(false);setLanding(null);setReaction("");
+  setMotion(null);setCaptureBack([]);setRolling(false);setLanding(null);setReaction("");setSticker(null);setEmotes(false);
   setConfirmRestart(false);
  }
  return <section className="ludo-experience ludo-solo ludo-arena" aria-label="Ludo solo contre l'ordinateur">
@@ -299,7 +310,8 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
       </div>:null}
      </div>
     </div>
-    {reaction?<div className="ludo-solo-reaction" role="status" aria-label="Réaction">{reaction}</div>:null}
+    <LudoReactionBurst sticker={sticker}/>
+    {reaction&&!sticker?<div className="ludo-solo-reaction" role="status" aria-label="Réaction">{reaction}</div>:null}
     {game.status==="won"&&!motion?<div className="ludo-victory ludo-solo-win" role="dialog" aria-label="Partie terminée">
      <div className="ludo-celebrate">{game.winner===0?"🏆":"🤖"}</div>
      <strong>{game.winner===0?"Tu as gagné !":"L'ordinateur a gagné"}</strong>
@@ -309,10 +321,12 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
     </div>:null}
    </div>
    <div className="ludo-game-footer">
+    <LudoReactionPicker open={emotes} onClose={()=>setEmotes(false)} onPick={sendSticker}/>
     <div className="ludo-bottom-actions">
      <span className="ludo-arena-roll-tip" aria-live="polite">
       {rolling?"🎲 Le dé roule…":canRoll?"Touche le dé pour lancer":canPick?"Touche un pion sur le plateau":game.turn===1?"L’ordinateur joue…":solePlayableSoloPawn(game,0)!==null?"Ton pion avance…":"À toi de jouer"}
      </span>
+     <button type="button" className="ludo-reaction-toggle" aria-label="Envoyer une réaction animée" aria-expanded={emotes} onClick={()=>setEmotes(open=>!open)}>😝</button>
     </div>
 
     <div className="ludo-last-move" role="status" aria-live="polite">{game.lastAction}</div>
