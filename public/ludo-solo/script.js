@@ -59,6 +59,7 @@
   const board = document.getElementById("ludo-board");
   const layer = document.getElementById("pieces-layer");
   const die = document.getElementById("dice-3d");
+  const dieResult = document.getElementById("die-result");
   const rollButton = document.getElementById("roll-dice");
   const statusText = document.getElementById("turn-message");
   const statusMeta = document.getElementById("turn-meta");
@@ -180,7 +181,7 @@
     return {
       playerColor, cpuColor:CPU_COLOR[playerColor],
       pieces:{human:[-1,-1,-1,-1],cpu:[-1,-1,-1,-1]},
-      turn:"human",phase:"roll",die:null,streak:{human:0,cpu:0},
+      turn:"human",phase:"roll",die:null,lastRoll:1,streak:{human:0,cpu:0},
       result:null,message:"À toi de jouer : lance le dé !",turnCount:1
     };
   }
@@ -337,6 +338,9 @@
     die.classList.toggle("is-rolling",game.phase==="rolling");
     die.dataset.face=String(lastRoll);
     die.dataset.side=game.turn;
+    dieResult.textContent=String(lastRoll);
+    dieResult.value=String(lastRoll);
+    dieResult.setAttribute("aria-label","Dernier lancer : "+lastRoll);
     rollButton.setAttribute("aria-label",humanCanRoll?"Lancer le dé":game.phase==="rolling"?"Le dé tourne":"Dé : "+lastRoll);
     document.getElementById("player-count").textContent=game.pieces.human.filter(p=>p===FINAL).length+" / 4 arrivés";
     document.getElementById("computer-count").textContent=game.pieces.cpu.filter(p=>p===FINAL).length+" / 4 arrivés";
@@ -386,7 +390,7 @@
     if (!saved) return;
     clearTimers();generation++;busy=false;movingToken=null;rulesPause=false;
     game=saved;
-    lastRoll=game.die||1;
+    lastRoll=game.die||((Number.isInteger(game.lastRoll)&&game.lastRoll>=1&&game.lastRoll<=6)?game.lastRoll:1);
     setColor(game.playerColor);
     openGame();
     if (game.phase==="choose") schedulePendingMove();
@@ -416,18 +420,44 @@
     // Keep a 2-frame layout barrier, so Safari sees start before destination.
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const first=start===HOME?0:start+1;
+    const totalSteps=start===HOME?1:target-start;
+    const counter=document.createElement("b");
+    counter.className="piece-step-counter";counter.setAttribute("aria-hidden","true");
+    pawn.append(counter);
     for (let step=first;step<=target;step++) {
       if (!isCurrent(tokenGeneration)) return false;
       const point=boardPosition(color,step,pawnIndex);
       pawn.style.left=point.x+"%";pawn.style.top=point.y+"%";
+      pawn.classList.remove("is-hopping");
+      void pawn.offsetWidth; // Restart the bounce at every step on Safari.
       pawn.classList.add("is-hopping");
-      await sleep(reducedMotion?25:(start===HOME?225:115));
+      counter.textContent=(step-first+1)+" / "+totalSteps;
+      await sleep(reducedMotion?25:(start===HOME?380:260));
       pawn.classList.remove("is-hopping");
     }
-    await sleep(reducedMotion?10:90);
+    await sleep(reducedMotion?10:100);
     if (!isCurrent(tokenGeneration)) return false;
     movingToken=null;pawn.remove();
     return true;
+  }
+
+  /** A captured pin visibly travels back to its own base. */
+  async function animateCapture(side,pawnIndex,progress,tokenGeneration) {
+    const color=getColor(side);
+    const existing=layer.querySelector('.piece--board[data-side="'+side+'"][data-pawn="'+pawnIndex+'"]');
+    const pawn=createPawn(color,side,pawnIndex,false);
+    pawn.classList.add("piece--board","piece--moving","piece--captured");
+    const point=boardPosition(color,progress,pawnIndex);
+    const home=boardPosition(color,HOME,pawnIndex);
+    pawn.style.left=point.x+"%";pawn.style.top=point.y+"%";
+    if(existing)existing.style.visibility="hidden";
+    layer.append(pawn);
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    if(!isCurrent(tokenGeneration)){pawn.remove();return false}
+    pawn.style.left=home.x+"%";pawn.style.top=home.y+"%";
+    await sleep(reducedMotion?20:620);
+    pawn.remove();
+    return isCurrent(tokenGeneration);
   }
 
   function opponentBlockAtDestination(side,destinationProgress) {
@@ -466,8 +496,15 @@
     if (!success || !isCurrent(tokenGeneration)) return;
     game.pieces[side][pawnIndex]=target;
     delete game.moving;
+    renderPawns();
     const captured=opponentBlockAtDestination(side,target);
     const otherSide=opponent(side);
+    if(captured.length){
+      const oldPositions=captured.map(i=>game.pieces[otherSide][i]);
+      const completed=await Promise.all(captured.map((i,j)=>
+        animateCapture(otherSide,i,oldPositions[j],tokenGeneration)));
+      if(completed.some(done=>!done)||!isCurrent(tokenGeneration))return;
+    }
     for (const opponentPawn of captured) game.pieces[otherSide][opponentPawn]=HOME;
     const finished=target===FINAL;
     const hasWon=game.pieces[side].every(p=>p===FINAL);
@@ -501,6 +538,7 @@
     const value=getRoll();
     lastRoll=value;
     game.die=value;
+    game.lastRoll=value;
     game.streak[side]=value===6?game.streak[side]+1:0;
     if (game.streak[side]>=3) {
       busy=false;
