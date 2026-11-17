@@ -73,7 +73,7 @@ test("voice calling stays intact while HD video is added",()=>{
  }
  assert.ok(call.includes('start("audio")'));
  assert.ok(call.includes('start("video")'));
- assert.ok(call.includes('video:false'));
+ assert.ok(call.includes('}:false;'),"audio-only calls must never open the camera");
  assert.ok(call.includes('peer.addTransceiver("video"'));
  assert.ok(call.includes('offerToReceiveVideo:call.mode==="video"'));
  assert.ok(call.includes('sender.replaceTrack(track)'));
