@@ -10,6 +10,7 @@
  */
 (() => {
   "use strict";
+  document.documentElement.classList.add("lr-ludo-solo-ui");
 
   const COLORS = Object.freeze({ blue:"Bleu", red:"Rouge", green:"Vert", yellow:"Jaune" });
   const CPU_COLOR = Object.freeze({ blue:"green", red:"blue", green:"yellow", yellow:"red" });
@@ -47,11 +48,8 @@
     green:  [[1,7],[2,7],[3,7],[4,7],[5,7]],
     yellow: [[7,13],[7,12],[7,11],[7,10],[7,9]]
   });
-  // Quatre cases de départ + quatre cases étoilées ; les pions y sont protégés.
-  const SAFE_KEYS = new Set([
-    ...Object.values(SPAWNS).map(i=>TRACK[i].join(",")),
-    "2,6","6,12","8,2","12,8"
-  ]);
+  // Les départs (y compris rouge) sont capturables. Seules les étoiles protègent.
+  const SAFE_KEYS = new Set(["2,6","6,12","8,2","12,8"]);
 
   const app = document.querySelector(".app");
   const selection = document.getElementById("choix-couleur");
@@ -300,7 +298,7 @@
       group.forEach((place,offset)=>{
         const {row,col}=place.point;
         const piece=place.piece;
-        const shift=(offset-(group.length-1)/2)*Math.min(8,23/group.length);
+        const shift=(offset-(group.length-1)/2)*Math.min(3,7/group.length);
         piece.classList.add("piece--board");
         if (place.progress===FINAL) piece.classList.add("piece--finished");
         piece.style.left=((col+.5)/15*100)+"%";
@@ -434,10 +432,10 @@
       counter.textContent=(step-first+1)+" / "+totalSteps;
       // Deliberately slow, readable movement: each square gets its full
       // landing + hop animation before the next step begins.
-      await sleep(start===HOME?900:920);
+      await sleep(start===HOME?520:540);
       pawn.classList.remove("is-hopping");
     }
-    await sleep(200);
+    await sleep(100);
     if (!isCurrent(tokenGeneration)) return false;
     movingToken=null;pawn.remove();
     return true;
@@ -508,6 +506,8 @@
       if(completed.some(done=>!done)||!isCurrent(tokenGeneration))return;
     }
     for (const opponentPawn of captured) game.pieces[otherSide][opponentPawn]=HOME;
+    // Show captured pawns in their original home positions, never delete them.
+    if(captured.length)renderPawns();
     const finished=target===FINAL;
     const hasWon=game.pieces[side].every(p=>p===FINAL);
     const actor=labelSide(side);
