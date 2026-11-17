@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {Script} from "node:vm";
+import {registerAutoTurn,MAX_AUTO_TURNS} from "../functions/lib/ludo-timeout";
 
 const soloHTML=readFileSync("public/ludo-solo/index.html","utf8");
 const duoHTML=readFileSync("public/ludo-duo/index.html","utf8");
@@ -148,4 +149,68 @@ test("both players show the real app profile photos throughout Ludo Duo",()=>{
  assert.ok(hook.includes('URL.createObjectURL(blob)'),
   "do not fetch private media again or expose authentication tokens in the iframe");
  assert.ok(!duoJS.includes("Authorization"));
+});
+
+test("three automatic turns cause a loss for that player, regardless of bonus throws",()=>{
+ assert.equal(MAX_AUTO_TURNS,3);
+ let count:[number,number]=[0,0];
+ for(const expected of [1,2]){
+  const result=registerAutoTurn(count,0);
+  count=result.counts;
+  assert.deepEqual(count,[expected,0],"each takeover must be counted exactly once");
+  assert.equal(result.forfeit,false);
+ }
+ const last=registerAutoTurn(count,0);
+ assert.deepEqual(last.counts,[3,0]);
+ assert.equal(last.forfeit,true,"third missed turn forfeits to the active partner");
+ assert.deepEqual(registerAutoTurn([0,2],1),{counts:[0,3],forfeit:true},
+  "both seats have independent penalties");
+ assert.equal(registerAutoTurn([0,0],0).forfeit,false,
+  "new matches start without penalties");
+ assert.throws(()=>registerAutoTurn([0,0],2),/Invalid Ludo player seat/);
+});
+
+test("Duo persists inactivity penalties in D1 and resets them for a new match",()=>{
+ const schema=readFileSync("schema.sql","utf8");
+ assert.ok(backend.includes("ALTER TABLE ludo_games ADD COLUMN auto_counts"),
+  "existing couples must be migrated without deleting games");
+ assert.ok(backend.includes("PRAGMA table_info(ludo_games)"),"migration checks the real database");
+ assert.ok(schema.includes("auto_counts TEXT NOT NULL DEFAULT '[0,0]'"));
+ assert.ok(backend.includes("auto_counts TEXT NOT NULL DEFAULT '[0,0]'"),
+  "new rooms must have a zeroed penalty column");
+ assert.ok(backend.includes("JSON.stringify(g.auto_counts)"),
+  "optimistic versioned game save must persist both counters");
+ assert.ok(backend.includes("g.auto_counts=missed.counts"),
+  "each server timeout increments the acting player only");
+ assert.ok(backend.includes("if(missed.forfeit)"));
+ assert.ok(backend.includes('g.status="won";g.winner=1-acting'),
+  "the opponent wins on the third automatic takeover");
+ assert.ok(backend.includes('autoRoll=botTurn(g,name)'),
+  "the computer still plays the first two missed turns");
+ assert.ok(backend.includes("g.auto_counts=[0,0]"),"restart clears both players' counters");
+ assert.ok(backend.includes("autoCounts:g.auto_counts"),
+  "both clients receive the same authoritative penalties");
+ assert.ok(backend.includes("if(!await save(db,g))return await getGame(db,g.room_id)||g"),
+  "concurrent client polls must not double-count the same timeout");
+});
+
+test("players can quit from the visible Duo board or abandon immediately",()=>{
+ assert.ok(duoHTML.includes('aria-label="Quitter ou abandonner la partie"'));
+ assert.ok(duoHTML.includes('‹ Quitter'));
+ assert.ok(duoJS.includes('className="duo-quit-match"'));
+ assert.ok(duoJS.includes('leaveButton.addEventListener("click",()=>send("exit"))'));
+ assert.ok(duoCSS.includes(".duo-side-actions .duo-quit-match"));
+ assert.ok(parent.includes('if(action==="exit"||action==="menu"){setMenu(true);return}'));
+ assert.ok(parent.includes('act("forfeit").then('));
+ assert.ok(backend.includes('if(action==="forfeit")'));
+ assert.ok(backend.includes('g.status="won";g.winner=1-player.seat'),
+  "voluntary surrender should award the opponent a win immediately");
+ assert.ok(parent.includes("après 3 tours joués par l’ordinateur à ta place"),
+  "leaving the screen alone must not falsely promise to stop the timer");
+ assert.ok(duoJS.includes('g.autoCounts?.[state.mySeat]'),
+  "show player-specific 0/3 count on the visible match screen");
+ assert.ok(duoJS.includes("un prochain retard te fera perdre"),
+  "show a clear warning on the second missed turn");
+ assert.ok(duoJS.includes('state.game.lastAction.includes("Défaite automatique")'),
+  "winner panel states explicitly that the game ended by inactivity");
 });
