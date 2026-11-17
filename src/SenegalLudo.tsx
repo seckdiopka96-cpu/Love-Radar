@@ -126,9 +126,9 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
     returns.forEach(item=>item.path.forEach((point,index)=>later(()=>{
      if(!loaded.current)return;
      setCaptureBack(rows=>rows.map(row=>row.seat===item.seat&&row.pawn===item.pawn?{...row,point}:row));
-    },120+index*130)));
+    },70+index*50)));
     const longest=Math.max(...returns.map(item=>item.path.length));
-    later(()=>{if(loaded.current)setCaptureBack([])},250+longest*130);
+    later(()=>{if(loaded.current)setCaptureBack([])},240+longest*50);
    }
    else if(move.to.zone==="enemy"){setReaction("😈");}
    else if(move.action==="reverse"){setReaction("↩️");}
