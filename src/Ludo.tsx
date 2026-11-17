@@ -458,7 +458,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
 
   <div className="ludo-play-area">
   <div className={"ludo-stage"+(captureFlash?" ludo-is-capture":"")} ref={boardStage}>
-   <div className={"ludo-board-wrap ludo-board-wrap-immersive"+(effect==="move"?" ludo-board-move":"")} style={boardSize?{width:boardSize,height:boardSize}:undefined}>
+   <div className="ludo-board-wrap ludo-board-wrap-immersive" style={boardSize?{width:boardSize,height:boardSize}:undefined}>
      <div className={"ludo-board"+(motion?" ludo-board-animating":"")} role="group" aria-label={game?"Plateau coloré de Ludo pour deux joueurs":"Aperçu du plateau Ludo avant l’arrivée du partenaire"}>
       {CELL.map(([r,c])=>{
        const k=key(r,c),track=trackAt.get(k);
