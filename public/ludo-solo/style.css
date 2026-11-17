@@ -857,7 +857,7 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
 
 /* Compact pawn geometry: one pin fits one cell on the 15-by-15 board. */
 .piece--board:not(.piece--moving) .piece-svg{width:100%;height:100%}
-/* Solo: keep the turn banner, live dice and interactive pawn choices visible,
+/* Solo: keep the turn banner, die and tappable board pawns visible,
    but hide redundant narration, turn number and reset shortcut below the board. */
 .lr-ludo-solo-ui #game-feedback,
 .lr-ludo-solo-ui .game-actions,
@@ -872,3 +872,16 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
 .lr-ludo-duo-ui #player-count,
 .lr-ludo-duo-ui #computer-count,
 .lr-ludo-duo-ui .piece-step-counter{display:none!important}
+
+/* The face is already visible on the physical die. No duplicate "Dé : 6". */
+.lr-ludo-solo-ui #turn-meta,
+.lr-ludo-duo-ui #turn-meta,
+.lr-ludo-solo-ui #pawn-choices,
+.lr-ludo-duo-ui #pawn-choices{display:none!important}
+/* Give every legal home/track pawn a comfortable invisible finger target.
+   No visual resizing: touch a pawn directly and it takes the turn. */
+.piece--selectable{position:absolute;touch-action:manipulation;cursor:pointer}
+.piece--selectable::after{
+ content:"";position:absolute;inset:-5px;pointer-events:none
+}
+.base-spot .piece--selectable{z-index:6}
