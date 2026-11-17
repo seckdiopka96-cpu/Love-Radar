@@ -349,6 +349,7 @@
     g.dice!==null&&isMine?(only?"Ton pion avance automatiquement…":"Touche le pion à déplacer"):
     g.dice!==null?"Ton partenaire joue son pion…":
     isMine?"À toi de jouer : lance le dé !":"Au tour de ton partenaire…";
+  feedback.classList.toggle("is-auto-warning",g.status==="playing"&&myAuto>=2);
   feedback.textContent=state.error||
    (g.status==="playing"&&myAuto>=2?"⚠️ 2/3 tours automatiques : un prochain retard te fera perdre.":g.lastAction)||
    "Jouez à deux en direct.";
