@@ -95,7 +95,9 @@ test("live Duo synchronizes promptly with conditional server reads",()=>{
  assert.ok(parent.includes('activeDuoGame=useRef(false)'),"avoid fast path until both signed");
  assert.ok(parent.includes('"/api/ludo?since="+previous.version'),"send the last synchronized version");
  assert.ok(parent.includes('if(data.unchanged)'),"avoid repainting unchanged game");
- assert.ok(parent.includes('const delay=waiting?280:550'),"poll partner promptly without overpolling own turn");
+ assert.ok(parent.includes('current?.turn!==mySeat?250:650'),"poll the partner every 250ms after request completion");
+ assert.ok(parent.includes('current?.status==="won"?1800'),"back off database polling on the victory screen");
+ assert.ok(parent.includes('!activeDuoGame.current?700'),"avoid expensive full pre-game polling");
  assert.ok(parent.includes('inFlight=true'),"never stack network checks");
  assert.ok(!parent.includes('setInterval(()=>{if(document.visibilityState==="visible")void load()},1600)'),"remove 1.6s polling delay");
  assert.ok(parent.includes('Math.max(0,690-(Date.now()-actionStarted))'),"finish dice animation sooner");
