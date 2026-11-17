@@ -70,12 +70,10 @@ public final class NativeVoipMessageService extends FirebaseMessagingService {
           .setAutoCancel(true)
           .setContentIntent(fullScreen)
           .setVisibility(Notification.VISIBILITY_PRIVATE)
-          .setTimeoutAfter(Math.min(remaining,60000))
           .setVibrate(new long[]{0,280,180,280,400,280})
           .setOnlyAlertOnce(true);
-        if(Build.VERSION.SDK_INT<26){
-            notification.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE));
-        }
+        if(Build.VERSION.SDK_INT>=26)notification.setTimeoutAfter(Math.min(remaining,60000));
+        else notification.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE));
         if(Build.VERSION.SDK_INT<34||manager.canUseFullScreenIntent()){
             notification.setFullScreenIntent(fullScreen,true);
         }
