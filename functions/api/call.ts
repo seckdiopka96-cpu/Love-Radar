@@ -6,7 +6,7 @@ import {consumeMemberLimit,MEMBER_LIMITS,throttled} from "../lib/abuse-limits";
 type Env = VoipEnv;
 type Context = {request:Request;env:Env;waitUntil:(task:Promise<unknown>)=>void};
 type Member = {id:string;room_id:string;name:string};
-type VoiceCall = {id:string;room_id:string;caller_id:string;callee_id:string;status:string;created_at:number;updated_at:number;expires_at:number};
+type VoiceCall = {id:string;room_id:string;caller_id:string;callee_id:string;status:string;created_at:number;updated_at:number;expires_at:number;mode?:string};
 const response=(data:Record<string,unknown>,status=200)=>Response.json(data,{status,headers:{"Cache-Control":"no-store"}});
 const fail=(error:string,status=400)=>response({ok:false,error},status);
 const now=()=>Date.now();
@@ -28,18 +28,20 @@ async function ensureTables(db:D1Database){
    "CREATE INDEX IF NOT EXISTS idx_voice_signals_next ON voice_signals(call_id,to_member,id);"+
    "CREATE TABLE IF NOT EXISTS voice_call_history ("+
    "call_id TEXT PRIMARY KEY,room_id TEXT NOT NULL,connected_at INTEGER,ended_at INTEGER,outcome TEXT);"+
-   "CREATE INDEX IF NOT EXISTS idx_voice_call_history_room ON voice_call_history(room_id);"
+   "CREATE INDEX IF NOT EXISTS idx_voice_call_history_room ON voice_call_history(room_id);"+
+   "CREATE TABLE IF NOT EXISTS voice_call_modes (call_id TEXT PRIMARY KEY,room_id TEXT NOT NULL,mode TEXT NOT NULL CHECK(mode IN ('audio','video')));"+
+   "CREATE INDEX IF NOT EXISTS idx_voice_call_modes_room ON voice_call_modes(room_id);"
   ).then(()=>{}).catch(err=>{ready=null;throw err});
   ready=initializing;
  }
  await ready;
 }
 async function activeCall(db:D1Database,roomId:string):Promise<VoiceCall|null>{
- return db.prepare("SELECT id,room_id,caller_id,callee_id,status,created_at,updated_at,expires_at FROM voice_calls WHERE room_id=? AND status IN ('ringing','active') AND expires_at>? ORDER BY created_at DESC LIMIT 1").bind(roomId,now()).first<VoiceCall>();
+ return db.prepare("SELECT v.id,v.room_id,v.caller_id,v.callee_id,v.status,v.created_at,v.updated_at,v.expires_at,COALESCE(m.mode,'audio') AS mode FROM voice_calls v LEFT JOIN voice_call_modes m ON m.call_id=v.id AND m.room_id=v.room_id WHERE v.room_id=? AND v.status IN ('ringing','active') AND v.expires_at>? ORDER BY created_at DESC LIMIT 1").bind(roomId,now()).first<VoiceCall>();
 }
 function view(call:VoiceCall|null,u:Member){
  if(!call)return null;
- return {id:call.id,status:call.status,direction:call.caller_id===u.id?"outgoing":"incoming",createdAt:call.created_at,updatedAt:call.updated_at,expiresAt:call.expires_at};
+ return {id:call.id,status:call.status,direction:call.caller_id===u.id?"outgoing":"incoming",createdAt:call.created_at,updatedAt:call.updated_at,expiresAt:call.expires_at,mode:call.mode==="video"?"video":"audio"};
 }
 export async function onRequestGet({request,env}:Context):Promise<Response>{
  try{
@@ -51,8 +53,9 @@ export async function onRequestGet({request,env}:Context):Promise<Response>{
   if(query.get("history")==="1"){
    const result=await env.DB.prepare(
     "SELECT v.id,v.caller_id,v.callee_id,v.status,v.created_at,v.updated_at,v.expires_at,"+
-    "h.connected_at,h.ended_at,h.outcome FROM voice_calls v "+
+    "h.connected_at,h.ended_at,h.outcome,COALESCE(m.mode,'audio') AS mode FROM voice_calls v "+
     "JOIN voice_call_history h ON h.call_id=v.id AND h.room_id=v.room_id "+
+    "LEFT JOIN voice_call_modes m ON m.call_id=v.id AND m.room_id=v.room_id "+
     "WHERE v.room_id=? ORDER BY v.created_at DESC LIMIT 80"
    ).bind(u.room_id).all<VoiceCall & {connected_at:number|null;ended_at:number|null;outcome:string|null}>();
    const t=now();
@@ -66,7 +69,7 @@ export async function onRequestGet({request,env}:Context):Promise<Response>{
     // Time begins when the recipient accepts; never count unanswered ringing.
     const durationSeconds=connectedAt?Math.max(0,Math.floor(((endedAt||t)-connectedAt)/1000)):0;
     return {id:row.id,callerId:row.caller_id,createdAt:row.created_at,
-     connectedAt,endedAt,status,durationSeconds};
+     connectedAt,endedAt,status,durationSeconds,mode:row.mode==="video"?"video":"audio"};
    }).reverse();
    return response({ok:true,calls,serverNow:t});
   }
@@ -95,6 +98,8 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
   const action=String(body.action||"");
   const db=env.DB,t=now();
   if(action==="start"){
+   const mode=body.mode===undefined?"audio":body.mode;
+   if(mode!=="audio"&&mode!=="video")return fail("Mode d’appel invalide.");
    const partner=await db.prepare("SELECT id FROM members WHERE room_id=? AND id<>? LIMIT 1").bind(u.room_id,u.id).first<{id:string}>();
    if(!partner)return fail("L’autre personne doit rejoindre votre espace.",409);
    const existing=await activeCall(db,u.room_id);
@@ -103,13 +108,17 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
    const id=crypto.randomUUID();
    const created=await db.prepare("INSERT INTO voice_calls(id,room_id,caller_id,callee_id,status,created_at,updated_at,expires_at) SELECT ?,?,?,?,'ringing',?,?,? WHERE NOT EXISTS (SELECT 1 FROM voice_calls WHERE room_id=? AND status IN ('ringing','active') AND expires_at>?)")
     .bind(id,u.room_id,u.id,partner.id,t,t,t+60000,u.room_id,t).run();
-   const call=await activeCall(db,u.room_id);
+   let call=await activeCall(db,u.room_id);
    if(!call)return fail("Impossible de démarrer l’appel.",503);
    if(created.meta.changes){
+    await db.prepare("INSERT OR IGNORE INTO voice_call_modes(call_id,room_id,mode) VALUES(?,?,?)")
+     .bind(call.id,u.room_id,mode).run();
+    call=await activeCall(db,u.room_id);
+    if(!call)return fail("Impossible de récupérer l’appel.",503);
     await db.prepare("INSERT OR IGNORE INTO voice_call_history(call_id,room_id) VALUES(?,?)")
      .bind(call.id,u.room_id).run();
     waitUntil(Promise.all([
-     notifyPartner(env,u.room_id,u.id,"📞 Appel entrant",u.name+" t’appelle. Appuie pour répondre.","chat",{kind:"call",id:call.id}),
+     notifyPartner(env,u.room_id,u.id,mode==="video"?"📹 Appel vidéo entrant":"📞 Appel entrant",u.name+(mode==="video"?" t’appelle en vidéo.":" t’appelle.")+" Appuie pour répondre.","chat",{kind:"call",id:call.id}),
      notifyIncomingVoip(env,u.room_id,partner.id,call.id,u.name,call.expires_at)
     ]).then(()=>{}));
    }
@@ -117,7 +126,7 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
   }
   const id=typeof body.id==="string"?body.id:"";
   if(!/^[0-9a-f-]{36}$/.test(id))return fail("Appel invalide.",400);
-  const call=await db.prepare("SELECT id,room_id,caller_id,callee_id,status,created_at,updated_at,expires_at FROM voice_calls WHERE id=? AND room_id=?")
+  const call=await db.prepare("SELECT v.id,v.room_id,v.caller_id,v.callee_id,v.status,v.created_at,v.updated_at,v.expires_at,COALESCE(m.mode,'audio') AS mode FROM voice_calls v LEFT JOIN voice_call_modes m ON m.call_id=v.id AND m.room_id=v.room_id WHERE v.id=? AND v.room_id=?")
     .bind(id,u.room_id).first<VoiceCall>();
   if(!call||!["ringing","active"].includes(call.status)||call.expires_at<t)return fail("Cet appel est terminé.",409);
   if(action==="accept"){
