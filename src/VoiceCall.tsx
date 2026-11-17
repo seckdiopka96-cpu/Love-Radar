@@ -40,6 +40,8 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const [cameraBusy,setCameraBusy]=useState(false);
  const [cameraWarning,setCameraWarning]=useState("");
  const [remoteHasVideo,setRemoteHasVideo]=useState(false);
+ const [localPreviewReady,setLocalPreviewReady]=useState(false);
+ const [localPreviewHelp,setLocalPreviewHelp]=useState("");
  const current=useRef<Call|null>(null);
  const pc=useRef<RTCPeerConnection|null>(null);
  const iceServers=useRef<RTCIceServer[]>(STUN_SERVERS);
@@ -49,14 +51,43 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const remoteVideo=useRef<HTMLVideoElement|null>(null);
  const localVideo=useRef<HTMLVideoElement|null>(null);
  const cameraSwitching=useRef(false);
+ const playLocalPreview=useCallback(async()=>{
+  const element=localVideo.current;
+  const track=local.current?.getVideoTracks().find(video=>video.readyState==="live");
+  if(!element)return;
+  if(!track){
+   element.srcObject=null;
+   setLocalPreviewReady(false);
+   setLocalPreviewHelp("Aucune image caméra. Vérifie l’autorisation de la caméra.");
+   return;
+  }
+  // On iPhone, use a video-only MediaStream to avoid muting the local microphone.
+  const bound=element.srcObject instanceof MediaStream
+   ?element.srcObject.getVideoTracks()[0]:null;
+  if(bound!==track)element.srcObject=new MediaStream([track]);
+  element.muted=true;
+  element.playsInline=true;
+  try{
+   await element.play();
+   if(localVideo.current===element&&track.readyState==="live"){
+    setLocalPreviewReady(true);
+    setLocalPreviewHelp("");
+   }
+  }catch{
+   if(localVideo.current===element){
+    setLocalPreviewReady(false);
+    setLocalPreviewHelp("Appuie pour afficher ta caméra.");
+   }
+  }
+ },[]);
  const attachRemoteVideo=useCallback((element:HTMLVideoElement|null)=>{
   remoteVideo.current=element;
   if(element){element.srcObject=remoteStream.current;if(remoteStream.current)void element.play().catch(()=>{})}
  },[]);
  const attachLocalVideo=useCallback((element:HTMLVideoElement|null)=>{
   localVideo.current=element;
-  if(element){element.srcObject=local.current;if(local.current)void element.play().catch(()=>{})}
- },[]);
+  if(element){setLocalPreviewReady(false);void playLocalPreview()}
+ },[playLocalPreview]);
  const signalAfter=useRef(0);
  const isPolling=useRef(false);
  const starting=useRef(false);
@@ -156,7 +187,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(audioSession){try{audioSession.type="auto"}catch{/* Browser controls audio routing. */}}
   previousSinkId.current="";
   setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setSpeakerBusy(false);setMinimized(false);setCallPanel("none");setDialed("");
-  cameraSwitching.current=false;setCameraOff(false);setCameraFacing("user");setCameraBusy(false);setCameraWarning("");setRemoteHasVideo(false);
+  cameraSwitching.current=false;setCameraOff(false);setCameraFacing("user");setCameraBusy(false);setCameraWarning("");setRemoteHasVideo(false);setLocalPreviewReady(false);setLocalPreviewHelp("");
  },[]);
  const reset=useCallback(()=>{
   const endedId=current.current?.id;
@@ -377,7 +408,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    setCameraWarning("Caméra indisponible. L’appel continue avec le micro uniquement.");
   }
   local.current=stream;
-  if(localVideo.current){localVideo.current.srcObject=stream;void localVideo.current.play().catch(()=>{})}
+  if(localVideo.current)void playLocalPreview();
   const audioSession=(navigator as Navigator & {audioSession?:{type:string}}).audioSession;
   if(audioSession){try{audioSession.type="play-and-record"}catch{/* Unsupported session type. */}}
  }
