@@ -191,7 +191,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  const message=game.status==="won"?(game.winner===0?"🏆 Victoire !":"🤖 L'ordinateur gagne"):
   assisted&&game.turn===0?"🤖 L’ordinateur joue à ta place…":motion?"Le pion avance…":rolling?(game.turn===1?"L'ordinateur lance le dé…":"Le dé roule…"):
   game.turn===1?(game.dice===null?"L'ordinateur réfléchit…":"L'ordinateur choisit un pion…"):
-  game.dice===null?"À toi de jouer : lance le dé !":solePlayableSoloPawn(game,0)!==null?"Ton pion avance automatiquement…":"Choisis un pion qui brille";
+  game.dice===null?"À toi de jouer : lance le dé !":solePlayableSoloPawn(game,0)!==null?"Ton pion avance automatiquement…":"Touche un pion sur le plateau";
  function reset(){
   clearTimers();
   setGame(freshSoloGame());
