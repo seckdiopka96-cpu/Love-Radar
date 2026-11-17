@@ -1,0 +1,80 @@
+/* Welcome loading view: keep the official Diao-Tech attribution visible
+   throughout session recovery (also when the launch animation has closed). */
+.lr-app .lr-loading{
+ position:relative;
+ min-height:calc(100dvh - 90px);
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ padding:32px 14px calc(75px + env(safe-area-inset-bottom));
+ box-sizing:border-box;
+ text-align:center;
+}
+.lr-app .lr-loading-message{
+ font:600 clamp(22px,6vw,32px)/1.3 'Playfair Display',Georgia,serif;
+ color:#d99abb;
+ max-width:94vw;
+}
+.lr-app .lr-loading-credit{
+ position:absolute;
+ bottom:calc(24px + env(safe-area-inset-bottom));
+ left:0;right:0;
+ text-align:center;
+ font:600 12px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",Arial,sans-serif;
+ letter-spacing:.25px;
+ color:#bd9cae;
+}
+.lr-app .lr-loading-credit strong{
+ font-weight:850;
+ color:#f6b7d4;
+}
+/* Server backed per-message status — never infer delivery from online presence. */
+.lr-chat .lr-read-receipt.lr-message-delivery-state,
+.lr-chat .lr-voice-note-check.lr-message-delivery-state{
+ display:flex!important;
+ align-items:center;
+ justify-content:flex-end;
+ gap:5px;
+ width:max-content;
+ max-width:100%;
+ margin-left:auto;
+ padding:2px 3px 0;
+ text-align:right;
+ font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Arial,sans-serif;
+ font-size:10px!important;
+ line-height:1.35;
+ font-weight:700;
+ letter-spacing:0;
+ color:#b8a5b3!important;
+ white-space:nowrap;
+}
+.lr-chat .lr-message-delivery-state.is-sent{color:#a9a2ba!important}
+.lr-chat .lr-message-delivery-state.is-delivered{color:#d0b7cc!important}
+.lr-chat .lr-message-delivery-state.is-read{color:#ffacd0!important}
+.lr-chat .lr-message-delivery-state .lr-receipt-ticks{
+ display:inline-block;
+ flex:none;
+ font-family:Arial,sans-serif;
+ font-size:14px;
+ font-weight:900;
+ letter-spacing:-3.5px;
+ padding-right:3px;
+ line-height:1;
+}
+.lr-chat .lr-message-delivery-state .lr-receipt-word{
+ display:inline-block;flex:none;letter-spacing:.05px;
+}
+.lr-chat .lr-voice-note-check.lr-message-delivery-state{
+ display:inline-flex!important;
+ width:auto;
+ margin:0 0 0 6px;
+ padding:0;
+ vertical-align:baseline;
+ font-size:10px!important;
+}
+.lr-chat .lr-voice-note-check .lr-receipt-ticks{font-size:13px}
+@media(max-width:380px){
+ .lr-chat .lr-message-delivery-state{font-size:9px!important;gap:4px}
+ .lr-app .lr-loading-credit{font-size:11px}
+}
