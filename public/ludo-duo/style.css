@@ -110,3 +110,34 @@
 }
 .lr-ludo-duo-ui .game-title .ludo-header-logo{filter:drop-shadow(0 4px 7px #110b30d8)}
 .lr-ludo-duo-ui .lr-reaction-toggle{background:linear-gradient(145deg,#ab5a9c,#644285)}
+
+/* Actual private profile pictures on the two-player rail.
+   Preserve the existing avatars as offline/error fallbacks. */
+.lr-ludo-duo-ui .players-rail .player .avatar{
+ position:relative;
+ overflow:hidden;
+ isolation:isolate;
+}
+.lr-ludo-duo-ui .players-rail .player .duo-profile-photo{
+ position:absolute;
+ inset:0;
+ z-index:1;
+ display:block;
+ width:100%;
+ height:100%;
+ object-fit:cover;
+ object-position:center;
+ border-radius:inherit;
+}
+.lr-ludo-duo-ui .players-rail .player .duo-profile-photo[hidden]{
+ display:none!important;
+}
+.lr-ludo-duo-ui .players-rail .player .avatar.has-photo .avatar-fallback{
+ display:none;
+}
+.lr-ludo-duo-ui .players-rail .player .avatar-fallback{
+ display:grid;
+ place-items:center;
+ width:100%;
+ height:100%;
+}
