@@ -772,12 +772,25 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
  border:1px solid #ffffff30;
  background:linear-gradient(135deg,#ffffff3b,transparent 46%);
 }
-.dice-3d:not(.is-rolling)[data-face="1"]{transform:rotateX(-18deg) rotateY(-18deg)!important}
-.dice-3d:not(.is-rolling)[data-face="2"]{transform:rotateX(-98deg) rotateY(-12deg)!important}
-.dice-3d:not(.is-rolling)[data-face="3"]{transform:rotateX(-13deg) rotateY(-100deg)!important}
-.dice-3d:not(.is-rolling)[data-face="4"]{transform:rotateX(-13deg) rotateY(80deg)!important}
-.dice-3d:not(.is-rolling)[data-face="5"]{transform:rotateX(82deg) rotateY(-12deg)!important}
-.dice-3d:not(.is-rolling)[data-face="6"]{transform:rotateX(-12deg) rotateY(170deg)!important}
+/* The dice tumbles in genuine 3D, but when it stops its result must be
+ * perfectly FACE-ON (not isometric): seeing two numbered faces at rest made
+ * a real throw look like two different values on iPhone.
+ * Front=1, upper=2, right=3, left=4, lower=5, opposite=6. */
+.dice-3d:not(.is-rolling)[data-face="1"]{transform:rotateX(0deg) rotateY(0deg)!important}
+.dice-3d:not(.is-rolling)[data-face="2"]{transform:rotateX(-90deg) rotateY(0deg)!important}
+.dice-3d:not(.is-rolling)[data-face="3"]{transform:rotateX(0deg) rotateY(-90deg)!important}
+.dice-3d:not(.is-rolling)[data-face="4"]{transform:rotateX(0deg) rotateY(90deg)!important}
+.dice-3d:not(.is-rolling)[data-face="5"]{transform:rotateX(90deg) rotateY(0deg)!important}
+.dice-3d:not(.is-rolling)[data-face="6"]{transform:rotateX(0deg) rotateY(180deg)!important}
+/* Safari can project a one-pixel sliver of a perpendicular face. Hiding
+ * the other five faces when stopped guarantees a single legible result. */
+.dice-3d:not(.is-rolling) .dice-face{opacity:0}
+.dice-3d:not(.is-rolling)[data-face="1"] .dice-face--1,
+.dice-3d:not(.is-rolling)[data-face="2"] .dice-face--2,
+.dice-3d:not(.is-rolling)[data-face="3"] .dice-face--3,
+.dice-3d:not(.is-rolling)[data-face="4"] .dice-face--4,
+.dice-3d:not(.is-rolling)[data-face="5"] .dice-face--5,
+.dice-3d:not(.is-rolling)[data-face="6"] .dice-face--6{opacity:1}
 /* The whole physical cube tumbles and rises, then settles on its actual face. */
 .dice-3d.is-rolling{
  transition:none!important;
@@ -806,12 +819,12 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
 /* Make movement observable across a full square before arriving on the next.
  * The animated pawn is never re-rendered mid-step in the Solo engine. */
 .piece--moving{
- transition:left .205s cubic-bezier(.19,.72,.27,1),top .205s cubic-bezier(.19,.72,.27,1)!important;
+ transition:left .64s cubic-bezier(.22,.64,.26,1),top .64s cubic-bezier(.22,.64,.26,1)!important;
  z-index:30!important;
  filter:drop-shadow(0 0 4px #ffffffaa);
 }
 .piece--moving.is-hopping .piece-svg{
- animation:pawn-hop-hd .24s cubic-bezier(.23,.62,.45,1) both!important;
+ animation:pawn-hop-hd .65s cubic-bezier(.23,.62,.45,1) both!important;
 }
 @keyframes pawn-hop-hd{
  0%,100%{transform:translateY(0) scale(1)}
