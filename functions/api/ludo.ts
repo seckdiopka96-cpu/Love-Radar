@@ -1,14 +1,15 @@
 import type { D1Database } from "@cloudflare/workers-types";
 import {notifyPartner, type PushEnv} from "../lib/push";
+import {registerAutoTurn,type AutoTurnCounts} from "../lib/ludo-timeout";
 
 // Server-authoritative, private two-player Ludo. Each couple has one live game.
 // Progress -1 = base, 0..50 = outer track, 51..56 = home lane, 57 = finished.
 type Env=PushEnv;
 type Ctx={request:Request;env:Env;waitUntil?:(task:Promise<unknown>)=>void};
 type Member={id:string;room_id:string;seat:number;name:string};
-type GameRow={room_id:string;game_id:string;version:number;turn:number;dice:number|null;positions:string;status:string;winner:number|null;streak:number;last_action:string;updated_at:number};
+type GameRow={room_id:string;game_id:string;version:number;turn:number;dice:number|null;positions:string;status:string;winner:number|null;streak:number;last_action:string;updated_at:number;auto_counts?:string|null};
 type Board=number[][];
-type Game={room_id:string;game_id:string;version:number;turn:number;dice:number|null;positions:Board;status:"playing"|"won";winner:number|null;streak:number;last_action:string;updated_at:number};
+type Game={room_id:string;game_id:string;version:number;turn:number;dice:number|null;positions:Board;status:"playing"|"won";winner:number|null;streak:number;last_action:string;updated_at:number;auto_counts:AutoTurnCounts};
 type GiftRow={game_id:string;consent_0:number;consent_1:number;choice:string|null;chosen_by:number|null;given:number};
 type Gift={consents:[boolean,boolean];choice:"credit"|"internet"|"wave2000"|null;chosenBy:number|null;given:boolean};
 type AgreementRow={room_id:string;game_id:string;signed_0_name:string|null;signed_1_name:string|null;signed_0_at:number|null;signed_1_at:number|null;gift_0:number|null;gift_1:number|null;started_at:number|null;updated_at:number};
@@ -32,7 +33,7 @@ const fail=(error:string,status=400)=>reply({ok:false,error},status);
 let ready:Promise<void>|null=null;
 async function ensureTable(db:D1Database){
  if(!ready){
-  ready=db.exec("CREATE TABLE IF NOT EXISTS ludo_games (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, version INTEGER NOT NULL, turn INTEGER NOT NULL, dice INTEGER, positions TEXT NOT NULL, status TEXT NOT NULL, winner INTEGER, streak INTEGER NOT NULL DEFAULT 0, last_action TEXT NOT NULL, updated_at INTEGER NOT NULL);"+
+  ready=db.exec("CREATE TABLE IF NOT EXISTS ludo_games (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, version INTEGER NOT NULL, turn INTEGER NOT NULL, dice INTEGER, positions TEXT NOT NULL, status TEXT NOT NULL, winner INTEGER, streak INTEGER NOT NULL DEFAULT 0, last_action TEXT NOT NULL, updated_at INTEGER NOT NULL, auto_counts TEXT NOT NULL DEFAULT '[0,0]');"+
    "CREATE TABLE IF NOT EXISTS ludo_reactions (room_id TEXT PRIMARY KEY, seat INTEGER NOT NULL, emoji TEXT NOT NULL, updated_at INTEGER NOT NULL);"+
    "CREATE TABLE IF NOT EXISTS ludo_reaction_events (id TEXT PRIMARY KEY,room_id TEXT NOT NULL,game_id TEXT NOT NULL,seat INTEGER NOT NULL,emoji TEXT NOT NULL,created_at INTEGER NOT NULL);"+
    "CREATE INDEX IF NOT EXISTS idx_ludo_reaction_events ON ludo_reaction_events(room_id,game_id,created_at);"+
@@ -41,7 +42,20 @@ async function ensureTable(db:D1Database){
    "CREATE TABLE IF NOT EXISTS ludo_agreements (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, signed_0_name TEXT, signed_1_name TEXT, signed_0_at INTEGER, signed_1_at INTEGER, gift_0 INTEGER, gift_1 INTEGER, started_at INTEGER, updated_at INTEGER NOT NULL);"+
    "CREATE TABLE IF NOT EXISTS ludo_challenges (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, from_id TEXT NOT NULL, from_name TEXT NOT NULL, sent_at INTEGER NOT NULL);"+
    "CREATE TABLE IF NOT EXISTS ludo_palette (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, seat0_color TEXT NOT NULL DEFAULT 'blue', chosen_by INTEGER, updated_at INTEGER NOT NULL);"+
-   "CREATE TABLE IF NOT EXISTS ludo_last_rolls (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, seat INTEGER NOT NULL, face INTEGER NOT NULL, updated_at INTEGER NOT NULL)" ).then(()=>{}).catch(e=>{ready=null;throw e});
+   "CREATE TABLE IF NOT EXISTS ludo_last_rolls (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, seat INTEGER NOT NULL, face INTEGER NOT NULL, updated_at INTEGER NOT NULL)" ).then(async()=>{
+   // Existing couples may already have active Ludo games. Add counters without
+   // discarding their board or changing their match id.
+   const columns=await db.prepare("PRAGMA table_info(ludo_games)").all<{name:string}>();
+   if(!(columns.results||[]).some(c=>c.name==="auto_counts")){
+    try{
+     await db.prepare("ALTER TABLE ludo_games ADD COLUMN auto_counts TEXT NOT NULL DEFAULT '[0,0]'").run();
+    }catch(error){
+     // Concurrent Cloudflare Workers can apply the same migration once.
+     const updated=await db.prepare("PRAGMA table_info(ludo_games)").all<{name:string}>();
+     if(!(updated.results||[]).some(c=>c.name==="auto_counts"))throw error;
+    }
+   }
+  }).catch(e=>{ready=null;throw e});
  }
  await ready;
 }
@@ -55,7 +69,10 @@ async function session(request:Request,db:D1Database):Promise<Member|null>{
 function parse(row:GameRow):Game{
  const positions=JSON.parse(row.positions) as Board;
  if(!Array.isArray(positions)||positions.length!==2||!positions.every(a=>Array.isArray(a)&&a.length===4&&a.every(x=>Number.isInteger(x)&&x>=-1&&x<=57)))throw Error("invalid ludo game data");
- return {...row,positions,status:row.status==="won"?"won":"playing"};
+ const rawCounts=JSON.parse(row.auto_counts||"[0,0]") as unknown;
+ const auto_counts:AutoTurnCounts=Array.isArray(rawCounts)&&rawCounts.length===2&&rawCounts.every(x=>Number.isInteger(x)&&x>=0&&x<=3)
+  ?[rawCounts[0],rawCounts[1]]:[0,0];
+ return {...row,positions,auto_counts,status:row.status==="won"?"won":"playing"};
 }
 async function countMembers(db:D1Database,room:string){
  const row=await db.prepare("SELECT COUNT(*) AS total FROM members WHERE room_id=?").bind(room).first<{total:number}>();
@@ -86,11 +103,11 @@ function die(){
  return (byte[0]%6)+1;
 }
 async function save(db:D1Database,g:Game){
- const result=await db.prepare("UPDATE ludo_games SET game_id=?,version=version+1,turn=?,dice=?,positions=?,status=?,winner=?,streak=?,last_action=?,updated_at=? WHERE room_id=? AND version=?")
- .bind(g.game_id,g.turn,g.dice,JSON.stringify(g.positions),g.status,g.winner,g.streak,g.last_action,Date.now(),g.room_id,g.version).run();
+ const result=await db.prepare("UPDATE ludo_games SET game_id=?,version=version+1,turn=?,dice=?,positions=?,status=?,winner=?,streak=?,auto_counts=?,last_action=?,updated_at=? WHERE room_id=? AND version=?")
+ .bind(g.game_id,g.turn,g.dice,JSON.stringify(g.positions),g.status,g.winner,g.streak,JSON.stringify(g.auto_counts),g.last_action,Date.now(),g.room_id,g.version).run();
  return result.meta.changes===1;
 }
-const publicGame=(g:Game,a:Agreement|null)=>({id:g.game_id,version:g.version,turn:g.turn,dice:g.dice,positions:g.positions,status:g.status,winner:g.winner,lastAction:g.last_action,updatedAt:g.updated_at,deadlineAt:g.status==="playing"&&a?.startedAt?Math.max(g.updated_at,a.startedAt)+TURN_MS:null});
+const publicGame=(g:Game,a:Agreement|null)=>({id:g.game_id,version:g.version,turn:g.turn,dice:g.dice,positions:g.positions,status:g.status,winner:g.winner,autoCounts:g.auto_counts,lastAction:g.last_action,updatedAt:g.updated_at,deadlineAt:g.status==="playing"&&a?.startedAt?Math.max(g.updated_at,a.startedAt)+TURN_MS:null});
 async function reaction(db:D1Database,room:string){
  const result=await db.prepare("SELECT seat,emoji,updated_at AS at FROM ludo_reactions WHERE room_id=? AND updated_at>?").bind(room,Date.now()-7000).first<{seat:number;emoji:string;at:number}>();
  return result||null;
@@ -230,7 +247,17 @@ async function autoIfLate(db:D1Database,g:Game,a:Agreement):Promise<Game>{
  if(g.status!=="playing"||!a.startedAt||Date.now()<Math.max(g.updated_at,a.startedAt)+TURN_MS)return g;
  const acting=g.turn;
  const row=await db.prepare("SELECT name FROM members WHERE room_id=? AND seat=?").bind(g.room_id,acting).first<{name:string}>();
- const autoRoll=botTurn(g,(row?.name||"le joueur").slice(0,30));
+ const name=(row?.name||"le joueur").slice(0,30);
+ // One takeover = one penalty, even if the computer plays multiple bonus rolls.
+ const missed=registerAutoTurn(g.auto_counts,acting);
+ g.auto_counts=missed.counts;
+ let autoRoll:number|null=null;
+ if(missed.forfeit){
+  g.status="won";g.winner=1-acting;g.turn=1-acting;g.dice=null;g.streak=0;
+  g.last_action="⏰ "+name+" a laissé l’ordinateur jouer 3 tours à sa place. Défaite automatique !";
+ }else{
+  autoRoll=botTurn(g,name);
+ }
  if(!await save(db,g))return await getGame(db,g.room_id)||g;
  const updated=await getGame(db,g.room_id)||g;
  if(autoRoll!==null)await rememberLastRoll(db,updated,acting,autoRoll);
@@ -399,7 +426,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    if(g.status!=="won")return fail("Terminez la partie avant de recommencer.",409);
    g.game_id=crypto.randomUUID();
    g.turn=g.winner===0?1:0;
-   g.dice=null;g.positions=initial();g.status="playing";g.winner=null;g.streak=0;
+   g.dice=null;g.positions=initial();g.status="playing";g.winner=null;g.streak=0;g.auto_counts=[0,0];
    g.last_action="Nouvelle partie à deux !";
    await db.prepare("DELETE FROM ludo_last_rolls WHERE room_id=?").bind(player.room_id).run();
    await db.prepare("DELETE FROM ludo_reactions WHERE room_id=?").bind(player.room_id).run();
