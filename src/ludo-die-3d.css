@@ -21,6 +21,18 @@
  --die-dark:#05724e;
  --die-edge:#034c38;
 }
+.ludo-die-3d-red{
+ --die-light:#ff9ca5;
+ --die-medium:#e34960;
+ --die-dark:#ad2442;
+ --die-edge:#761c35;
+}
+.ludo-die-3d-gold{
+ --die-light:#ffeab1;
+ --die-medium:#e9b842;
+ --die-dark:#ad781f;
+ --die-edge:#784a17;
+}
 .ludo-die-shadow{
  position:absolute;left:15%;right:15%;bottom:0;height:14%;
  border-radius:50%;background:#000a29a1;
@@ -37,12 +49,20 @@
  transition:transform .52s cubic-bezier(.18,.82,.18,1);
  will-change:transform;
 }
-.ludo-die-shows-1{--die-x:-18deg;--die-y:-23deg}
-.ludo-die-shows-2{--die-x:-108deg;--die-y:-23deg}
-.ludo-die-shows-3{--die-x:-18deg;--die-y:-113deg}
-.ludo-die-shows-4{--die-x:-18deg;--die-y:67deg}
-.ludo-die-shows-5{--die-x:72deg;--die-y:-23deg}
-.ludo-die-shows-6{--die-x:-18deg;--die-y:157deg}
+.ludo-die-shows-1{--die-x:0deg;--die-y:0deg}
+.ludo-die-shows-2{--die-x:-90deg;--die-y:0deg}
+.ludo-die-shows-3{--die-x:0deg;--die-y:-90deg}
+.ludo-die-shows-4{--die-x:0deg;--die-y:90deg}
+.ludo-die-shows-5{--die-x:90deg;--die-y:0deg}
+.ludo-die-shows-6{--die-x:0deg;--die-y:180deg}
+/* Only the actual rolled face is visible once the cube has landed. */
+.ludo-die-3d:not(.is-tumbling) .ludo-die-side{opacity:0}
+.ludo-die-shows-1:not(.is-tumbling) .ludo-die-side-1{opacity:1}
+.ludo-die-shows-2:not(.is-tumbling) .ludo-die-side-2{opacity:1}
+.ludo-die-shows-3:not(.is-tumbling) .ludo-die-side-3{opacity:1}
+.ludo-die-shows-4:not(.is-tumbling) .ludo-die-side-4{opacity:1}
+.ludo-die-shows-5:not(.is-tumbling) .ludo-die-side-5{opacity:1}
+.ludo-die-shows-6:not(.is-tumbling) .ludo-die-side-6{opacity:1}
 .ludo-die-side{
  position:absolute;inset:0;
  display:grid;grid-template-columns:repeat(3,1fr);
