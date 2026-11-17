@@ -42,7 +42,7 @@ test("modal is dismissible with close, outside tap and Escape, without changing 
  assert.ok(sheet.includes('closeRef.current?.focus()'));
  assert.ok(sheet.includes('returnFocusTo?.current?.focus()'));
  assert.ok(app.includes('createPortal(<PartnerPresenceDetails'));
- assert.ok(app.includes('setPartnerPresenceOpen(false)},[tab,room?.roomId]'));
+ assert.ok(app.includes('useEffect(()=>{setPartnerPresenceOpen(false)},[tab,room?.roomId]);'));
  assert.ok(app.includes('<VoiceCall key={room.roomId+room.user.id}'));
  assert.ok(css.includes('env(safe-area-inset-bottom)'));
 });
