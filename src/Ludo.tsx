@@ -154,7 +154,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
       if(captured.length){
        setCaptureFlash(true);playSound("capture");haptic([35,40,45]);
        // Replay the captured pawn's journey BACKWARDS, one real square per
-       // 130 ms, then move from its own starting square into its home slot.
+       // 50 ms, then move from its own starting square into its home slot.
        const maxBack=Math.max(...captured.map(p=>p.from));
        captured.forEach(p=>{
         for(let step=p.from-1;step>=0;step--){
@@ -162,15 +162,15 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
           if(!isActive.current)return;
           setCapturedMotions(rows=>rows.map(row=>row.seat===p.seat&&row.pawn===p.pawn?
            {...row,progress:step,returning:true}:row));
-         },140+(p.from-1-step)*130));
+         },75+(p.from-1-step)*50));
         }
        });
        movementTimers.current.push(window.setTimeout(()=>{
         if(isActive.current)setCapturedMotions(rows=>rows.map(row=>({...row,progress:-1,returning:true})));
-       },150+maxBack*130));
+       },85+maxBack*50));
        movementTimers.current.push(window.setTimeout(()=>{
         if(isActive.current)setCapturedMotions([]);
-       },420+maxBack*130));
+       },240+maxBack*50));
       }
       if(celebration){playSound("win");haptic([55,70,65])}
      },finish));
