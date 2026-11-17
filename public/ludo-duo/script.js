@@ -253,6 +253,31 @@
    statusMeta.textContent=remaining===null||remaining===undefined?"LUDO DUO":remaining+" s";
   }
  }
+  // The authenticated React parent already loaded private avatars. The
+  // same-origin frame only displays those temporary object URLs; no tokens,
+  // profile API calls or additional downloads on every multiplayer refresh.
+  function renderProfilePhoto(playerSelector,src){
+   const avatar=document.querySelector(playerSelector+" .avatar");
+   const picture=avatar?.querySelector(".duo-profile-photo");
+   if(!avatar||!picture)return;
+   const next=typeof src==="string"&&src.startsWith("blob:"+location.origin+"/")?src:"";
+   if(picture.dataset.photoUrl===next)return;
+   picture.dataset.photoUrl=next;
+   picture.hidden=true;
+   avatar.classList.remove("has-photo");
+   picture.onload=()=>{
+    if(picture.dataset.photoUrl!==next)return;
+    picture.hidden=false;
+    avatar.classList.add("has-photo");
+   };
+   picture.onerror=()=>{
+    if(picture.dataset.photoUrl!==next)return;
+    picture.hidden=true;
+    avatar.classList.remove("has-photo");
+   };
+   if(next)picture.src=next;
+   else picture.removeAttribute("src");
+  }
  function render(){
   if(!state?.game)return;
   const g=state.game,colors=state.palette.colors;
@@ -260,6 +285,8 @@
   app.dataset.diceColor=colors[g.turn];
   app.dataset.computer=colors[1-state.mySeat];
   const me=color(state.mySeat),other=color(1-state.mySeat);
+  renderProfilePhoto(".player--human",state.myAvatar);
+  renderProfilePhoto(".player--cpu",state.partnerAvatar);
   // Label the two occupied houses, leave the other two empty.
   for(const el of board.querySelectorAll(".base")){
    const c=[...el.classList].find(x=>x.startsWith("base--"))?.slice(6);
