@@ -71,7 +71,7 @@
 
 /* Same readable square-by-square pace as the classic Solo and Duo modes. */
 .ludo-senegal .ludo-moving-pawn{
- transition:left .64s cubic-bezier(.19,.7,.3,1),top .64s cubic-bezier(.19,.7,.3,1)
+ transition:left .40s cubic-bezier(.19,.7,.3,1),top .40s cubic-bezier(.19,.7,.3,1)
 }
 /* Clearly ask before an optional raid, including when the enemy cage is empty. */
 .ludo-senegal-choice.is-raid-decision{
@@ -104,3 +104,7 @@
  color:#fff5ef;
 }
 .ludo-senegal-choice>button:disabled{opacity:.5}
+
+/* Keep the Senegal Ludo board clean while preserving its essential move choices. */
+.ludo-senegal .ludo-last-move,
+.ludo-senegal .ludo-senegal-step{display:none!important}
