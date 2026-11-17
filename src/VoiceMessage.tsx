@@ -2,7 +2,7 @@ import {useEffect,useMemo,useRef,useState} from "react";
 import {audioDuration,formatVoiceTime,voiceBars} from "./voice-waveform";
 import {claimMessagePlayback,hasExclusiveAudioCapture,type AudioInterrupt} from "./audio-focus";
 import {nextVoiceSpeed,type VoiceSpeed} from "./voice-sequence";
-import {receiptGlyph,receiptAccessibleLabel,type DeliveryReceipt} from "./message-delivery";
+import {receiptGlyph,receiptDisplayLabel,receiptAccessibleLabel,type DeliveryReceipt} from "./message-delivery";
 import "./voice-message.css";
 
 type Props={
@@ -179,7 +179,9 @@ export default function VoiceMessage({src,id,mine,time,delivery,avatarSrc,avatar
      <span className="lr-voice-note-duration" aria-label={"Progression "+progressText+" sur "+totalText}>
       {playing||position>0?progressText:totalText}
      </span>
-     <span className="lr-voice-note-time">{time}{mine&&delivery?<span className={"lr-voice-note-check "+(delivery==="read"?"is-read":"")} aria-label={receiptAccessibleLabel(delivery)}> {receiptGlyph(delivery)}</span>:null}</span>
+     <span className="lr-voice-note-time">{time}{mine&&delivery?<span className={"lr-voice-note-check lr-message-delivery-state "+(delivery==="read"?"is-read":delivery==="delivered"?"is-delivered":"is-sent")} aria-label={receiptAccessibleLabel(delivery)} title={receiptAccessibleLabel(delivery)}>
+        <span className="lr-receipt-ticks" aria-hidden="true">{receiptGlyph(delivery)}</span><span className="lr-receipt-word">{receiptDisplayLabel(delivery)}</span>
+       </span>:null}</span>
     </div>
    </div>
    {!mine?avatarControl:null}
