@@ -19,9 +19,9 @@ test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()
  const boardSlice=s=>(s.slice(s.indexOf(start),s.indexOf(end))).replace(/^\s+|\s+$/g,"");
  assert.ok(duoHTML.includes(start));
  assert.equal(boardSlice(duoHTML),boardSlice(soloHTML));
- assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261117-v6"'));
- assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261117-v6"'));
- assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261117-v6" defer'));
+ assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261117-v7"'));
+ assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261117-v7"'));
+ assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261117-v7" defer'));
  assert.ok(duoHTML.includes('LUDO <span>♥</span> DUO'));
  assert.ok(duoHTML.includes('id="roll-dice"'));
  assert.ok(duoCSS.includes('.duo-side-actions'));
@@ -62,7 +62,7 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
  'function duoFrameAction(','signRules()', 'giftAction(','ludo-agreement-backdrop','ludo-gift-dialog','ludo-modal-backdrop']){
   assert.ok(parent.includes(unchanged),unchanged);
  }
- assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261117-v6"'));
+ assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261117-v7"'));
  assert.ok(bridge.includes('event.source!==frame'));
  assert.ok(bridge.includes('event.origin!==window.location.origin'));
  assert.ok(!bridge.includes("token:"));
@@ -88,7 +88,7 @@ test("Duo iframe works offline and uses only a same-origin parent, never replaci
   assert.ok(sw.includes('"'+path+'"'),path);
  }
  assert.ok(sw.includes('url.pathname.startsWith("/ludo-duo/")'));
- assert.ok(sw.includes("love-radar-static-v100"),"new PWA release must invalidate old shell");
+ assert.ok(sw.includes("love-radar-static-v101"),"new PWA release must invalidate old shell");
 });
 
 test("live Duo synchronizes promptly with conditional server reads",()=>{
