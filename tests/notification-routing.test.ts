@@ -11,7 +11,7 @@ const agreementCSS=readFileSync("src/ludo-duo-color.css","utf8");
 test("notification targets survive an iPhone cold start and open their precise screen",()=>{
  assert.ok(worker.includes('PENDING_ROUTE_CACHE="love-radar-notification-route-v1"'));
  assert.ok(worker.includes("rememberNotificationRoute(destination)"));
- assert.ok(worker.includes('type:"love-radar-request-pending-notification"'));
+ assert.ok(worker.includes('event.data?.type!=="love-radar-request-pending-notification"'));
  assert.ok(worker.includes("deliverPendingRoute(event.source)"));
  assert.ok(worker.includes("await self.clients.openWindow(url)"));
  assert.ok(worker.includes('focused.postMessage({type:"love-radar-open-notification",...destination})'));
