@@ -54,10 +54,12 @@ async function recordMove(db:D1Database,room:string,game:Match,move:SenegalMove|
  }catch(error){console.error("Senegal optional move animation",error)}
 }
 async function lastMove(db:D1Database,room:string,game:Match){
- const row=await db.prepare("SELECT move_json FROM ludo_senegal_moves WHERE room_id=? AND game_id=? AND version=? AND updated_at>?")
-  .bind(room,game.id,game.version,Date.now()-14000).first<{move_json:string}>();
+ // Keep the last legal pawn route visible even when an opponent rolls again
+ // before the other phone receives its next 1.4 s polling response.
+ const row=await db.prepare("SELECT move_json,version FROM ludo_senegal_moves WHERE room_id=? AND game_id=? AND updated_at>?")
+  .bind(room,game.id,Date.now()-20000).first<{move_json:string;version:number}>();
  if(!row)return null;
- try{return JSON.parse(row.move_json) as SenegalMove}catch{return null}
+ try{return {move:JSON.parse(row.move_json) as SenegalMove,version:row.version}}catch{return null}
 }
 async function autoIfLate(db:D1Database,room:string,game:Match):Promise<Match>{
  if(game.state.status!=="playing"||Date.now()-game.state.updatedAt<TURN_MS)return game;
@@ -84,8 +86,9 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
   if(members===2&&!game){await init(db,player.room_id);game=await get(db,player.room_id)}
   if(game)game=await autoIfLate(db,player.room_id,game);
   if(method==="GET"){
+   const recent=game?await lastMove(db,player.room_id,game):null;
    return send({ok:true,members,seat:player.seat,game:expose(game),
-    move:game?await lastMove(db,player.room_id,game):null,serverNow:Date.now()});
+    move:recent?.move??null,moveVersion:recent?.version??null,serverNow:Date.now()});
   }
   if(members!==2||!game)return fail("Invitez votre partenaire pour jouer au Ludo Sénégal à deux.",409);
   const body=await ctx.request.text();
@@ -132,7 +135,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    await db.prepare("DELETE FROM ludo_senegal_moves WHERE room_id=?").bind(player.room_id).run();
   }else await recordMove(db,player.room_id,saved,move);
   return send({ok:true,members,seat:player.seat,game:expose(saved),move,
-   serverNow:Date.now()});
+   moveVersion:move?saved.version:null,serverNow:Date.now()});
  }catch(error){console.error("Ludo Sénégal request",error);return fail("Le jeu n'est pas disponible pour le moment.",500)}
 }
 export const onRequestGet=(ctx:Ctx)=>handle(ctx,"GET");
