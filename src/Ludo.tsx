@@ -29,7 +29,8 @@ type MoveEvent={gameId:string;version:number;seat:number;pawn:number;from:number
 type PawnMotion={seat:number;pawn:number;progress:number;from:number;to:number};
 type CapturedMotion=CapturedPawn&{returning:boolean};
 type Challenge={gameId:string;fromId:string;fromName:string;fromSeat:number;sentAt:number};
-type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;reactions?:Reaction[];moveEvent?:MoveEvent|null;gift?:Gift|null;agreement?:Agreement|null;palette?:Palette|null;challenge?:Challenge|null;notificationRequested?:boolean;serverNow?:number};
+type DieResult={seat:number;face:number;at:number};
+type ResponseData={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;reactions?:Reaction[];moveEvent?:MoveEvent|null;gift?:Gift|null;agreement?:Agreement|null;palette?:Palette|null;lastRoll?:DieResult|null;challenge?:Challenge|null;notificationRequested?:boolean;serverNow?:number};
 type Props={token:string;mySeat:number;myName:string;partnerName:string|null;onExit:()=>void;challengeId?:string|null};
 function allowed(progress:number,dice:number|null){return dice!==null&&(progress===-1?dice===6:progress>=0&&progress<57&&progress+dice<=57)}
 function labelPosition(progress:number){return progress===-1?"Dans la base":progress===57?"Arrivé !":progress>=51?"Couloir final":"Sur le plateau"}
@@ -53,6 +54,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const [gift,setGift]=useState<Gift|null>(null);
  const [agreement,setAgreement]=useState<Agreement|null>(null);
  const [palette,setPalette]=useState<Palette|null>(null);
+ const [lastRoll,setLastRoll]=useState<DieResult|null>(null);
  const [colorBusy,setColorBusy]=useState(false);
  const autoDuoPawn=useRef("");
  const [challenge,setChallenge]=useState<Challenge|null>(null);
@@ -186,6 +188,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    setGift(data.gift||null);
    setAgreement(data.agreement||null);
    setPalette(data.palette||null);
+   setLastRoll(data.lastRoll||null);
    setChallenge(data.challenge||null);
    if(typeof data.serverNow==="number")setClockOffset(data.serverNow-Date.now());
    setError("");
@@ -248,6 +251,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    if(data.gift)setGift(data.gift);
    if(data.agreement)setAgreement(data.agreement);
    if(data.palette)setPalette(data.palette);
+   if(data.lastRoll!==undefined)setLastRoll(data.lastRoll);
    if(typeof data.serverNow==="number")setClockOffset(data.serverNow-Date.now());
    return true;
   }catch(e){
@@ -534,7 +538,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   </div>
 
   {game&&agreement?.startedAt&&palette&&game.status==="playing"?
-   <LudoDuoFrame game={game} palette={palette} mySeat={mySeat} myName={myName} partnerName={partnerName}
+   <LudoDuoFrame game={game} palette={palette} lastRoll={lastRoll} mySeat={mySeat} myName={myName} partnerName={partnerName}
     remaining={remaining} rolling={rolling} rollingFace={rollingFace}
     busy={busy} animationBusy={animationBusy} motion={motion} capturedMotions={capturedMotions}
     error={error} onAction={duoFrameAction}/>:null}
