@@ -109,7 +109,27 @@ test("Solo hops through every cell, shows step number and animates captures back
  assert.ok(solo.includes("renderPawns();\\n    const captured")||solo.includes("renderPawns();\n    const captured"));
  assert.ok(soloCSS.includes(".piece-step-counter"));
  assert.ok(soloCSS.includes(".piece--captured{z-index:25"));
- assert.ok(soloCSS.includes("transition:left .115s"));
+ assert.ok(soloCSS.includes("transition:left .045s"));
+});
+test("captured pawns reverse rapidly without speeding ordinary board movement",()=>{
+ const reactSolo=readFileSync("src/SoloLudo.tsx","utf8");
+ const reactDuo=readFileSync("src/Ludo.tsx","utf8");
+ const senegal=readFileSync("src/SenegalLudo.tsx","utf8");
+ const senegalCSS=readFileSync("src/ludo-senegal.css","utf8");
+ const arenaCSS=readFileSync("src/ludo-arena.css","utf8");
+ assert.ok(solo.includes("await sleep(50)"),"Solo rewinds a square in 50ms");
+ assert.ok(solo.includes("await sleep(start===HOME?520:540)"),"ordinary pawns stay readable");
+ assert.ok(reactDuo.includes("75+(p.from-1-step)*50"));
+ assert.ok(reactSolo.includes("70+(captured.from-1-step)*50"));
+ assert.ok(senegal.includes("70+index*50"));
+ assert.ok(soloCSS.includes(".piece--captured{z-index:25"));
+ assert.ok(soloCSS.includes("transition:left .045s"));
+ assert.ok(duoCSS.includes("transition:left .045s"));
+ assert.ok(arenaCSS.includes(".ludo-captured-pawn{z-index:35!important;transition:left .045s"));
+ assert.ok(senegalCSS.includes(".ludo-senegal .ludo-captured-pawn{transition:left .045s"));
+ assert.ok(reactDuo.includes("STEP_MS=moved.from===-1?520:540"));
+ assert.ok(reactSolo.includes("stepDuration=move.from===-1?520:540"));
+ assert.ok(senegal.includes('STEP_MS=move.from.zone==="base"?520:540'));
 });
 test("Duo retains one moving DOM pawn across server hop frames and returns real die to both phones",()=>{
  assert.ok(duo.includes('movementLayer.className="pieces-layer ludo-duo-motion-overlay"'));
@@ -142,7 +162,7 @@ test("Duo captures visibly return through a stable animation overlay",()=>{
  assert.ok(duo.includes('pawn.classList.add("is-returning")'));
  assert.ok(duo.includes('pawn.style.left=dest.x'));
  assert.ok(duo.includes('pawn.style.top=dest.y'));
- assert.ok(duoCSS.includes('transition:left .115s'));
+ assert.ok(duoCSS.includes('transition:left .045s'));
 });
 
 
