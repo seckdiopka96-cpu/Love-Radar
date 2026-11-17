@@ -50,10 +50,10 @@
  giftButton.type="button";giftButton.textContent="🎁 Cadeau";
  giftButton.addEventListener("click",()=>send("gift"));
  const emojiButton=document.createElement("button");
- emojiButton.type="button";emojiButton.textContent="💬 Réactions";
+ emojiButton.type="button";emojiButton.textContent="😝 Réagir";
  emojiButton.setAttribute("aria-expanded","false");
  const emojiTray=document.createElement("div");emojiTray.className="duo-side-emotes";emojiTray.hidden=true;
- for(const emoji of ["❤️","😂","🔥","👏","😍","💋","😱"]){
+ for(const emoji of ["😝","🤪","🤣","😂","😭","😱","😎","👏"]){
   const b=document.createElement("button");b.type="button";b.textContent=emoji;
   b.setAttribute("aria-label","Réagir avec "+emoji);
   b.addEventListener("click",()=>{send("react",undefined,emoji);emojiTray.hidden=true;emojiButton.setAttribute("aria-expanded","false")});
@@ -80,6 +80,31 @@
  captureLayer.setAttribute("aria-hidden","true");
  board.append(captureLayer);
  const capturePins=new Map();
+ // The same synchronized reaction appears on both phones, directly on the board.
+ const reactionBurst=document.createElement("div");
+ reactionBurst.className="lr-reaction-burst";reactionBurst.hidden=true;
+ reactionBurst.setAttribute("role","status");reactionBurst.setAttribute("aria-live","polite");
+ board.append(reactionBurst);
+ let reactionTimer=null,lastReactionKey="",lastCaptureOffer="";
+ function reactionKind(emoji){
+  if(emoji==="😝"||emoji==="🤪")return "tongue";
+  if(emoji==="😂"||emoji==="🤣")return "laugh";
+  if(emoji==="😭")return "cry";
+  if(emoji==="😱")return "shock";
+  if(emoji==="👏")return "clap";
+  return "cool";
+ }
+ function showReaction(emoji,seat){
+  if(reactionTimer!==null)clearTimeout(reactionTimer);
+  reactionBurst.replaceChildren();
+  const face=document.createElement("span");face.className="lr-reaction-face";face.textContent=emoji;
+  const label=document.createElement("small");label.className="lr-reaction-label";
+  label.textContent=seat===state?.mySeat?"TOI":"PARTENAIRE";
+  reactionBurst.dataset.kind=reactionKind(emoji);
+  reactionBurst.setAttribute("aria-label","Réaction de "+label.textContent+" : "+emoji);
+  reactionBurst.append(face,label);reactionBurst.hidden=false;
+  reactionTimer=setTimeout(()=>{reactionBurst.hidden=true;reactionBurst.replaceChildren();reactionTimer=null},2700);
+ }
  let movingPawn=null,movingKey="";
  function getPosition(color,progress,pawn){
   const pt=pointFor(color,progress);
@@ -303,6 +328,22 @@
     if(remoteDieTimer!==null)clearTimeout(remoteDieTimer);
     remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},750);
    }
+  }
+  const currentReactions=Array.isArray(state.reactions)?state.reactions:[];
+  const newest=currentReactions.slice().sort((a,b)=>b.at-a.at)[0];
+  if(newest&&typeof newest.emoji==="string"){
+   const key=String(newest.id||newest.at+":"+newest.seat+":"+newest.emoji);
+   if(lastReactionKey!==key){
+    lastReactionKey=key;
+    showReaction(newest.emoji,newest.seat);
+   }
+  }
+  const ownCapture=state.motion?.seat===state.mySeat&&
+   state.capturedMotions?.some(p=>p.seat!==state.mySeat);
+  const offerKey=g.id+":"+g.version;
+  if(ownCapture&&lastCaptureOffer!==offerKey){
+   lastCaptureOffer=offerKey;
+   emojiTray.hidden=false;emojiButton.setAttribute("aria-expanded","true");
   }
   const rollingNow=Boolean(state.rolling)||remoteDieTimer!==null;
   dice.classList.toggle("is-rolling",rollingNow);
