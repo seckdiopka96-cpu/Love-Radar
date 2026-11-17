@@ -606,7 +606,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
       <h3>2 · Les règles, en bref</h3>
       <p>🎲 <span>Fais <strong>6</strong> pour sortir un pion. Le premier à rentrer ses <strong>4 pions</strong> gagne.</span></p>
       <p>⭐ <span>Les étoiles protègent. Un 6, une capture ou une arrivée donne un tour bonus.</span></p>
-      <p>⏱️ <span>Tu as <strong>15 secondes</strong> pour jouer, sinon le tour est automatique.</span></p>
+      <p>⏱️ <span>Tu as <strong>15 secondes</strong> pour jouer. Après <strong>3 tours automatiques</strong> à ta place, tu perds.</span></p>
      </section>
      <label className="ludo-ready-gift-option">
       <input type="checkbox" checked={giftOptIn} onChange={e=>setGiftOptIn(e.target.checked)}/>
