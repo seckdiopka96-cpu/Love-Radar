@@ -422,3 +422,14 @@
  .ludo-arena .ludo-guide-target{animation:none!important}
  .ludo-arena .ludo-moving-pawn{transition:none!important}
 }
+
+/* Solo home labels remain upright after rotating the whole symmetric board. */
+.ludo-arena.ludo-solo .ludo-arena-field-label{
+ position:absolute;z-index:7;pointer-events:none;
+ color:#fff;font:900 clamp(9px,2.45vw,14px)/1.1 -apple-system,BlinkMacSystemFont,"SF Pro Text",Arial,sans-serif;
+ letter-spacing:.2px;white-space:nowrap;
+ text-shadow:-1px -1px 0 #082036,1px -1px 0 #082036,-1px 1px 0 #082036,1px 1px 0 #082036,0 2px 3px #092443a6;
+ transform:translate(-50%,-50%) rotate(90deg);
+}
+.ludo-arena.ludo-solo .ludo-arena-field-label.is-human{left:6%;top:20%}
+.ludo-arena.ludo-solo .ludo-arena-field-label.is-bot{left:94%;top:80%}
