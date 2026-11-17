@@ -209,12 +209,14 @@ export default function LoveRadar(){
  const chatReturnTab=useRef<Tab>("home");
  const [noticeTarget,setNoticeTarget]=useState<NoticeTarget|null>(()=>parseNotice(window.location.search));
  const lastHandledNotice=useRef<string>("");
+ const lastMessageJump=useRef<string>("");
  const [focusMessage,setFocusMessage]=useState<Message|null>(null);
  const [focusLoading,setFocusLoading]=useState(false);
  const [focusError,setFocusError]=useState("");
  const [focusMedia,setFocusMedia]=useState("");
  const focusAsset=useRef("");
  function closeNotice(){
+  lastMessageJump.current="";
   setNoticeTarget(null);
   setFocusMessage(null);
   setFocusError("");
@@ -1323,8 +1325,10 @@ export default function LoveRadar(){
   const id=noticeTarget?.id;
   if(tab!=="chat"||!id||!["message","photo","audio"].includes(noticeTarget?.kind||""))return;
   if(!room?.messages.some(message=>message.id===id))return;
+  if(lastMessageJump.current===id)return;
   const target=document.getElementById("lr-chat-message-"+id);
   if(!target)return;
+  lastMessageJump.current=id;
   const frame=window.requestAnimationFrame(()=>{
    target.scrollIntoView({block:"center",behavior:"auto"});
   });
