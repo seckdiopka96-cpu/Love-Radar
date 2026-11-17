@@ -17,7 +17,7 @@ test("Ludo screenshot fixes: compact pawns, correct capture and clean HUD",()=>{
  const senegal=readFileSync("src/ludo-senegal-engine.ts","utf8");
  const boardRules=readFileSync("src/ludo-visuals.ts","utf8");
  // Starting squares and star refuges still have standard protection.
- assert.ok(solo.includes('...Object.values(SPAWNS).map(i=>TRACK[i].join(","))'));
+ assert.ok(solo.includes('new Set(Object.values(SPAWNS).map(i=>TRACK[i].join(",")))'));
  assert.ok(server.includes("const SAFE=new Set([0,13,26,39])"));
  assert.ok(boardRules.includes("export const SAFE=new Set([0,13,26,39])"));
  // Red from its own start + 2 must capture a single blue pawn at row 6, col 3.
@@ -138,7 +138,7 @@ test("Duo captures visibly return through a stable animation overlay",()=>{
  assert.ok(duo.includes('captureLayer.className="pieces-layer ludo-duo-capture-overlay"'));
  assert.ok(duo.includes("const capturePins=new Map()"));
  assert.ok(duo.includes("function drawCaptured()"));
- assert.ok(duo.includes('getPosition(c,-1,m.pawn)'));
+ assert.ok(duo.includes('getPosition(c,nextProgress,m.pawn)'));
  assert.ok(duo.includes('pawn.classList.add("is-returning")'));
  assert.ok(duo.includes('pawn.style.left=dest.x'));
  assert.ok(duo.includes('pawn.style.top=dest.y'));
@@ -206,4 +206,30 @@ test("Solo and synchronized Duo do not skip fast between board squares",()=>{
  assert.ok(duo.includes('if(!movingPawn||movingKey!==id)'));
  assert.ok(duo.includes('pawn.style.left=to.x'));
  assert.ok(duo.includes('pawn.style.top=to.y'));
+});
+
+test("stars mark only the four colored start cells, with matching capture protection",()=>{
+ for(const html of [soloHTML,duoHTML]){
+  assert.equal((html.match(/cell--entry cell--safe/g)||[]).length,4);
+  assert.equal((html.match(/<span class="star">★<\/span>/g)||[]).length,4);
+ }
+ assert.ok(server.includes("const SAFE=new Set([0,13,26,39])"));
+ assert.ok(solo.includes("new Set(Object.values(SPAWNS).map("));
+});
+test("player dice color, fixed board and reverse captures are wired in every mode",()=>{
+ const reactDuo=readFileSync("src/Ludo.tsx","utf8");
+ const reactSolo=readFileSync("src/SoloLudo.tsx","utf8");
+ const senegal=readFileSync("src/SenegalLudo.tsx","utf8");
+ assert.ok(solo.includes("app.dataset.diceColor=getColor(game.turn)"));
+ assert.ok(duo.includes("app.dataset.diceColor=colors[g.turn]"));
+ assert.ok(reactDuo.includes('color={palette?.colors[game?.turn??mySeat]??"blue"}'));
+ for(const color of ["red","blue","green","yellow"])
+  assert.ok(soloCSS.includes('.app[data-dice-color="'+color+'"]'));
+ assert.ok(soloCSS.includes(".dice-holder .die-result{display:none!important}"));
+ assert.ok(soloCSS.includes(".game-screen .board-area{"));
+ assert.ok(solo.includes("for(let step=progress-1;step>=0;step--)"));
+ assert.ok(reactDuo.includes("for(let step=p.from-1;step>=0;step--)"));
+ assert.ok(duo.includes("getPosition(c,nextProgress,m.pawn)"));
+ assert.ok(reactSolo.includes("function reverseCaptured("));
+ assert.ok(senegal.includes("function captureReversePoints("));
 });
