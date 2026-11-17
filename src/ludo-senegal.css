@@ -69,6 +69,10 @@
  .ludo-senegal-choice{bottom:calc(100% + 5px);max-height:min(48dvh,285px)}
 }
 
+/* Same readable square-by-square pace as the classic Solo and Duo modes. */
+.ludo-senegal .ludo-moving-pawn{
+ transition:left .64s cubic-bezier(.19,.7,.3,1),top .64s cubic-bezier(.19,.7,.3,1)
+}
 /* Clearly ask before an optional raid, including when the enemy cage is empty. */
 .ludo-senegal-choice.is-raid-decision{
  border:2px solid #f4ce89;
