@@ -107,6 +107,30 @@ test("3D die settles with exactly one face facing the viewer for all six values"
   "physical tumble animation must remain");
 });
 
+test("React Solo, Duo and Senegal use a single-face die and readable movement",()=>{
+ const reactSolo=readFileSync("src/SoloLudo.tsx","utf8");
+ const senegal=readFileSync("src/SenegalLudo.tsx","utf8");
+ const dieCSS=readFileSync("src/ludo-die-3d.css","utf8");
+ const arenaCSS=readFileSync("src/ludo-arena.css","utf8");
+ const senegalCSS=readFileSync("src/ludo-senegal.css","utf8");
+ assert.ok(reactSolo.includes('stepDuration=move.from===-1?850:780,initialDelay=530'));
+ assert.ok(parent.includes('STEP_MS=moved.from===-1?850:780,START_MS=530'));
+ assert.ok(senegal.includes('STEP_MS=move.from.zone==="base"?850:780,START_MS=530'));
+ assert.ok(senegal.includes('path.forEach((point,i)=>later('));
+ assert.ok(senegal.includes('START_MS+i*STEP_MS'));
+ assert.ok(senegal.includes('<LudoDie3D value={shownDie}'));
+ assert.ok(!senegal.includes('<DiceFace'));
+ assert.ok(arenaCSS.includes('.ludo-moving-pawn{transition:left .64s'));
+ assert.ok(senegalCSS.includes('.ludo-senegal .ludo-moving-pawn{'));
+ assert.ok(senegalCSS.includes('transition:left .64s'));
+ assert.ok(parent.includes('lastRoll?.face??'));
+ for(const [face,x,y] of [[1,0,0],[2,-90,0],[3,0,-90],[4,0,90],[5,90,0],[6,0,180]]){
+  assert.ok(dieCSS.includes('.ludo-die-shows-'+face+'{--die-x:'+x+'deg;--die-y:'+y+'deg}'));
+  assert.ok(dieCSS.includes('.ludo-die-shows-'+face+':not(.is-tumbling) .ludo-die-side-'+face+'{opacity:1}'));
+ }
+ assert.ok(dieCSS.includes('.ludo-die-3d:not(.is-tumbling) .ludo-die-side{opacity:0}'));
+});
+
 test("Solo and synchronized Duo do not skip fast between board squares",()=>{
  assert.ok(solo.includes('await sleep(reducedMotion?25:(start===HOME?800:760))'));
  assert.ok(parent.includes('const STEP_MS=moved.from===-1?850:780,START_MS=530'));
