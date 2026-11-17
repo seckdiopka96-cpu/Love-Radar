@@ -28,6 +28,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const [anchor,setAnchor]=useState<HTMLElement|null>(null);
  const [active,setActive]=useState<Call|null>(null);
  const [minimized,setMinimized]=useState(false);
+ const [videoControlsVisible,setVideoControlsVisible]=useState(true);
  const [floatingAt,setFloatingAt]=useState<{x:number;y:number}|null>(null);
  const [draggingVideo,setDraggingVideo]=useState(false);
  const [callPanel,setCallPanel]=useState<"none"|"info"|"more"|"keypad">("none");
@@ -287,7 +288,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   const audioSession=(navigator as Navigator & {audioSession?:{type:string}}).audioSession;
   if(audioSession){try{audioSession.type="auto"}catch{/* Browser controls audio routing. */}}
   previousSinkId.current="";
-  setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setSpeakerBusy(false);setMinimized(false);setCallPanel("none");setDialed("");
+  setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setSpeakerBusy(false);setMinimized(false);setVideoControlsVisible(true);setCallPanel("none");setDialed("");
   cameraSwitching.current=false;setCameraOff(false);setCameraFacing("user");setCameraBusy(false);setCameraWarning("");setRemoteHasVideo(false);setRemoteVideoReady(false);setLocalPreviewReady(false);setLocalPreviewHelp("");
  },[]);
  const reset=useCallback(()=>{
@@ -300,7 +301,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const setCurrent=useCallback((call:Call)=>{
   if(current.current?.id!==call.id){
    if(current.current)clearAudio();
-   setMinimized(false);setCallPanel("none");setDialed("");
+   setMinimized(false);setVideoControlsVisible(true);setCallPanel("none");setDialed("");
    setError("");setPhase(call.direction==="incoming"?(call.mode==="video"?"Appel vidéo entrant…":"Appel vocal entrant…"):call.status==="ringing"?"Ça sonne…":"Connexion en cours…");
   }
   current.current=call;
@@ -866,7 +867,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(!call)return;
   // Keep the video peer and camera alive while sending messages, even during ringing.
   if(call.status!=="active"&&!(call.status==="ringing"&&call.direction==="outgoing"))return;
-  setCallPanel("none");setMinimized(true);
+  setCallPanel("none");setVideoControlsVisible(true);setMinimized(true);
   onOpenChat();
  }
  function pressKey(digit:string){
@@ -882,10 +883,17 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const total=String(Math.floor(duration/60)).padStart(2,"0")+":"+String(duration%60).padStart(2,"0");
  const isVideo=active?.mode==="video";
  const showPartnerFullscreen=Boolean(isVideo&&active?.status==="active"&&remoteVideoReady);
+ const videoCanToggleControls=Boolean(isVideo&&active?.status==="active");
+ function toggleVideoControls(event?:React.MouseEvent<HTMLElement>){
+  if(!videoCanToggleControls||callPanel!=="none")return;
+  // Tapping camera retry or other embedded actions must not hide the HUD.
+  if(event?.target instanceof Element&&event.target.closest("button,a,input"))return;
+  setVideoControlsVisible(visible=>!visible);
+ }
  const callStatus=isIncoming?(isVideo?"Appel vidéo entrant…":"Appel vocal entrant…"):isOutgoing?(isVideo?"Appel vidéo sortant…":"Appel vocal sortant…"):phase||"Connexion en cours…";
  const display=active&&(!minimized||(active.status==="ringing"&&active.direction==="incoming"))?createPortal(
   <div className="lr-call-backdrop" role="dialog" aria-modal="true" aria-label={isVideo?"Appel vidéo":"Appel audio"}>
-   <div className={"lr-call-sheet lr-call-facetime"+(isVideo?" lr-video-call"+(active.direction==="outgoing"?" is-video-outgoing":""):"")}>
+   <div className={"lr-call-sheet lr-call-facetime"+(isVideo?" lr-video-call"+(active.direction==="outgoing"?" is-video-outgoing":"")+(videoCanToggleControls&&!videoControlsVisible?" is-controls-hidden":""):"")}>
     <div className="lr-call-upper">
      <div className="lr-call-topbar">
       {(active.status==="active"||active.direction==="outgoing")?<button type="button" className="lr-call-minimize" onClick={minimizeAndWrite} aria-label="Réduire l’appel et écrire des messages">
@@ -927,7 +935,11 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
       {cameraWarning&&isVideo?<div className="lr-call-audio-hint" role="status">{cameraWarning}</div>:null}
      </div>
     </div>
-    {isVideo?<div className={"lr-call-video-stage"+(showPartnerFullscreen?" has-partner-video":" is-self-first")} aria-label={showPartnerFullscreen?"Vidéo de ton partenaire":"Ma caméra en plein écran"}>
+    {isVideo?<div className={"lr-call-video-stage"+(showPartnerFullscreen?" has-partner-video":" is-self-first")}
+     aria-label={videoCanToggleControls?(videoControlsVisible?"Appuie sur la vidéo pour masquer les commandes":"Appuie sur la vidéo pour afficher les commandes"):(showPartnerFullscreen?"Vidéo de ton partenaire":"Ma caméra en plein écran")}
+     onClick={toggleVideoControls}
+     onKeyDown={event=>{if((event.key==="Enter"||event.key===" ")&&event.target===event.currentTarget){event.preventDefault();toggleVideoControls()}}}
+     tabIndex={videoCanToggleControls?0:undefined}>
      <div className="lr-call-video-remote">
       <video ref={attachRemoteVideo} data-lr-call-video="true" autoPlay playsInline muted
        onPlaying={()=>setRemoteVideoReady(true)}
