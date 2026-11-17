@@ -140,12 +140,41 @@ test("local camera is fullscreen before pickup and becomes PiP after partner vid
 });
 test("video Messages minimizes during outgoing ringing without ending the call",()=>{
  assert.ok(call.includes('call.status==="ringing"&&call.direction==="outgoing"'));
- assert.ok(call.includes('setCallPanel("none");setMinimized(true)'));
+ assert.ok(call.includes('setCallPanel("none");setVideoControlsVisible(true);setMinimized(true)'));
  assert.ok(call.includes('onOpenChat()'));
  assert.ok(call.includes('active.status==="ringing"&&active.direction==="outgoing"'));
  assert.ok(call.includes('active.status==="ringing"&&active.direction==="incoming"'));
  assert.ok(call.includes('active.status==="ringing"?"Appel sortant…"'));
 });
+test("fullscreen video tap toggles overlays without interrupting microphone, camera or call",()=>{
+ const videoCss=readFileSync("src/video-call.css","utf8");
+ assert.ok(call.includes('const [videoControlsVisible,setVideoControlsVisible]=useState(true)'));
+ assert.ok(call.includes('videoCanToggleControls=Boolean(isVideo&&active?.status==="active")'),
+  "controls must never disappear before the incoming call is answered");
+ assert.ok(call.includes("setVideoControlsVisible(visible=>!visible)"),
+  "a screen tap must alternately hide and restore all call controls");
+ assert.ok(call.includes("onClick={toggleVideoControls}"),"the full-screen video responds to taps");
+ assert.ok(call.includes('event.target.closest("button,a,input")'),
+  "camera retry and other buttons must keep their normal action");
+ assert.ok(call.includes('tabIndex={videoCanToggleControls?0:undefined}'),
+  "allow a keyboard user to toggle controls too");
+ assert.ok(call.includes('event.key==="Enter"||event.key===" "'),"support Enter and Space");
+ assert.ok(call.includes('is-controls-hidden'),"hide state applies to video calls only");
+ assert.ok(videoCss.includes(".lr-video-call.is-controls-hidden .lr-call-upper"),
+  "top buttons and caller identification fade away");
+ assert.ok(videoCss.includes(".lr-video-call.is-controls-hidden .lr-call-actions"),
+  "bottom controls fade away");
+ assert.ok(videoCss.includes("visibility:hidden!important"),
+  "hidden commands must not take taps from the video");
+ assert.ok(videoCss.includes(".lr-video-call.is-controls-hidden .lr-call-video-retry"),
+  "do not leave a floating retry button on top of the unobstructed video");
+ assert.ok(call.includes("setVideoControlsVisible(true);setCallPanel"),"new calls restore controls");
+ assert.ok(call.includes("setVideoControlsVisible(true);setMinimized(true)"),
+  "minimizing and reopening restores visible controls");
+ assert.ok(call.includes("const videoOptions=active&&isVideo&&callPanel"),
+  "the full video options sheet remains available");
+});
+
 test("video Plus opens a usable independent overlay and video keypad is hidden",()=>{
  const videoCss=readFileSync("src/video-call.css","utf8");
  assert.ok(call.includes('const videoOptions=active&&isVideo&&callPanel!=="none"?createPortal('));
