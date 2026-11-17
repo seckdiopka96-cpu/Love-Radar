@@ -124,7 +124,7 @@ function ios(){
  let xml=readFileSync(iosPath,"utf8");
  const descriptions={
   NSMicrophoneUsageDescription:"Love Radar utilise le microphone pour les appels vocaux et les messages audio.",
-  NSCameraUsageDescription:"Love Radar permet de prendre une photo à partager avec ton partenaire.",
+  NSCameraUsageDescription:"Love Radar utilise la caméra pour les appels vidéo et les photos partagées avec ton partenaire.",
   NSPhotoLibraryUsageDescription:"Love Radar permet de sélectionner une photo privée à partager avec ton partenaire.",
   NSLocationWhenInUseUsageDescription:"Love Radar partage ta position seulement si tu l'autorises, pour une durée limitée."
  };
