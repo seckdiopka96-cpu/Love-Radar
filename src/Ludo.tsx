@@ -2,6 +2,8 @@ import {apiFetch} from "./api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./ludo.css";
 import "./ludo-immersive.css";
+import "./ludo-arena.css";
+import LudoTutorial,{ludoGuideWasSeen} from "./LudoTutorial";
 import DiceFace from "./DiceFace";
 import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
@@ -65,6 +67,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const [loading,setLoading]=useState(true);
  const [menu,setMenu]=useState(false);
  const [rules,setRules]=useState(false);
+ const [tutorialOpen,setTutorialOpen]=useState(()=>!ludoGuideWasSeen("duo"));
  const [emotes,setEmotes]=useState(false);
  const [effect,setEffect]=useState("");
  const [boardSize,setBoardSize]=useState(0);
@@ -356,7 +359,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const dice=rolling?rollingFace:(game?.dice??showLast);
  const message=!game?(loading?"Ouverture du plateau…":members<2?"Plateau prêt · En attente de ton amour":"Connexion à la partie…"):game.status==="won"?"Partie terminée":game.dice!==null&&myTurn?"Choisis un pion qui brille":game.dice!==null?"Ton partenaire choisit son pion":myTurn?"À TOI DE JOUER !":"AU TOUR DE "+displayName(game.turn);
  const status=game?.status==="won"?"🏆":myTurn?"✦":"◌";
- return <section className="ludo-experience" aria-label="Ludo en ligne privé à deux joueurs">
+ return <section className="ludo-experience ludo-arena ludo-duo-arena" aria-label="Ludo en ligne privé à deux joueurs">
   <header className="ludo-topbar">
    <button type="button" className="ludo-leave" onClick={()=>setMenu(true)} aria-label="Quitter ou abandonner la partie">
     <span aria-hidden="true">‹</span> Quitter
@@ -366,6 +369,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
     <button type="button" className="ludo-sound" onClick={toggleSound} aria-label={soundOn?"Couper les sons du jeu":"Activer les sons du jeu"} aria-pressed={soundOn}>{soundOn?"🔊":"🔇"}</button>
     <button type="button" className={"ludo-gift-shortcut"+(giftAgreed?" agreed":"")} onClick={()=>setGiftOpen(true)} aria-label="Défi cadeau facultatif" title="Défi cadeau">🎁</button>
     <button type="button" className="ludo-help" onClick={()=>setRules(true)} aria-label="Voir les règles du Ludo">?</button>
+    <button type="button" className="ludo-arena-how" onClick={()=>setTutorialOpen(true)} aria-label="Voir le tutoriel Ludo">▶</button>
    </div>
   </header>
 
@@ -479,6 +483,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   </footer>
   </div>
 
+  {tutorialOpen&&Boolean(agreement?.startedAt)&&game?.status==="playing"&&!mustSign&&!giftOpen&&!rules?<LudoTutorial mode="duo" onClose={()=>setTutorialOpen(false)}/>:null}
   {mustSign?<div className="ludo-agreement-backdrop">
    <div className="ludo-agreement-dialog" role="dialog" aria-modal="true" aria-label="Règles et signature avant la partie">
     <div className="ludo-agreement-heading"><span className="ludo-agreement-icon">📜</span><div><h2>Avant de jouer</h2><p>Règles et accord des deux partenaires</p></div></div>
