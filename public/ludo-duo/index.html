@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1e3c">
+  <title>Love Radar — Ludo Duo</title>
+  <link rel="stylesheet" href="../ludo-solo/style.css">
+  <link rel="stylesheet" href="./style.css">
+  
+</head>
+<body>
+  <!-- SVG vectoriel original : pions très nets sur les écrans Retina. -->
+  <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="pawn-chrome" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#fff"/>
+        <stop offset="42%" stop-color="#e6f0fa"/>
+        <stop offset="72%" stop-color="#8799af"/>
+        <stop offset="100%" stop-color="#fff"/>
+      </linearGradient>
+      <radialGradient id="pawn-orb" cx="32%" cy="25%" r="75%">
+        <stop offset="0%" stop-color="#fff"/>
+        <stop offset="25%" stop-color="var(--pawn-soft, #8ddfff)"/>
+        <stop offset="76%" stop-color="var(--pawn-main, #1398eb)"/>
+        <stop offset="100%" stop-color="var(--pawn-dark, #086bae)"/>
+      </radialGradient>
+      <symbol id="pin-shape" viewBox="0 0 58 74">
+        <ellipse cx="29" cy="68" rx="20" ry="4" fill="#061326" opacity=".25"/>
+        <ellipse cx="29" cy="62" rx="18" ry="8" fill="var(--pawn-main)" stroke="var(--pawn-dark)" stroke-width="2"/>
+        <ellipse cx="29" cy="59.5" rx="13" ry="4.3" fill="#fff" opacity=".85"/>
+        <path d="M29 3C15 3 6 13 6 27c0 10 6 18 13 28l7.2 8.5c1.5 1.8 4.1 1.8 5.6 0L39 55c7-10 13-18 13-28C52 13 43 3 29 3Z" fill="url(#pawn-chrome)" stroke="#35465c" stroke-width="2.2"/>
+        <circle cx="29" cy="26.5" r="17.8" fill="#e9f5ff" stroke="#657c8e" stroke-width="1.7"/>
+        <circle cx="29" cy="26.5" r="14.4" fill="var(--pawn-main)" stroke="var(--pawn-dark)" stroke-width="1.5"/>
+        <ellipse cx="23.5" cy="19.5" rx="5.6" ry="3" transform="rotate(-29 23.5 19.5)" fill="#fff" opacity=".65"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <main class="app" data-player="blue" data-computer="green">
+    <!-- 1. Choix de couleur avant la partie. -->
+    <section id="choix-couleur" class="selection-screen" aria-labelledby="selection-title">
+      <div class="brand">LOVE RADAR <span>♡</span></div>
+      <div class="selection-card">
+        <div class="game-mark" aria-hidden="true">🎲</div>
+        <p class="eyebrow">LUDO SOLO</p>
+        <h1 id="selection-title">Choisis ta couleur</h1>
+        <p class="muted">Affronte l'ordinateur sur un plateau classique à quatre couleurs.</p>
+        <fieldset class="color-options">
+          <legend>Ta couleur</legend>
+          <label class="color-choice color-choice--blue">
+            <input type="radio" name="player-color" id="couleur-blue" value="blue" checked>
+            <span class="color-choice-dot" aria-hidden="true"></span>
+            <span>Bleu</span>
+            <span class="color-choice-check" aria-hidden="true">✓</span>
+          </label>
+          <label class="color-choice color-choice--red">
+            <input type="radio" name="player-color" id="couleur-red" value="red">
+            <span class="color-choice-dot" aria-hidden="true"></span>
+            <span>Rouge</span>
+            <span class="color-choice-check" aria-hidden="true">✓</span>
+          </label>
+          <label class="color-choice color-choice--green">
+            <input type="radio" name="player-color" id="couleur-green" value="green">
+            <span class="color-choice-dot" aria-hidden="true"></span>
+            <span>Vert</span>
+            <span class="color-choice-check" aria-hidden="true">✓</span>
+          </label>
+          <label class="color-choice color-choice--yellow">
+            <input type="radio" name="player-color" id="couleur-yellow" value="yellow">
+            <span class="color-choice-dot" aria-hidden="true"></span>
+            <span>Jaune</span>
+            <span class="color-choice-check" aria-hidden="true">✓</span>
+          </label>
+        </fieldset>
+        <p class="opponent-note"><span aria-hidden="true">🤖</span> L'ordinateur recevra automatiquement une autre couleur.</p>
+        <button type="button" id="start-game" class="start-button">Commencer la partie <span aria-hidden="true">→</span></button>
+        <button type="button" id="resume-game" class="resume-button" hidden>↺ Reprendre ma partie</button>
+        <p class="prototype-note">6 pour sortir un pion · étoiles protectrices · arrivée exacte au centre.</p>
+      </div>
+    </section>
+
+    <!-- 2. Écran de jeu : le plateau a 15 lignes × 15 colonnes. -->
+    <section id="plateau" class="game-screen" aria-label="Partie de Ludo Duo">
+      <header class="game-header">
+        <button id="choose-again" type="button" class="back-link">‹ Jeux</button>
+        <div class="game-title"><strong>LUDO <span>♥</span> DUO</strong><small>TOI CONTRE TON PARTENAIRE</small></div>
+        <button type="button" id="show-rules" class="header-help" aria-label="Voir les règles">?</button>
+      </header>
+      <div class="turn-banner" aria-live="polite"><span aria-hidden="true">✦</span><strong id="turn-message">À toi de jouer !</strong><small id="turn-meta">Lance le dé</small></div>
+
+      <div class="board-area">
+        <div class="board-frame">
+          <div class="board" id="ludo-board" role="group" aria-label="Plateau Ludo à quatre zones rouge, verte, bleue et jaune">
+            <!-- Cases individuelles pour assurer la grille classique 15 × 15. -->
+            <span class="cell" style="--row:1;--col:1" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:2" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:3" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:6" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:7" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:8" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:9" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:12" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:13" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:1;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:2;--col:1" aria-hidden="true"></span>
+            <span class="cell" style="--row:2;--col:2" aria-hidden="true"></span>
+            <span class="cell" style="--row:2;--col:3" aria-hidden="true"></span>
+            <span class="cell" style="--row:2;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:2;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:2;--col:6" aria-hidden="true"></span>
+            <span class="cell" style="--row:2;--col:7" aria-hidden="true"></span>
+            <span class="cell cell--green" style="--row:2;--col:8" aria-hidden="true"></span>
+            <span class="cell cell--entry cell--green" style="--row:2;--col:9" aria-hidden="true"><span class="entry-arrow">↓</span></span>
+            <span class="cell" style="--row:2;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:2;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:2;--col:12" aria-hidden="true"></span>
+            <span class="cell" style="--row:2;--col:13" aria-hidden="true"></span>
+            <span class="cell" style="--row:2;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:2;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:3;--col:1" aria-hidden="true"></span>
+            <span class="cell" style="--row:3;--col:2" aria-hidden="true"></span>
+            <span class="cell" style="--row:3;--col:3" aria-hidden="true"></span>
+            <span class="cell" style="--row:3;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:3;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:3;--col:6" aria-hidden="true"></span>
+            <span class="cell cell--safe" style="--row:3;--col:7" aria-hidden="true"><span class="star">★</span></span>
+            <span class="cell cell--green" style="--row:3;--col:8" aria-hidden="true"></span>
+            <span class="cell cell--safe" style="--row:3;--col:9" aria-hidden="true"><span class="star">★</span></span>
+            <span class="cell" style="--row:3;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:3;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:3;--col:12" aria-hidden="true"></span>
+            <span class="cell" style="--row:3;--col:13" aria-hidden="true"></span>
+            <span class="cell" style="--row:3;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:3;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:1" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:2" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:3" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:6" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:7" aria-hidden="true"></span>
+            <span class="cell cell--green" style="--row:4;--col:8" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:9" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:12" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:13" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:4;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:1" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:2" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:3" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:6" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:7" aria-hidden="true"></span>
+            <span class="cell cell--green" style="--row:5;--col:8" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:9" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:12" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:13" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:5;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:1" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:2" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:3" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:6" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:7" aria-hidden="true"></span>
+            <span class="cell cell--green" style="--row:6;--col:8" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:9" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:12" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:13" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:6;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:7;--col:1" aria-hidden="true"></span>
+            <span class="cell cell--entry cell--red" style="--row:7;--col:2" aria-hidden="true"><span class="entry-arrow">→</span></span>
+            <span class="cell cell--safe" style="--row:7;--col:3" aria-hidden="true"><span class="star">★</span></span>
+            <span class="cell" style="--row:7;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:7;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:7;--col:6" aria-hidden="true"></span>
+            <span class="cell" style="--row:7;--col:7" aria-hidden="true"></span>
+            <span class="cell" style="--row:7;--col:8" aria-hidden="true"></span>
+            <span class="cell" style="--row:7;--col:9" aria-hidden="true"></span>
+            <span class="cell" style="--row:7;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:7;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:7;--col:12" aria-hidden="true"></span>
+            <span class="cell cell--safe" style="--row:7;--col:13" aria-hidden="true"><span class="star">★</span></span>
+            <span class="cell" style="--row:7;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:7;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:8;--col:1" aria-hidden="true"></span>
+            <span class="cell cell--red" style="--row:8;--col:2" aria-hidden="true"></span>
+            <span class="cell cell--red" style="--row:8;--col:3" aria-hidden="true"></span>
+            <span class="cell cell--red" style="--row:8;--col:4" aria-hidden="true"></span>
+            <span class="cell cell--red" style="--row:8;--col:5" aria-hidden="true"></span>
+            <span class="cell cell--red" style="--row:8;--col:6" aria-hidden="true"></span>
+            <span class="cell" style="--row:8;--col:7" aria-hidden="true"></span>
+            <span class="cell" style="--row:8;--col:8" aria-hidden="true"></span>
+            <span class="cell" style="--row:8;--col:9" aria-hidden="true"></span>
+            <span class="cell cell--yellow" style="--row:8;--col:10" aria-hidden="true"></span>
+            <span class="cell cell--yellow" style="--row:8;--col:11" aria-hidden="true"></span>
+            <span class="cell cell--yellow" style="--row:8;--col:12" aria-hidden="true"></span>
+            <span class="cell cell--yellow" style="--row:8;--col:13" aria-hidden="true"></span>
+            <span class="cell cell--yellow" style="--row:8;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:8;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:9;--col:1" aria-hidden="true"></span>
+            <span class="cell" style="--row:9;--col:2" aria-hidden="true"></span>
+            <span class="cell cell--safe" style="--row:9;--col:3" aria-hidden="true"><span class="star">★</span></span>
+            <span class="cell" style="--row:9;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:9;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:9;--col:6" aria-hidden="true"></span>
+            <span class="cell" style="--row:9;--col:7" aria-hidden="true"></span>
+            <span class="cell" style="--row:9;--col:8" aria-hidden="true"></span>
+            <span class="cell" style="--row:9;--col:9" aria-hidden="true"></span>
+            <span class="cell" style="--row:9;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:9;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:9;--col:12" aria-hidden="true"></span>
+            <span class="cell cell--safe" style="--row:9;--col:13" aria-hidden="true"><span class="star">★</span></span>
+            <span class="cell cell--entry cell--yellow" style="--row:9;--col:14" aria-hidden="true"><span class="entry-arrow">←</span></span>
+            <span class="cell" style="--row:9;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:1" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:2" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:3" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:6" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:7" aria-hidden="true"></span>
+            <span class="cell cell--blue" style="--row:10;--col:8" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:9" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:12" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:13" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:10;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:1" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:2" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:3" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:6" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:7" aria-hidden="true"></span>
+            <span class="cell cell--blue" style="--row:11;--col:8" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:9" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:12" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:13" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:11;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:1" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:2" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:3" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:6" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:7" aria-hidden="true"></span>
+            <span class="cell cell--blue" style="--row:12;--col:8" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:9" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:12" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:13" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:12;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:13;--col:1" aria-hidden="true"></span>
+            <span class="cell" style="--row:13;--col:2" aria-hidden="true"></span>
+            <span class="cell" style="--row:13;--col:3" aria-hidden="true"></span>
+            <span class="cell" style="--row:13;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:13;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:13;--col:6" aria-hidden="true"></span>
+            <span class="cell cell--safe" style="--row:13;--col:7" aria-hidden="true"><span class="star">★</span></span>
+            <span class="cell cell--blue" style="--row:13;--col:8" aria-hidden="true"></span>
+            <span class="cell cell--safe" style="--row:13;--col:9" aria-hidden="true"><span class="star">★</span></span>
+            <span class="cell" style="--row:13;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:13;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:13;--col:12" aria-hidden="true"></span>
+            <span class="cell" style="--row:13;--col:13" aria-hidden="true"></span>
+            <span class="cell" style="--row:13;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:13;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:14;--col:1" aria-hidden="true"></span>
+            <span class="cell" style="--row:14;--col:2" aria-hidden="true"></span>
+            <span class="cell" style="--row:14;--col:3" aria-hidden="true"></span>
+            <span class="cell" style="--row:14;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:14;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:14;--col:6" aria-hidden="true"></span>
+            <span class="cell cell--entry cell--blue" style="--row:14;--col:7" aria-hidden="true"><span class="entry-arrow">↑</span></span>
+            <span class="cell cell--blue" style="--row:14;--col:8" aria-hidden="true"></span>
+            <span class="cell" style="--row:14;--col:9" aria-hidden="true"></span>
+            <span class="cell" style="--row:14;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:14;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:14;--col:12" aria-hidden="true"></span>
+            <span class="cell" style="--row:14;--col:13" aria-hidden="true"></span>
+            <span class="cell" style="--row:14;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:14;--col:15" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:1" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:2" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:3" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:4" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:5" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:6" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:7" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:8" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:9" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:10" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:11" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:12" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:13" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:14" aria-hidden="true"></span>
+            <span class="cell" style="--row:15;--col:15" aria-hidden="true"></span>
+            <!-- Maisons, qui recouvrent les cases des coins. -->
+          <div class="base base--red" style="--row:1;--col:1" aria-hidden="true">
+            <div class="base-inner">
+                  <span class="base-spot"></span>
+                  <span class="base-spot"></span>
+                  <span class="base-spot"></span>
+                  <span class="base-spot"></span>
+            </div>
+            <span class="base-label base-label--human">TOI</span>
+            <span class="base-label base-label--cpu">ORDINATEUR</span>
+          </div>
+          <div class="base base--green" style="--row:1;--col:10" aria-hidden="true">
+            <div class="base-inner">
+                  <span class="base-spot"></span>
+                  <span class="base-spot"></span>
+                  <span class="base-spot"></span>
+                  <span class="base-spot"></span>
+            </div>
+            <span class="base-label base-label--human">TOI</span>
+            <span class="base-label base-label--cpu">ORDINATEUR</span>
+          </div>
+          <div class="base base--blue" style="--row:10;--col:1" aria-hidden="true">
+            <div class="base-inner">
+                  <span class="base-spot"></span>
+                  <span class="base-spot"></span>
+                  <span class="base-spot"></span>
+                  <span class="base-spot"></span>
+            </div>
+            <span class="base-label base-label--human">TOI</span>
+            <span class="base-label base-label--cpu">ORDINATEUR</span>
+          </div>
+          <div class="base base--yellow" style="--row:10;--col:10" aria-hidden="true">
+            <div class="base-inner">
+                  <span class="base-spot"></span>
+                  <span class="base-spot"></span>
+                  <span class="base-spot"></span>
+                  <span class="base-spot"></span>
+            </div>
+            <span class="base-label base-label--human">TOI</span>
+            <span class="base-label base-label--cpu">ORDINATEUR</span>
+          </div>
+
+            <div class="board-center" aria-hidden="true">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                <polygon points="0,0 100,0 50,50" fill="#0caa6a"/>
+                <polygon points="100,0 100,100 50,50" fill="#ffd737"/>
+                <polygon points="100,100 0,100 50,50" fill="#21a7f0"/>
+                <polygon points="0,100 0,0 50,50" fill="#ef3149"/>
+                <circle cx="50" cy="50" r="11" fill="#f4fbff" opacity=".95"/>
+              </svg>
+            </div>
+            <div id="pieces-layer" class="pieces-layer" aria-label="Pions en cours de partie"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-bottom">
+        <p class="selected-info" id="duo-colors-label">Vos couleurs partagées</p>
+        <div class="players-rail" aria-label="Joueurs et dé de Ludo">
+          <div class="player player--human"><span class="avatar" aria-hidden="true">👤</span><span><b>TOI</b><small id="player-count">0 / 4 arrivés</small></span></div>
+          <button type="button" id="roll-dice" class="dice-holder" aria-label="Lancer le dé" disabled>
+            <span class="dice-3d" id="dice-3d" data-face="1" aria-hidden="true"></span>
+          </button>
+          <div class="player player--cpu"><span class="avatar" aria-hidden="true">♥</span><span><b>PARTENAIRE</b><small id="computer-count">0 / 4 arrivés</small></span></div>
+        </div>
+        <div id="pawn-choices" class="pawn-choices" hidden aria-label="Choisir un pion à déplacer"></div>
+        <p class="game-footer" id="game-feedback" role="status" aria-live="polite">Appuie sur le dé pour commencer.</p>
+        <div class="game-actions"><button type="button" id="new-game">↺ Nouvelle partie</button><span id="game-stat">Tour 1</span></div>
+      </div>
+    </section>
+    <dialog id="rules-dialog" class="game-dialog" aria-labelledby="rules-title">
+      <h2 id="rules-title">Comment jouer au Ludo ?</h2>
+      <p><strong>Le but :</strong> amener tes quatre pions au centre avant l’ordinateur.</p>
+      <p><strong>Sortir :</strong> lance un 6 pour sortir un pion de la maison. Un 6 offre un nouveau tour, mais trois 6 d’affilée font passer le tour.</p>
+      <p><strong>Déplacer :</strong> avance du nombre exact de cases obtenu. Si un seul pion est jouable, il avance automatiquement. Sinon, sélectionne celui que tu veux.</p>
+      <p><strong>Capturer :</strong> tomber sur un pion adverse hors d’une case étoilée le renvoie à sa maison et offre un nouveau tour. Deux pions adverses regroupés forment un barrage.</p>
+      <p><strong>Gagner :</strong> il faut arriver pile au centre, sans dépasser. Une arrivée réussie offre un nouveau tour.</p>
+      <button type="button" id="close-rules" class="dialog-button">C’est compris</button>
+    </dialog>
+    <dialog id="win-dialog" class="game-dialog victory-dialog" aria-labelledby="win-title">
+      <div class="victory-icon" aria-hidden="true">🏆</div>
+      <h2 id="win-title">Partie terminée !</h2>
+      <p id="win-text">Bravo !</p>
+      <button type="button" id="play-again" class="dialog-button">Rejouer</button>
+      <button type="button" id="change-color-after-win" class="dialog-secondary">Changer de couleur</button>
+    </dialog>
+  </main>
+<script src="./script.js" defer></script>
+</body>
+</html>
