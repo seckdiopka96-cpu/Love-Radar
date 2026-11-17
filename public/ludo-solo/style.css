@@ -1022,3 +1022,36 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
  .lr-reaction-burst,.lr-reaction-burst .lr-reaction-face{animation:none!important;opacity:1;transform:none}
  .lr-reaction-burst{transform:translate(-50%,-50%)}
 }
+
+
+/* Shared Ludo logo: visible without increasing header height or moving board. */
+.game-title{position:relative;min-height:41px;justify-content:center}
+.game-title .ludo-header-logo{
+ position:absolute;width:32px;height:32px;object-fit:contain;
+ left:-33px;top:50%;transform:translateY(-50%);
+ border-radius:10px;filter:drop-shadow(0 3px 5px #041127a6)
+}
+.cell--refuge .star{
+ color:#345b77;filter:drop-shadow(0 1px 1px #eef6ff);
+ -webkit-text-stroke:.35px #173956;
+}
+.game-screen .board-frame{
+ box-shadow:0 16px 36px #020e25d9,0 5px 13px #000a,
+ inset 0 0 0 1px #fff6dbaa,0 0 17px #f8d27b35!important;
+}
+.game-screen .players-rail{box-shadow:0 8px 16px #020c23c2,inset 0 1px 2px #e2faff4a}
+.game-screen .dice-holder{filter:drop-shadow(0 6px 8px #04112bcf)}
+.game-screen .piece--board .piece-svg,.game-screen .piece--home .piece-svg{
+ filter:drop-shadow(0 4px 4px #06132cc7) drop-shadow(0 1px 1px #00101eba)
+}
+.game-screen .piece--moving:not(.piece--captured)::before{
+ width:88%;height:20%;bottom:-4%;
+ background:radial-gradient(ellipse,#000e25ee 0%,#071a37bb 46%,transparent 80%);
+ filter:blur(2.1px);animation:lr-pawn-shadow .40s ease-in-out infinite!important
+}
+.game-screen .piece--moving .piece-svg{
+ filter:drop-shadow(0 10px 8px #00102ad9) drop-shadow(0 3px 4px #000e21ce)
+}
+@media(max-width:390px){
+ .game-title .ludo-header-logo{width:27px;height:27px;left:-27px}
+}
