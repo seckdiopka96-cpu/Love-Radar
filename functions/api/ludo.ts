@@ -75,8 +75,8 @@ async function rememberLastRoll(db:D1Database,g:Game,seat:number,face:number){
  .bind(g.room_id,g.game_id,seat,face,Date.now()).run();
 }
 async function getLastRoll(db:D1Database,g:Game){
- const row=await db.prepare("SELECT seat,face FROM ludo_last_rolls WHERE room_id=? AND game_id=?")
-  .bind(g.room_id,g.game_id).first<{seat:number;face:number}>();
+ const row=await db.prepare("SELECT seat,face,updated_at AS at FROM ludo_last_rolls WHERE room_id=? AND game_id=?")
+  .bind(g.room_id,g.game_id).first<{seat:number;face:number;at:number}>();
  return row&&row.face>=1&&row.face<=6?{seat:row.seat,face:row.face}:null;
 }
 function die(){
