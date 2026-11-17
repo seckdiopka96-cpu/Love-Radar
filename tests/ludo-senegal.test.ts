@@ -30,6 +30,15 @@ test("player can choose invading enemy home on crossing step 77",()=>{
  assert.equal(played?.game.turn,0);
  assert.equal(played?.move.path.length,5);
 });
+test("Senegal captured pawn returns to its base when landing on the ordinary track",()=>{
+ const state=withTurn(pawn("track",13),pawn("track",41),2);
+ const option=movesForPawn(state,0,0).find(move=>move.action==="track");
+ assert.ok(option);
+ const captured=applySenegalMove(state,option!);
+ assert.equal(captured?.move.captures.length,1);
+ assert.equal(captured?.game.positions[1][0].zone,"base");
+ assert.equal(captured?.game.positions[1][0].step,-1);
+});
 test("inside opponent lane cannot reverse with ordinary roll, but six exits backward without teleporting",()=>{
  const g=withTurn(pawn("enemy",79,3,77,1),pawn("base",-1),2);
  assert.ok(movesForPawn(g,0,0).every(o=>o.action!=="reverse"));
