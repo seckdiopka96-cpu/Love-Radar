@@ -47,9 +47,14 @@
  const duoActions=document.createElement("div");
  duoActions.className="duo-side-actions";
  const giftButton=document.createElement("button");
- giftButton.type="button";giftButton.textContent="🎁 Cadeau";
+ giftButton.type="button";giftButton.className="duo-gift-button";giftButton.textContent="🎁 Cadeau";
  giftButton.addEventListener("click",()=>send("gift"));
- duoActions.append(giftButton);
+ const leaveButton=document.createElement("button");
+ leaveButton.type="button";leaveButton.className="duo-quit-match";
+ leaveButton.textContent="↩ Quitter";
+ leaveButton.setAttribute("aria-label","Quitter ou abandonner la partie");
+ leaveButton.addEventListener("click",()=>send("exit"));
+ duoActions.append(giftButton,leaveButton);
  document.querySelector(".game-actions")?.after(duoActions);
  const lastColor=document.getElementById("duo-colors-label");
  let state=null;
@@ -236,7 +241,10 @@
  function showVictory(){
   if(!state?.game||state.game.status!=="won")return;
   document.getElementById("win-title").textContent=state.game.winner===state.mySeat?"Tu as gagné ! 🎉":"Ton partenaire a gagné";
-  document.getElementById("win-text").textContent="La partie est terminée. Les défis et cadeaux restent disponibles dans Love Radar.";
+  document.getElementById("win-text").textContent=state.game.lastAction.includes("Défaite automatique")?
+   state.game.lastAction:
+   state.game.lastAction.includes("abandonné la partie")?state.game.lastAction:
+   "La partie est terminée. Les défis et cadeaux restent disponibles dans Love Radar.";
   if(!victory.open){
    if(typeof victory.showModal==="function")victory.showModal();
    else victory.setAttribute("open","");
@@ -250,7 +258,8 @@
   if(!state)return;
   const remaining=state.remaining;
   if(statusMeta){
-   statusMeta.textContent=remaining===null||remaining===undefined?"LUDO DUO":remaining+" s";
+   const auto=state.game?.autoCounts?.[state.mySeat]||0;
+   statusMeta.textContent=remaining===null||remaining===undefined?"LUDO DUO":remaining+" s"+(auto?" · "+auto+"/3 auto":"");
   }
  }
   // The authenticated React parent already loaded private avatars. The
@@ -302,8 +311,10 @@
   document.querySelector(".player--cpu").classList.toggle("is-turn",g.turn!==state.mySeat&&g.status==="playing");
   document.querySelector(".player--human b").textContent="TOI";
   document.querySelector(".player--cpu b").textContent="PARTENAIRE";
-  document.getElementById("player-count").textContent=g.positions[state.mySeat].filter(p=>p===57).length+" / 4 arrivés";
-  document.getElementById("computer-count").textContent=g.positions[1-state.mySeat].filter(p=>p===57).length+" / 4 arrivés";
+  const myAuto=g.autoCounts?.[state.mySeat]||0;
+  document.getElementById("player-count").textContent=g.positions[state.mySeat].filter(p=>p===57).length+" / 4 · Auto "+myAuto+"/3";
+  const partnerAuto=g.autoCounts?.[1-state.mySeat]||0;
+  document.getElementById("computer-count").textContent=g.positions[1-state.mySeat].filter(p=>p===57).length+" / 4 · Auto "+partnerAuto+"/3";
   const legal=legalPawns();
   const isMine=g.turn===state.mySeat,canRoll=isMine&&g.dice===null&&g.status==="playing"&&!state.busy&&!state.rolling&&!state.animationBusy;
   roll.disabled=!canRoll;
@@ -338,7 +349,9 @@
     g.dice!==null&&isMine?(only?"Ton pion avance automatiquement…":"Touche le pion à déplacer"):
     g.dice!==null?"Ton partenaire joue son pion…":
     isMine?"À toi de jouer : lance le dé !":"Au tour de ton partenaire…";
-  feedback.textContent=state.error||g.lastAction||"Jouez à deux en direct.";
+  feedback.textContent=state.error||
+   (g.status==="playing"&&myAuto>=2?"⚠️ 2/3 tours automatiques : un prochain retard te fera perdre.":g.lastAction)||
+   "Jouez à deux en direct.";
   matchButton.disabled=g.status!=="won";
   matchButton.textContent=g.status==="won"?"↺ Nouvelle manche":"♥ Partie en direct";
   const renderKey=JSON.stringify([g.id,g.version,g.positions,g.dice,g.turn,g.status,colors,state.motion,state.capturedMotions,legal]);
