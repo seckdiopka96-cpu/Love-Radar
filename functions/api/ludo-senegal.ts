@@ -10,6 +10,8 @@ type Ctx={request:Request;env:Env};
 type Member={id:string;room_id:string;seat:number;name:string};
 type Row={room_id:string;game_id:string;version:number;state_text:string;updated_at:number};
 type Match={id:string;version:number;state:SenegalGame};
+type ReactionEvent={id:string;seat:number;emoji:string;at:number};
+const REACTION_EMOJIS=new Set(["😝","🤪","🤣","😂","😭","😱","😎","👏"]);
 const send=(payload:object,status=200)=>Response.json(payload,{status,headers:{"Cache-Control":"no-store"}});
 const fail=(error:string,status=400)=>send({ok:false,error},status);
 let tables:Promise<void>|null=null;
@@ -17,7 +19,9 @@ async function ensure(db:D1Database){
  if(!tables){
   tables=db.exec(
    "CREATE TABLE IF NOT EXISTS ludo_senegal_games (room_id TEXT PRIMARY KEY,game_id TEXT NOT NULL,version INTEGER NOT NULL,state_text TEXT NOT NULL,updated_at INTEGER NOT NULL);"+
-   "CREATE TABLE IF NOT EXISTS ludo_senegal_moves (room_id TEXT PRIMARY KEY,game_id TEXT NOT NULL,version INTEGER NOT NULL,move_json TEXT NOT NULL,updated_at INTEGER NOT NULL);"
+   "CREATE TABLE IF NOT EXISTS ludo_senegal_moves (room_id TEXT PRIMARY KEY,game_id TEXT NOT NULL,version INTEGER NOT NULL,move_json TEXT NOT NULL,updated_at INTEGER NOT NULL);"+
+   "CREATE TABLE IF NOT EXISTS ludo_senegal_reactions (id TEXT PRIMARY KEY,room_id TEXT NOT NULL,game_id TEXT NOT NULL,seat INTEGER NOT NULL,emoji TEXT NOT NULL,updated_at INTEGER NOT NULL);"+
+   "CREATE INDEX IF NOT EXISTS idx_senegal_reactions ON ludo_senegal_reactions(room_id,game_id,updated_at);"
   ).then(()=>{}).catch(error=>{tables=null;throw error});
  }
  await tables;
@@ -61,6 +65,11 @@ async function lastMove(db:D1Database,room:string,game:Match){
  if(!row)return null;
  try{return {move:JSON.parse(row.move_json) as SenegalMove,version:row.version}}catch{return null}
 }
+async function recentReactions(db:D1Database,room:string,gameId:string):Promise<ReactionEvent[]>{
+ const rows=await db.prepare("SELECT id,seat,emoji,updated_at AS at FROM ludo_senegal_reactions WHERE room_id=? AND game_id=? AND updated_at>? ORDER BY updated_at DESC LIMIT 8")
+  .bind(room,gameId,Date.now()-9000).all<ReactionEvent>();
+ return rows.results||[];
+}
 async function autoIfLate(db:D1Database,room:string,game:Match):Promise<Match>{
  if(game.state.status!=="playing"||Date.now()-game.state.updatedAt<TURN_MS)return game;
  const result=autoplayTurn(game.state);
@@ -88,7 +97,8 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
   if(method==="GET"){
    const recent=game?await lastMove(db,player.room_id,game):null;
    return send({ok:true,members,seat:player.seat,game:expose(game),
-    move:recent?.move??null,moveVersion:recent?.version??null,serverNow:Date.now()});
+    move:recent?.move??null,moveVersion:recent?.version??null,
+    reactions:game?await recentReactions(db,player.room_id,game.id):[],serverNow:Date.now()});
   }
   if(members!==2||!game)return fail("Invitez votre partenaire pour jouer au Ludo Sénégal à deux.",409);
   const body=await ctx.request.text();
@@ -96,6 +106,16 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
   let data:Record<string,unknown>;
   try{data=JSON.parse(body) as Record<string,unknown>}catch{return fail("Requête invalide.")}
   const action=data.action;
+  // Reaction events are independent of pawn turns/versions; a partner may
+  // react while a captured pawn is still animating on the other phone.
+  if(action==="react"){
+   if(typeof data.emoji!=="string"||!REACTION_EMOJIS.has(data.emoji))return fail("Réaction inconnue.",400);
+   const now=Date.now();
+   await db.prepare("INSERT INTO ludo_senegal_reactions(id,room_id,game_id,seat,emoji,updated_at) SELECT ?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM ludo_senegal_reactions WHERE room_id=? AND game_id=? AND seat=? AND updated_at>?)")
+    .bind(crypto.randomUUID(),player.room_id,game.id,player.seat,data.emoji,now,
+      player.room_id,game.id,player.seat,now-700).run();
+   return send({ok:true,reactions:await recentReactions(db,player.room_id,game.id),serverNow:now});
+  }
   if(!Number.isInteger(data.version)||data.version!==game.version)return fail("Le plateau a changé, actualisation nécessaire.",409);
   const current=game.state;
   let next:SenegalGame=current;
@@ -135,7 +155,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    await db.prepare("DELETE FROM ludo_senegal_moves WHERE room_id=?").bind(player.room_id).run();
   }else await recordMove(db,player.room_id,saved,move);
   return send({ok:true,members,seat:player.seat,game:expose(saved),move,
-   moveVersion:move?saved.version:null,serverNow:Date.now()});
+   moveVersion:move?saved.version:null,reactions:await recentReactions(db,player.room_id,saved.id),serverNow:Date.now()});
  }catch(error){console.error("Ludo Sénégal request",error);return fail("Le jeu n'est pas disponible pour le moment.",500)}
 }
 export const onRequestGet=(ctx:Ctx)=>handle(ctx,"GET");
