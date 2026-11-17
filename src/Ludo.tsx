@@ -40,7 +40,8 @@ function haptic(duration:number|number[]=12){try{if("vibrate" in navigator)navig
 
 
 const REACTIONS=[
- {emoji:"😂",label:"Mort de rire"},{emoji:"😱",label:"Choqué"},{emoji:"😮",label:"Surpris"},
+ {emoji:"😝",label:"Langue tirée"},{emoji:"🤪",label:"Grimace"},{emoji:"🤣",label:"Fou rire"},
+  {emoji:"😂",label:"Mort de rire"},{emoji:"😱",label:"Choqué"},{emoji:"😮",label:"Surpris"},
  {emoji:"🤯",label:"Incroyable"},{emoji:"😍",label:"Amoureux"},{emoji:"😘",label:"Bisou"},
  {emoji:"😤",label:"Contrarié"},{emoji:"😭",label:"Triste"},{emoji:"😎",label:"Trop fort"},
  {emoji:"👏",label:"Bravo"},{emoji:"❤️",label:"Cœur"},{emoji:"🔥",label:"En feu"},
@@ -546,7 +547,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   {game&&agreement?.startedAt&&palette&&game.status==="playing"?
    <LudoDuoFrame game={game} palette={palette} lastRoll={lastRoll} mySeat={mySeat} myName={myName} partnerName={partnerName}
     remaining={remaining} rolling={rolling} rollingFace={rollingFace}
-    busy={busy} animationBusy={animationBusy} motion={motion} capturedMotions={capturedMotions}
+    busy={busy} animationBusy={animationBusy} motion={motion} capturedMotions={capturedMotions} reactions={visibleReactions}
     error={error} onAction={duoFrameAction}/>:null}
   {tutorialOpen&&Boolean(agreement?.startedAt)&&game?.status==="playing"&&!mustSign&&!giftOpen&&!rules?<LudoTutorial mode="duo" onClose={()=>setTutorialOpen(false)}/>:null}
   {mustSign?<div className="ludo-agreement-backdrop">
