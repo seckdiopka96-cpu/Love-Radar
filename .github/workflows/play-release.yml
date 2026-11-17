@@ -45,6 +45,11 @@ jobs:
           distribution: temurin
           java-version: '21'
       - name: Compiler React et generer Android
+        env:
+          FCM_ANDROID_APP_ID: ${{ vars.FCM_ANDROID_APP_ID }}
+          FCM_ANDROID_SENDER_ID: ${{ vars.FCM_ANDROID_SENDER_ID }}
+          FCM_ANDROID_API_KEY: ${{ vars.FCM_ANDROID_API_KEY }}
+          FCM_ANDROID_PROJECT_ID: ${{ vars.FCM_ANDROID_PROJECT_ID }}
         run: |
           npm install
           npm run build
