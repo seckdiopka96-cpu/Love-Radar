@@ -800,6 +800,13 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    setSpeakerHelp("Impossible de changer la sortie audio : "+(error instanceof Error?error.message:"choisis une sortie depuis les réglages du téléphone."));
   }finally{setSpeakerBusy(false)}
  }
+ function floatingWithinViewport(x:number,y:number,width:number,height:number){
+  const viewport=window.visualViewport;
+  const offsetX=viewport?.offsetLeft||0,offsetY=viewport?.offsetTop||0;
+  const bounded=clampFloatingCall(x-offsetX,y-offsetY,
+   viewport?.width||window.innerWidth,viewport?.height||window.innerHeight,width,height);
+  return {x:bounded.x+offsetX,y:bounded.y+offsetY};
+ }
  function beginVideoDrag(event:ReactPointerEvent<HTMLButtonElement>){
   if(event.button!==0)return;
   const element=floatingBox.current;
@@ -813,8 +820,8 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   const drag=dragVideo.current,element=floatingBox.current;
   if(!drag||drag.pointerId!==event.pointerId||!element)return;
   const rectangle=element.getBoundingClientRect();
-  const position=clampFloatingCall(drag.left+event.clientX-drag.x,drag.top+event.clientY-drag.y,
-   window.innerWidth,window.innerHeight,rectangle.width,rectangle.height);
+  const position=floatingWithinViewport(drag.left+event.clientX-drag.x,drag.top+event.clientY-drag.y,
+   rectangle.width,rectangle.height);
   setFloatingAt(position);
  }
  function endVideoDrag(event:ReactPointerEvent<HTMLButtonElement>){
@@ -830,14 +837,16 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    const element=floatingBox.current;
    if(!element)return;
    const rectangle=element.getBoundingClientRect();
-   setFloatingAt(previous=>previous?clampFloatingCall(previous.x,previous.y,
-    window.innerWidth,window.innerHeight,rectangle.width,rectangle.height):null);
+   setFloatingAt(previous=>previous?floatingWithinViewport(previous.x,previous.y,
+    rectangle.width,rectangle.height):null);
   };
   window.addEventListener("resize",reposition);
   window.visualViewport?.addEventListener("resize",reposition);
+  window.visualViewport?.addEventListener("scroll",reposition);
   return()=>{
    window.removeEventListener("resize",reposition);
    window.visualViewport?.removeEventListener("resize",reposition);
+   window.visualViewport?.removeEventListener("scroll",reposition);
   };
  },[]);
  function minimizeAndWrite(){
