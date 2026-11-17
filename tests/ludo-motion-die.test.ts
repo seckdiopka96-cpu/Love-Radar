@@ -66,6 +66,21 @@ test("four pawns are chosen by touching the board, never from a second numbered 
  assert.ok(solo.includes('choices.length>1 ? "Touche le pion à déplacer"'));
  assert.ok(duo.includes('"Touche le pion à déplacer"'));
 });
+test("moving pin shadow follows the pawn, not the board, in all modes",()=>{
+ const immersive=readFileSync("src/ludo-immersive.css","utf8");
+ const duoReact=readFileSync("src/Ludo.tsx","utf8");
+ assert.ok(soloCSS.includes('.piece--moving:not(.piece--captured)::before'));
+ assert.ok(soloCSS.includes('@keyframes lr-pawn-shadow'));
+ assert.ok(soloCSS.includes('background:radial-gradient(ellipse,#06152cbe'));
+ assert.ok(immersive.includes('.ludo-experience .ludo-moving-pawn::before'));
+ assert.ok(immersive.includes('@keyframes lr-react-pawn-shadow'));
+ assert.ok(immersive.includes('background:radial-gradient(ellipse,#091a32bf'));
+ assert.ok(immersive.includes('.ludo-experience .ludo-board-move{animation:none!important}'));
+ assert.ok(!duoReact.includes('(effect==="move"?" ludo-board-move":"")'));
+ assert.ok(soloCSS.includes('.game-screen .board-area{'));
+ assert.ok(soloCSS.includes('.dice-holder .die-result{display:none!important}'));
+ assert.ok(soloCSS.includes('.app[data-dice-color="red"] .dice-3d .dice-face'));
+});
 test("both complete vanilla games remain valid JavaScript",()=>{
  assert.doesNotThrow(()=>new Script(solo,{filename:"solo/script.js"}));
  assert.doesNotThrow(()=>new Script(duo,{filename:"duo/script.js"}));
