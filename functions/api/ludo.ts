@@ -276,10 +276,15 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   }
   let signed:Agreement|null=null;
   if(g){
-   await syncGift(db,g);
-   await syncAgreement(db,g);
-   await syncPalette(db,g);
+   // Normal turns must never wait for three redundant INSERT/UPSERT writes.
+   // A signed match already has its gift, palette and agreement rows.
    signed=await agreement(db,g);
+   if(!signed.startedAt){
+    await syncGift(db,g);
+    await syncAgreement(db,g);
+    await syncPalette(db,g);
+    signed=await agreement(db,g);
+   }
    g=await autoIfLate(db,g,signed);
   }
   if(method==="GET"){
