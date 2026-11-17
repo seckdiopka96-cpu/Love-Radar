@@ -27,11 +27,11 @@ test("Voice calls prewarm relay configuration and check signaling quickly during
  assert.ok(call.includes("void flushCandidates(call.id)"));
 });
 test("Server limits candidate inputs and sends ordered SDP plus ICE fragments",()=>{
- assert.ok(api.includes('kind!=="offer"&&kind!=="answer"&&kind!=="candidate"'));
+ assert.ok(api.includes('kind!=="offer"&&kind!=="answer"&&kind!=="candidate"&&kind!=="restart"'));
  assert.ok(api.includes("ice.candidate.startsWith"));
  assert.ok(api.includes("JSON.stringify({candidate:ice.candidate"));
  assert.ok(api.includes('kind=\'candidate\''));
- assert.ok(api.includes(">=64"));
+ assert.ok(api.includes(">=192"));
  assert.ok(api.includes("ORDER BY id ASC LIMIT 40"));
  assert.ok(api.includes("status!==\"active\""));
 });
@@ -89,7 +89,7 @@ test("voice calling stays intact while HD video is added",()=>{
  for(const cls of ["lr-call-speaker","lr-call-mute","lr-call-chat","lr-call-more","lr-call-hangup","lr-call-keypad"]){
   assert.ok(call.includes(cls),"Missing audio control "+cls);
  }
- for(const cls of ["lr-call-camera","lr-call-flip","lr-call-video-stage","lr-call-mini-video","lr-video-trigger"]){
+ for(const cls of ["lr-call-camera","lr-call-flip","lr-call-video-stage","lr-call-floating","lr-video-trigger"]){
   assert.ok(call.includes(cls),"Missing video element "+cls);
  }
  for(const marker of ["onClick={selectSpeaker}","onClick={toggleMute}","onClick={minimizeAndWrite}","onClick={hangup}","onOpenChat()","setMinimized(true)"]){
@@ -159,6 +159,45 @@ test("video Plus opens a usable independent overlay and video keypad is hidden",
  assert.ok(videoCss.includes('grid-template-columns:repeat(3,minmax(0,1fr))!important'));
  assert.ok(videoCss.includes('.lr-video-options-sheet{'));
  assert.ok(videoCss.includes('z-index:2147483647'));
+});
+
+test("recover ICE on both sides without closing the call or recapturing camera",()=>{
+ const rules=readFileSync("src/call-resilience.ts","utf8");
+ assert.ok(call.includes("const attemptIceRecovery=useCallback(async(force=false)=>"));
+ assert.ok(call.includes('peer.createOffer({iceRestart:true'));
+ assert.ok(call.includes('if(typeof peer.restartIce==="function")peer.restartIce()'));
+ assert.ok(call.includes('await api("signal",{id:call.id,kind:"restart"})'));
+ assert.ok(call.includes('kind:"offer",sdp:peer.localDescription?.sdp||"",restart:true'));
+ assert.ok(call.includes('kind:"answer",sdp:peer.localDescription?.sdp||"",restart:renegotiating'));
+ assert.ok(call.includes('if(signal.kind==="restart"&&call.direction==="outgoing")'));
+ assert.ok(call.includes('if(signal.kind==="offer"&&call.direction==="incoming")'));
+ assert.ok(call.includes('window.addEventListener("online",online)'));
+ assert.ok(call.includes('window.addEventListener("offline",offline)'));
+ assert.ok(call.includes('scheduleIceRecovery()'));
+ assert.ok(call.includes('if(recoveryTimer.current!==null){window.clearTimeout(recoveryTimer.current);recoveryTimer.current=null}'));
+ assert.ok(call.includes('Réessayer la connexion'));
+ assert.ok(rules.includes('MAX_RECONNECT_ATTEMPTS=7'));
+});
+test("floating partner video is draggable over chat or Ludo, with safe controls",()=>{
+ const css=readFileSync("src/floating-video.css","utf8");
+ const app=readFileSync("src/App.tsx","utf8");
+ assert.ok(call.includes('ref={floatingBox}'));
+ assert.ok(call.includes('className={"lr-call-floating"'));
+ assert.ok(call.includes('onPointerDown={beginVideoDrag}'));
+ assert.ok(call.includes('onPointerMove={moveVideoDrag}'));
+ assert.ok(call.includes('onPointerUp={endVideoDrag}'));
+ assert.ok(call.includes('onPointerCancel={endVideoDrag}'));
+ assert.ok(call.includes('clampFloatingCall('));
+ assert.ok(call.includes('ref={attachRemoteVideo} data-lr-call-video="true"'));
+ assert.ok(call.includes('ref={attachLocalVideo} data-lr-call-video="true"'));
+ assert.ok(call.includes('onClick={()=>setMinimized(false)}'));
+ assert.ok(call.includes('onClick={toggleMute}'));
+ assert.ok(call.includes('onClick={toggleCamera}'));
+ assert.ok(call.includes('onClick={hangup}'));
+ assert.ok(app.includes('<VoiceCall key={room.roomId+room.user.id}'));
+ assert.ok(css.includes('position:fixed'));
+ assert.ok(css.includes('touch-action:none'));
+ assert.ok(css.includes('.lr-call-floating-actions'));
 });
 
 test("call signaling and microphone initialize in parallel to reduce time before ringing",()=>{
