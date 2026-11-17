@@ -5,6 +5,7 @@
  */
 (()=>{
  "use strict";
+ document.documentElement.classList.add("lr-ludo-duo-ui");
  const COLORS={blue:"Bleu",red:"Rouge",green:"Vert",yellow:"Jaune"};
  const SPAWNS={blue:0,red:13,green:26,yellow:39};
  const TRACK=[
@@ -219,7 +220,7 @@
    groups.get(key).push(item);
   }
   for(const group of groups.values())group.forEach(({point,piece,progress},i)=>{
-   const shift=(i-(group.length-1)/2)*Math.min(8,23/group.length);
+   const shift=(i-(group.length-1)/2)*Math.min(3,7/group.length);
    piece.classList.add("piece--board");
    if(progress===57)piece.classList.add("piece--finished");
    piece.style.top=((point[0]+.5)/15*100)+"%";
