@@ -76,3 +76,16 @@ test("Duo retains one moving DOM pawn across server hop frames and returns real 
  const cleanup=readFileSync("functions/lib/delete-room.ts","utf8");
  assert.ok(cleanup.includes('"ludo_last_rolls"'));
 });
+
+
+test("Duo captures visibly return through a stable animation overlay",()=>{
+ const duoCSS=readFileSync("public/ludo-duo/style.css","utf8");
+ assert.ok(duo.includes('captureLayer.className="pieces-layer ludo-duo-capture-overlay"'));
+ assert.ok(duo.includes("const capturePins=new Map()"));
+ assert.ok(duo.includes("function drawCaptured()"));
+ assert.ok(duo.includes('getPosition(c,-1,m.pawn)'));
+ assert.ok(duo.includes('pawn.classList.add("is-returning")'));
+ assert.ok(duo.includes('pawn.style.left=dest.x'));
+ assert.ok(duo.includes('pawn.style.top=dest.y'));
+ assert.ok(duoCSS.includes('transition:left .54s'));
+});
