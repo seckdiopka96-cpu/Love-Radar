@@ -42,13 +42,34 @@
  const rules=document.getElementById("rules-dialog");
  const victory=document.getElementById("win-dialog");
  const matchButton=document.getElementById("new-game");
+ const duoActions=document.createElement("div");
+ duoActions.className="duo-side-actions";
+ const giftButton=document.createElement("button");
+ giftButton.type="button";giftButton.textContent="🎁 Cadeau";
+ giftButton.addEventListener("click",()=>send("gift"));
+ const emojiButton=document.createElement("button");
+ emojiButton.type="button";emojiButton.textContent="💬 Réactions";
+ emojiButton.setAttribute("aria-expanded","false");
+ const emojiTray=document.createElement("div");emojiTray.className="duo-side-emotes";emojiTray.hidden=true;
+ for(const emoji of ["❤️","😂","🔥","👏","😍","💋","😱"]){
+  const b=document.createElement("button");b.type="button";b.textContent=emoji;
+  b.setAttribute("aria-label","Réagir avec "+emoji);
+  b.addEventListener("click",()=>{send("react",undefined,emoji);emojiTray.hidden=true;emojiButton.setAttribute("aria-expanded","false")});
+  emojiTray.append(b);
+ }
+ emojiButton.addEventListener("click",()=>{
+  emojiTray.hidden=!emojiTray.hidden;
+  emojiButton.setAttribute("aria-expanded",String(!emojiTray.hidden));
+ });
+ duoActions.append(giftButton,emojiButton);
+ document.querySelector(".game-actions")?.after(duoActions,emojiTray);
  const lastColor=document.getElementById("duo-colors-label");
  let state=null;
  let lastBoardKey="";
- const send=(action,pawn)=>window.parent.postMessage({source:"love-radar-ludo-duo",type:"action",action,...(pawn===undefined?{}:{pawn})},window.location.origin);
+ const send=(action,pawn,emoji)=>window.parent.postMessage({source:"love-radar-ludo-duo",type:"action",action,...(pawn===undefined?{}:{pawn}),...(emoji===undefined?{}:{emoji})},window.location.origin);
  function pointFor(color,progress){
   if(progress===57){
-   const p={blue:[.46,.75],red:[.25,.45],green:[.46,.25],yellow:[.75,.45]}[color];
+   const p={blue:[7.24,6.8],red:[6.8,6.8],green:[6.8,7.24],yellow:[7.24,7.24]}[color];
    return p;
   }
   if(progress>=51){
