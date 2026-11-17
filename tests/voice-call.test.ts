@@ -89,7 +89,7 @@ test("call signaling and microphone initialize in parallel to reduce time before
  assert.ok(call.includes("const micTask=microphone(mode)"));
  assert.ok(call.includes('const callTask=api("start",{mode})'));
  assert.ok(call.includes("Promise.all([callTask,micTask])"));
- assert.ok(call.includes("Promise.all([microphone(c.mode==="video"?"video":"audio"),warmNetwork()])"));
+ assert.ok(call.includes('Promise.all([microphone(c.mode==="video"?"video":"audio"),warmNetwork()])'));
  assert.ok(call.includes('void api("end",{id:created.call.id})'));
  assert.ok(!call.includes('await microphone(); // Called immediately after the tap'));
  assert.ok(!call.includes('Love Radar audio'));
