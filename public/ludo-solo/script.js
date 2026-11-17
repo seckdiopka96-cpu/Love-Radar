@@ -13,7 +13,10 @@
   document.documentElement.classList.add("lr-ludo-solo-ui");
 
   const COLORS = Object.freeze({ blue:"Bleu", red:"Rouge", green:"Vert", yellow:"Jaune" });
-  const CPU_COLOR = Object.freeze({ blue:"green", red:"blue", green:"yellow", yellow:"red" });
+  // Camps diamétralement opposés sur le plateau (décalage de 26 cases).
+  const CPU_COLOR = Object.freeze({ blue:"green", red:"yellow", green:"blue", yellow:"red" });
+  // Conserver la progression des parties enregistrées avec l'ancien mauvais appariement.
+  const LEGACY_CPU_COLOR = Object.freeze({ blue:"green", red:"blue", green:"yellow", yellow:"red" });
   const SPAWNS = Object.freeze({ blue:0, red:13, green:26, yellow:39 });
   const FINAL = 56;                  // 0..50 = piste, 51..55 = couloir, 56 = arrivée
   const HOME = -1;
@@ -204,7 +207,18 @@
   function savedGame() {
     try {
       const data = JSON.parse(localStorage.getItem(SAVE_KEY)||"null");
-      return gameIsValid(data) ? data : null;
+      if (gameIsValid(data)) return data;
+      // The older Solo assigned red/green players to adjacent CPU camps.
+      // Migrate only otherwise valid snapshots, retaining every pawn's progress.
+      if (data && validColor(data.playerColor) &&
+        data.cpuColor===LEGACY_CPU_COLOR[data.playerColor]) {
+        const migrated={...data,cpuColor:CPU_COLOR[data.playerColor]};
+        if (gameIsValid(migrated)) {
+          try { localStorage.setItem(SAVE_KEY,JSON.stringify(migrated)); } catch {/* optional */}
+          return migrated;
+        }
+      }
+      return null;
     } catch {return null}
   }
   function clearTimers() {
