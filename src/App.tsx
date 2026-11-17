@@ -13,7 +13,7 @@ import "./love-radar.css";
 import VoiceCall from "./VoiceCall";
 import CallHistoryBubble,{type CallHistoryEvent} from "./CallHistoryBubble";
 import Ludo from "./Ludo";
-import SoloLudo from "./SoloLudo";
+import LudoSoloEmbedded from "./LudoSoloEmbedded";
 import SenegalLudo from "./SenegalLudo";
 import MemoryLove from "./MemoryLove";
 import DailyMoment from "./DailyMoment";
@@ -1965,7 +1965,7 @@ export default function LoveRadar(){
     {tab==="rps"?<RpsDuo key={room.roomId+":"+room.user.id} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="rapid"||tab==="truth"?<CoupleParty key={room.roomId+":"+room.user.id+":"+tab} mode={tab} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}/>:null}
-     {tab==="ludo-solo"?<SoloLudo myName={room.user.name} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("games")}/>:null}
+     {tab==="ludo-solo"?<LudoSoloEmbedded scope={room.roomId+":"+room.user.id} onExit={()=>navigate("games")}/>:null}
      {tab==="ludo-senegal"?<SenegalLudo mode="duo" token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("games")}/>:null}
      {tab==="ludo-senegal-solo"?<SenegalLudo mode="solo" token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("games")}/>:null}
     {tab==="memory"?<MemoryLove token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} challengeId={noticeTarget?.kind==="memory-challenge"?noticeTarget.id:null}/>:null}
