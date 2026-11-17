@@ -18,8 +18,8 @@ test("Ludo screenshot fixes: compact pawns, correct capture and clean HUD",()=>{
  const boardRules=readFileSync("src/ludo-visuals.ts","utf8");
  // Starting squares and star refuges still have standard protection.
  assert.ok(solo.includes('...Object.values(SPAWNS).map(i=>TRACK[i].join(","))'));
- assert.ok(server.includes("const SAFE=new Set([0,8,13,21,26,34,39,47])"));
- assert.ok(boardRules.includes("export const SAFE=new Set([0,8,13,21,26,34,39,47])"));
+ assert.ok(server.includes("const SAFE=new Set([0,13,26,39])"));
+ assert.ok(boardRules.includes("export const SAFE=new Set([0,13,26,39])"));
  // Red from its own start + 2 must capture a single blue pawn at row 6, col 3.
  assert.ok(solo.includes("game.pieces[otherSide][opponentPawn]=HOME"));
  assert.ok(solo.includes("if(captured.length)renderPawns()"));
@@ -109,7 +109,7 @@ test("Solo hops through every cell, shows step number and animates captures back
  assert.ok(solo.includes("renderPawns();\\n    const captured")||solo.includes("renderPawns();\n    const captured"));
  assert.ok(soloCSS.includes(".piece-step-counter"));
  assert.ok(soloCSS.includes(".piece--captured{z-index:25"));
- assert.ok(soloCSS.includes("transition:left .54s"));
+ assert.ok(soloCSS.includes("transition:left .115s"));
 });
 test("Duo retains one moving DOM pawn across server hop frames and returns real die to both phones",()=>{
  assert.ok(duo.includes('movementLayer.className="pieces-layer ludo-duo-motion-overlay"'));
@@ -142,7 +142,7 @@ test("Duo captures visibly return through a stable animation overlay",()=>{
  assert.ok(duo.includes('pawn.classList.add("is-returning")'));
  assert.ok(duo.includes('pawn.style.left=dest.x'));
  assert.ok(duo.includes('pawn.style.top=dest.y'));
- assert.ok(duoCSS.includes('transition:left .54s'));
+ assert.ok(duoCSS.includes('transition:left .115s'));
 });
 
 
