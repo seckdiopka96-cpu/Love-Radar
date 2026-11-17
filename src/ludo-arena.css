@@ -158,7 +158,7 @@
  filter:drop-shadow(0 2px 2px #001837) drop-shadow(0 0 8px #fff6a8)!important;
 }
 .ludo-arena .ludo-moving-pawn,
-.ludo-arena .ludo-captured-pawn{z-index:35!important}
+.ludo-arena .ludo-captured-pawn{z-index:35!important;transition:left .115s linear,top .115s linear,opacity .2s!important}
 .ludo-arena .ludo-moving-bounce{filter:drop-shadow(0 6px 4px #00183eaf)}
 .ludo-arena .ludo-moving-pawn{transition:left .40s cubic-bezier(.19,.7,.3,1),top .40s cubic-bezier(.19,.7,.3,1)!important}
 .ludo-arena .ludo-game-footer{
