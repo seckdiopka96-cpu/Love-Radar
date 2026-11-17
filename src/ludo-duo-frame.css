@@ -1,0 +1,15 @@
+/* This layer replaces only the legacy DUO game artwork during active play.
+   The signed agreement, challenges, privacy, gifts and menus stay in React. */
+.ludo-experience.ludo-duo-arena .ludo-duo-shared-frame{
+ position:absolute!important;inset:0!important;z-index:100!important;
+ display:flex!important;min-width:0!important;min-height:0!important;
+ padding:0!important;margin:0!important;
+ background:#0b244c!important;border:0!important;border-radius:0!important;
+ overflow:hidden!important;
+}
+.ludo-experience.ludo-duo-arena .ludo-duo-shared-iframe{
+ flex:1 1 100%!important;width:100%!important;height:100%!important;
+ min-width:0!important;min-height:0!important;
+ margin:0!important;padding:0!important;border:0!important;
+ background:#0b244c!important;
+}
