@@ -1,7 +1,7 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
-const CACHE="love-radar-static-v84";
+const CACHE="love-radar-static-v85";
 const PRIVATE_AVATAR_CACHE="love-radar-private-notification-avatar-v1";
-const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png","/ludo-solo/index.html","/ludo-solo/style.css","/ludo-solo/script.js"];
+const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png","/ludo-solo/index.html","/ludo-solo/style.css","/ludo-solo/script.js","/ludo-duo/index.html","/ludo-duo/style.css","/ludo-duo/script.js"];
 self.addEventListener("install",event=>{
  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
 });
@@ -15,7 +15,7 @@ self.addEventListener("fetch",event=>{
  if(url.origin!==self.location.origin||url.pathname.startsWith("/api/"))return;
  // The solo game is a real static page inside Love Radar. Never store it
  // as the root app shell: that could replace the app when offline.
- if(url.pathname.startsWith("/ludo-solo/")){
+ if(url.pathname.startsWith("/ludo-solo/")||url.pathname.startsWith("/ludo-duo/")){
   event.respondWith(fetch(request).catch(()=>caches.match(url.pathname)
    .then(response=>response||Response.error())));
   return;
