@@ -95,7 +95,7 @@ test("live Duo synchronizes promptly with conditional server reads",()=>{
  assert.ok(parent.includes('activeDuoGame=useRef(false)'),"avoid fast path until both signed");
  assert.ok(parent.includes('"/api/ludo?since="+previous.version'),"send the last synchronized version");
  assert.ok(parent.includes('if(data.unchanged)'),"avoid repainting unchanged game");
- assert.ok(parent.includes('window.setTimeout(()=>{void poll()},500)'),"poll within half a second after completion");
+ assert.ok(parent.includes('const delay=waiting?280:550'),"poll partner promptly without overpolling own turn");
  assert.ok(parent.includes('inFlight=true'),"never stack network checks");
  assert.ok(!parent.includes('setInterval(()=>{if(document.visibilityState==="visible")void load()},1600)'),"remove 1.6s polling delay");
  assert.ok(parent.includes('Math.max(0,690-(Date.now()-actionStarted))'),"finish dice animation sooner");
@@ -106,5 +106,13 @@ test("live Duo synchronizes promptly with conditional server reads",()=>{
  assert.ok(server.includes('Number(since)===g.version'),"compare authoritative versions");
  assert.ok(server.includes('Math.max(g.updated_at,activeAgreement.startedAt)+TURN_MS'),"do not skip turn deadline");
  assert.ok(server.includes('unchanged:true'),"send small unchanged response");
+ assert.ok(server.includes("delta:true"),"return small authoritative turn change snapshots");
+ assert.ok(parent.includes("if(data.delta)"),"handle gameplay deltas without resetting agreement or palette");
+ assert.ok(server.includes('const [moveEvent,lastRoll]=await Promise.all(['),"fetch motion and die state together");
+ assert.ok(server.includes('updated.status==="playing"&&(action==="roll"||action==="move")'),"do not delay real rolls with secondary metadata");
+ assert.ok(server.includes('if(updated&&action==="restart")'),"do not bootstrap tables on every roll");
+ assert.ok(server.includes('const [members,existingGame]=await Promise.all(['),"parallelize independent room and game reads");
+ assert.ok(server.includes("rollAndChallenge"),"cap simultaneous D1 read connections");
+
  assert.ok(server.includes('at:row.at'),"dice results keep unique timestamp");
 });
