@@ -124,6 +124,38 @@ test("video call intent persists to both partners and call history without affec
  sqlite.close();
 });
 
+test("ICE reconnect signals stay private, bounded and allow renewed SDP without ending calls",async()=>{
+ const {sqlite,invoke}=setup();
+ const created=await invoke("POST","a",{action:"start",mode:"video"});
+ assert.equal(created.status,200);
+ const id=created.data.call.id;
+ assert.equal((await invoke("POST","b",{action:"accept",id})).status,200);
+ const sdpA="v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n";
+ const sdpB="v=0\r\no=- 2 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n";
+ const sdpC="v=0\r\no=- 3 3 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n";
+ assert.equal((await invoke("POST","a",{action:"signal",kind:"offer",sdp:sdpA,id})).status,200);
+ const repeated=await invoke("POST","a",{action:"signal",kind:"offer",sdp:sdpA,restart:true,id});
+ assert.equal(repeated.data.duplicate,true,"same SDP stays idempotent");
+ const forbidden=await invoke("POST","a",{action:"signal",kind:"restart",id});
+ assert.equal(forbidden.status,403,"caller cannot fabricate callee restart requests");
+ assert.equal((await invoke("POST","b",{action:"signal",kind:"restart",id})).status,200);
+ assert.equal((await invoke("POST","b",{action:"signal",kind:"restart",id})).data.duplicate,true);
+ const stranger=await invoke("POST","c",{action:"signal",kind:"restart",id});
+ assert.equal(stranger.status,409,"another couple cannot trigger renegotiation");
+ sqlite.prepare("UPDATE voice_signals SET created_at=? WHERE call_id=? AND kind='offer'").run(Date.now()-2000,id);
+ const refreshed=await invoke("POST","a",{action:"signal",kind:"offer",sdp:sdpB,restart:true,id});
+ assert.equal(refreshed.status,200);
+ assert.equal(refreshed.data.sent,true);
+ const newer=sqlite.prepare("SELECT kind,payload FROM voice_signals WHERE call_id=? AND to_member='bob' ORDER BY id DESC LIMIT 1").get(id) as {kind:string;payload:string};
+ assert.equal(newer.kind,"offer");
+ assert.equal(newer.payload,sdpB);
+ const noMarker=await invoke("POST","a",{action:"signal",kind:"offer",sdp:sdpC,id});
+ assert.equal(noMarker.data.duplicate,true);
+ assert.equal(sqlite.prepare("SELECT COUNT(*) as n FROM voice_signals WHERE call_id=? AND kind='offer'").get(id)?.n,2);
+ assert.equal((await invoke("POST","a",{action:"heartbeat",id})).status,200);
+ sqlite.close();
+});
+
 test("chat mixes call bubbles with messages and preserves current voice call controls",()=>{
  const app=readFileSync("src/App.tsx","utf8");
  const api=readFileSync("functions/api/call.ts","utf8");
