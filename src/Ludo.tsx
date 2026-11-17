@@ -49,6 +49,8 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const [lastRoll,setLastRoll]=useState<DieResult|null>(null);
  const [colorBusy,setColorBusy]=useState(false);
  const autoDuoPawn=useRef("");
+ // Conditional refreshes only apply after both players have signed.
+ const activeDuoGame=useRef(false);
  const [challenge,setChallenge]=useState<Challenge|null>(null);
  const [challengeBusy,setChallengeBusy]=useState(false);
  const [challengeHint,setChallengeHint]=useState("");
@@ -183,10 +185,16 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
 
  const load=useCallback(async()=>{
   try{
-   const res=await apiFetch("/api/ludo",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+   const previous=prior.current;
+   const quick=Boolean(previous&&activeDuoGame.current&&previous.status==="playing");
+   const endpoint=quick&&previous?"/api/ludo?since="+previous.version+"&game="+encodeURIComponent(previous.id):"/api/ludo";
+   const res=await apiFetch(endpoint,{headers:{Authorization:"Bearer "+token},cache:"no-store"});
    const data=await res.json() as ResponseData;
    if(!res.ok||!data.ok)throw Error(data.error||"Connexion au jeu impossible.");
    if(!isActive.current)return;
+   // No board state changed: do not make React re-render every half second.
+   if(data.unchanged){setError("");return}
+   activeDuoGame.current=Boolean(data.agreement?.startedAt);
    setMembers(data.members||0);
    if(data.game)onGame(data.game,data.moveEvent);
    else {prior.current=null;setGame(null)}
@@ -204,13 +212,28 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
 
  useEffect(()=>{
   isActive.current=true;
-  void load();
-  const interval=window.setInterval(()=>{if(document.visibilityState==="visible")void load()},1600);
-  const visible=()=>{if(document.visibilityState==="visible")void load()};
+  let stopped=false,inFlight=false;
+  let timer:number|null=null;
+  const poll=async()=>{
+   if(stopped||inFlight||document.visibilityState!=="visible")return;
+   inFlight=true;
+   try{await load()}finally{
+    inFlight=false;
+    // Regular 500ms checks start AFTER the previous request finishes:
+    // faster partner updates without stacking network requests on mobile.
+    if(!stopped&&document.visibilityState==="visible")timer=window.setTimeout(()=>{void poll()},500);
+   }
+  };
+  const visible=()=>{
+   if(timer!==null){window.clearTimeout(timer);timer=null}
+   if(document.visibilityState==="visible"&&!inFlight)void poll();
+  };
+  void poll();
   document.addEventListener("visibilitychange",visible);
   return()=>{
+   stopped=true;
    isActive.current=false;
-   window.clearInterval(interval);
+   if(timer!==null)window.clearTimeout(timer);
    document.removeEventListener("visibilitychange",visible);
    if(effectTimeout.current!==null)window.clearTimeout(effectTimeout.current);
    clearMotionTimers();
@@ -255,7 +278,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    if(!res.ok||!data.ok)throw Error(data.error||"Action impossible.");
    if(data.game)onGame(data.game,data.moveEvent);
    if(data.gift)setGift(data.gift);
-   if(data.agreement)setAgreement(data.agreement);
+   if(data.agreement){setAgreement(data.agreement);activeDuoGame.current=Boolean(data.agreement.startedAt);}
    if(data.palette)setPalette(data.palette);
    if(data.lastRoll!==undefined)setLastRoll(data.lastRoll);
    if(typeof data.serverNow==="number")setClockOffset(data.serverNow-Date.now());
@@ -266,7 +289,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    return false;
   }finally{
    setBusy(false);
-   if(action==="roll")window.setTimeout(()=>{if(isActive.current)setRolling(false)},Math.max(200,880-(Date.now()-actionStarted)));
+   if(action==="roll")window.setTimeout(()=>{if(isActive.current)setRolling(false)},Math.max(0,690-(Date.now()-actionStarted)));
   }
  }
 
@@ -367,7 +390,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   const timer=window.setTimeout(()=>{
    autoDuoPawn.current=stamp;
    void act("move",pawns[0]);
-  },320);
+  },190);
   return()=>window.clearTimeout(timer);
  },[game,agreement?.startedAt,mySeat,busy,rolling,motion,capturedMotions.length]);
 
