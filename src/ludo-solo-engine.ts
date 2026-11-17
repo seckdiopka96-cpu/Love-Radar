@@ -45,6 +45,12 @@ export function canSoloMove(progress:number,die:number|null):boolean{
 export function availableSoloPawns(game:SoloGame,seat:SoloSeat):number[]{
  return game.positions[seat].flatMap((progress,pawn)=>canSoloMove(progress,game.dice)?[pawn]:[]);
 }
+/** Only one legal piece: no manual selection is necessary. */
+export function solePlayableSoloPawn(game:SoloGame,seat:SoloSeat):number|null{
+ if(game.status!=="playing"||game.turn!==seat||game.dice===null)return null;
+ const legal=availableSoloPawns(game,seat);
+ return legal.length===1?legal[0]:null;
+}
 export function rollSolo(game:SoloGame,face:number):SoloGame{
  if(game.status!=="playing"||game.dice!==null||!Number.isInteger(face)||face<1||face>6)return game;
  const seat=game.turn;
@@ -53,11 +59,12 @@ export function rollSolo(game:SoloGame,face:number):SoloGame{
   return {...game,turn:(1-seat) as SoloSeat,streak:0,dice:null,updatedAt:Date.now(),lastAction:who+" obtenu trois 6 : tour perdu."};
  }
  const streak=face===6?game.streak+1:0;
- const canPlay=game.positions[seat].some(progress=>canSoloMove(progress,face));
+ const legalCount=game.positions[seat].filter(progress=>canSoloMove(progress,face)).length;
+ const canPlay=legalCount>0;
  // An unusable throw immediately passes the turn, including an unusable six.
  const nextTurn:SoloSeat=canPlay?seat:(1-seat) as SoloSeat;
  return {...game,dice:canPlay?face:null,turn:nextTurn,streak:nextTurn===seat?streak:0,updatedAt:Date.now(),
-  lastAction:who+" lancé un "+face+(canPlay?". Choisis un pion.":" : aucun déplacement possible.")};
+  lastAction:who+" lancé un "+face+(canPlay?(seat===0&&legalCount===1?". Ton seul pion jouable avance automatiquement.":". Choisis un pion."):" : aucun déplacement possible.")};
 }
 export function moveSolo(game:SoloGame,pawn:number):{game:SoloGame;move:SoloMove}|null{
  if(game.status!=="playing"||!Number.isInteger(pawn)||pawn<0||pawn>3||game.dice===null)return null;
