@@ -116,3 +116,17 @@ test("die sits between blue TOI and green ORDI without duplicate solo roll butto
  assert.ok(style.includes(".ludo-experience.ludo-arena .ludo-cell-pawns .ludo-pawn-stacked{"));
  assert.ok(style.includes("border:2px solid #a9c9e9!important"));
 });
+
+
+test("solo shows no meaningless 'choose a pawn' when one legal pawn must auto-move",()=>{
+ const solo=readFileSync("src/SoloLudo.tsx","utf8");
+ const engine=readFileSync("src/ludo-solo-engine.ts","utf8");
+ assert.ok(engine.includes("export function solePlayableSoloPawn"));
+ assert.ok(solo.includes("const onlyPawn=solePlayableSoloPawn(game,0);"));
+ assert.ok(solo.includes("if(onlyPawn===null)return;"));
+ assert.ok(solo.includes("window.setTimeout(()=>performMove(0,onlyPawn),320)"));
+ assert.ok(solo.includes('availableSoloPawns(game,0).length>1;'));
+ assert.ok(solo.includes('solePlayableSoloPawn(game,0)!==null?"Ton pion avance automatiquement…"'));
+ assert.ok(solo.includes('{canPick?<div className="ludo-pick-row"'));
+ assert.ok(solo.includes("return ()=>window.clearTimeout(timer)"));
+});
