@@ -18,6 +18,8 @@ type Signal = {id:number;kind:"offer"|"answer"|"candidate"|"restart";payload:str
 type Result = {ok:boolean;error?:string;call?:Call|null;signals?:Signal[]};
 type Props = {token:string;partner:string;avatarSrc?:string;hasPartner:boolean;showButton:boolean;onOpenChat:()=>void};
 
+const networkIsOffline=()=>navigator.onLine===false;
+const peerHasLocalOffer=(peer:RTCPeerConnection)=>peer.signalingState==="have-local-offer";
 const STUN_SERVERS:RTCIceServer[]=[
  {urls:"stun:stun.cloudflare.com:3478"},
  {urls:"stun:stun.l.google.com:19302"}
@@ -227,7 +229,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
      sessionDescriptionSent.current=true;
      void flushCandidates(call.id);
     }catch(error){
-     if(peer.signalingState==="have-local-offer"){
+     if(peerHasLocalOffer(peer)){
       try{await peer.setLocalDescription({type:"rollback"})}catch{/* Browser may close during recovery */ }
      }
      throw error;
@@ -239,7 +241,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   }catch(error){
    if(current.current?.id===call.id){
     console.warn("Love Radar ICE recovery will retry",error);
-    setPhase(navigator.onLine===false?"En attente du réseau…":"Reconnexion…");
+    setPhase(networkIsOffline()?"En attente du réseau…":"Reconnexion…");
    }
   }finally{recoveryInFlight.current=false}
  },[api,warmNetwork,flushCandidates]);
