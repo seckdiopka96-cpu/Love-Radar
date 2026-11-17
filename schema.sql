@@ -213,3 +213,9 @@ CREATE INDEX IF NOT EXISTS idx_screenshot_room_created
 CREATE TABLE IF NOT EXISTS screenshot_throttle (
  member_id TEXT PRIMARY KEY,last_at INTEGER NOT NULL
 );
+
+-- Shared, pregame Ludo Duo palette. Opposite colors preserve server track rules.
+CREATE TABLE IF NOT EXISTS ludo_palette (
+ room_id TEXT PRIMARY KEY,game_id TEXT NOT NULL,seat0_color TEXT NOT NULL DEFAULT 'blue',
+ chosen_by INTEGER,updated_at INTEGER NOT NULL
+);
