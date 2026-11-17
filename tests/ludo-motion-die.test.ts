@@ -13,6 +13,28 @@ const parent=readFileSync("src/Ludo.tsx","utf8");
 const bridge=readFileSync("src/LudoDuoFrame.tsx","utf8");
 const schema=readFileSync("schema.sql","utf8");
 
+test("Ludo screenshot fixes: capturable starts, compact pins and hidden Solo footer",()=>{
+ const server=readFileSync("functions/api/ludo.ts","utf8");
+ const senegal=readFileSync("src/ludo-senegal-engine.ts","utf8");
+ const boardRules=readFileSync("src/ludo-visuals.ts","utf8");
+ assert.ok(solo.includes('new Set(["2,6","6,12","8,2","12,8"])'));
+ assert.ok(server.includes("const SAFE=new Set([8,21,34,47])"));
+ assert.ok(boardRules.includes("export const SAFE=new Set([8,21,34,47])"));
+ assert.ok(senegal.includes("positions[enemy][pawn]=freshPawn()"));
+ assert.ok(solo.includes("game.pieces[otherSide][opponentPawn]=HOME"));
+ assert.ok(solo.includes("if(captured.length)renderPawns()"));
+ assert.ok(solo.includes("Math.min(3,7/group.length)"));
+ assert.ok(duo.includes("Math.min(3,7/group.length)"));
+ assert.ok(soloCSS.includes("width: 5.7%; height: 6.6%"));
+ assert.ok(soloCSS.includes("width: 126%; height: 152%"));
+ assert.ok(solo.includes('classList.add("lr-ludo-solo-ui")'));
+ assert.ok(duo.includes('classList.add("lr-ludo-duo-ui")'));
+ assert.ok(soloCSS.includes(".lr-ludo-solo-ui .game-actions"));
+ assert.ok(soloCSS.includes(".lr-ludo-solo-ui #game-feedback"));
+ assert.ok(soloCSS.includes(".lr-ludo-duo-ui #new-game:disabled"));
+ assert.ok(soloCSS.includes("await sleep(start===HOME?520:540)")===false);
+ assert.ok(solo.includes("await sleep(start===HOME?520:540)"));
+});
 test("both complete vanilla games remain valid JavaScript",()=>{
  assert.doesNotThrow(()=>new Script(solo,{filename:"solo/script.js"}));
  assert.doesNotThrow(()=>new Script(duo,{filename:"duo/script.js"}));
@@ -48,9 +70,9 @@ test("Solo and Duo both display the final real die result, separate from transie
 test("Solo hops through every cell, shows step number and animates captures back to home",()=>{
  assert.ok(solo.includes("for (let step=first;step<=target;step++)"));
  assert.ok(solo.includes("counter.textContent=(step-first+1)+"));
- assert.ok(solo.includes("start===HOME?900:920"));
+ assert.ok(solo.includes("start===HOME?520:540"));
  assert.ok(soloCSS.includes("transition:left .64s"));
- assert.ok(soloCSS.includes("animation:pawn-hop-hd .65s"));
+ assert.ok(soloCSS.includes("animation:pawn-hop-hd .40s"));
  assert.ok(solo.includes("async function animateCapture("));
  assert.ok(solo.includes("await Promise.all(captured.map("));
  assert.ok(solo.includes("renderPawns();\\n    const captured")||solo.includes("renderPawns();\n    const captured"));
@@ -113,9 +135,9 @@ test("React Solo, Duo and Senegal use a single-face die and readable movement",(
  const dieCSS=readFileSync("src/ludo-die-3d.css","utf8");
  const arenaCSS=readFileSync("src/ludo-arena.css","utf8");
  const senegalCSS=readFileSync("src/ludo-senegal.css","utf8");
- assert.ok(reactSolo.includes('stepDuration=move.from===-1?900:920,initialDelay=430'));
- assert.ok(parent.includes('STEP_MS=moved.from===-1?900:920,START_MS=430'));
- assert.ok(senegal.includes('STEP_MS=move.from.zone==="base"?900:920,START_MS=430'));
+ assert.ok(reactSolo.includes('stepDuration=move.from===-1?520:540,initialDelay=250'));
+ assert.ok(parent.includes('STEP_MS=moved.from===-1?520:540,START_MS=250'));
+ assert.ok(senegal.includes('STEP_MS=move.from.zone==="base"?520:540,START_MS=250'));
  assert.ok(senegal.includes('path.forEach((point,i)=>later('));
  assert.ok(senegal.includes('START_MS+i*STEP_MS'));
  assert.ok(senegal.includes('<LudoDie3D value={shownDie}'));
@@ -135,7 +157,7 @@ test("visible steps are not accelerated away by iOS Reduce Motion, and Senegal c
  const senegalServer=readFileSync("functions/api/ludo-senegal.ts","utf8");
  const senegalClient=readFileSync("src/SenegalLudo.tsx","utf8");
  assert.ok(!solo.includes("reducedMotion?25:"),"Reduce Motion must never skip game squares");
- assert.ok(solo.includes("await sleep(start===HOME?900:920)"));
+ assert.ok(solo.includes("await sleep(start===HOME?520:540)"));
  assert.ok(!parent.includes('&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches'),
   "the Duo must still show individual square changes without decorative effects");
  assert.ok(senegalServer.includes("SELECT move_json,version FROM ludo_senegal_moves"));
@@ -146,10 +168,10 @@ test("visible steps are not accelerated away by iOS Reduce Motion, and Senegal c
 });
 
 test("Solo and synchronized Duo do not skip fast between board squares",()=>{
- assert.ok(solo.includes('await sleep(start===HOME?900:920)'));
- assert.ok(parent.includes('const STEP_MS=moved.from===-1?900:920,START_MS=430'));
- assert.ok(soloCSS.includes('transition:left .64s cubic-bezier'));
- assert.ok(soloCSS.includes('animation:pawn-hop-hd .65s'));
+ assert.ok(solo.includes('await sleep(start===HOME?520:540)'));
+ assert.ok(parent.includes('const STEP_MS=moved.from===-1?520:540,START_MS=250'));
+ assert.ok(soloCSS.includes('transition:left .40s cubic-bezier'));
+ assert.ok(soloCSS.includes('animation:pawn-hop-hd .40s'));
  assert.ok(duo.includes('if(!movingPawn||movingKey!==id)'));
  assert.ok(duo.includes('pawn.style.left=to.x'));
  assert.ok(duo.includes('pawn.style.top=to.y'));
