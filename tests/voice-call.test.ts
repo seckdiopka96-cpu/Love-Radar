@@ -100,6 +100,29 @@ test("iPhone shows local camera frames and can flip while the partner has not an
  assert.ok(videoCss.includes('.lr-call-video-self .lr-call-video-retry'));
 });
 
+test("video Messages minimizes during outgoing ringing without ending the call",()=>{
+ assert.ok(call.includes('call.status==="ringing"&&call.direction==="outgoing"'));
+ assert.ok(call.includes('setCallPanel("none");setMinimized(true)'));
+ assert.ok(call.includes('onOpenChat()'));
+ assert.ok(call.includes('active.status==="ringing"&&active.direction==="outgoing"'));
+ assert.ok(call.includes('active.status==="ringing"&&active.direction==="incoming"'));
+ assert.ok(call.includes('active.status==="ringing"?"Appel sortant…"'));
+});
+test("video Plus opens a usable independent overlay and video keypad is hidden",()=>{
+ const videoCss=readFileSync("src/video-call.css","utf8");
+ assert.ok(call.includes('const videoOptions=active&&isVideo&&callPanel!=="none"?createPortal('));
+ assert.ok(call.includes('className="lr-video-options-backdrop"'));
+ assert.ok(call.includes('role="dialog"'));
+ assert.ok(call.includes('onClick={()=>setCallPanel("more")}'));
+ assert.ok(call.includes('onClick={minimizeAndWrite}'));
+ assert.ok(call.includes('{videoOptions}'));
+ assert.ok(call.includes('!isVideo&&callPanel!=="none"'),"audio-only options remain intact");
+ assert.ok(videoCss.includes('.lr-call-backdrop .lr-video-call .lr-call-keypad{display:none!important}'));
+ assert.ok(videoCss.includes('grid-template-columns:repeat(3,minmax(0,1fr))!important'));
+ assert.ok(videoCss.includes('.lr-video-options-sheet{'));
+ assert.ok(videoCss.includes('z-index:2147483647'));
+});
+
 test("call signaling and microphone initialize in parallel to reduce time before ringing",()=>{
  assert.ok(call.includes("const micTask=microphone(mode)"));
  assert.ok(call.includes('const callTask=api("start",{mode})'));
