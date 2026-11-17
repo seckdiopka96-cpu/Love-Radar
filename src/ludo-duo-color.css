@@ -48,3 +48,135 @@
  .ludo-agreement-dialog .ludo-duo-color-choice{min-height:57px;font-size:10px}
  .ludo-agreement-dialog .ludo-duo-color-choice>span{width:23px;height:23px}
 }
+
+/* Only the pre-game Duo agreement is redesigned. The rest of the game keeps
+   its existing appearance and controls. */
+.ludo-agreement-backdrop:has(.ludo-ready-dialog){
+ background:rgba(5,13,32,.89);
+ backdrop-filter:blur(13px);
+ -webkit-backdrop-filter:blur(13px);
+ padding:max(12px,env(safe-area-inset-top)) 14px max(12px,env(safe-area-inset-bottom));
+}
+.ludo-agreement-dialog.ludo-ready-dialog{
+ width:min(100%,420px);
+ gap:14px;
+ max-height:min(96dvh,700px);
+ padding:clamp(16px,4vw,23px);
+ border-radius:24px;
+ border:1px solid rgba(167,197,242,.30);
+ background:radial-gradient(ellipse at 85% -8%,rgba(98,143,231,.23),transparent 45%),linear-gradient(155deg,#172e54 0%,#0f213e 60%,#101e35 100%);
+ box-shadow:0 28px 85px rgba(0,5,18,.8),inset 0 1px rgba(255,255,255,.09);
+ color:#f9fbff;
+}
+.ludo-ready-dialog .ludo-agreement-heading{gap:12px;align-items:center}
+.ludo-ready-dialog .ludo-agreement-icon{
+ width:55px;height:55px;border-radius:17px;
+ background:linear-gradient(140deg,#23519b,#19376a);
+ border:1px solid rgba(177,205,255,.38);
+ box-shadow:0 9px 23px #0005;
+ font-size:27px;
+}
+.ludo-ready-dialog .ludo-ready-kicker{
+ display:block;font-size:9px;font-weight:850;letter-spacing:1.45px;color:#e3bd7b;margin-bottom:4px;
+}
+.ludo-ready-dialog .ludo-agreement-heading h2{
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+ font-size:clamp(23px,6vw,29px);font-weight:900;letter-spacing:-.65px;color:#fff;
+}
+.ludo-ready-dialog .ludo-agreement-heading p{font-size:12px;line-height:1.45;color:#adbfda}
+.ludo-ready-dialog .ludo-agreement-status{gap:9px}
+.ludo-ready-dialog .ludo-agreement-player{
+ padding:12px 10px;min-height:61px;
+ grid-template-columns:28px minmax(0,1fr);gap:2px 8px;
+ border:1px solid #355179;border-radius:14px;background:#1e3659;
+}
+.ludo-ready-dialog .ludo-agreement-player.is-signed{
+ background:linear-gradient(140deg,#153e44,#193c4b);border-color:#65c9a0;
+}
+.ludo-ready-dialog .ludo-agreement-player>span{
+ width:28px;height:28px;border-radius:10px;
+ background:#335581;color:#dbeafa;font-size:13px;
+}
+.ludo-ready-dialog .ludo-agreement-player.is-signed>span{background:#1b916a;color:#fff}
+.ludo-ready-dialog .ludo-agreement-player strong{
+ font-size:12px;font-weight:850;color:#f9fbff;line-height:1.3;
+}
+.ludo-ready-dialog .ludo-agreement-player small{
+ font-size:10px;color:#bfd0e7;line-height:1.3;
+}
+.ludo-ready-dialog .ludo-duo-color-picker{
+ padding:12px;border:1px solid #375679;border-radius:15px;
+ background:#12294b;margin:0;
+}
+.ludo-ready-dialog .ludo-duo-color-picker legend{
+ font-size:13px;color:#fff;font-weight:850;padding:0 6px;
+}
+.ludo-ready-dialog .ludo-duo-color-options{gap:8px}
+.ludo-ready-dialog .ludo-duo-color-choice{
+ min-height:70px;gap:7px;padding:9px 4px;
+ background:#213e64;border:1px solid #527197;border-radius:12px;
+ color:#fff;font-size:11px;font-weight:800;
+}
+.ludo-ready-dialog .ludo-duo-color-choice>span{
+ width:30px;height:30px;border:2px solid #fff;
+ box-shadow:0 3px 10px #0007,inset 0 -4px 7px #0003;
+}
+.ludo-ready-dialog .ludo-duo-color-choice.is-selected{
+ background:#264d7d;border:2px solid #f8d48f;
+ box-shadow:0 0 0 2px rgba(248,212,143,.2);
+}
+.ludo-ready-dialog .ludo-duo-color-picker p{font-size:10px;color:#c7d7ec;line-height:1.45;margin-top:9px}
+.ludo-ready-dialog .ludo-ready-rules{
+ display:grid;gap:8px;
+ border:1px solid #385474;background:#122947;
+ border-radius:15px;padding:13px;
+}
+.ludo-ready-dialog .ludo-ready-rules h3{
+ font-size:13px;letter-spacing:.1px;margin:0 0 2px;color:#fff;
+}
+.ludo-ready-dialog .ludo-ready-rules p{
+ margin:0;display:flex;gap:9px;align-items:flex-start;
+ font-size:11px;line-height:1.48;color:#dce6f4;
+}
+.ludo-ready-dialog .ludo-ready-rules p strong{color:#ffe1a2}
+.ludo-ready-dialog .ludo-ready-consent{
+ margin:-3px 1px 0;color:#a9c1db;font-size:10px;line-height:1.5;text-align:center;
+}
+.ludo-ready-dialog .ludo-agreement-submit{
+ min-height:52px;border-radius:15px;padding:13px;
+ background:linear-gradient(120deg,#ffdb99,#f7b85e);
+ color:#192b45;font-size:15px;box-shadow:0 8px 25px #050c1d70;
+}
+.ludo-ready-dialog .ludo-agreement-submit:disabled{
+ background:#53657c;color:#ced6e2;box-shadow:none;
+}
+.ludo-ready-dialog .ludo-agreement-wait{
+ min-height:147px;border:1px solid #467764;
+ border-radius:16px;background:#123f3f38;padding:18px;
+}
+.ludo-ready-dialog .ludo-agreement-wait h3{color:#fff;font-size:19px}
+.ludo-ready-dialog .ludo-agreement-wait p{color:#c2dfd5;font-size:12px}
+.ludo-ready-dialog .ludo-agreement-bigcheck{width:48px;height:48px;font-size:27px;background:#1d996e}
+.ludo-ready-dialog .ludo-challenge-send{
+ min-height:40px;border:1px solid #335678;border-radius:12px;
+ background:#1c3555;color:#dbe7f5;box-shadow:none;padding:9px;
+ font-size:11px;font-weight:800;
+}
+.ludo-ready-dialog .ludo-challenge-alert{
+ background:#3d3940;border-color:#8b754e;border-radius:11px;
+ font-size:11px;color:#ffe4b1;
+}
+.ludo-ready-dialog .ludo-agreement-exit{
+ padding:5px;color:#b9cce6;font-size:11px;
+}
+.ludo-ready-dialog .ludo-agreement-footnote{
+ color:#8fa6c4;font-size:9px;line-height:1.3;
+}
+@media(max-height:680px){
+ .ludo-agreement-dialog.ludo-ready-dialog{gap:9px;padding:12px;max-height:96dvh}
+ .ludo-ready-dialog .ludo-agreement-icon{width:43px;height:43px;font-size:22px}
+ .ludo-ready-dialog .ludo-duo-color-choice{min-height:54px}
+ .ludo-ready-dialog .ludo-duo-color-choice>span{width:22px;height:22px}
+ .ludo-ready-dialog .ludo-ready-rules{gap:5px;padding:10px}
+ .ludo-ready-dialog .ludo-agreement-submit{min-height:45px}
+}
