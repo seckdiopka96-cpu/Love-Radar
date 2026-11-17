@@ -263,7 +263,7 @@ h1 {
 .turn-banner small { margin-left: auto; color: #bfd4ef; text-align: right; font-size: 10px; }
 .board-area { flex: 1; width: 100%; min-height: 0; display: grid; place-items: center; }
 .board-frame {
-  width: min(100%, 660px, 69dvh);
+  width: min(100%, 660px, 69svh);
   aspect-ratio: 1;
   border-radius: 9px;
   padding: 6px;
@@ -502,7 +502,7 @@ h1 {
   .header-help { width: 34px; height: 34px; }
   .turn-banner { min-height: 41px; padding: 9px 10px; }
   .turn-banner small { font-size: 9px; }
-  .board-frame { width: min(100%, 66dvh); padding: 4px; }
+  .board-frame { width: min(100%, 66svh); padding: 4px; }
   .base-inner { inset: 17%; }
   .players-rail { grid-template-columns: minmax(0,1fr) 74px minmax(0,1fr); min-height: 69px; padding: 3px; }
   .player { gap: 5px; padding: 3px; }
@@ -514,14 +514,14 @@ h1 {
 }
 @media (max-height: 700px) {
   .game-screen { gap: 6px; }
-  .board-frame { width: min(100%, 58dvh); }
+  .board-frame { width: min(100%, 58svh); }
   .turn-banner { min-height: 37px; }
   .game-footer { font-size: 10px; }
 }
 @media (min-width: 800px) {
   .game-screen { gap: 16px; }
   .game-header, .turn-banner, .game-bottom { width: min(100%, 720px); }
-  .board-frame { width: min(100%, 580px, 67dvh); }
+  .board-frame { width: min(100%, 580px, 67svh); }
   .game-header { padding-top: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -719,7 +719,7 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
 @media (max-width:480px) {
   .game-screen { padding-top: max(10px, env(safe-area-inset-top)); padding-bottom: max(9px, env(safe-area-inset-bottom)); }
   .game-header { min-height: 48px; }
-  .board-frame { width: min(100%, 64dvh); }
+  .board-frame { width: min(100%, 64svh); }
   .dice-3d { --cube-size: 45px; }
   .dice-face { padding: 6px; border-radius: 7px; }
   .dice-face i.pip { max-width: 8px; }
@@ -730,7 +730,7 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
 }
 @media (max-height:700px) {
   .game-screen { gap: 6px; }
-  .board-frame { width: min(100%, 56dvh); }
+  .board-frame { width: min(100%, 56svh); }
   .game-header { min-height: 45px; }
   .turn-banner { min-height: 37px; }
   .selected-info { font-size: 11px; }
@@ -915,3 +915,22 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
 }
 .game-screen .board-frame{flex:none}
 .game-screen .game-bottom{flex:0 0 auto;min-height:105px}
+
+/* Ground shadow only under the MOVING pin. The board itself never moves. */
+.piece--moving:not(.piece--captured)::before{
+ content:"";
+ position:absolute;z-index:-1;pointer-events:none;
+ left:50%;bottom:4%;width:75%;height:13%;
+ border-radius:50%;
+ transform:translate(-50%,1px) scale(.85);
+ background:radial-gradient(ellipse at center,#06142cbb 0%,#092c5575 53%,transparent 80%);
+ box-shadow:0 1px 5px #07162e63;
+ animation:lr-moving-pawn-shadow .54s ease-in-out infinite;
+}
+@keyframes lr-moving-pawn-shadow{
+ 0%,100%{opacity:.8;transform:translate(-50%,1px) scale(1)}
+ 50%{opacity:.38;transform:translate(-50%,1px) scale(.64)}
+}
+@media(prefers-reduced-motion:reduce){
+ .piece--moving:not(.piece--captured)::before{animation:none;opacity:.75}
+}
