@@ -51,7 +51,8 @@ test("four pawns are chosen by touching the board, never from a second numbered 
  assert.ok(!solo.includes('textContent="Pion "+(index+1)'));
  assert.ok(!duo.includes('textContent="Pion "+(pawn+1)'));
  assert.ok(soloCSS.includes('.lr-ludo-solo-ui #turn-meta'));
- assert.ok(soloCSS.includes('.lr-ludo-duo-ui #turn-meta'));
+ // The Duo countdown remains visible; it is not a duplicate die result.
+ assert.ok(!soloCSS.includes('.lr-ludo-duo-ui #turn-meta'));
  assert.ok(soloCSS.includes('.lr-ludo-solo-ui #pawn-choices'));
  assert.ok(soloCSS.includes('.lr-ludo-duo-ui #pawn-choices'));
  assert.ok(soloCSS.includes('.piece--selectable::after{'));
