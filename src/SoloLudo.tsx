@@ -137,11 +137,11 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   for(const captured of pawns){
    for(let step=captured.from-1;step>=0;step--){
     later(()=>setCaptureBack(prev=>prev.map(row=>row.seat===captured.seat&&row.pawn===captured.pawn?
-     {...row,progress:step}:row)),140+(captured.from-1-step)*130);
+     {...row,progress:step}:row)),70+(captured.from-1-step)*50);
    }
   }
-  later(()=>setCaptureBack(prev=>prev.map(row=>({...row,progress:-1}))),160+longest*130);
-  later(()=>setCaptureBack([]),440+longest*130);
+  later(()=>setCaptureBack(prev=>prev.map(row=>({...row,progress:-1}))),90+longest*50);
+  later(()=>setCaptureBack([]),240+longest*50);
  }
  function playMoveEffects(move:SoloMove,winner:SoloSeat|null){
   if(move.captured.length){
