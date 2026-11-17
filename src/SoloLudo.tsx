@@ -8,6 +8,8 @@ import {freshSoloGame,isSoloGame,rollSolo,moveSolo,chooseSoloBotPawn,canSoloMove
 import "./ludo.css";
 import "./ludo-immersive.css";
 import "./ludo-solo.css";
+import "./ludo-arena.css";
+import LudoTutorial,{ludoGuideWasSeen} from "./LudoTutorial";
 
 type Props={myName:string;storageKey:string;onExit:()=>void};
 type Motion={seat:SoloSeat;pawn:number;from:number;to:number;progress:number};
@@ -36,6 +38,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
  const [landing,setLanding]=useState<Point|null>(null);
  const [reaction,setReaction]=useState("");
  const [confirmRestart,setConfirmRestart]=useState(false);
+ const [tutorialOpen,setTutorialOpen]=useState(()=>!ludoGuideWasSeen("solo"));
  const {enabled:soundOn,unlock:unlockSound,play:playSound,toggle:toggleSound}=useLudoSounds();
  const stage=useRef<HTMLDivElement|null>(null);
  const timers=useRef<number[]>([]);
@@ -186,16 +189,17 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   setMotion(null);setRolling(false);setLanding(null);setReaction("");
   setConfirmRestart(false);
  }
- return <section className="ludo-experience ludo-solo" aria-label="Ludo solo contre l'ordinateur">
+ return <section className="ludo-experience ludo-solo ludo-arena" aria-label="Ludo solo contre l'ordinateur">
   <header className="ludo-topbar">
    <button type="button" className="ludo-leave" onClick={onExit}><span aria-hidden="true">‹</span> Jeux</button>
    <div className="ludo-brand"><strong>LUDO <span>★</span> SOLO</strong><small>TOI CONTRE L’ORDINATEUR</small></div>
    <div className="ludo-top-actions">
     <button type="button" className="ludo-sound" onClick={toggleSound} aria-label={soundOn?"Désactiver le son":"Activer le son"} aria-pressed={soundOn}>{soundOn?"🔊":"🔇"}</button>
+    <button type="button" className="ludo-arena-how" onClick={()=>setTutorialOpen(true)} aria-label="Voir le tutoriel Ludo">?</button>
     <button type="button" className="ludo-solo-restart" onClick={()=>setConfirmRestart(true)} aria-label="Nouvelle partie">↻</button>
    </div>
   </header>
-  <div className="ludo-players">
+  <div className="ludo-players" aria-label="Joueurs et tour actif">
    <div className={"ludo-player ludo-player-red"+(game.turn===0&&game.status==="playing"?" is-active":"")}>
     <span className="ludo-player-avatar">{myName.trim().charAt(0).toUpperCase()||"☺"}</span>
     <div className="ludo-player-info"><strong>{myName||"Moi"} · Moi</strong><span>{counts[0]} / 4 pions arrivés</span></div>
@@ -286,6 +290,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
     <div className="ludo-last-move" role="status" aria-live="polite">{game.lastAction}</div>
    </div>
   </div>
+  {tutorialOpen&&game.status==="playing"&&!confirmRestart?<LudoTutorial mode="solo" onClose={()=>setTutorialOpen(false)}/>:null}
   {confirmRestart?<div className="ludo-modal-backdrop" role="dialog" aria-modal="true" aria-label="Recommencer la partie">
    <div className="ludo-modal">
     <span className="ludo-modal-symbol">🎲</span>
