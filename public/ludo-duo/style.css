@@ -38,5 +38,5 @@
 .app .ludo-duo-motion-overlay .piece--moving,
 .app .ludo-duo-capture-overlay .piece--captured{pointer-events:none}
 .app .ludo-duo-capture-overlay .piece--captured.is-returning{
- transition:left .115s linear,top .115s linear!important;
+ transition:left .045s linear,top .045s linear!important;
 }
