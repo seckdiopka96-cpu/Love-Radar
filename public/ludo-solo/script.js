@@ -439,21 +439,29 @@
     return true;
   }
 
-  /** A captured pin visibly travels back to its own base. */
+  /** A captured pin retraces its track squares in reverse, then returns home. */
   async function animateCapture(side,pawnIndex,progress,tokenGeneration) {
     const color=getColor(side);
     const existing=layer.querySelector('.piece--board[data-side="'+side+'"][data-pawn="'+pawnIndex+'"]');
     const pawn=createPawn(color,side,pawnIndex,false);
     pawn.classList.add("piece--board","piece--moving","piece--captured");
     const point=boardPosition(color,progress,pawnIndex);
-    const home=boardPosition(color,HOME,pawnIndex);
     pawn.style.left=point.x+"%";pawn.style.top=point.y+"%";
     if(existing)existing.style.visibility="hidden";
     layer.append(pawn);
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    // Reverse the exact progress journey; do not jump diagonally across the board.
+    // A short capture-specific tempo avoids making a long capture take 30 seconds.
+    for(let step=progress-1;step>=0;step--){
+      if(!isCurrent(tokenGeneration)){pawn.remove();return false}
+      const back=boardPosition(color,step,pawnIndex);
+      pawn.style.left=back.x+"%";pawn.style.top=back.y+"%";
+      await sleep(130);
+    }
     if(!isCurrent(tokenGeneration)){pawn.remove();return false}
+    const home=boardPosition(color,HOME,pawnIndex);
     pawn.style.left=home.x+"%";pawn.style.top=home.y+"%";
-    await sleep(reducedMotion?20:620);
+    await sleep(230);
     pawn.remove();
     return isCurrent(tokenGeneration);
   }
