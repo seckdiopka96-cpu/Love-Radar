@@ -875,7 +875,6 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
 
 /* The face is already visible on the physical die. No duplicate "Dé : 6". */
 .lr-ludo-solo-ui #turn-meta,
-.lr-ludo-duo-ui #turn-meta,
 .lr-ludo-solo-ui #pawn-choices,
 .lr-ludo-duo-ui #pawn-choices{display:none!important}
 /* Give every legal home/track pawn a comfortable invisible finger target.
