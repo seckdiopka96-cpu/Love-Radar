@@ -160,7 +160,7 @@
 .ludo-arena .ludo-moving-pawn,
 .ludo-arena .ludo-captured-pawn{z-index:35!important}
 .ludo-arena .ludo-moving-bounce{filter:drop-shadow(0 6px 4px #00183eaf)}
-.ludo-arena .ludo-moving-pawn{transition:left .34s cubic-bezier(.19,.7,.3,1),top .34s cubic-bezier(.19,.7,.3,1)!important}
+.ludo-arena .ludo-moving-pawn{transition:left .64s cubic-bezier(.19,.7,.3,1),top .64s cubic-bezier(.19,.7,.3,1)!important}
 .ludo-arena .ludo-game-footer{
  position:relative!important;z-index:5!important;flex:0 0 auto!important;
  display:flex!important;flex-direction:column!important;gap:5px!important;
