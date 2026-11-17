@@ -129,13 +129,13 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
    if(moved||captured.length||celebration){
     setEffect(celebration?"win":captured.length?"capture":"move");
     if(effectTimeout.current!==null)window.clearTimeout(effectTimeout.current);
-    effectTimeout.current=window.setTimeout(()=>{if(isActive.current){setEffect("");setCaptureFlash(false)}},Math.max(3500,430+route.length*(moved?.from===-1?900:920)+900));
+    effectTimeout.current=window.setTimeout(()=>{if(isActive.current){setEffect("");setCaptureFlash(false)}},Math.max(3500,250+route.length*(moved?.from===-1?520:540)+900));
     clearMotionTimers();setLanding(null);
     if(canAnimate&&moved){
      // Hold each square long enough for the pawn to be readable on mobile.
       // Match Solo's deliberate pace. Every square stays visible on both phones
       // long enough to see the pin land before moving to the next square.
-      const STEP_MS=moved.from===-1?900:920,START_MS=430;
+      const STEP_MS=moved.from===-1?520:540,START_MS=250;
      setCapturedMotions(captured.map(p=>({...p,returning:false})));
      setMotion({seat:moved.seat,pawn:moved.pawn,from:moved.from,to:moved.to,progress:moved.from});
      route.forEach((progress,index)=>{
