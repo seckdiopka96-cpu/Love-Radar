@@ -76,7 +76,7 @@ test("each of four colors has a distinct opposite and is shared/locked before si
  assert.ok(backend.includes('signed?.signed.some(Boolean)'));
  assert.ok(backend.includes('player.seat===0?data.color:OPPOSITE[data.color]'));
  assert.ok(backend.includes('if((await palette(db,g)).chosenBy===null)'));
- assert.ok(backend.includes('palette:g?await palette(db,g):null'));
+ assert.ok(backend.includes('palette:paletteValue'),"full responses retain selected colors");
  assert.ok(backend.includes('await syncPalette(db,updated)'));
  const deletion=readFileSync("functions/lib/delete-room.ts","utf8");
  assert.ok(deletion.includes('"ludo_palette"'));
