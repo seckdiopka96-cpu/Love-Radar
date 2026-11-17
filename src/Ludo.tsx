@@ -411,7 +411,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const visibleReactions=reactions.filter(r=>clock+clockOffset-r.at<7200&&clock+clockOffset-r.at> -2500).slice(-6);
  const shownReaction=visibleReactions[visibleReactions.length-1]||null;
  const lastNumber=game?.lastAction.match(/lancé un ([1-6])/);
- const showLast=lastNumber?Number(lastNumber[1]):5;
+ const showLast=lastRoll?.face??(lastNumber?Number(lastNumber[1]):5);
  const dice=rolling?rollingFace:(game?.dice??showLast);
  const message=!game?(loading?"Ouverture du plateau…":members<2?"Plateau prêt · En attente de ton amour":"Connexion à la partie…"):game.status==="won"?"Partie terminée":game.dice!==null&&myTurn?"Choisis un pion qui brille":game.dice!==null?"Ton partenaire choisit son pion":myTurn?"À TOI DE JOUER !":"AU TOUR DE "+displayName(game.turn);
  const status=game?.status==="won"?"🏆":myTurn?"✦":"◌";
