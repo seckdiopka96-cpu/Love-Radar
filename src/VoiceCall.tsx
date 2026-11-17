@@ -392,7 +392,19 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    return true;
   }
   if(signal.kind==="offer"&&call.direction==="incoming"){
-   if(peer.remoteDescription?.sdp===signal.payload)return true;
+   if(peer.remoteDescription?.sdp===signal.payload){
+    // A network loss after setLocalDescription but before sending the answer
+    // must retry transmitting that answer, not silently consume the offer.
+    if(!sessionDescriptionSent.current&&peer.localDescription?.type==="answer"){
+     try{
+      await api("signal",{id:call.id,kind:"answer",sdp:peer.localDescription.sdp,restart:answered.current});
+      sessionDescriptionSent.current=true;
+      void flushCandidates(call.id);
+      return true;
+     }catch{return false}
+    }
+    return true;
+   }
    if(peer.signalingState!=="stable")return false;
    const renegotiating=answered.current;
    answered.current=true;
