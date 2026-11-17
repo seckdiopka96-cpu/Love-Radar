@@ -33,7 +33,9 @@ function android(){
   "android.permission.FOREGROUND_SERVICE_MICROPHONE",
   "android.permission.ACCESS_COARSE_LOCATION",
   "android.permission.ACCESS_FINE_LOCATION",
-  "android.permission.CAMERA"
+  "android.permission.CAMERA",
+  "android.permission.POST_NOTIFICATIONS",
+  "android.permission.USE_FULL_SCREEN_INTENT"
  ]);
  if(!xml.includes('android:name=".NativeCallService"')){
   if(!xml.includes("</application>"))throw Error("Unexpected Android application section");
@@ -41,7 +43,49 @@ function android(){
    '    <service android:name=".NativeCallService" android:exported="false"'+
    ' android:foregroundServiceType="microphone" />\n    </application>');
  }
+ if(!xml.includes('android:name=".NativeIncomingCallActivity"')){
+  xml=xml.replace("</application>",
+   '    <activity android:name=".NativeIncomingCallActivity" android:exported="false"'+
+   ' android:excludeFromRecents="true" android:showWhenLocked="true"'+
+   ' android:turnScreenOn="true" />\n    </application>');
+ }
+ if(!xml.includes('android:name=".NativeVoipMessageService"')){
+  xml=xml.replace("</application>",
+   '    <service android:name=".NativeVoipMessageService" android:exported="false">'+
+   '<intent-filter><action android:name="com.google.firebase.MESSAGING_EVENT" />'+
+   '</intent-filter></service>\n    </application>');
+ }
  put(androidPath,xml);
+ const buildGradle="android/app/build.gradle";
+ if(!existsSync(buildGradle))throw Error("Android Gradle application missing");
+ let gradle=readFileSync(buildGradle,"utf8");
+ if(!gradle.includes("com.google.firebase:firebase-messaging:26.0.2")){
+  if(!/dependencies\s*\{/.test(gradle))throw Error("Missing Android dependencies block");
+  gradle=gradle.replace(/dependencies\s*\{/,
+   'dependencies {\n    implementation "com.google.firebase:firebase-messaging:26.0.2"');
+  put(buildGradle,gradle);
+ }
+ // Only public Firebase Android app identifiers go in the installed APK.
+ // The FCM service-account private key is NEVER part of this client config.
+ const vars=["FCM_ANDROID_APP_ID","FCM_ANDROID_SENDER_ID",
+  "FCM_ANDROID_API_KEY","FCM_ANDROID_PROJECT_ID"];
+ const provided=vars.filter(key=>Boolean(process.env[key]));
+ if(provided.length&&provided.length!==vars.length)
+  throw Error("Missing Android FCM public client configuration variables");
+ if(provided.length===vars.length){
+  const [appId,senderId,apiKey,projectId]=vars.map(key=>process.env[key]);
+  if(!/^1:[0-9]+:android:[a-fA-F0-9]+$/.test(appId)||
+     !/^[0-9]{6,20}$/.test(senderId)||
+     !/^[A-Za-z0-9_-]{24,100}$/.test(apiKey)||
+     !/^[a-z0-9][a-z0-9-]{3,48}$/.test(projectId))
+    throw Error("Invalid Android FCM public client values");
+  put("android/app/src/main/res/values/love_radar_fcm.xml",
+   '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'+
+   '<string name="google_app_id">'+appId+'</string>\n'+
+   '<string name="gcm_defaultSenderId">'+senderId+'</string>\n'+
+   '<string name="google_api_key">'+apiKey+'</string>\n'+
+   '<string name="project_id">'+projectId+'</string>\n</resources>\n');
+ }
  const dir="android/app/src/main/java";
  const main=readdirSync(dir,{recursive:true}).filter(x=>String(x).replaceAll("\\","/").endsWith("MainActivity.java"));
  if(main.length!==1)throw Error("Unable to find generated Android MainActivity.");
@@ -60,12 +104,20 @@ function android(){
    '        registerPlugin(NativeCallPlugin.class);\n'+
    '        super.onCreate(savedInstanceState);\n    }\n');
  }
+ if(!java.includes("registerPlugin(NativeVoipPlugin.class)")){
+  if(!java.includes("registerPlugin(NativeCallPlugin.class)"))
+   throw Error("NativeCall bridge missing");
+  java=java.replace("registerPlugin(NativeCallPlugin.class);",
+   "registerPlugin(NativeCallPlugin.class);\n"+
+   "        registerPlugin(NativeVoipPlugin.class);");
+ }
  put(mainPath,java);
  const outputDir=dirname(mainPath);
- for(const file of ["NativeCallPlugin.java","NativeCallService.java"]){
+ for(const file of ["NativeCallPlugin.java","NativeCallService.java",
+  "NativeVoipPlugin.java","NativeVoipMessageService.java","NativeIncomingCallActivity.java"]){
   put(join(outputDir,file),template(file+".txt").replaceAll("__PACKAGE__",packageName));
  }
- console.log("Android foreground microphone service and Capacitor call bridge configured.");
+ console.log("Android active-call service, FCM call invites, native lock screen and Capacitor bridges configured.");
 }
 function ios(){
  if(!existsSync(iosPath))throw Error("iOS project missing: run npx cap add ios.");
