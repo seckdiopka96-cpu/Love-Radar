@@ -3,7 +3,7 @@ import {useEffect,useState} from "react";
 export type CallHistoryEvent={
  id:string;callerId:string;createdAt:number;connectedAt:number;endedAt:number;
  status:"ringing"|"active"|"completed"|"cancelled"|"declined"|"missed"|"interrupted";
- durationSeconds:number;
+ durationSeconds:number;mode?:"audio"|"video";
 };
 export function formatCallDuration(seconds:number):string{
  const total=Math.max(0,Math.floor(Number.isFinite(seconds)?seconds:0));
@@ -26,8 +26,8 @@ export default function CallHistoryBubble({call,mine,partner,serverOffset=0}:Pro
  const ongoing=call.status==="active";
  const ringing=call.status==="ringing";
  const duration=ongoing?Math.max(0,Math.floor((now+serverOffset-call.connectedAt)/1000)):call.durationSeconds;
- const title=ongoing?"Appel en cours":ringing?mine?"Appel sortant…":"Appel entrant…":
-  call.status==="completed"?"Appel vocal":
+ const title=ongoing?(call.mode==="video"?"Appel vidéo en cours":"Appel en cours"):ringing?mine?(call.mode==="video"?"Appel vidéo sortant…":"Appel sortant…"):(call.mode==="video"?"Appel vidéo entrant…":"Appel entrant…"):
+  call.status==="completed"?(call.mode==="video"?"Appel vidéo":"Appel vocal"):
   call.status==="declined"?"Appel refusé":
   call.status==="cancelled"?"Appel annulé":
   call.status==="missed"?"Appel manqué":"Appel interrompu";
@@ -39,7 +39,7 @@ export default function CallHistoryBubble({call,mine,partner,serverOffset=0}:Pro
   <div className={"lr-call-chat-card "+(ongoing?"is-live":"")}>
    <span className="lr-call-chat-symbol" aria-hidden="true">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-     <path d="M5 3.5 8.2 3c.6-.1 1.2.3 1.4.9l1.4 3.8a1.6 1.6 0 0 1-.5 1.8L8.8 11a16 16 0 0 0 4.3 4.3l1.5-1.7c.4-.5 1.1-.7 1.8-.5l3.8 1.4c.6.2 1 .8.9 1.4L20.5 19c-.2 1-1 1.7-2 1.6C10.4 20.1 3.9 13.6 3.4 5.5c-.1-1 .6-1.8 1.6-2Z"/>
+     {call.mode==="video"?<><rect x="2.5" y="6" width="14" height="12" rx="2.5"/><path d="m16.5 10 5-3v10l-5-3"/></>:<path d="M5 3.5 8.2 3c.6-.1 1.2.3 1.4.9l1.4 3.8a1.6 1.6 0 0 1-.5 1.8L8.8 11a16 16 0 0 0 4.3 4.3l1.5-1.7c.4-.5 1.1-.7 1.8-.5l3.8 1.4c.6.2 1 .8.9 1.4L20.5 19c-.2 1-1 1.7-2 1.6C10.4 20.1 3.9 13.6 3.4 5.5c-.1-1 .6-1.8 1.6-2Z"/>}
      {mine?<path d="m16 4 4 4m0-4v4h-4"/>:<path d="m20 4-4 4m4 0h-4V4"/>}
     </svg>
    </span>
