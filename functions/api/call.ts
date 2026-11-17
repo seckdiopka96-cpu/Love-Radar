@@ -1,9 +1,10 @@
 import type { D1Database } from "@cloudflare/workers-types";
 import { notifyPartner } from "../lib/push";
-import {notifyIncomingVoip,type VoipEnv} from "../lib/apns-voip";
+import {notifyIncomingVoip} from "../lib/apns-voip";
+import {notifyIncomingAndroid,type AndroidVoipEnv} from "../lib/fcm-call";
 import {consumeMemberLimit,MEMBER_LIMITS,throttled} from "../lib/abuse-limits";
 
-type Env = VoipEnv;
+type Env = AndroidVoipEnv;
 type Context = {request:Request;env:Env;waitUntil:(task:Promise<unknown>)=>void};
 type Member = {id:string;room_id:string;name:string};
 type VoiceCall = {id:string;room_id:string;caller_id:string;callee_id:string;status:string;created_at:number;updated_at:number;expires_at:number;mode?:string};
@@ -119,7 +120,8 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
      .bind(call.id,u.room_id).run();
     waitUntil(Promise.all([
      notifyPartner(env,u.room_id,u.id,mode==="video"?"📹 Appel vidéo entrant":"📞 Appel entrant",u.name+(mode==="video"?" t’appelle en vidéo.":" t’appelle.")+" Appuie pour répondre.","chat",{kind:"call",id:call.id}),
-     notifyIncomingVoip(env,u.room_id,partner.id,call.id,u.name,call.expires_at)
+     notifyIncomingVoip(env,u.room_id,partner.id,call.id,u.name,call.expires_at,mode),
+     notifyIncomingAndroid(env,u.room_id,partner.id,call.id,u.name,call.expires_at,mode)
     ]).then(()=>{}));
    }
    return response({ok:true,call:view(call,u),already:!created.meta.changes});
