@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import "./ludo.css";
 import "./ludo-immersive.css";
 import "./ludo-arena.css";
-import LudoTutorial,{ludoGuideWasSeen} from "./LudoTutorial";
+import LudoTutorial from "./LudoTutorial";
 import DiceFace from "./DiceFace";
 import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
@@ -67,7 +67,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
  const [loading,setLoading]=useState(true);
  const [menu,setMenu]=useState(false);
  const [rules,setRules]=useState(false);
- const [tutorialOpen,setTutorialOpen]=useState(()=>!ludoGuideWasSeen("duo"));
+ const [tutorialOpen,setTutorialOpen]=useState(false);
  const [emotes,setEmotes]=useState(false);
  const [effect,setEffect]=useState("");
  const [boardSize,setBoardSize]=useState(0);
