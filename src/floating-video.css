@@ -1,0 +1,93 @@
+/* Love Radar — moveable in-app floating video during chat, Ludo and memories.
+   It is NOT system-wide PiP outside iOS/Android apps. */
+.lr-call-floating{
+ position:fixed;z-index:2147483644;
+ top:calc(93px + env(safe-area-inset-top));right:12px;
+ left:auto;display:flex;flex-direction:column;isolation:isolate;
+ width:min(184px,48vw);height:270px;min-height:235px;
+ border:1px solid #e9b6d4aa;border-radius:22px;overflow:hidden;
+ color:#fff5fb;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Arial,sans-serif;
+ background:#141a30;box-shadow:0 14px 46px #080a23a8,0 0 0 2px #1c173b4d;
+ touch-action:pan-y;
+}
+.lr-call-floating.is-dragging{
+ box-shadow:0 20px 60px #060817d1,0 0 0 2px #f6c9e6a8;
+}
+.lr-call-floating-screen{
+ position:relative;isolation:isolate;flex:1;min-height:0;
+ background:linear-gradient(150deg,#483357,#161d39);
+ overflow:hidden;
+}
+.lr-call-floating-screen>video{
+ display:block;width:100%;height:100%;object-fit:cover;
+ object-position:center;position:absolute;inset:0;
+ background:#151a34;
+}
+.lr-call-floating-self>video{transform:scaleX(-1)}
+.lr-call-floating-empty{
+ position:absolute;z-index:1;inset:0;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:7px;padding:18px 8px;text-align:center;
+ background:linear-gradient(145deg,#3d3155,#19223b);
+}
+.lr-call-floating-empty b{
+ display:grid;place-items:center;width:54px;height:54px;border-radius:50%;
+ font-size:22px;background:#ad6b9b;color:white;
+ border:1px solid #ffffff77;overflow:hidden;
+}
+.lr-call-floating-empty img{width:100%;height:100%;object-fit:cover}
+.lr-call-floating-empty span{font-size:11px;line-height:1.35;color:#ffe9f8}
+.lr-call-floating-head{
+ position:absolute;top:0;inset-inline:0;z-index:3;
+ display:flex;align-items:flex-start;justify-content:space-between;gap:3px;
+ padding:7px;background:linear-gradient(180deg,#0d0b20b8,transparent);
+}
+.lr-call-floating-drag,.lr-call-floating-expand{
+ min-height:35px;border:1px solid #ffffff78;background:#261e43c9;color:white;
+ border-radius:11px;font-size:12px;font-weight:800;cursor:pointer;
+ backdrop-filter:blur(8px);
+}
+.lr-call-floating-drag{
+ display:flex;align-items:center;gap:4px;
+ padding:0 9px;touch-action:none;user-select:none;
+}
+.lr-call-floating-drag svg{width:15px;height:15px;flex:none}
+.lr-call-floating-expand{
+ display:grid;place-items:center;min-width:36px;padding:0 7px;
+}
+.lr-call-floating-expand svg{width:19px;height:19px}
+.lr-call-floating-caption{
+ position:absolute;bottom:0;left:0;right:0;z-index:2;
+ padding:22px 9px 9px;
+ display:flex;flex-direction:column;gap:3px;
+ background:linear-gradient(0deg,#090a21c8,transparent);
+ font-size:11px;line-height:1.2;
+}
+.lr-call-floating-caption strong{
+ font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.lr-call-floating-caption small{font-size:10px;color:#f4d2e8}
+.lr-call-floating-actions{
+ flex:none;display:flex;align-items:center;justify-content:space-around;
+ padding:7px 5px;gap:4px;min-height:49px;
+ border-top:1px solid #d89db843;background:#271f3c;
+}
+.lr-call-floating-actions button{
+ border:1px solid #a9829e;flex:1;height:37px;min-width:0;
+ display:grid;place-items:center;cursor:pointer;border-radius:12px;
+ background:#4f3a62;color:white;font-size:17px;
+}
+.lr-call-floating-actions button.is-muted{background:#876384}
+.lr-call-floating-actions button.lr-call-floating-hangup{
+ background:#dc3159;border-color:#f57591;font-size:17px;
+}
+.lr-call-floating-actions button:disabled{opacity:.45;cursor:default}
+.lr-call-floating button:focus-visible{
+ outline:2px solid white;outline-offset:-2px;
+}
+@media(max-width:380px){
+ .lr-call-floating{width:155px;height:231px;min-height:220px;right:8px}
+ .lr-call-floating-drag{padding:0 6px;gap:2px;font-size:10px}
+ .lr-call-floating-actions button{height:34px}
+}
+@media(prefers-reduced-motion:reduce){.lr-call-floating{transition:none!important}}
