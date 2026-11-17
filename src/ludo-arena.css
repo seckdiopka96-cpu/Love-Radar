@@ -433,3 +433,218 @@
 }
 .ludo-arena.ludo-solo .ludo-arena-field-label.is-human{left:6%;top:20%}
 .ludo-arena.ludo-solo .ludo-arena-field-label.is-bot{left:94%;top:80%}
+
+
+/* LUDO ARENA REFINEMENT v2 — real 3D dice, crystalline pegs and uncluttered rail.
+   Never alter board coordinates, turn timing or multiplayer actions. */
+.ludo-experience.ludo-arena .ludo-board-wrap-immersive{
+ border:2px solid #a9c9e9!important;
+ padding:2px!important;
+ border-radius:5px!important;
+ background:#10385f!important;
+ box-shadow:0 8px 20px #071a3a88,0 0 0 1px #0c2b54!important;
+}
+.ludo-experience.ludo-arena .ludo-board{
+ border:1px solid #2b4258!important;
+ border-radius:2px!important;
+ box-shadow:none!important;
+}
+.ludo-experience.ludo-arena .ludo-path{
+ border:.55px solid #3b536570!important;
+}
+.ludo-experience.ludo-arena .ludo-cell-pawns .ludo-pawn-stacked{
+ width:clamp(24px,7.6vw,38px)!important;
+ height:clamp(33px,10vw,50px)!important;
+}
+.ludo-experience.ludo-arena .ludo-cell-pawns .ludo-pawn-stacked svg.ludo-token-art,
+.ludo-experience.ludo-arena .ludo-moving-pawn svg.ludo-token-art,
+.ludo-experience.ludo-arena .ludo-pick svg.ludo-token-art{
+ display:block!important;
+ overflow:visible!important;
+ filter:drop-shadow(0 2.5px 2px #061c3970) drop-shadow(0 0 1px #fff)!important;
+ image-rendering:auto!important;
+}
+.ludo-experience.ludo-arena .ludo-cell-pawns .ludo-pawn-stacked.can-move svg.ludo-token-art,
+.ludo-experience.ludo-arena .ludo-pick.can-play svg.ludo-token-art{
+ filter:drop-shadow(0 3px 3px #061c39af) drop-shadow(0 0 6px #ffe279)!important;
+}
+.ludo-experience.ludo-arena .ludo-pawn-stem{
+ stroke-width:2.35!important;
+ filter:none!important;
+}
+.ludo-experience.ludo-arena .ludo-pawn-head{
+ stroke-width:1.2!important;
+}
+.ludo-experience.ludo-arena .ludo-pawn-foot{
+ stroke-width:2!important;
+ filter:none!important;
+}
+.ludo-experience.ludo-arena .ludo-die-holder .ludo-die-3d{
+ --cube-size:43px;
+ width:60px!important;height:60px!important;
+ flex:0 0 60px!important;
+ transform:none!important;
+}
+.ludo-experience.ludo-arena .ludo-die-holder{
+ z-index:15!important;overflow:visible!important;
+ opacity:1!important;
+}
+.ludo-experience.ludo-arena .ludo-die-holder:disabled{
+ opacity:1!important;
+ cursor:default!important;
+}
+.ludo-experience.ludo-arena .ludo-die-holder.is-rolling{
+ z-index:80!important;overflow:visible!important;
+}
+.ludo-experience.ludo-arena .ludo-die-holder .ludo-die-3d.is-tumbling{
+ animation:ludo-die-flying .62s ease-in-out infinite!important;
+}
+.ludo-experience.ludo-arena .ludo-die-holder .ludo-die-3d.is-tumbling .ludo-die-cube{
+ animation:ludo-die-tumble-3d .62s cubic-bezier(.18,.53,.54,.89) infinite!important;
+}
+.ludo-experience.ludo-arena .ludo-die-holder:not(:disabled):active{
+ filter:brightness(1.12)!important;
+}
+
+/* Classic You · DIE · Computer bar, inspired by the user's screenshots. */
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail{
+ position:relative!important;
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr)!important;
+ align-items:center!important;
+ gap:0!important;
+ width:min(100%,700px)!important;
+ height:69px!important;min-height:69px!important;flex:0 0 69px!important;
+ padding:5px!important;
+ background:linear-gradient(180deg,#07428f,#073170)!important;
+ border:2px solid #e4c75f!important;border-radius:14px!important;
+ box-shadow:0 5px 0 #051e4a,0 7px 20px #0724438c!important;
+ overflow:visible!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-player{
+ display:flex!important;align-items:center!important;
+ gap:6px!important;height:55px!important;
+ min-width:0!important;
+ padding:4px 5px!important;
+ border:0!important;border-radius:8px!important;
+ background:transparent!important;
+ box-shadow:none!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-player.is-active{
+ background:#1b62ae63!important;
+ box-shadow:inset 0 0 0 1px #ffd75d6b!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-player-red{
+ grid-column:1;grid-row:1;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-player-gold{
+ grid-column:3;grid-row:1;justify-content:flex-end!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-player-avatar{
+ display:grid!important;place-items:center!important;
+ width:37px!important;height:43px!important;flex:0 0 37px!important;
+ border:0!important;border-radius:15px!important;
+ color:#fff!important;background:linear-gradient(150deg,#5ed0fc,#0d79ba)!important;
+ text-shadow:0 1px 2px #10315a;
+ font-size:18px!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-player-gold .ludo-player-avatar{
+ background:linear-gradient(150deg,#54daa2,#068b5b)!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-player-info{
+ gap:3px!important;min-width:0!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-player-info strong{
+ font-size:clamp(12px,3.3vw,18px)!important;
+ font-weight:930!important;line-height:1.1!important;
+ color:#ffe17d!important;
+ text-shadow:0 2px 3px #0b254b;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-player-info span{
+ color:#d1eaff!important;font-size:clamp(8px,2.1vw,10px)!important;
+ line-height:1.15!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-player-turn{
+ width:7px!important;height:7px!important;flex:0 0 7px!important;
+ font-size:13px!important;line-height:7px!important;
+ color:#ffe36a!important;text-shadow:0 0 11px #ffe46b!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-die-in-player-rail{
+ grid-column:2;grid-row:1;align-self:center!important;justify-self:center!important;
+ width:74px!important;min-width:74px!important;height:74px!important;
+ margin:-7px 0!important;padding:3px!important;
+ border:2px solid #fff2d5!important;border-radius:14px!important;
+ background:linear-gradient(160deg,#eeb4c5,#99677e)!important;
+ box-shadow:0 5px 0 #5c405e,0 8px 10px #071e46ad,inset 0 2px 0 #ffffffa0!important;
+ cursor:pointer!important;
+ display:grid!important;place-items:center!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-die-in-player-rail:disabled{
+ cursor:default!important;opacity:1!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-die-in-player-rail .ludo-die-3d{
+ --cube-size:47px;
+ width:67px!important;height:67px!important;
+ flex:none!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-game-footer{
+ gap:2px!important;
+ padding:0!important;margin-top:2px!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-bottom-actions{
+ height:24px!important;min-height:24px!important;max-height:24px!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ margin:0!important;padding:0!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-roll-tip{
+ display:block!important;
+ width:100%!important;
+ text-align:center!important;
+ font-size:11px!important;line-height:1.4!important;
+ color:#d8e9fb!important;font-weight:700!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-pick-row{
+ height:39px!important;flex:0 0 39px!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-last-move{
+ color:#bbd4ef!important;font-size:10px!important;
+ white-space:nowrap!important;overflow:hidden!important;
+ text-overflow:ellipsis!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-turn-banner{
+ padding:5px 10px!important;
+ border:0!important;
+ box-shadow:none!important;
+ background:#0a386fab!important;
+}
+.ludo-experience.ludo-arena.ludo-solo .ludo-arena-field-label{
+ font-size:clamp(9px,2.5vw,14px)!important;
+ text-shadow:-1px -1px #0a2947,1px -1px #0a2947,-1px 1px #0a2947,1px 1px #0a2947!important;
+}
+@media(max-width:390px){
+ .ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail{
+  grid-template-columns:minmax(0,1fr) 62px minmax(0,1fr)!important;
+  height:61px!important;min-height:61px!important;flex-basis:61px!important;
+ }
+ .ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-player{
+  height:50px!important;padding:3px!important;gap:4px!important;
+ }
+ .ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-player-avatar{
+  width:30px!important;height:37px!important;flex-basis:30px!important;font-size:15px!important;
+ }
+ .ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-die-in-player-rail{
+  width:64px!important;min-width:64px!important;height:64px!important;margin:-4px 0!important;
+ }
+ .ludo-experience.ludo-arena.ludo-solo .ludo-arena-player-rail .ludo-die-in-player-rail .ludo-die-3d{
+  --cube-size:41px;width:59px!important;height:59px!important;
+ }
+ .ludo-experience.ludo-arena .ludo-cell-pawns .ludo-pawn-stacked{
+  width:clamp(23px,7.6vw,34px)!important;height:clamp(31px,10vw,45px)!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .ludo-experience.ludo-arena .ludo-die-holder .ludo-die-3d.is-tumbling,
+ .ludo-experience.ludo-arena .ludo-die-holder .ludo-die-3d.is-tumbling .ludo-die-cube{
+  animation:none!important;
+ }
+}
