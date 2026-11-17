@@ -49,6 +49,17 @@ export default function LudoDuoFrame(props:Props){
     props.remaining,props.rolling,props.rollingFace,props.busy,props.animationBusy,
     props.motion,props.capturedMotions,props.error]);
  useEffect(()=>{if(ready)send()},[ready,send]);
+ // Keep the handshake reliable even when a locally cached iframe executes
+ // before React's message listener is installed (common on iOS WebKit).
+ useEffect(()=>{
+  if(ready)return;
+  const ping=()=>ref.current?.contentWindow?.postMessage({
+   source:"love-radar-ludo-duo-parent",type:"ping"
+  },window.location.origin);
+  ping();
+  const id=window.setInterval(ping,900);
+  return()=>window.clearInterval(id);
+ },[ready,retry]);
  useEffect(()=>{
   const message=(event:MessageEvent)=>{
    const frame=ref.current?.contentWindow;
@@ -71,7 +82,7 @@ export default function LudoDuoFrame(props:Props){
  },[props.onAction,send]);
  return <section className="ludo-duo-shared-frame" aria-label="Plateau Ludo Duo identique au Ludo Solo">
   <iframe key={retry} ref={ref} className="ludo-duo-shared-iframe"
-   src="/ludo-duo/index.html?v=ludo-room-20261117-v4" title="Ludo Duo : plateau et dé synchronisés avec ton partenaire"
+   src="/ludo-duo/index.html?v=ludo-room-20261117-v5" title="Ludo Duo : plateau et dé synchronisés avec ton partenaire"
    referrerPolicy="same-origin" loading="eager" onError={()=>setFailed(true)}/>
   {failed&&!ready?<div className="ludo-duo-frame-error" role="alert">
    <strong>Impossible de charger le nouveau plateau Duo.</strong>
