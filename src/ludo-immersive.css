@@ -739,3 +739,31 @@
  .ludo-reaction-burst,.ludo-reaction-face{animation:none!important}
  .ludo-reaction-burst{transform:translate(-50%,-50%)}
 }
+
+
+/* A consistent, visible Ludo logo on the compact native headers. */
+.ludo-experience .ludo-brand{position:relative}
+.ludo-experience .ludo-head-logo{
+ position:absolute;left:-32px;top:50%;width:30px;height:30px;
+ transform:translateY(-50%);object-fit:contain;border-radius:8px;
+ filter:drop-shadow(0 4px 7px #060e2cda)
+}
+.ludo-experience .ludo-board-wrap-immersive{
+ box-shadow:0 18px 36px #080b23eb,0 8px 16px #030d24bb,
+ 0 0 0 2px #f8e6c495,0 0 28px #e9bc6b37!important
+}
+.ludo-experience .ludo-moving-pawn::before{
+ width:91%;height:19%;bottom:-5%;
+ background:radial-gradient(ellipse,#020c1af0 0%,#102747b8 43%,transparent 78%);
+ filter:blur(2px);animation:lr-react-pawn-shadow .54s ease-in-out infinite!important
+}
+.ludo-experience .ludo-moving-pawn .ludo-moving-bounce{
+ filter:drop-shadow(0 12px 7px #010b20c9) drop-shadow(0 4px 3px #060f27bf)!important
+}
+.ludo-experience .ludo-cell-pawns svg.ludo-token-art{
+ filter:drop-shadow(0 5px 4px #06152bab)
+}
+@media(max-width:380px){.ludo-experience .ludo-head-logo{width:25px;height:25px;left:-26px}}
+@media(prefers-reduced-motion:reduce){
+ .ludo-experience .ludo-moving-pawn::before{animation:none!important;transform:translateX(-50%) scale(.8)}
+}
