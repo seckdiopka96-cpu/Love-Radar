@@ -510,12 +510,14 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   const next=!cameraOff;
   tracks.forEach(track=>{track.enabled=!next});
   setCameraOff(next);
+  if(next)setLocalPreviewReady(false);
+  else void playLocalPreview();
  }
  async function switchCamera(){
   if(current.current?.mode!=="video"||!local.current||cameraSwitching.current)return;
   const sender=pc.current?.getSenders().find(item=>item.track?.kind==="video");
   const existing=local.current.getVideoTracks()[0];
-  if(!sender||!existing){setCameraWarning("Aucune caméra active à changer.");return}
+  if(!existing){setCameraWarning("Aucune caméra disponible. Vérifie son autorisation.");return}
   cameraSwitching.current=true;setCameraBusy(true);setCameraWarning("");
   const oldFacing=cameraFacing,nextFacing=oldFacing==="user"?"environment":"user";
   const acquire=(facing:"user"|"environment")=>navigator.mediaDevices.getUserMedia({
@@ -531,22 +533,26 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    const track=replacement.getVideoTracks()[0];
    if(!track)throw Error("Aucune caméra détectée.");
    track.enabled=!cameraOff;
-   await sender.replaceTrack(track);
+   // The outgoing caller has no video sender until the call is answered.
+   if(sender)await sender.replaceTrack(track);
    local.current.removeTrack(existing);local.current.addTrack(track);
    if(!stopped)existing.stop();
    adopted=true;
-   if(localVideo.current){localVideo.current.srcObject=null;localVideo.current.srcObject=local.current;void localVideo.current.play().catch(()=>{})}
+   setLocalPreviewReady(false);
+   if(localVideo.current)void playLocalPreview();
    setCameraFacing(nextFacing);
+   setCameraWarning("");
   }catch(err){
    if(stopped){
     try{
      const restored=await acquire(oldFacing),track=restored.getVideoTracks()[0];
      if(track){
-      track.enabled=!cameraOff;await sender.replaceTrack(track);
+      track.enabled=!cameraOff;if(sender)await sender.replaceTrack(track);
       local.current.removeTrack(existing);local.current.addTrack(track);
-      if(localVideo.current){localVideo.current.srcObject=null;localVideo.current.srcObject=local.current;void localVideo.current.play().catch(()=>{})}
+      setLocalPreviewReady(false);
+      if(localVideo.current)void playLocalPreview();
      }
-    }catch{setCameraOff(true)}
+    }catch{setCameraOff(true);setLocalPreviewReady(false)}
    }
    setCameraWarning("Changement de caméra impossible : "+(err instanceof Error?err.message:"réessaie plus tard."));
   }finally{
@@ -662,9 +668,14 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
       <video ref={attachRemoteVideo} autoPlay playsInline muted aria-label={"Vidéo de "+partner}/>
       {!remoteHasVideo?<div className="lr-call-video-wait"><div className="lr-call-video-avatar">{avatarSrc?<img src={avatarSrc} alt=""/>:partner.trim().charAt(0).toUpperCase()||"♡"}</div><strong>{partner}</strong><span>{active.status==="ringing"?"En attente de réponse…":"En attente de la caméra du partenaire…"}</span></div>:null}
      </div>
-     <div className={"lr-call-video-self"+(cameraOff||!local.current?.getVideoTracks().length?" is-camera-off":"")}>
-      <video ref={attachLocalVideo} autoPlay playsInline muted aria-label="Ma caméra"/>
-      {cameraOff||!local.current?.getVideoTracks().length?<span>Caméra désactivée</span>:null}
+     <div className={"lr-call-video-self"+(cameraOff||!local.current?.getVideoTracks().some(track=>track.readyState==="live")?" is-camera-off":"")}>
+      <video ref={attachLocalVideo} autoPlay playsInline muted onPlaying={()=>{setLocalPreviewReady(true);setLocalPreviewHelp("")}} onError={()=>{setLocalPreviewReady(false);setLocalPreviewHelp("Aperçu indisponible. Appuie pour réessayer.")}} aria-label="Ma caméra"/>
+      {cameraOff||!local.current?.getVideoTracks().some(track=>track.readyState==="live")?
+       <span>Caméra indisponible</span>
+      :!localPreviewReady?
+       <button type="button" className="lr-call-video-self-help" onClick={()=>void playLocalPreview()} aria-label="Activer l’aperçu de ma caméra">{localPreviewHelp||"Afficher ma caméra"}</button>
+      :null}
+      <button type="button" className="lr-call-video-retry" onClick={()=>void playLocalPreview()} title="Rafraîchir ma caméra" aria-label="Rafraîchir l’aperçu de ma caméra">↻</button>
      </div>
      <div className="lr-call-video-tag">VIDÉO · HD automatique</div>
     </div>:null}
