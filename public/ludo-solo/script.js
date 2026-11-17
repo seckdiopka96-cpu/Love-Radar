@@ -72,6 +72,48 @@
     throw new Error("Une section du jeu Ludo manque dans index.html.");
   }
 
+  // Taunts stay above the board and never change its height.
+  const EMOTES=[
+    ["😝","Langue tirée","tongue"],["🤪","Grimace","tongue"],
+    ["😂","Mort de rire","laugh"],["🤣","Fou rire","laugh"],
+    ["😭","Je pleure","cry"],["😱","Choqué","shock"],
+    ["😎","Trop fort","cool"],["👏","Bravo","clap"]
+  ];
+  const emojiToggle=document.createElement("button");
+  emojiToggle.type="button";emojiToggle.className="lr-reaction-toggle";
+  emojiToggle.textContent="😝";emojiToggle.setAttribute("aria-label","Envoyer une réaction animée");
+  emojiToggle.setAttribute("aria-expanded","false");
+  const emojiPicker=document.createElement("div");
+  emojiPicker.className="lr-reaction-picker";emojiPicker.hidden=true;
+  emojiPicker.setAttribute("role","group");emojiPicker.setAttribute("aria-label","Réactions Ludo");
+  const sticker=document.createElement("div");
+  sticker.className="lr-reaction-burst";sticker.hidden=true;
+  sticker.setAttribute("role","status");sticker.setAttribute("aria-live","polite");
+  let stickerTimer=null;
+  function closeEmojiPicker(){emojiPicker.hidden=true;emojiToggle.setAttribute("aria-expanded","false")}
+  function openEmojiPicker(){emojiPicker.hidden=false;emojiToggle.setAttribute("aria-expanded","true")}
+  function showEmojiReaction(emoji,kind,label){
+    if(stickerTimer!==null)clearTimeout(stickerTimer);
+    sticker.replaceChildren();
+    const face=document.createElement("span");face.className="lr-reaction-face";
+    face.textContent=emoji;
+    sticker.dataset.kind=kind;
+    sticker.setAttribute("aria-label","Réaction : "+label);
+    sticker.append(face);
+    sticker.hidden=false;
+    stickerTimer=setTimeout(()=>{sticker.hidden=true;sticker.replaceChildren();stickerTimer=null},2700);
+  }
+  for(const [emoji,label,kind] of EMOTES){
+    const b=document.createElement("button");
+    b.type="button";b.textContent=emoji;b.title=label;
+    b.setAttribute("aria-label",label);
+    b.addEventListener("click",()=>{closeEmojiPicker();showEmojiReaction(emoji,kind,label)});
+    emojiPicker.append(b);
+  }
+  emojiToggle.addEventListener("click",()=>emojiPicker.hidden?openEmojiPicker():closeEmojiPicker());
+  document.querySelector(".players-rail")?.append(emojiToggle,emojiPicker);
+  board.append(sticker);
+
   // État : un entier par pion (-1 = maison, 0..55 = parcours, 56 = arrivé).
   let game = null;
   let busy = false;
@@ -512,6 +554,7 @@
     for (const opponentPawn of captured) game.pieces[otherSide][opponentPawn]=HOME;
     // Show captured pawns in their original home positions, never delete them.
     if(captured.length)renderPawns();
+    if(captured.length&&side==="human")openEmojiPicker();
     const finished=target===FINAL;
     const hasWon=game.pieces[side].every(p=>p===FINAL);
     const actor=labelSide(side);
