@@ -379,3 +379,176 @@
  .lr-call-backdrop .lr-video-call .lr-call-action .lr-call-control-icon{width:42px!important;height:42px!important}
  .lr-call-backdrop .lr-video-call .lr-call-video-stage{min-height:140px!important}
 }
+
+/* Full-screen video calling v3: the caller sees their own live camera before pickup.
+   The exact same local <video> moves into PiP when partner frames start playing.
+   All controls are overlaid; no letterboxing, floating video cards or dead gaps. */
+.lr-call-backdrop .lr-call-sheet.lr-call-facetime.lr-video-call{
+ position:relative!important;isolation:isolate!important;
+ width:100%!important;max-width:100vw!important;
+ height:100dvh!important;min-height:100dvh!important;max-height:100dvh!important;
+ padding:0!important;margin:0!important;border:0!important;border-radius:0!important;
+ overflow:hidden!important;box-shadow:none!important;background:#0b1024!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-stage{
+ position:absolute!important;inset:0!important;
+ width:100%!important;height:100%!important;min-height:100%!important;
+ margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+ box-shadow:none!important;background:#0a1223!important;overflow:hidden!important;
+ z-index:0!important;display:block!important;flex:none!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-remote{
+ position:absolute!important;inset:0!important;
+ width:100%!important;height:100%!important;z-index:1!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-remote>video,
+.lr-call-backdrop .lr-video-call .lr-call-video-self>video{
+ position:absolute!important;inset:0!important;
+ display:block!important;width:100%!important;height:100%!important;
+ object-fit:cover!important;object-position:center center!important;
+ background:#101629!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-self{
+ position:absolute!important;inset:0!important;z-index:2!important;
+ width:100%!important;height:100%!important;
+ min-width:0!important;max-width:none!important;
+ margin:0!important;border:0!important;border-radius:0!important;
+ box-shadow:none!important;background:transparent!important;
+ overflow:hidden!important;transition:none!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-stage.is-self-first .lr-call-video-self{
+ z-index:3!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-stage.has-partner-video .lr-call-video-remote{
+ z-index:2!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-stage.has-partner-video .lr-call-video-self{
+ inset:auto 15px auto auto!important;
+ top:calc(145px + env(safe-area-inset-top))!important;
+ width:clamp(100px,28vw,140px)!important;
+ height:clamp(138px,39vw,190px)!important;
+ border:2px solid #ffe5f1!important;border-radius:18px!important;
+ box-shadow:0 9px 30px #070918a8!important;
+ z-index:8!important;background:#14192c!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-wait{
+ position:absolute!important;inset:0!important;z-index:2!important;
+ border-radius:0!important;padding:25px!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-self.is-camera-off>video{visibility:hidden!important}
+.lr-call-backdrop .lr-video-call .lr-call-video-self.is-camera-off>span{
+ background:linear-gradient(158deg,#202743,#10152c)!important;
+ font-size:15px!important;color:#f8e3f2!important;
+ display:grid!important;place-items:center!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-stage.has-partner-video .lr-call-video-self.is-camera-off>span{
+ font-size:11px!important;padding:8px!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-self .lr-call-video-self-help{
+ inset:0!important;z-index:4!important;
+ background:#0c1329aa!important;color:#fff!important;
+ font-size:14px!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-stage.has-partner-video .lr-call-video-self .lr-call-video-self-help{
+ font-size:11px!important;padding:7px!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-self .lr-call-video-retry{
+ position:absolute!important;z-index:6!important;
+ top:auto!important;bottom:13px!important;right:13px!important;
+ width:43px!important;height:43px!important;
+ font-size:24px!important;background:#25203eb8!important;
+ border:1px solid #ffffff8a!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-stage.has-partner-video .lr-call-video-self .lr-call-video-retry{
+ top:5px!important;bottom:auto!important;right:5px!important;
+ width:28px!important;height:28px!important;font-size:17px!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-tag{display:none!important}
+.lr-call-backdrop .lr-video-call .lr-call-upper{
+ position:absolute!important;z-index:10!important;
+ inset:0 0 auto 0!important;width:100%!important;
+ flex:none!important;padding:calc(7px + env(safe-area-inset-top)) 16px 20px!important;
+ box-sizing:border-box!important;
+ background:linear-gradient(180deg,rgba(9,11,31,.84),rgba(9,11,31,.48) 62%,transparent)!important;
+ pointer-events:none!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-topbar{
+ width:100%!important;min-height:44px!important;margin:0 0 10px!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-topbar button,
+.lr-call-backdrop .lr-video-call .lr-call-feedback button{pointer-events:auto!important}
+.lr-call-backdrop .lr-video-call .lr-call-identity{
+ padding:0 2px!important;gap:11px!important;min-height:52px!important;
+}
+.lr-call-backdrop .lr-video-call.is-video-outgoing .lr-call-initial{
+ display:none!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-identification h2{
+ font-size:clamp(21px,5.8vw,28px)!important;text-shadow:0 1px 12px #050819a0!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-brand{
+ color:#f8bddd!important;font-size:11px!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-duration{
+ color:#ece6f2!important;font-size:12px!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-feedback{
+ margin-top:10px!important;max-height:min(24dvh,140px)!important;
+ pointer-events:auto!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-actions{
+ position:absolute!important;z-index:12!important;
+ left:50%!important;right:auto!important;bottom:calc(16px + env(safe-area-inset-bottom))!important;
+ transform:translateX(-50%)!important;
+ width:min(95%,490px)!important;max-width:490px!important;
+ margin:0!important;padding:16px 11px 14px!important;
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ gap:10px 4px!important;justify-items:center!important;
+ background:rgba(24,22,47,.70)!important;backdrop-filter:blur(24px)!important;
+ border:1px solid #ffffff2d!important;border-radius:30px!important;
+ box-shadow:0 12px 42px #040713b3!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-actions.is-ringing{
+ grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ max-width:345px!important;width:min(90%,345px)!important;
+ padding:16px!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-action{
+ width:100%!important;min-height:69px!important;
+ padding:0!important;margin:0!important;
+ display:flex!important;flex-direction:column!important;align-items:center!important;
+ justify-content:flex-start!important;gap:7px!important;
+ pointer-events:auto!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-action .lr-call-control-icon{
+ width:clamp(47px,14vw,62px)!important;
+ height:clamp(47px,14vw,62px)!important;
+ border:1px solid #ffffff67!important;
+ border-radius:50%!important;
+ background:#ffffff20!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-action .lr-call-control-label{
+ font-size:clamp(10px,2.7vw,12px)!important;color:#fff!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-hangup .lr-call-control-icon{
+ background:#ed315f!important;border-color:#ff8ca8!important;
+}
+.lr-call-backdrop .lr-video-call .lr-call-speaker,
+.lr-call-backdrop .lr-video-call .lr-call-keypad{display:none!important}
+@media (min-width:750px){
+ .lr-call-backdrop{padding:0!important}
+ .lr-call-backdrop .lr-call-sheet.lr-call-facetime.lr-video-call{
+  width:100vw!important;max-width:100vw!important;height:100dvh!important;max-height:100dvh!important;
+  padding:0!important;border:0!important;border-radius:0!important;
+ }
+ .lr-call-backdrop .lr-video-call .lr-call-upper{
+  padding-left:max(30px,calc((100vw - 740px)/2))!important;
+  padding-right:max(30px,calc((100vw - 740px)/2))!important;
+ }
+}
+@media (max-height:690px){
+ .lr-call-backdrop .lr-video-call .lr-call-actions{padding:9px 7px!important;gap:5px 4px!important}
+ .lr-call-backdrop .lr-video-call .lr-call-action{min-height:59px!important;gap:4px!important}
+ .lr-call-backdrop .lr-video-call .lr-call-action .lr-call-control-icon{width:43px!important;height:43px!important}
+ .lr-call-backdrop .lr-video-call .lr-call-video-stage{min-height:100%!important}
+}
