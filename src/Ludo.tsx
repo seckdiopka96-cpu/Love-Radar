@@ -4,7 +4,7 @@ import "./ludo.css";
 import "./ludo-immersive.css";
 import "./ludo-arena.css";
 import LudoTutorial from "./LudoTutorial";
-import DiceFace from "./DiceFace";
+import LudoDie3D from "./LudoDie3D";
 import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,BASE,SAFE,CELL,key,pointForProgress,movementSteps,stackCellStyle,type Point} from "./ludo-visuals";
@@ -460,7 +460,7 @@ export default function Ludo({token,mySeat,myName,partnerName,onExit,challengeId
   <footer className="ludo-game-footer">
    <div className="ludo-bottom-actions">
     <button type="button" className={"ludo-die-holder"+(rolling?" is-rolling":"")} disabled={!myTurn||busy||rolling||animationBusy||!game||game.status==="won"||game.dice!==null} onClick={()=>void act("roll")} aria-label="Lancer le dé">
-     <DiceFace value={dice||0} size="large" variant={red?"pink":"gold"}/>
+     <LudoDie3D value={dice||0} color={myTurn?"blue":"green"} rolling={rolling}/>
     </button>
     <button type="button" className="ludo-main-action" disabled={busy||animationBusy||Boolean(game&&(!myTurn||rolling||game.status==="won"||game.dice!==null))}
      onClick={()=>{if(game)void act("roll");else void load()}}>{!game?"ACTUALISER":game.dice!==null?"DÉPLACE UN PION":myTurn?rolling?"LANCEMENT…":"LANCER LE DÉ":"ATTENDRE…"}</button>
