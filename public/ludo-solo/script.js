@@ -432,10 +432,12 @@
       void pawn.offsetWidth; // Restart the bounce at every step on Safari.
       pawn.classList.add("is-hopping");
       counter.textContent=(step-first+1)+" / "+totalSteps;
-      await sleep(reducedMotion?25:(start===HOME?380:260));
+      // Deliberately slow, readable movement: each square gets its full
+      // landing + hop animation before the next step begins.
+      await sleep(reducedMotion?25:(start===HOME?800:760));
       pawn.classList.remove("is-hopping");
     }
-    await sleep(reducedMotion?10:100);
+    await sleep(reducedMotion?10:170);
     if (!isCurrent(tokenGeneration)) return false;
     movingToken=null;pawn.remove();
     return true;
