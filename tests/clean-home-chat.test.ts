@@ -52,3 +52,16 @@ test("timeline shows a new date only once when a call precedes the next message"
  assert.ok(app.includes('const groupedBefore=previous&&!newDay'));
  assert.ok(app.includes('const showCallDay=!preceding||new Date(preceding.createdAt).toDateString()!==callDay'));
 });
+
+test("online presence dot stays on the same line immediately before En ligne",()=>{
+ assert.ok(app.includes('className={"lr-chat-status "+(partnerOnline?"online":"offline")}'));
+ assert.ok(app.includes('{partnerStatusText}</span>'));
+ const status=css.match(/\.lr-app\.lr-chat-mode \.lr-chat \.lr-chat-status\{([^}]+)\}/)?.[1]||"";
+ assert.ok(status.includes("display:inline-flex!important"),"status and dot must share one flex line");
+ assert.ok(status.includes("align-items:center!important"),"green dot must be vertically centered");
+ assert.ok(status.includes("gap:7px!important"),"dot must sit just before the text");
+ const dot=css.match(/\.lr-app\.lr-chat-mode \.lr-chat \.lr-chat-status::before\{([^}]+)\}/)?.[1]||"";
+ assert.ok(dot.includes("flex:0 0 8px"),"dot must stay circular on narrow iPhones");
+ assert.ok(dot.includes("align-self:center"),"dot must be centered alongside En ligne");
+ assert.ok(!status.includes("display:block!important"),"block layout separates the dot from its label");
+});
