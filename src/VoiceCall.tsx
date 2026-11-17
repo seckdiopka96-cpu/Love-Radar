@@ -694,7 +694,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
     </div>
     {isVideo?<div className={"lr-call-video-stage"+(showPartnerFullscreen?" has-partner-video":" is-self-first")} aria-label={showPartnerFullscreen?"Vidéo de ton partenaire":"Ma caméra en plein écran"}>
      <div className="lr-call-video-remote">
-      <video ref={attachRemoteVideo} autoPlay playsInline muted
+      <video ref={attachRemoteVideo} data-lr-call-video="true" autoPlay playsInline muted
        onPlaying={()=>setRemoteVideoReady(true)}
        onPause={()=>setRemoteVideoReady(false)}
        onWaiting={()=>setRemoteVideoReady(false)}
@@ -706,7 +706,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
       </div>:null}
      </div>
      <div className={"lr-call-video-self"+(cameraOff||!local.current?.getVideoTracks().some(track=>track.readyState==="live")?" is-camera-off":"")}>
-      <video ref={attachLocalVideo} autoPlay playsInline muted
+      <video ref={attachLocalVideo} data-lr-call-video="true" autoPlay playsInline muted
        onPlaying={revealLocalFrame} onLoadedData={revealLocalFrame} onLoadedMetadata={revealLocalFrame}
        onError={()=>{setLocalPreviewReady(false);setLocalPreviewHelp("Aperçu indisponible. Appuie pour réessayer.")}}
        aria-label="Ma caméra"/>
@@ -795,7 +795,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   </div>,document.body):null;
  const mini=active&&minimized&&(active.status==="active"||(active.status==="ringing"&&active.direction==="outgoing"))?createPortal(
   <div className={"lr-call-mini"+(isVideo?" lr-call-mini-video":"")} role="region" aria-label={(isVideo?"Appel vidéo":"Appel vocal")+" en cours avec "+partner}>
-   {isVideo?<div className="lr-call-mini-preview" aria-hidden="true"><video ref={attachRemoteVideo} autoPlay playsInline muted/>{!remoteHasVideo?<span>📹</span>:null}</div>:null}
+   {isVideo?<div className="lr-call-mini-preview" aria-hidden="true"><video ref={attachRemoteVideo} data-lr-call-video="true" autoPlay playsInline muted/>{!remoteHasVideo?<span>📹</span>:null}</div>:null}
    <button type="button" className="lr-call-mini-expand" onClick={()=>setMinimized(false)} aria-label="Agrandir l’appel" title="Revenir à l’appel">
     <span className="lr-call-mini-pulse" aria-hidden="true">●</span>
     <span className="lr-call-mini-info"><strong>{active.status==="ringing"?"Appel sortant…":phase==="Connecté"?"En appel":phase||"Appel en cours"} · {partner}</strong><small>{total} · Appuyer pour agrandir</small></span>
