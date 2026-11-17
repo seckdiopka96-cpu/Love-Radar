@@ -259,7 +259,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const status=game.status==="won"?(game.winner===seat?"🏆 Tu as gagné !":"🏆 Ton adversaire a gagné !"):
   !solo&&members!==2?"En attente de ton partenaire…":rolling?"Le dé roule…":motion?"Le pion avance…":
   solo&&assisted&&game.turn===0?"🤖 L’ordinateur joue pour toi…":
-  turnOwner?game.dice===null?"🎲 À toi de lancer le dé":"Choisis un pion ou sa direction":
+  turnOwner?game.dice===null?"🎲 À toi de lancer le dé":"Touche un pion sur le plateau":
   solo?"🤖 L’ordinateur réfléchit…":"Ton partenaire joue…";
  const leftName=solo?myName:mySeat===0?myName:partnerName||"Ton partenaire";
  const rightName=solo?"Ordinateur":mySeat===1?myName:partnerName||"Ton partenaire";
@@ -369,19 +369,10 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
      </button>
      <button type="button" className="ludo-main-action" disabled={!canRoll} onClick={()=>void roll()}>
       {!solo&&!online?"CONNEXION…":rolling?"LE DÉ ROULE…":motion?"DÉPLACEMENT…":
-       !turnOwner?"⏳ TOUR ADVERSE":game.dice!==null?"CHOISIS UN PION":assisted?"🤖 COUP AUTOMATIQUE":"🎲 LANCER LE DÉ"}
+       !turnOwner?"⏳ TOUR ADVERSE":game.dice!==null?"TOUCHE UN PION":assisted?"🤖 COUP AUTOMATIQUE":"🎲 LANCER LE DÉ"}
      </button>
     </div>
-    <div className="ludo-pick-row" aria-label="Choisir un pion">
-     <span className="ludo-pick-label">MES PIONS</span>
-     {game.positions[seat].map((p,i)=>{
-      const available=canPick&&movesForPawn(game,seat,i).length>0;
-      return <button type="button" className={"ludo-pick ludo-pawn-"+(seat===0?"red":"gold")+(available?" can-play":"")}
-       disabled={!available} onClick={()=>choose(i)} key={i} aria-label={"Déplacer mon pion "+(i+1)}>
-       <PawnShape index={i}/>
-      </button>;
-     })}
-    </div>
+
     <div className="ludo-last-move" role="status">{game.lastAction}</div>
    </div>
   </div>
