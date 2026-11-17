@@ -658,9 +658,11 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
   {menu?<div className="ludo-modal-backdrop" role="presentation">
    <div className="ludo-modal" role="dialog" aria-modal="true" aria-label="Quitter la partie">
     <div className="ludo-modal-symbol">♥</div><h2>Quitter la partie ?</h2>
-    <p>Tu peux quitter l’écran sans abandonner, mais le chronomètre continue : après 3 tours joués par l’ordinateur à ta place, tu perds. Si tu abandonnes, ton partenaire gagne immédiatement.</p>
+    <p>{agreement?.startedAt?
+     "Tu peux quitter l’écran sans abandonner, mais le chronomètre continue : après 3 tours joués par l’ordinateur à ta place, tu perds. Si tu abandonnes, ton partenaire gagne immédiatement.":
+     "La partie n’a pas encore commencé. Tu peux quitter ce plateau sans pénalité."}</p>
     <button type="button" className="ludo-modal-primary" onClick={onExit}>← Quitter le plateau</button>
-    {game?.status==="playing"?<button type="button" className="ludo-modal-danger" disabled={busy} onClick={()=>{void act("forfeit").then(ok=>{if(ok){setMenu(false);onExit()}})}}>Abandonner et perdre</button>:null}
+    {game?.status==="playing"&&agreement?.startedAt?<button type="button" className="ludo-modal-danger" disabled={busy} onClick={()=>{void act("forfeit").then(ok=>{if(ok){setMenu(false);onExit()}})}}>Abandonner et perdre</button>:null}
     <button type="button" className="ludo-modal-text" onClick={()=>setMenu(false)}>Continuer à jouer</button>
    </div>
   </div>:null}
