@@ -111,7 +111,7 @@ export default function SoloLudo({myName,storageKey,onExit}:Props){
   setLanding(null);
   if(route.length){
    setMotion({...move,progress:move.from});
-   const stepDuration=move.from===-1?850:780,initialDelay=530;
+   const stepDuration=move.from===-1?900:920,initialDelay=430;
    route.forEach((progress,i)=>{
     later(()=>{
      setMotion({...move,progress});
