@@ -571,16 +571,16 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
 }
 .piece--home {
   position: absolute; z-index: 4;
-  width: 190%; height: 225%; left: 50%; top: 50%;
+  width: 126%; height: 152%; left: 50%; top: 50%;
   transform: translate(-50%, -53%);
 }
 .piece--board {
   position: absolute;
-  width: 8.3%; height: 12%;
+  width: 5.7%; height: 6.6%;
   transform: translate(calc(-50% + var(--pawn-shift, 0px)), -53%);
   transition: none;
 }
-.piece--finished { width: 6.1%; height: 9.3%; }
+.piece--finished { width: 4.8%; height: 5.7%; }
 .piece--moving {
   z-index: 65 !important;
   pointer-events: none;
@@ -819,12 +819,12 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
 /* Make movement observable across a full square before arriving on the next.
  * The animated pawn is never re-rendered mid-step in the Solo engine. */
 .piece--moving{
- transition:left .64s cubic-bezier(.22,.64,.26,1),top .64s cubic-bezier(.22,.64,.26,1)!important;
+ transition:left .40s cubic-bezier(.22,.64,.26,1),top .40s cubic-bezier(.22,.64,.26,1)!important;
  z-index:30!important;
  filter:drop-shadow(0 0 4px #ffffffaa);
 }
 .piece--moving.is-hopping .piece-svg{
- animation:pawn-hop-hd .65s cubic-bezier(.23,.62,.45,1) both!important;
+ animation:pawn-hop-hd .40s cubic-bezier(.23,.62,.45,1) both!important;
 }
 @keyframes pawn-hop-hd{
  0%,100%{transform:translateY(0) scale(1)}
@@ -854,3 +854,21 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
  }
  .piece--moving,.dice-3d{transition:none!important}
 }
+
+/* Compact pawn geometry: one pin fits one cell on the 15-by-15 board. */
+.piece--board:not(.piece--moving) .piece-svg{width:100%;height:100%}
+/* Solo: keep the turn banner, live dice and interactive pawn choices visible,
+   but hide redundant narration, turn number and reset shortcut below the board. */
+.lr-ludo-solo-ui #game-feedback,
+.lr-ludo-solo-ui .game-actions,
+.lr-ludo-solo-ui #player-count,
+.lr-ludo-solo-ui #computer-count,
+.lr-ludo-solo-ui .piece-step-counter{display:none!important}
+.lr-ludo-solo-ui .game-bottom{gap:5px}
+/* Duo: keep the "next match" button available after winning. */
+.lr-ludo-duo-ui #game-feedback,
+.lr-ludo-duo-ui #game-stat,
+.lr-ludo-duo-ui #new-game:disabled,
+.lr-ludo-duo-ui #player-count,
+.lr-ludo-duo-ui #computer-count,
+.lr-ludo-duo-ui .piece-step-counter{display:none!important}
