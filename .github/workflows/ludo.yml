@@ -1,0 +1,29 @@
+name: Vérifier Ludo Duo et Solo
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/Ludo.tsx'
+      - 'src/LudoDuoFrame.tsx'
+      - 'src/ludo-duo-*.css'
+      - 'public/ludo-duo/**'
+      - 'public/ludo-solo/**'
+      - 'functions/api/ludo.ts'
+      - 'tests/ludo-*.test.ts'
+      - 'schema.sql'
+      - 'package.json'
+      - '.github/workflows/ludo.yml'
+  workflow_dispatch:
+jobs:
+  ludo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - name: Règles Ludo et synchronisation
+        run: npm run test:ludo
+      - name: Vérifier types et application
+        run: npm run build
