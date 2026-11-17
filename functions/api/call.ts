@@ -166,12 +166,21 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
   if(action==="signal"){
    if(call.status!=="active")return fail("L’appel doit d’abord être accepté.",409);
    const kind=body.kind;
-   if(kind!=="offer"&&kind!=="answer"&&kind!=="candidate")return fail("Signal invalide.");
+   if(kind!=="offer"&&kind!=="answer"&&kind!=="candidate"&&kind!=="restart")return fail("Signal invalide.");
    if(kind==="offer"&&call.caller_id!==u.id)return fail("Signal invalide.",403);
    if(kind==="answer"&&call.callee_id!==u.id)return fail("Signal invalide.",403);
+   if(kind==="restart"&&call.callee_id!==u.id)return fail("Signal invalide.",403);
    const remote=call.caller_id===u.id?call.callee_id:call.caller_id;
    let payload:string;
-   if(kind==="candidate"){
+   if(kind==="restart"){
+    payload="restart";
+    const recent=await db.prepare("SELECT id,created_at FROM voice_signals WHERE call_id=? AND from_member=? AND kind='restart' ORDER BY id DESC LIMIT 1")
+     .bind(call.id,u.id).first<{id:number;created_at:number}>();
+    if(recent&&t-recent.created_at<3500)return response({ok:true,duplicate:true});
+    const count=await db.prepare("SELECT COUNT(*) AS n FROM voice_signals WHERE call_id=? AND from_member=? AND kind='restart'")
+     .bind(call.id,u.id).first<{n:number}>();
+    if(Number(count?.n||0)>=8)return fail("Trop de demandes de reconnexion.",429);
+   }else if(kind==="candidate"){
     // Trickle ICE: transmit candidates as they arrive, never wait 14 seconds for
     // ICE gathering to finish. Validate every fragment before storing it.
     const candidate=body.candidate;
@@ -190,14 +199,21 @@ export async function onRequestPost({request,env,waitUntil}:Context):Promise<Res
     // Cap short-lived signal records so the endpoint cannot be flooded.
     const count=await db.prepare("SELECT COUNT(*) AS n FROM voice_signals WHERE call_id=? AND from_member=? AND kind='candidate'")
      .bind(call.id,u.id).first<{n:number}>();
-    if(Number(count?.n||0)>=64)return fail("Nombre maximum de chemins réseau atteint.",429);
+    if(Number(count?.n||0)>=192)return fail("Nombre maximum de chemins réseau atteint.",429);
    }else{
     const sdp=body.sdp;
     if(typeof sdp!=="string"||!sdp.startsWith("v=0")||sdp.length>30000||sdp.length<50)return fail("Signal incorrect.");
     payload=sdp;
-    const previous=await db.prepare("SELECT id FROM voice_signals WHERE call_id=? AND from_member=? AND kind=? LIMIT 1")
-     .bind(call.id,u.id,kind).first();
-    if(previous)return response({ok:true,duplicate:true});
+    const previous=await db.prepare("SELECT payload,created_at FROM voice_signals WHERE call_id=? AND from_member=? AND kind=? ORDER BY id DESC LIMIT 1")
+     .bind(call.id,u.id,kind).first<{payload:string;created_at:number}>();
+    if(previous){
+     // Explicit, bounded renegotiations; ordinary duplicate SDP stays idempotent.
+     if(body.restart!==true||previous.payload===sdp)return response({ok:true,duplicate:true});
+     if(t-previous.created_at<1600)return fail("Reconnexion trop rapide.",429);
+     const count=await db.prepare("SELECT COUNT(*) AS n FROM voice_signals WHERE call_id=? AND from_member=? AND kind=?")
+      .bind(call.id,u.id,kind).first<{n:number}>();
+     if(Number(count?.n||0)>=9)return fail("Nombre maximum de reconnexions atteint.",429);
+    }
    }
    await db.prepare("INSERT INTO voice_signals(call_id,room_id,from_member,to_member,kind,payload,created_at) VALUES(?,?,?,?,?,?,?)")
     .bind(call.id,u.room_id,u.id,remote,kind,payload,t).run();
