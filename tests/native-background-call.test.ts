@@ -42,6 +42,7 @@ test("generated Android and iOS background-call installation is repeatable and p
    project:"ios/App/App.xcodeproj/project.pbxproj"
   };
   write(join(dir,files.manifest),sampleAndroid);
+  write(join(dir,"android/app/build.gradle"),"plugins { id 'com.android.application' }\ndependencies { implementation 'androidx.core:core:1.13.1' }\n");
   write(join(dir,files.activity),sampleJava);
   write(join(dir,files.plist),samplePlist);
   write(join(dir,files.appDelegate),sampleSwift);
@@ -58,9 +59,28 @@ test("generated Android and iOS background-call installation is repeatable and p
   const storyboard=read(files.storyboard);
   const nativePlugin=read("android/app/src/main/java/com/diaotech/loveradar/NativeCallPlugin.java");
   const service=read("android/app/src/main/java/com/diaotech/loveradar/NativeCallService.java");
+  const incoming=read("android/app/src/main/java/com/diaotech/loveradar/NativeIncomingCallActivity.java");
+  const messageService=read("android/app/src/main/java/com/diaotech/loveradar/NativeVoipMessageService.java");
+  const voipBridge=read("android/app/src/main/java/com/diaotech/loveradar/NativeVoipPlugin.java");
+  const gradle=read("android/app/build.gradle");
   assert.ok(manifest.includes('android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"'));
   assert.ok(manifest.includes('android:name="android.permission.FOREGROUND_SERVICE"'));
   assert.ok(manifest.includes('android:foregroundServiceType="microphone"'));
+  assert.ok(manifest.includes('android.permission.POST_NOTIFICATIONS'));
+  assert.ok(manifest.includes('android.permission.USE_FULL_SCREEN_INTENT'));
+  assert.ok(manifest.includes('android:name=".NativeIncomingCallActivity"'));
+  assert.ok(manifest.includes('android:name=".NativeVoipMessageService"'));
+  assert.ok(gradle.includes('firebase-messaging:26.0.2'));
+  assert.ok(incoming.includes('setShowWhenLocked(true)'));
+  assert.ok(incoming.includes('NativeVoipPlugin.recordAction(this,action,callId)'));
+  assert.ok(messageService.includes('FirebaseMessagingService'));
+  assert.ok(messageService.includes('onMessageReceived'));
+  assert.ok(messageService.includes('setFullScreenIntent(fullScreen,true)'));
+  assert.ok(messageService.includes('Notification.CATEGORY_CALL'));
+  assert.ok(voipBridge.includes('requestPermissionForAlias("notifications"'));
+  assert.ok(voipBridge.includes('getPendingAction'));
+  assert.ok(!voipBridge.includes('putString("token"'),"Do not store private auth token in Android prefs");
+  assert.ok(activity.includes('registerPlugin(NativeVoipPlugin.class)'));
   assert.ok(manifest.includes('android:exported="false"'));
   assert.ok(activity.includes("registerPlugin(NativeCallPlugin.class)"));
   assert.ok(activity.indexOf("registerPlugin(NativeCallPlugin.class)")<activity.indexOf("super.onCreate(savedInstanceState)"));
