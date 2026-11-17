@@ -145,7 +145,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   if(!data.game)return;
   const next=data.game;
   const oldVersion=versionRef.current,oldId=idRef.current;
-  if(next.id!==oldId){lastAnimated.current="";setMotion(null);clearTimers();setChosen(null);}
+  if(next.id!==oldId){lastAnimated.current="";setMotion(null);setCaptureBack([]);clearTimers();setChosen(null);}
   if(next.version<oldVersion&&next.id===oldId)return;
   versionRef.current=next.version;idRef.current=next.id;
   setGame({
@@ -177,7 +177,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  },[solo,refresh]);
  // Solo player has 15 seconds for each action. AI takes over if the timer expires.
  useEffect(()=>{
-  if(!solo||game.status!=="playing"||game.turn!==0||assisted||busy||rolling||motion||confirmReset)return;
+  if(!solo||game.status!=="playing"||game.turn!==0||assisted||busy||rolling||motion||captureBack.length||confirmReset)return;
   const id=window.setTimeout(()=>setAssisted(true),Math.max(0,game.updatedAt+TURN_MS-Date.now()));
   return ()=>window.clearTimeout(id);
  },[solo,game,assisted,busy,rolling,motion,chosen,confirmReset]);
@@ -200,7 +200,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   }finally{busyRef.current=false;setBusy(false)}
  }
  async function roll(automatic=false){
-  if(game.status!=="playing"||game.dice!==null||rolling||busy||motion||chosen||(!solo&&(!online||members!==2||game.turn!==seat))||
+  if(game.status!=="playing"||game.dice!==null||rolling||busy||motion||captureBack.length||chosen||(!solo&&(!online||members!==2||game.turn!==seat))||
    (solo&&game.turn!==1&&!(game.turn===0&&(automatic||!assisted))))return;
   if(!automatic)unlockSound();
   playSound("roll");setRolling(true);
@@ -223,7 +223,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   }
  }
  async function move(option:MoveOption,automatic=false){
-  if(busy||rolling||motion||game.status!=="playing"||game.dice===null||
+  if(busy||rolling||motion||captureBack.length||game.status!=="playing"||game.dice===null||
    (!solo&&(!online||members!==2||game.turn!==seat))||
    (solo&&game.turn!==1&&!(game.turn===0&&(automatic||!assisted))))return;
   const legal=movesForPawn(game,game.turn,option.pawn).find(m=>
@@ -241,14 +241,14 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   }
  }
  function choose(pawn:number){
-  if(busy||rolling||motion||game.status!=="playing"||game.turn!==seat||(solo&&assisted)||
+  if(busy||rolling||motion||captureBack.length||game.status!=="playing"||game.turn!==seat||(solo&&assisted)||
    (!solo&&(!online||members!==2)))return;
   const options=movesForPawn(game,seat,pawn);
   if(options.length===1){void move(options[0]);return;}
   if(options.length>1)setChosen(options);
  }
  useEffect(()=>{
-  if(!solo||game.status!=="playing"||rolling||motion||busy||chosen||confirmReset)return;
+  if(!solo||game.status!=="playing"||rolling||motion||captureBack.length||busy||chosen||confirmReset)return;
   if(game.turn!==1&&!(game.turn===0&&assisted))return;
   const timer=window.setTimeout(()=>{
    if(game.dice===null)void roll(true);
@@ -261,7 +261,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  },[solo,game,rolling,motion,busy,chosen,confirmReset,assisted]);
  function reset(){
   setConfirmReset(false);setChosen(null);setAssisted(false);
-  clearTimers();setMotion(null);setReaction("");setRolling(false);
+  clearTimers();setMotion(null);setCaptureBack([]);setReaction("");setRolling(false);
   if(solo)setGame(newSenegalGame());
   else void sendAction({action:"restart"});
  }
