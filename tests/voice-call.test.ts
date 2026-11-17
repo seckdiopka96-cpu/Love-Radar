@@ -85,6 +85,21 @@ test("voice calling stays intact while HD video is added",()=>{
  assert.ok(videoCss.includes('.lr-call-mini-video'));
 });
 
+test("iPhone shows local camera frames and can flip while the partner has not answered",()=>{
+ const videoCss=readFileSync("src/video-call.css","utf8");
+ assert.ok(call.includes('element.srcObject=new MediaStream([track])'),"self-preview uses video-only stream");
+ assert.ok(call.includes('element.muted=true'));
+ assert.ok(call.includes('await element.play()'));
+ assert.ok(call.includes('onPlaying={()=>{setLocalPreviewReady(true)'));
+ assert.ok(call.includes('className="lr-call-video-self-help"'));
+ assert.ok(call.includes('className="lr-call-video-retry"'));
+ assert.ok(call.includes('onClick={()=>void playLocalPreview()}'));
+ assert.ok(call.includes('if(sender)await sender.replaceTrack(track)'),"camera switching must work before a peer sender exists");
+ assert.ok(!call.includes('if(!sender||!existing)'),"do not confuse unanswered call with disabled camera");
+ assert.ok(videoCss.includes('.lr-call-video-self .lr-call-video-self-help'));
+ assert.ok(videoCss.includes('.lr-call-video-self .lr-call-video-retry'));
+});
+
 test("call signaling and microphone initialize in parallel to reduce time before ringing",()=>{
  assert.ok(call.includes("const micTask=microphone(mode)"));
  assert.ok(call.includes('const callTask=api("start",{mode})'));
