@@ -58,7 +58,8 @@ test("CSP permits only same-origin embedded games and the service worker cannot 
  assert.ok(sw.includes('"/ludo-solo/index.html"'));
  assert.ok(sw.includes('"/ludo-solo/style.css"'));
  assert.ok(sw.includes('"/ludo-solo/script.js"'));
- assert.ok(sw.includes('if(url.pathname.startsWith("/ludo-solo/"))'));
+ assert.ok(sw.includes('url.pathname.startsWith("/ludo-solo/")'));
+ assert.ok(sw.includes('url.pathname.startsWith("/ludo-duo/")'));
  assert.ok(sw.includes('if(url.pathname!=="/"&&url.pathname!=="/index.html")return'));
  assert.ok(sw.includes('if(url.origin!==self.location.origin||url.pathname.startsWith("/api/"))return'));
 });
