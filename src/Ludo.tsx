@@ -11,7 +11,7 @@ import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,BASE,SAFE,CELL,key,pointForProgress,movementSteps,stackCellStyle,type Point} from "./ludo-visuals";
 
-type Game={id:string;version:number;turn:number;dice:number|null;positions:number[][];status:"playing"|"won";winner:number|null;lastAction:string;updatedAt:number;deadlineAt:number|null};
+type Game={id:string;version:number;turn:number;dice:number|null;positions:number[][];status:"playing"|"won";winner:number|null;autoCounts:[number,number];lastAction:string;updatedAt:number;deadlineAt:number|null};
 type Gift={consents:[boolean,boolean];choice:"credit"|"internet"|"wave2000"|null;chosenBy:number|null;given:boolean};
 type DuoColor="blue"|"red"|"green"|"yellow";
 type Palette={colors:[DuoColor,DuoColor];chosenBy:number|null};
@@ -658,9 +658,9 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
   {menu?<div className="ludo-modal-backdrop" role="presentation">
    <div className="ludo-modal" role="dialog" aria-modal="true" aria-label="Quitter la partie">
     <div className="ludo-modal-symbol">♥</div><h2>Quitter la partie ?</h2>
-    <p>Tu peux revenir à l’accueil sans perdre ta partie. Si tu abandonnes, ton partenaire remporte cette manche.</p>
-    <button type="button" className="ludo-modal-primary" onClick={onExit}>← Retour à l’accueil</button>
-    {game?.status==="playing"?<button type="button" className="ludo-modal-danger" disabled={busy} onClick={()=>{void act("forfeit").then(ok=>{if(ok){setMenu(false);onExit()}})}}>Abandonner la partie</button>:null}
+    <p>Tu peux quitter l’écran sans abandonner, mais le chronomètre continue : après 3 tours joués par l’ordinateur à ta place, tu perds. Si tu abandonnes, ton partenaire gagne immédiatement.</p>
+    <button type="button" className="ludo-modal-primary" onClick={onExit}>← Quitter le plateau</button>
+    {game?.status==="playing"?<button type="button" className="ludo-modal-danger" disabled={busy} onClick={()=>{void act("forfeit").then(ok=>{if(ok){setMenu(false);onExit()}})}}>Abandonner et perdre</button>:null}
     <button type="button" className="ludo-modal-text" onClick={()=>setMenu(false)}>Continuer à jouer</button>
    </div>
   </div>:null}
@@ -670,6 +670,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
     <div className="ludo-modal-symbol">🎲</div><h2>Comment jouer ?</h2>
     <p>À deux, chacun avance ses 4 pions. Lance un 6 pour sortir. Choisis le pion à déplacer, capture l’adversaire et vise le centre du plateau.</p>
     <p>Un 6, une capture ou un pion arrivé donnent un tour bonus. Trois 6 d’affilée font passer le tour. Les cases ★ sont protégées. Il faut le nombre exact pour finir.</p>
+    <p>Tu as 15 secondes par tour. Après 3 tours confiés automatiquement à l’ordinateur, tu perds la manche.</p>
     <button type="button" className="ludo-modal-primary" onClick={()=>setRules(false)}>Compris, jouons !</button>
    </div>
   </div>:null}
