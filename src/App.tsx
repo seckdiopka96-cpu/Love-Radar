@@ -223,6 +223,8 @@ export default function LoveRadar(){
  const [noticeTarget,setNoticeTarget]=useState<NoticeTarget|null>(()=>parseNotice(window.location.search));
  const lastHandledNotice=useRef<string>("");
  const [pendingNoticeRouteId,setPendingNoticeRouteId]=useState("");
+ const [readyLudoNotice,setReadyLudoNotice]=useState("");
+ const markLudoNoticeReady=useCallback((challenge:string)=>setReadyLudoNotice(challenge),[]);
  const [noticeTap,setNoticeTap]=useState(0);
  const lastMessageJump=useRef<string>("");
  const [focusMessage,setFocusMessage]=useState<Message|null>(null);
@@ -683,10 +685,14 @@ export default function LoveRadar(){
     firstPoll.current=true;
     if(data.tab==="watch"||data.tab==="watch-tiktok")setWatchInvite(data.tab);
     if(data.tab==="reconcile")setReconcileInvite(true);
-    if(document.visibilityState==="visible"&&["message","photo","audio"].includes(data.kind||"")){
+    if(document.visibilityState==="visible"&&NOTICE_KINDS.has(data.kind||"")&&typeof data.id==="string"){
      const dest=parseNotice(new URL(noticeUrl({tab:data.tab,kind:data.kind,id:data.id}),window.location.origin).search);
-     setPushToastTarget(dest);
-     setNotice("lr-partner-push:"+String(data.kind||"message"));
+     if(dest?.kind){
+      // Even when Love Radar is already foregrounded, a game invitation
+      // should offer a one-tap path into that same Ludo agreement.
+      setPushToastTarget(dest);
+      setNotice("lr-partner-push:"+dest.kind);
+     }
     }
     return;
    }
@@ -703,7 +709,15 @@ export default function LoveRadar(){
      const routeId=typeof data.routeId==="string"?data.routeId:"";
      if(routeId){
       // Do not acknowledge a cold iPhone route until its private page mounts.
-      if(lastHandledNotice.current===routeId)return;
+      // A still-pending notification must be replayable if WebKit restored
+      // the homepage after a partial or interrupted navigation. Do not drop
+      // this exact destination simply because its routeId was seen before.
+      if(lastHandledNotice.current!==routeId){
+       // New invitation: do not confuse it with an old loaded game or
+       // a previous missing-message error from the same iPhone session.
+       setReadyLudoNotice("");
+       setFocusMessage(null);setFocusError("");
+      }
       lastHandledNotice.current=routeId;
       setPendingNoticeRouteId(routeId);
      }
@@ -761,6 +775,13 @@ export default function LoveRadar(){
  useEffect(()=>{
   const routeId=pendingNoticeRouteId;
   if(!routeId||!token||!room||!noticeTarget||tab!==noticeTarget.tab)return;
+  // Display the Ludo agreement before clearing the saved iPhone invitation.
+  // A mounted but still-loading game must not count as a successful open.
+  if(noticeTarget.kind==="ludo-challenge"&&readyLudoNotice!==noticeTarget.id)return;
+  const kind=noticeTarget.kind,id=noticeTarget.id;
+  if(id&&["message","photo","audio"].includes(kind||"")&&
+   !room.messages.some(message=>message.id===id)&&
+   focusMessage?.id!==id&&!focusError)return;
   let cancelled=false;
   void navigator.serviceWorker?.ready.then(reg=>{
    if(cancelled)return;
@@ -770,7 +791,8 @@ export default function LoveRadar(){
    setPendingNoticeRouteId("");
   }).catch(()=>{});
   return()=>{cancelled=true};
- },[pendingNoticeRouteId,token,room?.roomId,tab,noticeTarget?.kind,noticeTarget?.id]);
+ },[pendingNoticeRouteId,token,room?.roomId,tab,noticeTarget?.kind,noticeTarget?.id,
+  readyLudoNotice,room?.messages,focusMessage?.id,focusError]);
 
  useEffect(()=>{
   const id=noticeTarget?.id,kind=noticeTarget?.kind;
@@ -1974,7 +1996,14 @@ export default function LoveRadar(){
    {notice.startsWith("lr-partner-push:")?<><span className="lr-push-avatar-thumb" aria-hidden="true">
     {avatars.partner?<img src={avatars.partner} alt=""/>:(room?.partner||"♡").slice(0,1).toUpperCase()}
    </span><span className="lr-push-avatar-copy"><strong>{room?.partner||"Ton partenaire"}</strong>
-    <small>{notice.endsWith(":audio")?"🎙️ Nouveau message vocal":notice.endsWith(":photo")?"📷 Nouvelle photo":"💌 Nouveau message"}</small></span></>:notice}
+    <small>{notice.endsWith(":audio")?"🎙️ Nouveau message vocal":
+      notice.endsWith(":photo")?"📷 Nouvelle photo":
+      notice.endsWith(":ludo-challenge")?"🎲 Invitation Ludo Duo · Appuie pour jouer":
+      notice.endsWith(":memory-challenge")?"🧠 Invitation au Memory · Appuie pour jouer":
+      notice.endsWith(":rps-challenge")?"✊ Invitation au jeu · Appuie pour jouer":
+      notice.endsWith(":call")?"📞 Appel de ton partenaire":
+      notice.endsWith(":message")?"💌 Nouveau message":
+      "💗 Nouveau moment à deux · Appuie pour ouvrir"}</small></span></>:notice}
    <span className="lr-push-toast-x" aria-hidden="true">×</span>
   </div>:null}
   {error&&room?<div className="lr-error" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
@@ -2093,7 +2122,8 @@ export default function LoveRadar(){
     {tab==="rps"?<RpsDuo key={room.roomId+":"+room.user.id} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} onOpenChat={()=>navigate("chat")}/>:null}
      {tab==="draw"||tab==="escape"?<DuoArcade key={room.roomId+":"+room.user.id+":"+tab} mode={tab} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="rapid"||tab==="truth"?<CoupleParty key={room.roomId+":"+room.user.id+":"+tab} mode={tab} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} onOpenChat={()=>navigate("chat")}/>:null}
-    {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} myAvatar={avatars.mine} partnerAvatar={avatars.partner} onExit={()=>navigate("ludo-room")} challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}/>:null}
+    {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} myAvatar={avatars.mine} partnerAvatar={avatars.partner} onExit={()=>navigate("ludo-room")} challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}
+      onNotificationReady={markLudoNoticeReady}/>:null}
      {tab==="ludo-solo"?<LudoSoloEmbedded scope={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null}
      {tab==="ludo-senegal"?<SenegalLudo mode="duo" token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null}
      {tab==="ludo-senegal-solo"?<SenegalLudo mode="solo" token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null}

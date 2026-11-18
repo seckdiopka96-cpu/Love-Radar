@@ -1,6 +1,6 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
 // Refresh the installed PWA shell after the Cloudflare Pages GIPHY build variable was configured.
-const CACHE="love-radar-static-v137";
+const CACHE="love-radar-static-v138";
 const PRIVATE_AVATAR_CACHE="love-radar-private-notification-avatar-v1";
 const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png","/ludo-mark.svg","/ludo-solo/index.html","/ludo-solo/style.css","/ludo-solo/script.js","/ludo-duo/index.html","/ludo-duo/style.css","/ludo-duo/script.js"];
 self.addEventListener("install",event=>{
@@ -183,23 +183,44 @@ self.addEventListener("notificationclick",event=>{
   });
   // Prefer a visible tab instead of a stale background browser client.
   owned.sort((a,b)=>Number(b.visibilityState==="visible")-Number(a.visibilityState==="visible"));
+  const routeMessage={type:"love-radar-open-notification",...destination,routeId};
+  // A WebKit WindowClient.focus()/navigate() promise may stall when an iPhone
+  // restores a suspended standalone app. Never wait indefinitely while the
+  // tapped notification is already dismissed.
+  const settled=async(promise,timeoutMs=1200)=>{
+   let timer;
+   try{
+    return await Promise.race([
+     Promise.resolve(promise).then(value=>({ok:true,value}),()=>({ok:false})),
+     new Promise(resolve=>{timer=setTimeout(()=>resolve({ok:false}),timeoutMs)})
+    ]);
+   }finally{if(timer!==undefined)clearTimeout(timer)}
+  };
   for(const client of owned){
    try{
-    const focused=await client.focus();
-    // Game invitations are explicit navigation requests. In iOS standalone
-    // mode a one-shot postMessage can be lost during resume, so navigate the
-    // existing app to its exact game URL. Keep the cache fallback as well.
+    // The message must be posted BEFORE awaiting focus. An iOS resume can
+    // time out while the already-running React app is still listening.
+    client.postMessage(routeMessage);
+    const focusResult=await settled(client.focus());
+    if(!focusResult.ok)continue;
+    const focused=focusResult.value||client;
+    // Game invitations additionally update the real URL. This makes a cold
+    // PWA boot read ?tab=ludo&kind=ludo-challenge&id=... directly.
     if(["ludo-challenge","memory-challenge","rps-challenge"].includes(destination.kind)){
-     try{
-      const routed=await focused.navigate(url);
-      (routed||focused).postMessage({type:"love-radar-open-notification",...destination,routeId});
+     const navigation=await settled(focused.navigate(url));
+     if(navigation.ok){
+      (navigation.value||focused).postMessage(routeMessage);
       return;
-     }catch{/* Fallback to messaging the existing PWA below. */}
+     }
+     // A failed WebKit navigate must NOT discard the queued route. The SPA
+     // already received postMessage; it can also request the pending route.
     }
-    focused.postMessage({type:"love-radar-open-notification",...destination,routeId});
+    focused.postMessage(routeMessage);
     return;
-   }catch{/* A closed page is handled below. */}
+   }catch{/* Try another live window or open the PWA below. */}
   }
+  // No window could be resumed; preserve the route in Cache Storage even if
+  // WebKit starts at the manifest's "/" URL instead of the supplied path.
   await self.clients.openWindow(url);
  })());
 });
