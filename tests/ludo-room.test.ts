@@ -43,7 +43,7 @@ test("classic Duo loads the newest shared board, never a cached legacy iframe",(
  assert.ok(soloHTML.includes('./style.css?v='+soloVersion));
  assert.ok(duoCSS.includes(".lr-ludo-duo-ui .app"));
  assert.ok(duoCSS.includes(".lr-ludo-duo-ui .board-frame"));
- assert.ok(read("public/sw.js").includes('love-radar-static-v108'));
+ assert.ok(read("public/sw.js").includes('love-radar-static-v109'));
 });
 
 test("the eight classic safe cells each have a visible star on both boards",()=>{

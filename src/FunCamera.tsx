@@ -11,6 +11,7 @@ const cameraSettings=(facing:"user"|"environment"):MediaStreamConstraints=>({
 function formatRecording(seconds:number){return "00:"+String(seconds).padStart(2,"0")}
 export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props){
  const preview=useRef<HTMLVideoElement|null>(null);
+ const canvasHost=useRef<HTMLDivElement|null>(null);
  const source=useRef<MediaStream|null>(null);
  const processor=useRef<LensProcessor|null>(null);
  const recorder=useRef<MediaRecorder|null>(null);
@@ -31,6 +32,12 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
  const [recording,setRecording]=useState(false);
  const [seconds,setSeconds]=useState(0);
  const [sending,setSending]=useState(false);
+ function mountCanvas(){
+  const host=canvasHost.current,canvas=processor.current?.canvas;
+  if(!host||!canvas)return;
+  if(canvas.parentNode!==host)host.replaceChildren(canvas);
+ }
+ function unmountCanvas(){canvasHost.current?.replaceChildren()}
  function clearOutputs(){
   if(photoRef.current){URL.revokeObjectURL(photoRef.current);photoRef.current=null}
   if(videoRef.current){URL.revokeObjectURL(videoRef.current);videoRef.current=null}
@@ -44,6 +51,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
  function cleanup(){
   stopRecording();
   processor.current?.stop();processor.current=null;
+  unmountCanvas();
   source.current?.getTracks().forEach(track=>track.stop());source.current=null;
   if(preview.current){preview.current.pause();preview.current.srcObject=null}
  }
@@ -54,7 +62,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
    if(elapsedTimer.current)clearInterval(elapsedTimer.current);
    const r=recorder.current;
    if(r){r.onstop=null;r.ondataavailable=null;if(r.state!=="inactive")r.stop()}
-   processor.current?.stop();source.current?.getTracks().forEach(t=>t.stop());
+   processor.current?.stop();unmountCanvas();source.current?.getTracks().forEach(t=>t.stop());
    if(preview.current){preview.current.pause();preview.current.srcObject=null}
    if(photoRef.current)URL.revokeObjectURL(photoRef.current);
    if(videoRef.current)URL.revokeObjectURL(videoRef.current);
@@ -68,7 +76,8 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
  // The camera <video> mounts only after active becomes true; attach after commit.
  useEffect(()=>{
   if(!active||!source.current)return;
-  void show(processor.current?.stream||source.current).catch(()=>{
+  mountCanvas();
+  void show(source.current).catch(()=>{
    if(alive.current)setError("Impossible d’afficher l’aperçu de la caméra.");
   });
  },[active]);
@@ -83,9 +92,8 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
    source.current=camera;
    await show(camera);
    if(lens!=="none"){
-    const processed=await createLensProcessor(camera.getVideoTracks()[0],lens);
+    const processed=await createLensProcessor(camera.getVideoTracks()[0],lens,{previewOnly:true});
     processor.current=processed;
-    await show(processed.stream);
    }
    setActive(true);
   }catch(err){
@@ -101,16 +109,16 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
    if(value==="none"){
     await show(source.current);
     processor.current?.stop();processor.current=null;
+    unmountCanvas();
    }else if(processor.current){
     processor.current.setLens(value);
    }else{
-    const next=await createLensProcessor(source.current.getVideoTracks()[0],value);
+    const next=await createLensProcessor(source.current.getVideoTracks()[0],value,{previewOnly:true});
     if(!alive.current){next.stop();return}
-    try{await show(next.stream)}
-    catch(err){next.stop();throw err}
     processor.current=next;
+    mountCanvas();
    }
-   if(alive.current)setLens(value);
+   if(alive.current){setLens(value);setNotice(value==="none"?"Caméra naturelle.":"✨ Effet "+value+" appliqué à ta caméra.");}
   }catch(err){if(alive.current)setError(err instanceof Error?err.message:"Impossible d’appliquer cet effet.")}
   finally{if(alive.current)setBusy(false)}
  }
@@ -130,7 +138,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
    if(!alive.current){stream.getTracks().forEach(t=>t.stop());return}
    if(processor.current){
     await processor.current.setSource(stream.getVideoTracks()[0]);
-    await show(processor.current.stream);
+    await show(stream);
    }else await show(stream);
    source.current=stream;
    original.getTracks().forEach(t=>t.stop());
@@ -141,7 +149,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
     try{
      const restored=await navigator.mediaDevices.getUserMedia(cameraSettings(facing));
      source.current=restored;
-     if(processor.current){await processor.current.setSource(restored.getVideoTracks()[0]);await show(processor.current.stream)}
+     if(processor.current){await processor.current.setSource(restored.getVideoTracks()[0]);await show(restored)}
      else await show(restored);
     }catch{cleanup();setActive(false)}
    }
@@ -173,7 +181,10 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
   try{
    if(typeof MediaRecorder==="undefined")throw Error("L'enregistrement vidéo n'est pas pris en charge sur cet appareil.");
    const video=preview.current;
-   const live=processor.current?.stream||source.current;
+   const effectCanvas=processor.current?.canvas;
+   if(effectCanvas&&typeof effectCanvas.captureStream!=="function")
+    throw Error("Cet appareil ne peut pas filmer avec des effets. Utilise le bouton photo pour garder ton filtre.");
+   const live=effectCanvas?effectCanvas.captureStream(20):source.current;
    if(!video||!live?.getVideoTracks().length)throw Error("Caméra indisponible.");
    const candidates=["video/mp4;codecs=h264","video/mp4","video/webm;codecs=vp8","video/webm"];
    const mime=candidates.find(type=>typeof MediaRecorder.isTypeSupported==="function"&&MediaRecorder.isTypeSupported(type));
@@ -181,6 +192,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
    recordParts.current=[];recorder.current=session;setRecording(true);setSeconds(0);
    session.ondataavailable=e=>{if(e.data.size)recordParts.current.push(e.data)};
    session.onstop=()=>{
+    if(effectCanvas)live.getVideoTracks().forEach(track=>track.stop());
     if(elapsedTimer.current){clearInterval(elapsedTimer.current);elapsedTimer.current=null}
     if(!alive.current)return;
     const blob=new Blob(recordParts.current,{type:session.mimeType||mime||"video/webm"});
@@ -192,7 +204,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
     }else setError("Cette vidéo n'a pas pu être enregistrée.");
     recorder.current=null;setRecording(false);
    };
-   session.onerror=()=>setError("L'enregistrement vidéo s'est interrompu.");
+   session.onerror=()=>{if(effectCanvas)live.getVideoTracks().forEach(track=>track.stop());setError("L'enregistrement vidéo s'est interrompu.");};
    session.start(1000);
    let time=0;
    elapsedTimer.current=setInterval(()=>{
@@ -240,6 +252,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
    {active?<video ref={preview} autoPlay muted playsInline className={facing==="user"?"mirrored":""} aria-label="Aperçu caméra avec effet"/>:
     <div className="lr-fun-camera-placeholder"><span aria-hidden="true">📸</span><h2>Amuse-toi avec tes effets</h2><p>Prends des photos et de courtes vidéos, même sans être en appel.</p>
      <button type="button" disabled={busy} onClick={()=>void openCamera()}>{busy?"Ouverture…":"Activer ma caméra"}</button></div>}
+   <div className={"lr-fun-processed-frame"+(facing==="user"?" mirrored":"")} ref={canvasHost} aria-hidden="true"/>
    {active?<div className="lr-fun-preview-top"><span>● {recording?formatRecording(seconds):"EN DIRECT"}</span>
     <button type="button" onClick={()=>void flip()} disabled={busy||recording} aria-label="Retourner la caméra">⇄</button>
    </div>:null}
