@@ -32,3 +32,16 @@ test("chat header remains clean and call video keeps optional processed track",(
  assert.ok(call.includes("if(sender)await sender.replaceTrack(processed.track)"));
  assert.ok(call.includes("lensCanvasHost.current?.replaceChildren()"));
 });
+
+test("Snap-style camera takes over viewport and hides app navigation via body portal",()=>{
+ const fun=read("src/FunCamera.tsx"),css=read("src/fun-camera.css");
+ assert.ok(fun.includes('import {createPortal} from "react-dom"'));
+ assert.ok(fun.includes('return createPortal(<section className="lr-fun-camera"'));
+ assert.ok(fun.includes("</section>,document.body)"));
+ assert.ok(css.includes("body>.lr-fun-camera{"));
+ assert.ok(css.includes("position:fixed!important;inset:0!important"));
+ assert.ok(css.includes("height:100dvh!important"));
+ assert.ok(css.includes("bottom:calc(env(safe-area-inset-bottom) + 126px)"));
+ assert.ok(!fun.includes("10 looks · en direct"));
+ assert.ok(!fun.includes("lr-fun-privacy"));
+});
