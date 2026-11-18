@@ -57,7 +57,7 @@ test("3D couple rendering is progressive and never breaks legacy animated avatar
  assert.ok(duo.includes('lazy(()=>import("./Avatar3DScene"))'));
  assert.ok(duo.includes('mode!=="sticker"&&!renderFailed'),"keep lightweight old stickers");
  assert.ok(duo.includes("onUnavailable={()=>setRenderFailed(true)}"));
- assert.ok(duo.includes("<AvatarCharacter"),"SVG fallback remains");
+ assert.ok(!duo.slice(duo.indexOf("type DuoProps")).includes("<AvatarCharacter"),"rejected SVG drawings are not rendered");
  assert.ok(scene.includes('import("three")'));
  assert.ok(scene.includes('import("three/addons/loaders/GLTFLoader.js")'));
  assert.ok(scene.includes("parseAsync(bytes"));
