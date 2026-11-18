@@ -584,3 +584,67 @@
   animation:none!important;transition:none!important;
  }
 }
+
+/* Avaturn-first refresh: legacy SVG illustrations stay in source for compatibility,
+   but are not rendered in the couple studio, home screen or chat stickers. */
+.lr-avatar-studio-3d .lr-avatar-studio-stage{
+ border:1px solid rgba(238,196,233,.22);
+ background:radial-gradient(ellipse at 48% 35%,rgba(178,111,187,.18),transparent 62%),
+  linear-gradient(148deg,#19223c,#101a30 73%,#121b31);
+ border-radius:24px;box-shadow:0 15px 42px #070d1a4d;
+}
+.lr-avatar-3d-invite{
+ position:absolute;z-index:3;inset:11% 7% 15%;display:flex;flex-direction:column;
+ align-items:center;justify-content:center;gap:8px;text-align:center;pointer-events:none;
+ color:#fff7fc;
+}
+.lr-avatar-3d-invite strong{font-size:clamp(13px,3.7vw,19px);font-weight:830;letter-spacing:.15px;
+ text-shadow:0 3px 14px #080f26}
+.lr-avatar-3d-invite small{font-size:11px;max-width:270px;line-height:1.5;color:#c8cce1}
+.lr-avatar-3d-constellation{position:relative;width:min(220px,75%);height:125px;
+ margin-bottom:3px}
+.lr-avatar-3d-orb{
+ position:absolute;top:13px;width:98px;height:98px;border-radius:50%;
+ border:1px solid rgba(255,236,249,.48);
+ background:radial-gradient(circle at 28% 23%,#ffeffa88 0%,#ad84d4b0 25%,
+ #7752a5 57%,#283461 89%);
+ box-shadow:inset -12px -13px 20px #1b25518f,inset 9px 10px 15px #fff6ff33,
+ 0 16px 35px #080d2955,0 0 28px #cc7ab34d;
+ animation:lr-avatar-orb-float 4.8s ease-in-out infinite;
+}
+.lr-avatar-3d-orb-left{left:3%;transform:rotate(-13deg)}
+.lr-avatar-3d-orb-right{right:3%;background:radial-gradient(circle at 26% 22%,#fff4f4a3 0%,
+ #d9a9c4bd 24%,#ad6f94 60%,#46385c 92%);
+ animation-delay:-2.4s}
+.lr-avatar-3d-link{position:absolute;left:50%;top:45%;z-index:2;
+ transform:translate(-50%,-50%);font-size:30px;color:#ffcadf;
+ text-shadow:0 0 12px #fa8ec2,0 3px 10px #4a123d;
+ animation:lr-avatar-link-pulse 2.4s ease-in-out infinite}
+.lr-avatar-3d-invite.compact{inset:6% 7%;gap:4px}
+.lr-avatar-3d-invite.compact .lr-avatar-3d-constellation{height:88px;width:150px}
+.lr-avatar-3d-invite.compact .lr-avatar-3d-orb{height:69px;width:69px;top:8px}
+.lr-avatar-3d-invite.compact .lr-avatar-3d-link{font-size:21px}
+.lr-avatar-3d-invite.compact strong{font-size:12px}
+.lr-avatar-duo-sticker .lr-avatar-duo-heart{top:12%}
+.lr-avatar-studio-3d .lr-avatar-studio-poses .lr-avatar-pose-choice{
+ background:linear-gradient(160deg,#28304b,#211f3c)!important;
+ border:1px solid rgba(237,196,225,.17)!important;
+ border-radius:18px!important;
+}
+.lr-avatar-studio-3d .lr-avaturn-pose-symbol{
+ min-height:108px;filter:drop-shadow(0 9px 12px #05071e88);
+}
+.lr-avatar-studio-3d .lr-avaturn-card{
+ border-radius:22px;border-color:rgba(240,194,228,.25);
+ background:linear-gradient(155deg,#292b4d,#222542 60%,#251e3b);
+ box-shadow:0 16px 40px #090d21a3;
+}
+@keyframes lr-avatar-orb-float{
+ 0%,100%{translate:0 3px}50%{translate:0 -8px}
+}
+@keyframes lr-avatar-link-pulse{
+ 0%,100%{opacity:.72;scale:.93}50%{opacity:1;scale:1.11}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-avatar-3d-orb,.lr-avatar-3d-link{animation:none!important}
+}
