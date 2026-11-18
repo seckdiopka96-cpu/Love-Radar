@@ -126,10 +126,14 @@ test("iPhone avatar page gets its own full-screen scroller without an overlaying
 });
 test("first-time members can start in Avaturn without saving any rejected legacy preset",()=>{
  const studio=read("src/CoupleAvatarStudio.tsx");
- assert.ok(studio.includes('data.mine3d?"Personnaliser à nouveau":"Créer mon avatar 3D"'));
+ assert.ok(studio.includes('quickEdit?"Fermer les modifications":"Modifier mon avatar"'),
+  "an existing 3D avatar is directly editable inside Love Radar");
  assert.ok(studio.includes("setOpenAvaturn(true)"));
  assert.ok(studio.includes("data.partner3d"),"partner model availability is tracked");
  assert.ok(!studio.includes("onSaveStyle(draft)"));
+ assert.ok(studio.includes("Avatar3DQuickEditor"));
+ assert.ok(studio.includes("onSaveLook3d(draftLook)"));
+ assert.ok(studio.includes("onPreview={setDraftLook}"));
  assert.ok(studio.includes("onSaved={onModelImported}"));
 });
 
