@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState} from "react";
 import {apiFetch} from "./api";
+import {requiresTopLevelAvaturnAuth} from "./avaturn-auth";
 import "./avaturn-3d.css";
 
 type ExportResult={url:string;urlType:"dataURL"|"httpURL";avatarId:string;sessionId:string};
@@ -41,13 +42,18 @@ export default function Avaturn3DEditor({token,onSaved,onClose}:Props){
  const element=useRef<HTMLDivElement>(null);
  const sdkRef=useRef<{destroy:()=>void}|null>(null);
  const [error,setError]=useState("");
- const [loading,setLoading]=useState(true);
+ // Safari on iPhone/iPad partitions iframe storage during Avaturn's redirect login.
+ // Start the sign-in flow at the editor's own top-level origin instead.
+ const [externalOnIOS]=useState(()=>typeof navigator!=="undefined"&&
+  requiresTopLevelAvaturnAuth(navigator.userAgent,navigator.platform,navigator.maxTouchPoints));
+ const [loading,setLoading]=useState(!externalOnIOS);
  const [saving,setSaving]=useState(false);
  const [success,setSuccess]=useState(false);
  const fileRef=useRef<HTMLInputElement>(null);
  const inFlight=useRef(false);
  const onSavedRef=useRef(onSaved);onSavedRef.current=onSaved;
  useEffect(()=>{
+  if(externalOnIOS)return;
   let active=true;
   let sdkInstance:{destroy:()=>void}|null=null;
   async function initialize(){
@@ -78,7 +84,7 @@ export default function Avaturn3DEditor({token,onSaved,onClose}:Props){
   void initialize();
   return()=>{active=false;try{sdkInstance?.destroy()}catch{/* ignore */}
    sdkRef.current=null};
- },[token]);
+ },[token,externalOnIOS]);
  async function importFile(file:File|null){
   if(!file||inFlight.current)return;
   inFlight.current=true;setSaving(true);setSuccess(false);setError("");
@@ -105,9 +111,29 @@ export default function Avaturn3DEditor({token,onSaved,onClose}:Props){
    Avaturn est un service externe : si tu choisis de prendre des selfies, ils sont traités
    par Avaturn selon ses conditions. Aucun selfie n'est envoyé à Love Radar.
   </p>
-  <div ref={element} className="lr-avaturn-frame" aria-label="Personnalisation Avaturn">
-   {loading?<p className="lr-avaturn-loading">Ouverture de l’éditeur 3D…</p>:null}
-  </div>
+  {externalOnIOS?
+   <section className="lr-avaturn-external" aria-label="Avaturn dans Safari">
+    <div className="lr-avaturn-external-icon" aria-hidden="true">✦</div>
+    <h3>Crée ton avatar sur Safari</h3>
+    <p>Sur iPhone, la connexion Avaturn peut échouer dans une fenêtre intégrée.
+     Ouvre son éditeur directement dans le navigateur pour démarrer une nouvelle session.</p>
+    <a className="lr-avaturn-external-launch" href={AVATURN_URL+"/"}
+     target="_blank" rel="noopener noreferrer">
+     Ouvrir Avaturn dans Safari <span aria-hidden="true">↗</span>
+    </a>
+    <p className="lr-avaturn-external-help">Une fois ton avatar créé, si Avaturn propose
+     de télécharger un fichier <strong>.glb</strong>, enregistre-le dans Fichiers,
+     reviens ici et utilise « Importer un fichier GLB ».
+     L’export depuis Safari n’est pas transféré automatiquement à Love Radar.</p>
+   </section>:
+   <div className="lr-avaturn-frame" aria-label="Personnalisation Avaturn">
+    <div ref={element} className="lr-avaturn-embed"/>
+    {loading?<p className="lr-avaturn-loading">Ouverture de l’éditeur 3D…</p>:null}
+   </div>}
+  {!externalOnIOS?<a className="lr-avaturn-external-backup" href={AVATURN_URL+"/"}
+    target="_blank" rel="noopener noreferrer">
+    Connexion bloquée ? Ouvrir Avaturn directement dans le navigateur ↗
+   </a>:null}
   <div className="lr-avaturn-actions">
    <input type="file" accept=".glb,model/gltf-binary" ref={fileRef} hidden
     onChange={event=>void importFile(event.target.files?.[0]||null)}/>

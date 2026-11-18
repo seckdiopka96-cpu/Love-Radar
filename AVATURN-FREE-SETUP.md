@@ -26,6 +26,33 @@ peut demander une connexion, limiter la personnalisation et/ou l'export.
 Le bouton **Importer un fichier GLB** accepte aussi un modèle Avaturn exporté
 et téléchargé manuellement, sans abonnement à l'API.
 
+## Connexion Avaturn sur iPhone / iPad
+
+Si Avaturn redirige vers `auth1.avaturn.me` avec « Unable to process request due to
+missing initial state », la connexion a perdu l'état de redirection (généralement à
+cause de l'isolement des cookies/sessionStorage dans une iframe iOS).
+
+Love Radar affiche désormais **Ouvrir Avaturn dans Safari** sur iOS au lieu de
+lancer le formulaire de connexion dans une iframe. Cela démarre une nouvelle
+session depuis la page de création elle-même, **pas** depuis le lien
+`auth1.avaturn.me` devenu invalide.
+
+1. Dans Love Radar, ouvrir **Nos avatars 3D → Créer mon avatar 3D**.
+2. Appuyer sur **Ouvrir Avaturn dans Safari** et se connecter à partir de
+   la page principale Avaturn.
+3. Si un modèle `.glb` peut être téléchargé depuis Avaturn, l'enregistrer dans
+   l'app **Fichiers** sur l'iPhone. Revenir à Love Radar et appuyer sur
+   **Importer un fichier GLB** pour l'enregistrer dans le stockage privé du couple.
+
+**Important :** une création effectuée dans Safari ne remonte pas automatiquement
+dans Love Radar, puisque ce flux externe ne reçoit pas le callback d'export du SDK
+intégré. Le bouton d'import fonctionne uniquement si un fichier GLB est disponible.
+Le mode démo peut limiter ou empêcher cet export. Un sous-domaine gratuit Avaturn
+dédié reste préférable. Les restrictions de connexion et de session du service
+Avaturn ne sont pas contrôlables par Love Radar.
+
+Documentation : https://firebase.google.com/docs/auth/web/redirect-best-practices
+
 ## Stockage et données
 
 - `functions/api/couple-avatar-model.ts` valide une session Love Radar avant

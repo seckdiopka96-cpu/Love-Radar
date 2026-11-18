@@ -1,6 +1,6 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
 // Refresh the installed PWA shell after the Cloudflare Pages GIPHY build variable was configured.
-const CACHE="love-radar-static-v126";
+const CACHE="love-radar-static-v127";
 const PRIVATE_AVATAR_CACHE="love-radar-private-notification-avatar-v1";
 const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png","/ludo-mark.svg","/ludo-solo/index.html","/ludo-solo/style.css","/ludo-solo/script.js","/ludo-duo/index.html","/ludo-duo/style.css","/ludo-duo/script.js"];
 self.addEventListener("install",event=>{
