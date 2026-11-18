@@ -59,7 +59,10 @@ test("Theme syncing is room-scoped and independent of chat messages",()=>{
  assert.ok(deletion.includes('"chat_themes"'),"deletion removes shared theme records");
  assert.ok(schema.includes("CREATE TABLE IF NOT EXISTS chat_themes"),"new rooms have safe schema");
  assert.ok(app.includes('<ChatThemePicker key={room.roomId}'));
- assert.ok(app.includes('onChange={setChatTheme}'));
+ assert.ok(app.includes('onChange={setChatTheme} hideTrigger/>'),
+  "theme syncing persists with no palette button in chat header");
+ assert.ok(picker.includes('!hideTrigger?<button className="lr-chat-theme-trigger"'),
+  "palette trigger is omitted from the visible chat layout");
  assert.ok(app.includes('chatTheme.wallpaper'));
  assert.ok(app.includes('chatTheme.bubble'));
  assert.ok(picker.includes("window.setInterval(()=>{void refresh()},8000)"),"partner update poll");
@@ -85,4 +88,20 @@ test("Animated wallpapers do not interfere with voice, video or reduced-motion s
  assert.ok(picker.includes("Forme des messages"));
  assert.ok(picker.includes("Revenir au thème original"));
  assert.ok(app.includes("showButton={tab==="),"voice call controls remain");
+});
+
+test("Chat header removes circled couple/avatar and palette icons but keeps phone/video controls",()=>{
+ const app=read("src/App.tsx");
+ const header=app.slice(app.indexOf('className="lr-chat-head"'),
+  app.indexOf('className="lr-chat-messages"'));
+ assert.ok(header.length>100,"chat header is present");
+ assert.ok(!header.includes('lr-avatar-chat-open'),"remove couple icon from chat header");
+ assert.ok(!header.includes('Nos avatars amoureux'),"remove access label for old chat avatar icon");
+ assert.ok(header.includes('hideTrigger/>'),"palette button is hidden");
+ assert.ok(header.includes('id="lr-voice-button-slot"'),"keep voice/video call toolbar anchor");
+ assert.ok(header.includes('lr-partner-photo-trigger'),"keep profile photo access");
+ assert.ok(header.includes('lr-chat-status-trigger'),"keep online and last seen access");
+ assert.ok(app.includes('showButton={tab==="'),"call controls remain enabled in chat");
+ assert.ok(app.includes('navigate("avatars")'),
+  "avatar studio remains accessible outside the chat header");
 });

@@ -7,6 +7,7 @@ import "./chat-themes.css";
 type Props={
  token:string;roomId:string;theme:ChatTheme;
  onChange:(next:ChatTheme)=>void;
+ hideTrigger?:boolean;
 };
 const WALLPAPERS:Record<typeof CHAT_WALLPAPERS[number],{title:string;desc:string;icon:string}>={
  minuit:{title:"Minuit",desc:"Notre classique",icon:"🌙"},
@@ -21,7 +22,7 @@ const COLORS:Record<typeof CHAT_COLORS[number],{title:string;icon:string}>={
 const BUBBLES:Record<typeof CHAT_BUBBLES[number],string>={
  classique:"Classiques",douce:"Douces",compacte:"Compactes"
 };
-export default function ChatThemePicker({token,roomId,theme,onChange}:Props){
+export default function ChatThemePicker({token,roomId,theme,onChange,hideTrigger=false}:Props){
  const [open,setOpen]=useState(false);
  const [saving,setSaving]=useState(false);
  const [error,setError]=useState("");
@@ -85,13 +86,13 @@ export default function ChatThemePicker({token,roomId,theme,onChange}:Props){
   }finally{savingRef.current=false;setSaving(false)}
  }
  return <>
-  <button className="lr-chat-theme-trigger" type="button" aria-label="Personnaliser les thèmes de conversation"
+  {!hideTrigger?<button className="lr-chat-theme-trigger" type="button" aria-label="Personnaliser les thèmes de conversation"
    title="Personnaliser notre conversation" aria-haspopup="dialog" aria-expanded={open}
    onClick={()=>setOpen(true)}><svg viewBox="0 0 24 24" aria-hidden="true" fill="none"
    stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
    <path d="M12 3a9 9 0 1 0 0 18h1.2a2 2 0 0 0 1.6-3.2 1.8 1.8 0 0 1 .9-2.8h2A3.3 3.3 0 0 0 21 11.7 9 9 0 0 0 12 3Z"/>
    <circle cx="7.5" cy="11" r="1"/><circle cx="11" cy="7.5" r="1"/><circle cx="16" cy="9" r="1"/>
-   <circle cx="9.5" cy="16" r="1"/></svg></button>
+   <circle cx="9.5" cy="16" r="1"/></svg></button>:null}
   {open?<div className="lr-chat-theme-backdrop" onClick={()=>setOpen(false)}>
    <section className="lr-chat-theme-sheet" role="dialog" aria-modal="true" aria-labelledby="lr-chat-theme-title"
     onClick={event=>event.stopPropagation()}>
