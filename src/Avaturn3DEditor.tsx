@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState} from "react";
 import {apiFetch} from "./api";
+import {requiresTopLevelAvaturnAuth} from "./avaturn-auth";
 import "./avaturn-3d.css";
 
 type ExportResult={url:string;urlType:"dataURL"|"httpURL";avatarId:string;sessionId:string};
@@ -43,9 +44,8 @@ export default function Avaturn3DEditor({token,onSaved,onClose}:Props){
  const [error,setError]=useState("");
  // Safari on iPhone/iPad partitions iframe storage during Avaturn's redirect login.
  // Start the sign-in flow at the editor's own top-level origin instead.
- const [externalOnIOS]=useState(()=>typeof navigator!=="undefined"&&(
-  /iPhone|iPad|iPod/i.test(navigator.userAgent)||
-  (navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)));
+ const [externalOnIOS]=useState(()=>typeof navigator!=="undefined"&&
+  requiresTopLevelAvaturnAuth(navigator.userAgent,navigator.platform,navigator.maxTouchPoints));
  const [loading,setLoading]=useState(!externalOnIOS);
  const [saving,setSaving]=useState(false);
  const [success,setSuccess]=useState(false);
