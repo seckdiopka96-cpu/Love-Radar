@@ -34,7 +34,7 @@
     "test:chat-type-push": "tsx --test tests/chat-type-push-avatar.test.ts tests/notification-routing.test.ts",
     "test:expressions": "tsx --test tests/expressions.test.ts",
     "test:themes": "tsx --test tests/chat-themes.test.ts",
-    "test:avatars": "tsx --test tests/couple-avatars.test.ts",
+    "test:avatar-removal": "tsx --test tests/retired-character-avatars.test.ts",
     "test:activity": "tsx --test tests/activity-icons.test.ts",
     "test:animation": "tsx --test tests/activity-frames.test.ts",
     "test:replies": "tsx --test tests/message-replies.test.ts",
@@ -52,8 +52,7 @@
     "test:load": "node scripts/staging-load.mjs --synthetic",
     "load:staging": "node scripts/staging-load.mjs",
     "predev": "node scripts/prepare-face-mesh.mjs",
-    "prebuild": "node scripts/prepare-face-mesh.mjs",
-    "test:avaturn": "tsx --test tests/avaturn-integration.test.ts"
+    "prebuild": "node scripts/prepare-face-mesh.mjs"
   },
   "dependencies": {
     "@avaturn/sdk": "^1.1.0",
