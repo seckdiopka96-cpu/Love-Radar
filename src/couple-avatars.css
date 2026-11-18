@@ -648,3 +648,11 @@
 @media(prefers-reduced-motion:reduce){
  .lr-avatar-3d-orb,.lr-avatar-3d-link{animation:none!important}
 }
+
+/* The compact home card keeps the full invitation readable on a phone. */
+.lr-avatar-duo-home .lr-avatar-3d-invite{inset:3% 5% 9%;gap:3px}
+.lr-avatar-duo-home .lr-avatar-3d-constellation{height:87px;width:148px;margin-bottom:0}
+.lr-avatar-duo-home .lr-avatar-3d-orb{height:69px;width:69px;top:8px}
+.lr-avatar-duo-home .lr-avatar-3d-link{font-size:22px}
+.lr-avatar-duo-home .lr-avatar-3d-invite strong{font-size:12px}
+.lr-avatar-duo-home .lr-avatar-3d-invite small{font-size:9px;line-height:1.35;max-width:230px}
