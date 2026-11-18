@@ -15,8 +15,8 @@ export const TRACK:Point[]=[
  [7,0],[6,0],
 ];
 export const HOME:Point[][]=[
- [1,2,3,4,5,6].map(c=>[7,c] as Point),
- [13,12,11,10,9,8].map(c=>[7,c] as Point),
+ [1,2,3,4,5].map(c=>[7,c] as Point),
+ [13,12,11,10,9].map(c=>[7,c] as Point),
 ];
 export const BASE:Point[][]=[
  [[1,1],[1,4],[4,1],[4,4]],
@@ -26,12 +26,12 @@ export const BASE:Point[][]=[
 export const SAFE=new Set([0,8,13,21,26,34,39,47]);
 export const CELL=Array.from({length:225},(_,i)=>[Math.floor(i/15),i%15] as Point);
 export const key=(r:number,c:number)=>r+"-"+c;
-/** -1=base, 0..50=outer ring, 51..56=home lane, 57=center. */
+/** -1=base, 0..50=outer ring, 51..55=five coloured home squares, 56=center (57=legacy finish). */
 export function pointForProgress(seat:number,pawn:number,progress:number):Point{
  if(progress===-1)return BASE[seat][pawn];
- if(progress===57)return [7,7];
+ if(progress===56||progress===57)return [7,7];
  if(progress>=0&&progress<=50)return TRACK[(seat*26+progress)%52];
- if(progress>=51&&progress<=56)return HOME[seat][progress-51];
+ if(progress>=51&&progress<=55)return HOME[seat][progress-51];
  throw new Error("Invalid Ludo progress "+progress);
 }
 /** Every step includes the cell the moving pawn actually passes over. */
