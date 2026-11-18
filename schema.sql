@@ -226,3 +226,20 @@ CREATE TABLE IF NOT EXISTS ludo_last_rolls (
  room_id TEXT PRIMARY KEY,game_id TEXT NOT NULL,seat INTEGER NOT NULL,
  face INTEGER NOT NULL,updated_at INTEGER NOT NULL
 );
+
+
+-- Private shared photo/video keepsakes (media bytes in R2).
+CREATE TABLE IF NOT EXISTS keepsake_album (
+ id TEXT PRIMARY KEY, room_id TEXT NOT NULL, author_id TEXT NOT NULL,
+ object_key TEXT NOT NULL, mime TEXT NOT NULL, caption TEXT NOT NULL DEFAULT '',
+ created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_keepsake_album_room ON keepsake_album(room_id,created_at DESC);
+
+-- Surprise letters: body is never returned before unlock_at.
+CREATE TABLE IF NOT EXISTS keepsake_letters (
+ id TEXT PRIMARY KEY, room_id TEXT NOT NULL, author_id TEXT NOT NULL,
+ title TEXT NOT NULL, body TEXT NOT NULL, unlock_at INTEGER NOT NULL,
+ created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_keepsake_letters_room ON keepsake_letters(room_id,created_at DESC);
