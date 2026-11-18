@@ -64,6 +64,13 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
   preview.current.srcObject=stream;preview.current.muted=true;preview.current.playsInline=true;
   await preview.current.play();
  }
+ // The camera <video> mounts only after active becomes true; attach after commit.
+ useEffect(()=>{
+  if(!active||!source.current)return;
+  void show(processor.current?.stream||source.current).catch(()=>{
+   if(alive.current)setError("Impossible d’afficher l’aperçu de la caméra.");
+  });
+ },[active]);
  async function openCamera(){
   if(busy)return;
   setError("");setBusy(true);clearOutputs();
@@ -167,7 +174,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
    const live=processor.current?.stream||source.current;
    if(!video||!live?.getVideoTracks().length)throw Error("Caméra indisponible.");
    const candidates=["video/mp4;codecs=h264","video/mp4","video/webm;codecs=vp8","video/webm"];
-   const mime=candidates.find(type=>MediaRecorder.isTypeSupported(type));
+   const mime=candidates.find(type=>typeof MediaRecorder.isTypeSupported==="function"&&MediaRecorder.isTypeSupported(type));
    const session=new MediaRecorder(new MediaStream(live.getVideoTracks()),mime?{mimeType:mime}:undefined);
    recordParts.current=[];recorder.current=session;setRecording(true);setSeconds(0);
    session.ondataavailable=e=>{if(e.data.size)recordParts.current.push(e.data)};
