@@ -134,12 +134,12 @@ test("GLB diagnostics distinguish grayscale files from textured rigged models wi
  const viewer=read("src/Avatar3DScene.tsx");
  assert.ok(viewer.includes("const info=inspectAvatarGlb(bytes);"));
  assert.ok(viewer.includes("info.images===0||info.texturedMaterials===0"));
- assert.ok(viewer.includes("figure.root.position.x=figure.mirror*(.82-closeness)"),
-  "my character starts on left, partner on right");
+ assert.ok(viewer.includes("figure.root.position.x=duoReady?figure.mirror*(.82-closeness)"),
+  "the avatar centers itself in solo, but couple models face each other");
  assert.ok(viewer.includes("const correction=parentQuat.clone().invert()"),
   "skeleton posing uses world axes instead of guessing bone axes");
- assert.ok(viewer.includes("-side*(.83+.50*wave*(near?1:-1))"),
-  "dance bends horizontally extended Avaturn arms naturally");
+ assert.ok(viewer.includes("-side*(.98+.32*Math.sin(t*2.65+(side>0?Math.PI:0)))"),
+  "dance moves each imported arm in opposite phases");
  assert.ok(read("src/avaturn-3d.css").includes(".lr-avatar-three-warning"));
 });
 
@@ -177,8 +177,8 @@ test("Avaturn GLB embedded JPEG base-color maps are recoverable for iOS (no netw
  assert.ok(scene.includes("restoreAvatarColorsOnIOS(T,model,bytes,()=>disposed)"));
  assert.ok(scene.includes("renderer.outputColorSpace=T.SRGBColorSpace"));
  assert.ok(scene.includes("renderer.toneMapping=T.NeutralToneMapping"));
- assert.ok(scene.includes("-side*(.83+.50*wave*(near?1:-1))"),
-  "Avaturn's horizontally extended arms bend downward in dance mode");
+ assert.ok(scene.includes("-side*(.98+.32*Math.sin(t*2.65+(side>0?Math.PI:0)))"),
+  "Avaturn's horizontal bind pose becomes moving, low dance arms");
  assert.ok(fallback.includes("new Image()"),"iOS texture decoding does not depend on ImageBitmap");
  assert.ok(fallback.includes("new T.DataTexture(rgba,width,height,T.RGBAFormat,T.UnsignedByteType)"),
   "use raw RGBA pixel buffer for iOS WebGL upload instead of DOM image");
@@ -191,8 +191,31 @@ test("Avaturn GLB embedded JPEG base-color maps are recoverable for iOS (no netw
 
 test("A missing partner does not leave the first Avaturn avatar in half T-pose",()=>{
  const scene=read("src/Avatar3DScene.tsx");
- assert.ok(scene.includes('const angle=(!duoReady&&pose==="main")?-side*1.32'),
-  "both arms rest down when the second partner has not created an avatar");
+ assert.ok(scene.includes('!duoReady?-side*(1.30+.015*Math.sin(t*1.3))'),
+  "both arms rest down when a partner has not created an avatar");
  assert.ok(scene.includes("animateFigure(T,figure,poseRef.current,t,mine&&partner)"),
   "actual couple pose is selected only after both private 3D models are present");
+});
+
+test("one real 3D avatar has its own spotlight instead of a fake sphere partner",()=>{
+ const scene=read("src/Avatar3DScene.tsx");
+ const duo=read("src/CoupleAvatarDuo.tsx");
+ const studio=read("src/CoupleAvatarStudio.tsx");
+ const css=read("src/couple-avatars.css");
+ assert.ok(scene.includes('const active:CouplePose=duoReady?pose:(pose==="danse"?"danse":"main")'),
+  "a lone avatar only performs idle or solo dancing, never fake hugs");
+ assert.ok(scene.includes('root.position.x=mine&&partner?mirror*.82:0'),
+  "a single real character gets centered instead of staying left of a dummy");
+ assert.ok(!scene.includes("makePlaceholder("),
+  "no fake sphere or placeholder character is created in the 3D scene");
+ assert.ok(scene.includes('camera.position.set(0,1.5,mine&&partner?7.1:6.15)'),
+  "solo model gets the appropriate hero framing");
+ assert.ok(scene.includes("renderer.toneMappingExposure=1.18"));
+ assert.ok(scene.includes("new T.AmbientLight(0xffffff,.65)"),
+  "soft fill light preserves color and face detail in the dark theme");
+ assert.ok(duo.includes('const onlyOne3d=show3d&&(mine3d!==partner3d)'));
+ assert.ok(duo.includes('lr-avatar-real-solo'));
+ assert.ok(duo.includes("Danse en solo"));
+ assert.ok(css.includes(".lr-avatar-real-solo .lr-avatar-duo-heart{display:none}"));
+ assert.ok(studio.includes("Les câlins, bisous et danses à deux prendront vie"));
 });
