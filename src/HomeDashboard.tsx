@@ -83,7 +83,7 @@ export default function HomeDashboard({room,token,mineAvatar,partnerAvatar,onEdi
   </div>
   <section className="lr-plus-invite" aria-label="Love Radar Plus">
    <div><strong>{plusActive?"✦ Vos avantages Love Radar Plus":"✦ Découvrez Love Radar Plus"}</strong>
-    <small>{plusActive?"Thèmes, défis et livre souvenir disponibles.":"3,99 $/mois par couple · votre messagerie reste gratuite."}</small></div>
+    <small>{plusActive?"Thèmes, défis et livre souvenir disponibles.":"2,99 $/mois par couple · votre messagerie reste gratuite."}</small></div>
    <button type="button" onClick={()=>onNavigate("plus")}>{plusActive?"Mes avantages":"Découvrir Plus"}</button>
   </section>
   {!room.partner?<section className="lr-home-invite"><div><strong>Invite ton amour 💌</strong><p>Partage ton code pour vous retrouver.</p></div><button type="button" onClick={onInvite}>Partager l’invitation</button></section>:null}
