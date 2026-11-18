@@ -1,8 +1,6 @@
 import {useEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
-import LensPicker from "./LensPicker";
 import {isCallAudioActive} from "./audio-focus";
-import {createLensProcessor,type LensProcessor,type LoveLensId} from "./love-lenses";
 import "./fun-camera.css";
 
 type Props={partner:string|null;onBack:()=>void;onSendPhoto:(file:File)=>Promise<boolean>;onOpenChat:()=>void};
@@ -12,9 +10,7 @@ const cameraSettings=(facing:"user"|"environment"):MediaStreamConstraints=>({
 function formatRecording(seconds:number){return "00:"+String(seconds).padStart(2,"0")}
 export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props){
  const preview=useRef<HTMLVideoElement|null>(null);
- const canvasHost=useRef<HTMLDivElement|null>(null);
  const source=useRef<MediaStream|null>(null);
- const processor=useRef<LensProcessor|null>(null);
  const recorder=useRef<MediaRecorder|null>(null);
  const recordParts=useRef<Blob[]>([]);
  const elapsedTimer=useRef<ReturnType<typeof setInterval>|null>(null);
@@ -23,8 +19,6 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
  const [active,setActive]=useState(false);
  const [busy,setBusy]=useState(false);
  const [facing,setFacing]=useState<"user"|"environment">("user");
- const [lens,setLens]=useState<LoveLensId>("none");
- const [tracking,setTracking]=useState<"loading"|"ready"|"missing"|"unavailable">("loading");
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
  const [photo,setPhoto]=useState<Blob|null>(null);
@@ -34,12 +28,6 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
  const [recording,setRecording]=useState(false);
  const [seconds,setSeconds]=useState(0);
  const [sending,setSending]=useState(false);
- function mountCanvas(){
-  const host=canvasHost.current,canvas=processor.current?.canvas;
-  if(!host||!canvas)return;
-  if(canvas.parentNode!==host)host.replaceChildren(canvas);
- }
- function unmountCanvas(){canvasHost.current?.replaceChildren()}
  function clearOutputs(){
   if(photoRef.current){URL.revokeObjectURL(photoRef.current);photoRef.current=null}
   if(videoRef.current){URL.revokeObjectURL(videoRef.current);videoRef.current=null}
@@ -52,19 +40,9 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
  }
  function cleanup(){
   stopRecording();
-  processor.current?.stop();processor.current=null;
-  unmountCanvas();
   source.current?.getTracks().forEach(track=>track.stop());source.current=null;
   if(preview.current){preview.current.pause();preview.current.srcObject=null}
  }
- useEffect(()=>{
-  if(!active||lens==="none"){setTracking("loading");return}
-  const interval=setInterval(()=>{
-   const status=processor.current?.trackingStatus()||"loading";
-   setTracking(current=>current===status?current:status);
-  },400);
-  return()=>clearInterval(interval);
- },[active,lens]);
  useEffect(()=>{
   alive.current=true;
   return()=>{
@@ -72,7 +50,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
    if(elapsedTimer.current)clearInterval(elapsedTimer.current);
    const r=recorder.current;
    if(r){r.onstop=null;r.ondataavailable=null;if(r.state!=="inactive")r.stop()}
-   processor.current?.stop();unmountCanvas();source.current?.getTracks().forEach(t=>t.stop());
+   source.current?.getTracks().forEach(t=>t.stop());
    if(preview.current){preview.current.pause();preview.current.srcObject=null}
    if(photoRef.current)URL.revokeObjectURL(photoRef.current);
    if(videoRef.current)URL.revokeObjectURL(videoRef.current);
@@ -86,7 +64,6 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
  // The camera <video> mounts only after active becomes true; attach after commit.
  useEffect(()=>{
   if(!active||!source.current)return;
-  mountCanvas();
   void show(source.current).catch(()=>{
    if(alive.current)setError("Impossible d’afficher l’aperçu de la caméra.");
   });
@@ -95,7 +72,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
   if(busy)return;
   setError("");setBusy(true);clearOutputs();
   try{
-   if(isCallAudioActive())throw Error("Un appel est déjà en cours. Utilise les effets ✨ de l’appel vidéo ou termine-le avant d’ouvrir le studio.");
+   if(isCallAudioActive())throw Error("Un appel est déjà en cours. Termine-le avant d’ouvrir la caméra.");
    if(!navigator.mediaDevices?.getUserMedia)throw Error("Ouvre Love Radar en HTTPS et autorise la caméra.");
    const camera=await navigator.mediaDevices.getUserMedia(cameraSettings(facing));
    if(!alive.current){camera.getTracks().forEach(t=>t.stop());return}
@@ -103,35 +80,10 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
    // On iOS the preview element does not exist until active=true.
    // The effect engine can still use its own video element immediately.
    setActive(true);
-   if(lens!=="none"){
-    const processed=await createLensProcessor(camera.getVideoTracks()[0],lens,{previewOnly:true});
-    processor.current=processed;
-   }
   }catch(err){
    cleanup();setActive(false);
    setError(err instanceof Error?err.message:"Caméra indisponible. Autorise la caméra dans les réglages de ton téléphone.");
   }finally{if(alive.current)setBusy(false)}
- }
- async function chooseLens(value:LoveLensId){
-  if(recording||busy)return;
-  if(!source.current){setLens(value);return}
-  setError("");setBusy(true);
-  try{
-   if(value==="none"){
-    await show(source.current);
-    processor.current?.stop();processor.current=null;
-    unmountCanvas();
-   }else if(processor.current){
-    processor.current.setLens(value);
-   }else{
-    const next=await createLensProcessor(source.current.getVideoTracks()[0],value,{previewOnly:true});
-    if(!alive.current){next.stop();return}
-    processor.current=next;
-    mountCanvas();
-   }
-   if(alive.current){setLens(value);setTracking("loading");setNotice(value==="none"?"Caméra naturelle.":"Recherche du visage…");}
-  }catch(err){if(alive.current)setError(err instanceof Error?err.message:"Impossible d’appliquer cet effet.")}
-  finally{if(alive.current)setBusy(false)}
  }
  async function flip(){
   if(!source.current||busy||recording)return;
@@ -147,10 +99,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
     stream=await navigator.mediaDevices.getUserMedia(cameraSettings(next));
    }
    if(!alive.current){stream.getTracks().forEach(t=>t.stop());return}
-   if(processor.current){
-    await processor.current.setSource(stream.getVideoTracks()[0]);
-    await show(stream);
-   }else await show(stream);
+   await show(stream);
    source.current=stream;
    original.getTracks().forEach(t=>t.stop());
    setFacing(next);
@@ -160,8 +109,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
     try{
      const restored=await navigator.mediaDevices.getUserMedia(cameraSettings(facing));
      source.current=restored;
-     if(processor.current){await processor.current.setSource(restored.getVideoTracks()[0]);await show(restored)}
-     else await show(restored);
+     await show(restored);
     }catch{cleanup();setActive(false)}
    }
    setError("Impossible de changer de caméra : "+(err instanceof Error?err.message:"réessaie."));
@@ -173,17 +121,15 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
   try{
    const video=preview.current;
    if(!video||video.readyState<2)throw Error("L’image caméra n’est pas encore prête.");
-   const canvas=processor.current?.canvas||document.createElement("canvas");
-   if(!processor.current){
-    canvas.width=video.videoWidth;canvas.height=video.videoHeight;
-    canvas.getContext("2d")?.drawImage(video,0,0);
-   }
+   const canvas=document.createElement("canvas");
+   canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+   canvas.getContext("2d")?.drawImage(video,0,0);
    const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,"image/jpeg",.88));
    if(!blob||!blob.size)throw Error("Photo indisponible.");
    if(photoRef.current)URL.revokeObjectURL(photoRef.current);
    const url=URL.createObjectURL(blob);photoRef.current=url;
    setPhoto(blob);setPhotoUrl(url);setRecorded(null);setRecordedUrl("");
-   setNotice("Ta photo avec effet est prête ❤️");
+   setNotice("Ta photo est prête ❤️");
   }catch(e){setError(e instanceof Error?e.message:"Impossible de prendre la photo.")}
  }
  function recordVideo(){
@@ -192,10 +138,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
   try{
    if(typeof MediaRecorder==="undefined")throw Error("L'enregistrement vidéo n'est pas pris en charge sur cet appareil.");
    const video=preview.current;
-   const effectCanvas=processor.current?.canvas;
-   if(effectCanvas&&typeof effectCanvas.captureStream!=="function")
-    throw Error("Cet appareil ne peut pas filmer avec des effets. Utilise le bouton photo pour garder ton filtre.");
-   const live=effectCanvas?effectCanvas.captureStream(20):source.current;
+   const live=source.current;
    if(!video||!live?.getVideoTracks().length)throw Error("Caméra indisponible.");
    const candidates=["video/mp4;codecs=h264","video/mp4","video/webm;codecs=vp8","video/webm"];
    const mime=candidates.find(type=>typeof MediaRecorder.isTypeSupported==="function"&&MediaRecorder.isTypeSupported(type));
@@ -203,7 +146,6 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
    recordParts.current=[];recorder.current=session;setRecording(true);setSeconds(0);
    session.ondataavailable=e=>{if(e.data.size)recordParts.current.push(e.data)};
    session.onstop=()=>{
-    if(effectCanvas)live.getVideoTracks().forEach(track=>track.stop());
     if(elapsedTimer.current){clearInterval(elapsedTimer.current);elapsedTimer.current=null}
     if(!alive.current)return;
     const blob=new Blob(recordParts.current,{type:session.mimeType||mime||"video/webm"});
@@ -215,7 +157,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
     }else setError("Cette vidéo n'a pas pu être enregistrée.");
     recorder.current=null;setRecording(false);
    };
-   session.onerror=()=>{if(effectCanvas)live.getVideoTracks().forEach(track=>track.stop());setError("L'enregistrement vidéo s'est interrompu.");};
+   session.onerror=()=>{setError("L'enregistrement vidéo s'est interrompu.");};
    session.start(1000);
    let time=0;
    elapsedTimer.current=setInterval(()=>{
@@ -246,27 +188,23 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
   if(!photo||!partner||sending)return;
   setSending(true);setError("");
   try{
-   const file=new File([photo],"love-radar-effet-"+Date.now()+".jpg",{type:"image/jpeg"});
+   const file=new File([photo],"love-radar-photo-"+Date.now()+".jpg",{type:"image/jpeg"});
    const sent=await onSendPhoto(file);
    if(!sent)throw Error("Envoi impossible. Vérifie ta connexion et les autorisations.");
    cleanup();onOpenChat();
   }catch(e){if(alive.current)setError(e instanceof Error?e.message:"Envoi impossible.")}
   finally{if(alive.current)setSending(false)}
  }
- return createPortal(<section className="lr-fun-camera" aria-label="Caméra fun avec effets Love Radar">
+ return createPortal(<section className="lr-fun-camera" aria-label="Caméra Love Radar">
   <header className="lr-fun-camera-head">
    <button type="button" onClick={()=>{cleanup();onBack()}} aria-label="Quitter la caméra">‹</button>
-   <div><small>LOVE RADAR</small><h1>Caméra <span>✨</span></h1></div>
+   <div><small>LOVE RADAR</small><h1>Caméra</h1></div>
    <span className="lr-fun-camera-badge">🔒</span>
   </header>
   <div className="lr-fun-preview">
-   {active?<video ref={preview} autoPlay muted playsInline className={facing==="user"?"mirrored":""} aria-label="Aperçu caméra avec effet"/>:
-    <div className="lr-fun-camera-placeholder"><span aria-hidden="true">📸</span><h2>Amuse-toi avec tes effets</h2><p>Prends des photos et de courtes vidéos, même sans être en appel.</p>
+   {active?<video ref={preview} autoPlay muted playsInline className={facing==="user"?"mirrored":""} aria-label="Aperçu caméra"/>:
+    <div className="lr-fun-camera-placeholder"><span aria-hidden="true">📸</span><h2>Prends un moment en photo</h2><p>Prends des photos et de courtes vidéos, même sans être en appel.</p>
      <button type="button" disabled={busy} onClick={()=>void openCamera()}>{busy?"Ouverture…":"Activer ma caméra"}</button></div>}
-   <div className={"lr-fun-processed-frame"+(facing==="user"?" mirrored":"")} ref={canvasHost} aria-hidden="true"/>
-   {active&&lens!=="none"&&tracking!=="ready"?<div className="lr-fun-face-status" role="status">
-    {tracking==="unavailable"?"Suivi du visage interrompu. Change d’effet pour réessayer.":tracking==="missing"?"Place ton visage dans le cadre.":tracking==="loading"?"Détection du visage…":"Effet fixé sur ton visage ✓"}
-   </div>:null}
    {active?<div className="lr-fun-preview-top"><span>{recording?"● "+formatRecording(seconds):""}</span>
     <button type="button" onClick={()=>void flip()} disabled={busy||recording} aria-label="Retourner la caméra">⇄</button>
    </div>:null}
@@ -276,11 +214,9 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
      disabled={busy} aria-label={recording?"Arrêter l’enregistrement":"Enregistrer une vidéo de 20 secondes"}>{recording?"■ Arrêter":"● Vidéo"}</button>
    </div>:null}
   </div>
-  {active?<div className="lr-fun-lenses" aria-label="Choisir un effet visage">
-   <LensPicker value={lens} onSelect={value=>void chooseLens(value)} disabled={busy||recording}/></div>:null}
   {(photoUrl||recordedUrl)?<div className="lr-fun-result" aria-label="Votre création">
    <div className="lr-fun-result-head"><strong>{photoUrl?"Ta photo ❤️":"Ta vidéo 🎬"}</strong><button type="button" onClick={clearOutputs}>×</button></div>
-   {photoUrl?<img src={photoUrl} alt="Ta photo avec effet"/>:<video src={recordedUrl} controls playsInline preload="metadata" aria-label="Vidéo enregistrée"/>}
+   {photoUrl?<img src={photoUrl} alt="Ta photo"/>:<video src={recordedUrl} controls playsInline preload="metadata" aria-label="Vidéo enregistrée"/>}
    <div className="lr-fun-result-actions">
     <button type="button" onClick={()=>void exportBlob((photo||recorded)!,photoUrl?"love-radar-photo.jpg":"love-radar-video."+(recorded?.type.includes("mp4")?"mp4":"webm"))}>⇧ Enregistrer / partager</button>
     {photoUrl&&partner?<button type="button" disabled={sending} onClick={()=>void sendToPartner()}>{sending?"Envoi…":"💌 Envoyer à mon amour"}</button>:null}
