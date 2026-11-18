@@ -42,7 +42,7 @@ test("game route, join, private room checks and push navigation are wired",()=>{
   assert.ok(hub.includes('onOpenGame("'+mode+'")'));
   assert.ok(ui.includes('game="+mode'));
   assert.ok(push.includes('"'+mode+'"'));
-  assert.ok(server.includes('mode==="'+mode+'"'));
+  assert.ok(server.includes('mode!=="'+mode+'"'));
  }
  assert.ok(server.includes("member.room_id"));
  assert.ok(server.includes("token_hash"));
