@@ -299,3 +299,9 @@ CREATE TABLE IF NOT EXISTS couple_avatar_rooms(
  pose TEXT NOT NULL DEFAULT 'main',
  version INTEGER NOT NULL DEFAULT 0
 );
+
+-- Optional free Avaturn GLB 3D models, stored privately in R2 per partner.
+CREATE TABLE IF NOT EXISTS couple_avatar_models (
+ room_id TEXT NOT NULL,member_id TEXT NOT NULL,object_key TEXT NOT NULL,
+ updated_at INTEGER NOT NULL,PRIMARY KEY(room_id,member_id)
+);
