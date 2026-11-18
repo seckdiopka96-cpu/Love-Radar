@@ -292,6 +292,7 @@ export default function LoveRadar(){
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
+ const [pushToastTarget,setPushToastTarget]=useState<NoticeTarget|null>(null);
  const [olderMessages,setOlderMessages]=useState<Message[]>([]);
  const [historyBusy,setHistoryBusy]=useState(false);
  const [historyMore,setHistoryMore]=useState(true);
@@ -682,8 +683,11 @@ export default function LoveRadar(){
     firstPoll.current=true;
     if(data.tab==="watch"||data.tab==="watch-tiktok")setWatchInvite(data.tab);
     if(data.tab==="reconcile")setReconcileInvite(true);
-    if(document.visibilityState==="visible"&&["message","photo","audio"].includes(data.kind||""))
+    if(document.visibilityState==="visible"&&["message","photo","audio"].includes(data.kind||"")){
+     const dest=parseNotice(noticeUrl({tab:data.tab,kind:data.kind,id:data.id}));
+     setPushToastTarget(dest);
      setNotice("lr-partner-push:"+String(data.kind||"message"));
+    }
     return;
    }
    if(data?.type==="love-radar-push-needs-repair"){
@@ -1956,7 +1960,17 @@ export default function LoveRadar(){
    <button type="button" className="lr-watch-invite-dismiss" onClick={()=>setReconcileInvite(false)} aria-label="Ignorer l'invitation">×</button>
   </div>:null}
   {notice?<div className={"lr-toast"+(notice.startsWith("lr-partner-push:")?" lr-push-avatar-toast":"")}
-   role="status" onClick={()=>{if(notice.startsWith("lr-partner-push:"))navigate("chat");setNotice("")}}>
+   role="status" onClick={()=>{
+    if(notice.startsWith("lr-partner-push:")){
+     const target=pushToastTarget;
+     if(target){
+      window.history.replaceState(null,"",noticeUrl(target));
+      lastMessageJump.current="";setNoticeTap(n=>n+1);
+      setNoticeTarget(target);setTab(target.tab);firstPoll.current=true;
+     }else navigate("chat");
+    }
+    setNotice("");setPushToastTarget(null);
+   }}>
    {notice.startsWith("lr-partner-push:")?<><span className="lr-push-avatar-thumb" aria-hidden="true">
     {avatars.partner?<img src={avatars.partner} alt=""/>:(room?.partner||"♡").slice(0,1).toUpperCase()}
    </span><span className="lr-push-avatar-copy"><strong>{room?.partner||"Ton partenaire"}</strong>
