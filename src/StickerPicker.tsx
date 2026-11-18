@@ -51,7 +51,7 @@ const pickerModes:{id:Mode;label:string;symbol:string}[]=[
  {id:"emoji",label:"Émojis",symbol:"☺"}
 ];
 export default function StickerPicker({storageKey,onSend,onSendEmoji,onSendGif,onClose,onSearchFocus,onSearchBlur}:Props){
- const [mode,setMode]=useState<Mode>("stickers");
+ const [mode,setMode]=useState<Mode>(GIPHY_KEY?"gif":"stickers");
  const [motionEnabled,setMotionEnabledState]=useState(getMotionEnabled);
  function toggleMotion(){
   const next=!motionEnabled;
