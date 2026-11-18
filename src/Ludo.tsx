@@ -749,7 +749,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
       <h3>2 · Les règles, en bref</h3>
       <p>🎲 <span>Fais <strong>6</strong> pour sortir un pion. Le premier à rentrer ses <strong>4 pions</strong> gagne.</span></p>
       <p>⭐ <span>Les étoiles protègent. Un 6, une capture ou une arrivée donne un tour bonus.</span></p>
-      <p>⏱️ <span>Tu as <strong>15 secondes</strong> pour jouer. Après <strong>3 tours automatiques</strong> à ta place, tu perds.</span></p>
+      <p>⏱️ <span>Tu as <strong>15 secondes</strong> pour jouer. Après 15 secondes d’inactivité, l’ordinateur joue à ta place, sans défaite automatique.</span></p>
      </section>
      <label className="ludo-ready-gift-option">
       <input type="checkbox" checked={giftOptIn} onChange={e=>setGiftOptIn(e.target.checked)}/>
@@ -808,7 +808,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    <div className="ludo-modal" role="dialog" aria-modal="true" aria-label="Quitter la partie">
     <div className="ludo-modal-symbol">♥</div><h2>Quitter la partie ?</h2>
     <p>{agreement?.startedAt?
-     "Tu peux quitter l’écran sans abandonner, mais le chronomètre continue : après 3 tours joués par l’ordinateur à ta place, tu perds. Si tu abandonnes, ton partenaire gagne immédiatement.":
+     "Tu peux quitter l’écran sans abandonner : le chronomètre continue et l’ordinateur joue à ta place si nécessaire, sans défaite automatique. Si tu abandonnes volontairement, ton partenaire gagne immédiatement.":
      "La partie n’a pas encore commencé. Tu peux quitter ce plateau sans pénalité."}</p>
     <button type="button" className="ludo-modal-primary" onClick={onExit}>← Quitter le plateau</button>
     {game?.status==="playing"&&agreement?.startedAt?<button type="button" className="ludo-modal-danger" disabled={busy} onClick={()=>{void act("forfeit").then(ok=>{if(ok){setMenu(false);onExit()}})}}>Abandonner et perdre</button>:null}
@@ -821,7 +821,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
     <div className="ludo-modal-symbol">🎲</div><h2>Comment jouer ?</h2>
     <p>À deux, chacun avance ses 4 pions. Lance un 6 pour sortir. Choisis le pion à déplacer, capture l’adversaire et vise le centre du plateau.</p>
     <p>Un 6, une capture ou un pion arrivé donnent un tour bonus. Trois 6 d’affilée font passer le tour. Les cases ★ sont protégées. Il faut le nombre exact pour finir.</p>
-    <p>Tu as 15 secondes par tour. Après 3 tours confiés automatiquement à l’ordinateur, tu perds la manche.</p>
+    <p>Après 15 secondes sans action, l’ordinateur joue à ta place. Tu ne perds pas automatiquement.</p>
     <button type="button" className="ludo-modal-primary" onClick={()=>setRules(false)}>Compris, jouons !</button>
    </div>
   </div>:null}
