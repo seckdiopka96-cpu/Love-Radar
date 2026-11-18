@@ -1,0 +1,168 @@
+/* Shared conversation themes. All options are free and scoped to the chat.
+   This layer intentionally follows clean-home-chat.css (which uses !important). */
+.lr-app.lr-chat-mode .lr-chat{
+ --lr-conv-mine:#d77398;
+ --lr-conv-other:#21394a;
+ --lr-conv-ink:#fff;
+ --lr-conv-other-ink:#f7f3f5;
+}
+.lr-app.lr-chat-mode.lr-conv-color-ocean .lr-chat{--lr-conv-mine:#277eb0;--lr-conv-other:#24435b}
+.lr-app.lr-chat-mode.lr-conv-color-lavande .lr-chat{--lr-conv-mine:#8553b6;--lr-conv-other:#3b3157}
+.lr-app.lr-chat-mode.lr-conv-color-ambre .lr-chat{--lr-conv-mine:#9e5b35;--lr-conv-other:#4b3b35}
+
+/* Preserve normal media and emoji rendering; only text bubbles change color. */
+.lr-app.lr-chat-mode .lr-chat .lr-bubble-row.mine .lr-bubble:not(.lr-bubble-audio):not(.lr-bubble-image):not(.lr-bubble-sticker):not(.lr-bubble-gif):not(.lr-bubble-emoji){
+ background:var(--lr-conv-mine)!important;color:var(--lr-conv-ink)!important;
+}
+.lr-app.lr-chat-mode .lr-chat .lr-bubble-row.other .lr-bubble:not(.lr-bubble-audio):not(.lr-bubble-image):not(.lr-bubble-sticker):not(.lr-bubble-gif):not(.lr-bubble-emoji){
+ background:var(--lr-conv-other)!important;color:var(--lr-conv-other-ink)!important;
+}
+.lr-app.lr-chat-mode.lr-conv-bubbles-douce .lr-chat .lr-bubble-row .lr-bubble:not(.lr-bubble-audio):not(.lr-bubble-image):not(.lr-bubble-sticker):not(.lr-bubble-gif):not(.lr-bubble-emoji){
+ border-radius:25px!important;padding:12px 17px!important;box-shadow:0 5px 16px rgba(0,0,0,.13)!important;
+}
+.lr-app.lr-chat-mode.lr-conv-bubbles-compacte .lr-chat .lr-bubble-row .lr-bubble:not(.lr-bubble-audio):not(.lr-bubble-image):not(.lr-bubble-sticker):not(.lr-bubble-gif):not(.lr-bubble-emoji){
+ border-radius:9px!important;padding:8px 11px!important;
+}
+.lr-app.lr-chat-mode.lr-conv-bubbles-compacte .lr-chat .lr-bubble-row{margin-top:10px!important}
+.lr-app.lr-chat-mode.lr-conv-bubbles-compacte .lr-chat .lr-bubble-row.lr-grouped{margin-top:4px!important}
+
+/* The existing UI's background has !important rules; override it only on
+   the chat scroll region so other screens and calls remain untouched. */
+.lr-app.lr-chat-mode.lr-conv-wallpaper-constellation .lr-chat .lr-chat-messages{
+ background-color:#0c182d!important;
+ background-image:
+  radial-gradient(circle at 12% 16%,rgba(255,247,224,.86) 0 1px,transparent 1.7px),
+  radial-gradient(circle at 71% 38%,rgba(220,219,255,.6) 0 1.2px,transparent 2px),
+  radial-gradient(circle at 30% 76%,rgba(255,226,248,.62) 0 1px,transparent 2px),
+  radial-gradient(ellipse at 72% 18%,rgba(71,63,135,.35),transparent 62%),
+  linear-gradient(150deg,#101e3a,#0a1529 72%)!important;
+ background-size:127px 157px,207px 195px,172px 243px,210% 210%,100% 100%!important;
+}
+.lr-app.lr-chat-mode.lr-conv-wallpaper-aurore .lr-chat .lr-chat-messages{
+ background-color:#141529!important;
+ background-image:
+  radial-gradient(ellipse at 14% 17%,rgba(103,73,176,.43),transparent 60%),
+  radial-gradient(ellipse at 88% 78%,rgba(27,145,169,.34),transparent 54%),
+  radial-gradient(ellipse at 90% 6%,rgba(210,64,136,.26),transparent 52%),
+  linear-gradient(130deg,#101b32,#24172f,#14283a)!important;
+ background-size:160% 180%,160% 180%,170% 170%,100% 100%!important;
+}
+.lr-app.lr-chat-mode.lr-conv-wallpaper-coeurs .lr-chat .lr-chat-messages{
+ background-color:#211b31!important;
+ background-image:
+  url("/chat-wallpaper-hearts.svg"),
+  radial-gradient(ellipse at 26% 26%,rgba(128,48,109,.38),transparent 62%),
+  linear-gradient(145deg,#241a32,#211e36,#192438)!important;
+ background-repeat:repeat,repeat,no-repeat!important;
+ background-size:200px 220px,180% 180%,100% 100%!important;
+}
+.lr-app.lr-chat-mode.lr-conv-animated.lr-conv-wallpaper-constellation .lr-chat .lr-chat-messages{
+ animation:lr-conv-stars-drift 25s ease-in-out infinite alternate!important;
+}
+.lr-app.lr-chat-mode.lr-conv-animated.lr-conv-wallpaper-aurore .lr-chat .lr-chat-messages{
+ animation:lr-conv-aurora-drift 18s ease-in-out infinite alternate!important;
+}
+.lr-app.lr-chat-mode.lr-conv-animated.lr-conv-wallpaper-coeurs .lr-chat .lr-chat-messages{
+ animation:lr-conv-hearts-drift 28s linear infinite!important;
+}
+@keyframes lr-conv-stars-drift{
+ 0%{background-position:0 0,0 0,0 0,0 0,center}
+ 100%{background-position:35px -45px,-28px 40px,48px 29px,100% 100%,center}
+}
+@keyframes lr-conv-aurora-drift{
+ 0%{background-position:0 0,100% 100%,0 0,center}
+ 100%{background-position:100% 100%,0 0,100% 45%,center}
+}
+@keyframes lr-conv-hearts-drift{
+ from{background-position:0 0,0 0,center}
+ to{background-position:0 -220px,100% 100%,center}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-app.lr-chat-mode .lr-chat .lr-chat-messages{
+  animation:none!important;
+ }
+}
+
+/* The palette button is deliberately small enough to coexist with call
+   buttons and the partner's name on narrow iPhones. */
+.lr-app.lr-chat-mode .lr-chat-theme-trigger{
+ display:grid;place-items:center;flex:0 0 35px;min-width:35px;width:35px;height:38px;
+ border:0!important;border-radius:50%!important;background:transparent!important;
+ color:#ffc4da!important;cursor:pointer;padding:6px!important;
+}
+.lr-app.lr-chat-mode .lr-chat-theme-trigger svg{width:24px;height:24px;display:block}
+.lr-app.lr-chat-mode .lr-chat-theme-trigger:focus-visible{
+ outline:2px solid #ffb5d1!important;outline-offset:2px
+}
+.lr-chat-theme-backdrop{
+ position:fixed;inset:0;z-index:25000;display:flex;align-items:end;justify-content:center;
+ padding:0;background:rgba(5,12,22,.76);backdrop-filter:blur(5px);
+}
+.lr-chat-theme-sheet{
+ display:flex;flex-direction:column;gap:10px;
+ background:linear-gradient(165deg,#27394e,#152538 68%,#211d35);
+ color:#fff5fa;width:min(680px,100%);max-height:min(90dvh,780px);
+ border:1px solid rgba(255,183,214,.38);border-radius:24px 24px 0 0;
+ box-shadow:0 14px 48px #050d1dcf;overflow:hidden;
+ padding:17px 15px max(12px,env(safe-area-inset-bottom));
+ box-sizing:border-box;
+}
+.lr-chat-theme-sheet *{box-sizing:border-box}
+.lr-chat-theme-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.lr-chat-theme-top small{color:#f5a9c9;font-size:10px;font-weight:850;letter-spacing:1.1px}
+.lr-chat-theme-top h2{font-size:21px;margin:5px 0;color:#fff6fb}
+.lr-chat-theme-top p{font-size:12px;line-height:1.5;color:#c6d1df;margin:0}
+.lr-chat-theme-close{flex:0 0 38px;border:1px solid #52687c!important;border-radius:12px!important;
+ background:#2f4256!important;color:#fff!important;font-size:23px!important;min-height:38px}
+.lr-chat-theme-scroll{display:flex;flex-direction:column;gap:16px;overflow-y:auto;overscroll-behavior:contain;
+ padding:8px 3px 7px;min-height:0}
+.lr-chat-theme-field{border:0;margin:0;padding:0;min-width:0}
+.lr-chat-theme-field legend{font-size:12px;font-weight:850;color:#ffdbeb;margin-bottom:9px}
+.lr-chat-theme-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.lr-chat-theme-swatch{display:flex;flex-direction:column;gap:4px;
+ padding:5px 5px 9px!important;min-width:0;border-radius:13px!important;
+ background:rgba(255,255,255,.04)!important;border:1px solid #57687d!important;
+ color:#fff!important;text-align:center}
+.lr-chat-theme-swatch.selected,.lr-chat-theme-color.selected,.lr-chat-theme-bubbles .selected{
+ border-color:#ffbad7!important;box-shadow:0 0 0 2px #f494b344!important
+}
+.lr-chat-theme-swatch strong{font-size:11px;line-height:1.2}
+.lr-chat-theme-swatch small{font-size:9px;color:#bccdd8;line-height:1.3}
+.lr-chat-theme-preview{display:grid;place-items:center;border-radius:9px;height:58px;width:100%}
+.lr-chat-theme-preview b{font-size:25px}
+.lr-chat-theme-swatch-minuit .lr-chat-theme-preview{background:linear-gradient(140deg,#1b2939,#344458)}
+.lr-chat-theme-swatch-constellation .lr-chat-theme-preview{
+ background:radial-gradient(circle at 25% 30%,#f4f0f7 0 1px,transparent 2px),
+ radial-gradient(circle at 69% 79%,#e5d4f4 0 1px,transparent 2px),#0f1d3a}
+.lr-chat-theme-swatch-aurore .lr-chat-theme-preview{
+ background:linear-gradient(140deg,#392b66,#146b80,#34214d)}
+.lr-chat-theme-swatch-coeurs .lr-chat-theme-preview{
+ background:linear-gradient(140deg,#512645,#242640)}
+.lr-chat-theme-colors{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.lr-chat-theme-color{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;
+ min-height:61px;border:1px solid #52667b!important;border-radius:12px!important;
+ background:#26364c!important;color:#fff!important;font-size:11px!important;font-weight:800!important}
+.lr-chat-theme-color span{font-size:21px}
+.lr-chat-theme-bubbles{display:flex;gap:7px}
+.lr-chat-theme-bubbles button{flex:1;min-width:0;padding:11px 5px!important;
+ background:#2e4154!important;color:#fff!important;border:1px solid #536a82!important;
+ border-radius:12px!important;font-size:11px!important;font-weight:750!important}
+.lr-chat-theme-motion{display:flex;gap:14px;align-items:center;justify-content:space-between;
+ border-top:1px solid #526a8040;padding:14px 1px 0;font-size:13px;font-weight:800}
+.lr-chat-theme-motion span{display:flex;flex-direction:column;gap:4px}
+.lr-chat-theme-motion small{color:#bbc6d3;font-size:11px;font-weight:400}
+.lr-chat-theme-motion input{accent-color:#dd77a2;width:21px;height:21px;flex:none}
+.lr-chat-theme-reset{align-self:center;background:transparent!important;border:0!important;
+ color:#eeb2d0!important;font-size:12px!important;padding:6px 8px!important}
+.lr-chat-theme-saving,.lr-chat-theme-saved,.lr-chat-theme-error{font-size:12px;margin:0}
+.lr-chat-theme-saved{color:#baecd2}.lr-chat-theme-error{color:#ffb9c7}
+@media(min-width:701px){
+ .lr-chat-theme-backdrop{align-items:center;padding:22px}
+ .lr-chat-theme-sheet{border-radius:24px;max-height:82dvh}
+}
+@media(max-width:400px){
+ .lr-chat-theme-grid,.lr-chat-theme-colors{gap:5px}
+ .lr-chat-theme-sheet{padding:14px 11px max(10px,env(safe-area-inset-bottom))}
+ .lr-chat-theme-swatch strong{font-size:10px}
+ .lr-chat-theme-swatch small{font-size:9px}
+}
