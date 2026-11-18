@@ -64,7 +64,19 @@ export function useCoupleAvatars(token:string,roomId:string|undefined){
    return saved;
   }finally{busy.current=false;setSaving(false)}
  },[token,roomId]);
+ const reload=useCallback(async()=>{
+  if(!token||!roomId||latestRoom.current!==roomId)return;
+  const response=await apiFetch("/api/couple-avatars",{
+   cache:"no-store",headers:{Authorization:"Bearer "+token}
+  });
+  if(!response.ok)throw Error("Impossible de synchroniser les avatars.");
+  const result=await response.json() as Result;
+  const data=safeCoupleAvatarState(result.avatars);
+  if(latestRoom.current===roomId&&data.version>=version.current){
+   version.current=data.version;setAvatars(data);
+  }
+ },[token,roomId]);
  const saveStyle=useCallback((style:AvatarStyle)=>update({kind:"style",style}),[update]);
  const savePose=useCallback((pose:CouplePose)=>update({kind:"pose",pose}),[update]);
- return {avatars,saving,saveStyle,savePose};
+ return {avatars,saving,saveStyle,savePose,reload};
 }
