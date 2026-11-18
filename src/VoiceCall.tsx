@@ -9,7 +9,6 @@ import {reconnectDelayMs,mustReconnect,MAX_RECONNECT_ATTEMPTS,clampFloatingCall}
 import type {PointerEvent as ReactPointerEvent,MouseEvent as ReactMouseEvent,CSSProperties} from "react";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
-import LensPicker from "./LensPicker";
 import {createLensProcessor,type LensProcessor,type LoveLensId} from "./love-lenses";
 import "./voice-call.css";
 import "./video-call.css";
@@ -1041,16 +1040,9 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
        <button type="button" className="lr-call-video-self-help" onClick={()=>void playLocalPreview()} aria-label="Relancer ma caméra">{localPreviewHelp||"Afficher ma caméra"}</button>
       :null}
       <button type="button" className="lr-call-video-retry" onClick={()=>void playLocalPreview()} title="Rafraîchir ma caméra" aria-label="Rafraîchir ma caméra">↻</button>
-      {!cameraOff?<button type="button" className={"lr-call-lens-trigger"+(callLens!=="none"?" is-active":"")}
-       aria-label="Choisir un effet pour mon visage" title="Effets caméra" onClick={()=>{setLensTray(v=>!v);setVideoControlsVisible(true)}}>✨</button>:null}
+
      </div>
      <div className="lr-call-video-tag">{showPartnerFullscreen?"EN APPEL · VIDÉO":"MA CAMÉRA · EN DIRECT"}</div>
-    </div>:null}
-    {isVideo&&lensTray?<div className="lr-call-lens-panel" role="dialog" aria-label="Choisir un effet vidéo">
-     <div className="lr-call-lens-heading"><strong>✨ Effets vidéo en direct</strong>
-      <button type="button" aria-label="Fermer les effets" onClick={()=>setLensTray(false)}>×</button></div>
-     <LensPicker value={callLens} onSelect={id=>void chooseCallLens(id)} disabled={lensBusy||cameraBusy}/>
-     <p className="lr-call-lens-note">{lensProcessor.current&&!lensProcessor.current.isTransmittable?"Effet visible sur ton téléphone uniquement : diffusion non prise en charge.":"Les effets sont traités sur ton appareil puis envoyés à ton partenaire si le téléphone le permet."}</p>
     </div>:null}
     <div className={"lr-call-actions"+(isIncoming?" is-ringing":"")} aria-label="Commandes de l’appel">
      {isIncoming?<>
@@ -1207,9 +1199,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
      <button type="button" onClick={minimizeAndWrite}>
       <span className="lr-video-options-glyph" aria-hidden="true">✉</span><span><strong>Messages</strong><small>Écrire sans raccrocher, même pendant la sonnerie</small></span><b aria-hidden="true">›</b>
      </button>
-     <button type="button" onClick={()=>{setCallPanel("none");setLensTray(true);setVideoControlsVisible(true)}}>
-      <span className="lr-video-options-glyph" aria-hidden="true">✨</span><span><strong>Effets caméra</strong><small>Ajoute des cœurs, des lunettes ou une couronne en direct</small></span><b aria-hidden="true">›</b>
-     </button>
+
      <button type="button" onClick={()=>{setCallPanel("none");toggleCamera()}}>
       <span className="lr-video-options-glyph" aria-hidden="true">▣</span><span><strong>{cameraOff?"Réactiver la caméra":"Désactiver la caméra"}</strong><small>Gérer ce que voit ton partenaire</small></span><b aria-hidden="true">›</b>
      </button>
