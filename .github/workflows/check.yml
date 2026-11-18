@@ -22,6 +22,7 @@ jobs:
       - run: npm run test:couple-experiences
       - run: npm run test:background-call
       - run: npm run test:iphone
+      - run: npm run test:pwa-update
       - run: npm run test:e2ee
       - run: npm run test:server
       - run: npm run test:server-scale
