@@ -72,6 +72,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  const [clock,setClock]=useState(Date.now());
  const [clockOffset,setClockOffset]=useState(0);
  const [busy,setBusy]=useState(false);
+ const actionInFlight=useRef(false);
  const [rolling,setRolling]=useState(false);
  const [rollingFace,setRollingFace]=useState(1);
  const [error,setError]=useState("");
@@ -269,7 +270,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  useEffect(()=>{
   if(!game?.id||members!==2)return;
   const gameId=game.id,sessionId=crypto.randomUUID();
-  let closed=false,inFlight=false;
+  let closed=false,inFlight=false,lastJoin:Promise<void>|null=null;
   const send=async(mode:"join"|"leave")=>{
    if(mode==="join"&&inFlight)return;
    if(mode==="join")inFlight=true;
@@ -286,7 +287,9 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    }catch{/* Network loss expires on the server automatically. */}
    finally{if(mode==="join")inFlight=false}
   };
-  const ping=()=>{if(document.visibilityState==="visible")void send("join")};
+  const ping=()=>{
+   if(document.visibilityState==="visible"&&!inFlight)lastJoin=send("join");
+  };
   ping();
   const timer=window.setInterval(ping,7000);
   document.addEventListener("visibilitychange",ping);
@@ -296,7 +299,9 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    window.clearInterval(timer);
    document.removeEventListener("visibilitychange",ping);
    window.removeEventListener("focus",ping);
-   void send("leave");
+   // Any pending join must finish before this session can be released.
+   if(lastJoin)void lastJoin.finally(()=>{void send("leave")});
+   else void send("leave");
   };
  },[token,game?.id,members]);
  useEffect(()=>{
@@ -335,7 +340,8 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  },[rolling]);
 
  async function act(action:"roll"|"move"|"restart"|"forfeit",pawn?:number){
-  if(busy||!game||(action!=="restart"&&!agreement?.startedAt))return false;
+  if(actionInFlight.current||busy||!game||(action!=="restart"&&!agreement?.startedAt))return false;
+   actionInFlight.current=true;
   // WebAudio must be unlocked immediately by a user tap on iOS.
   if(action==="roll"||action==="move"){unlockSound();if(action==="roll")playSound("roll")}
   setBusy(true);setError("");
@@ -361,6 +367,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    void load();
    return false;
   }finally{
+   actionInFlight.current=false;
    setBusy(false);
    if(action==="roll")window.setTimeout(()=>{if(isActive.current)setRolling(false)},Math.max(0,320-(Date.now()-actionStarted)));
   }
@@ -530,7 +537,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
   <div className="ludo-players">
    {[0,1].map(side=><div key={side} className={"ludo-player ludo-player-"+(side===0?"red":"gold")+(game?.turn===side&&game.status==="playing"?" is-active":"")}>
     <div className="ludo-player-avatar">{displayName(side).trim().charAt(0).toUpperCase()||"♥"}</div>
-    <div className="ludo-player-info"><strong>{displayName(side)}{side===mySeat?" · Moi":""}</strong><span>{finished(side)} / 4 arrivés</span></div>
+    <div className="ludo-player-info"><strong>{displayName(side)}{side===mySeat?" · Moi":presence[side]?.online?" 🟢":" ⚪"}</strong><span>{finished(side)} / 4 arrivés</span></div>
     {game?.turn===side&&game.status==="playing"?<span className="ludo-player-turn" aria-label="À son tour">●</span>:null}
    </div>)}
   </div>
