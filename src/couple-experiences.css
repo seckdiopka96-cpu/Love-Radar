@@ -129,3 +129,11 @@
 @media(max-width:360px){.tg-life-feature{padding:11px;gap:9px}.tg-life-emblem{flex-basis:40px;width:40px;height:40px}.tg-life-content>strong{font-size:17px}.tg-life-content>span{font-size:10px}}
 
 .ce-link-action{display:flex;justify-content:center;align-items:center;width:100%;margin:15px 0 0;padding:13px;border:1px solid rgba(243,184,221,.3);border-radius:13px;background:rgba(165,79,146,.18);color:#ffe6f3;font-size:12px;font-weight:800}
+
+/* Item opened from a partner notification remains easy to spot. */
+.ce-experience .ce-notified,.ce-notified{
+ outline:2px solid #f7badc;
+ outline-offset:3px;
+ box-shadow:0 0 0 5px #ee95cb26,0 10px 24px #07153096;
+ scroll-margin-block:120px;
+}
