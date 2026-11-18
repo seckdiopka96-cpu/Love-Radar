@@ -195,3 +195,16 @@
 .ludo-ready-dialog .ludo-ready-gift-option strong{font-size:12px;line-height:1.35}
 .ludo-ready-dialog .ludo-ready-gift-option small{font-size:10px;line-height:1.35;color:#aec1d9}
 .ludo-ready-dialog .ludo-agreement-wait small{font-size:10px;color:#b5dccb;text-align:center}
+
+/* Simple live status shared by both partners, without moving the board. */
+.ludo-ready-dialog .ludo-presence-status{
+ text-align:center;color:#c5eddb;background:#12383d;
+ border:1px solid #2c7562;border-radius:12px;
+ padding:9px 12px;font-size:12px;font-weight:700;
+}
+.ludo-turn-banner .ludo-partner-joined{
+ display:inline-flex;align-items:center;justify-content:center;
+ padding:5px 9px;border-radius:999px;
+ background:#174d42;color:#dbffee;font-size:11px;font-weight:700;
+ white-space:normal;text-align:center;
+}
