@@ -71,7 +71,7 @@ export default function ChatFavorites({initialMode="saved",messages,favorites,me
     <button type="button" role="tab" aria-selected={mode==="saved"} className={mode==="saved"?"active":""} onClick={()=>setMode("saved")}>★ Favoris <small>{favorites.length}</small></button>
     <button type="button" role="tab" aria-selected={mode==="search"} className={mode==="search"?"active":""} onClick={()=>setMode("search")}>⌕ Rechercher</button>
    </div>
-   {mode==="saved"?<p className="cf-description">Tes messages favoris restent privés et synchronisés entre tes appareils connectés à ce compte.</p>:
+   {mode==="saved"?<p className="cf-description">Tes favoris sont personnels. Les messages chiffrés restent lisibles uniquement sur les appareils possédant la bonne clé.</p>:
     <div className="cf-search">
      <form role="search" onSubmit={submitSearch}>
       <label htmlFor="cf-query">Rechercher un mot, un prénom ou un ancien vocal</label>
