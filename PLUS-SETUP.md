@@ -5,7 +5,7 @@ Love Radar inclut maintenant un mode découverte accessible sans compte et une p
 ## Activer Stripe sur Cloudflare Pages
 
 1. Dans Stripe, créez un produit Love Radar Plus et un prix **2,99 USD, recurring monthly**.
-**Important :** un ancien prix Stripe à 3,99 $ ne se transforme pas automatiquement. Créez un **nouveau prix récurrent à 2,99 USD/mois** et utilisez son nouvel identifiant `price_...` dans `STRIPE_PRICE_ID`. La clé secrète Stripe doit rester exclusivement dans les secrets Cloudflare ; ne la partagez pas dans un chat ou dans GitHub.
+**Important :** un ancien prix Stripe ne se transforme pas automatiquement. Créez un **nouveau prix récurrent à 2,99 USD/mois** et utilisez son nouvel identifiant `price_...` dans `STRIPE_PRICE_ID`. La clé secrète Stripe doit rester exclusivement dans les secrets Cloudflare ; ne la partagez pas dans un chat ou dans GitHub.
 
 2. Dans le projet Cloudflare **Pages** Love Radar, configurez en **Production** :
    - `STRIPE_SECRET_KEY` : clé secrète Stripe (ne jamais mettre `VITE_` devant).
