@@ -914,7 +914,8 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(!call)return;
   // Keep the video peer and camera alive while sending messages, even during ringing.
   if(call.status!=="active"&&!(call.status==="ringing"&&call.direction==="outgoing"))return;
-  setCallPanel("none");setLensTray(false);setVideoControlsVisible(true);setMinimized(true);
+  setLensTray(false);
+  setCallPanel("none");setVideoControlsVisible(true);setMinimized(true);
   onOpenChat();
  }
  function pressKey(digit:string){
