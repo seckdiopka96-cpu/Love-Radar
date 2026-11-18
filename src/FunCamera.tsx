@@ -23,6 +23,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
  const [busy,setBusy]=useState(false);
  const [facing,setFacing]=useState<"user"|"environment">("user");
  const [lens,setLens]=useState<LoveLensId>("none");
+ const [tracking,setTracking]=useState<"loading"|"ready"|"missing"|"unavailable">("loading");
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
  const [photo,setPhoto]=useState<Blob|null>(null);
@@ -55,6 +56,14 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
   source.current?.getTracks().forEach(track=>track.stop());source.current=null;
   if(preview.current){preview.current.pause();preview.current.srcObject=null}
  }
+ useEffect(()=>{
+  if(!active||lens==="none"){setTracking("loading");return}
+  const interval=setInterval(()=>{
+   const status=processor.current?.trackingStatus()||"loading";
+   setTracking(current=>current===status?current:status);
+  },400);
+  return()=>clearInterval(interval);
+ },[active,lens]);
  useEffect(()=>{
   alive.current=true;
   return()=>{
@@ -118,7 +127,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
     processor.current=next;
     mountCanvas();
    }
-   if(alive.current){setLens(value);setNotice(value==="none"?"Caméra naturelle.":"✨ Effet "+value+" appliqué à ta caméra.");}
+   if(alive.current){setLens(value);setTracking("loading");setNotice(value==="none"?"Caméra naturelle.":"Recherche du visage…");}
   }catch(err){if(alive.current)setError(err instanceof Error?err.message:"Impossible d’appliquer cet effet.")}
   finally{if(alive.current)setBusy(false)}
  }
@@ -253,6 +262,9 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
     <div className="lr-fun-camera-placeholder"><span aria-hidden="true">📸</span><h2>Amuse-toi avec tes effets</h2><p>Prends des photos et de courtes vidéos, même sans être en appel.</p>
      <button type="button" disabled={busy} onClick={()=>void openCamera()}>{busy?"Ouverture…":"Activer ma caméra"}</button></div>}
    <div className={"lr-fun-processed-frame"+(facing==="user"?" mirrored":"")} ref={canvasHost} aria-hidden="true"/>
+   {active&&lens!=="none"?<div className="lr-fun-face-status" role="status">
+    {tracking==="unavailable"?"Suivi du visage indisponible sur cet appareil.":tracking==="missing"?"Place ton visage dans le cadre.":tracking==="loading"?"Détection du visage…":"Effet fixé sur ton visage ✓"}
+   </div>:null}
    {active?<div className="lr-fun-preview-top"><span>● {recording?formatRecording(seconds):"EN DIRECT"}</span>
     <button type="button" onClick={()=>void flip()} disabled={busy||recording} aria-label="Retourner la caméra">⇄</button>
    </div>:null}

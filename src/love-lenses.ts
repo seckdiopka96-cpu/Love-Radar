@@ -1,36 +1,31 @@
-/**
- * Love Radar playful camera lenses. Frames stay on-device.
- * Face Mesh weights and WASM are hosted on our own Pages origin.
- */
+/** Real face-anchored AR effects. No color filters or guessed face positions. */
 export const LOVE_LENSES=[
  {id:"none",name:"Naturel",icon:"◯",category:"normal"},
- {id:"beauty",name:"Éclat",icon:"✨",category:"color"},
- {id:"rose",name:"Rose",icon:"🌸",category:"color"},
- {id:"vintage",name:"Vintage",icon:"🎞️",category:"color"},
- {id:"comic",name:"Pop",icon:"🎨",category:"color"},
- {id:"hearts",name:"Cœurs",icon:"💗",category:"effect"},
- {id:"sparkles",name:"Étoiles",icon:"🌟",category:"effect"},
  {id:"glasses",name:"Lunettes",icon:"🕶️",category:"face"},
  {id:"crown",name:"Couronne",icon:"👑",category:"face"},
- {id:"puppy",name:"Petit chien",icon:"🐶",category:"face"}
+ {id:"puppy",name:"Petit chien",icon:"🐶",category:"face"},
+ {id:"hearts",name:"Cœurs",icon:"💗",category:"face"},
+ {id:"sparkles",name:"Étoiles",icon:"🌟",category:"face"},
+ {id:"halo",name:"Halo",icon:"😇",category:"face"}
 ] as const;
 export type LoveLensId=typeof LOVE_LENSES[number]["id"];
 export type FacePoint={x:number;y:number;z?:number};
-export function isFaceLens(lens:LoveLensId){return lens==="glasses"||lens==="crown"||lens==="puppy"}
+export const isFaceLens=(lens:LoveLensId)=>lens!=="none";
 export type LensProcessor={
  readonly track:MediaStreamTrack;readonly stream:MediaStream;readonly canvas:HTMLCanvasElement;
  readonly isTransmittable:boolean;
+ readonly trackingStatus:()=> "loading"|"ready"|"missing"|"unavailable";
  setLens:(lens:LoveLensId)=>void;setSource:(source:MediaStreamTrack)=>Promise<void>;stop:()=>void;
 };
 type Face={x:number;y:number;width:number;height:number;angle:number};
 const bounded=(n:number,min:number,max:number)=>Math.min(max,Math.max(min,n));
-export function faceGeometry(points:FacePoint[]|null,w:number,h:number):Face{
- if(!points||!points[33]||!points[263]||!points[10]||!points[152])
-  return {x:w*.5,y:h*.48,width:w*.46,height:h*.52,angle:0};
+/** Return null unless a real MediaPipe face was found. No fake center-face fallback. */
+export function faceGeometry(points:FacePoint[]|null,w:number,h:number):Face|null{
+ if(!points||!points[33]||!points[263]||!points[10]||!points[152])return null;
  const le=points[33],re=points[263],top=points[10],bottom=points[152];
- const dx=(re.x-le.x)*w,dy=(re.y-le.y)*h;
- const eyeDist=Math.hypot(dx,dy);
+ const dx=(re.x-le.x)*w,dy=(re.y-le.y)*h,eyeDist=Math.hypot(dx,dy);
  const faceHeight=Math.hypot((bottom.x-top.x)*w,(bottom.y-top.y)*h);
+ if(eyeDist<6||faceHeight<10)return null;
  return {x:(le.x+re.x)*w*.5,y:(top.y+bottom.y)*h*.5,
   width:bounded(eyeDist*2.55,w*.15,w*.85),height:bounded(faceHeight,h*.2,h*.9),
   angle:Math.atan2(dy,dx)};
@@ -39,81 +34,38 @@ function emoji(ctx:CanvasRenderingContext2D,value:string,x:number,y:number,size:
  ctx.font=Math.max(10,Math.round(size))+'px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
  ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(value,x,y);
 }
-function dance(ctx:CanvasRenderingContext2D,w:number,h:number,now:number,kind:"💖"|"✨"){
- const count=kind==="💖"?12:17;
- for(let i=0;i<count;i++){
-  const cycle=(now/4800+i*0.174)%1;
-  const x=(.09+((i*.281+Math.sin(now/2500+i)*.045)%0.83))*w;
-  const y=(1.13-cycle*1.37)*h;
-  ctx.globalAlpha=.36+.52*Math.sin(cycle*Math.PI);
-  emoji(ctx,kind,x,y,Math.min(w,h)*(.042+(i%4)*.008));
- }
- ctx.globalAlpha=1;
-}
-/**
- * Safari iOS/WebKit disables CanvasRenderingContext2D.filter even on recent iPhones.
- * Use an actual pixel transformation: the change appears both in saved photos
- * and outgoing canvas video, not merely as a decorative CSS overlay.
- */
-export function applyLovePixelFilter(data:ImageData,lens:LoveLensId):ImageData{
- if(lens!=="beauty"&&lens!=="rose"&&lens!=="vintage"&&lens!=="comic")return data;
- const pixels=data.data;
- for(let i=0;i<pixels.length;i+=4){
-  const r=pixels[i],g=pixels[i+1],b=pixels[i+2];
-  if(lens==="beauty"){
-   pixels[i]=Math.min(255,r*1.09+9);
-   pixels[i+1]=Math.min(255,g*1.055+5);
-   pixels[i+2]=Math.min(255,b*1.075+7);
-  }else if(lens==="rose"){
-   pixels[i]=Math.min(255,r*1.12+23);
-   pixels[i+1]=Math.min(255,g*.91+2);
-   pixels[i+2]=Math.min(255,b*1.10+16);
-  }else if(lens==="vintage"){
-   pixels[i]=Math.min(255,r*.393+g*.769+b*.189+6);
-   pixels[i+1]=Math.min(255,r*.349+g*.686+b*.168+3);
-   pixels[i+2]=Math.min(255,r*.272+g*.534+b*.131);
-  }else{
-   // Posterized pop-art: visible on Safari without unsupported canvas filters.
-   const brighten=(v:number)=>Math.max(0,Math.min(255,(v-112)*1.42+128));
-   pixels[i]=Math.min(255,Math.round(brighten(r)/51)*51);
-   pixels[i+1]=Math.min(255,Math.round(brighten(g)/51)*51);
-   pixels[i+2]=Math.min(255,Math.round(brighten(b)/51)*51);
-  }
- }
- return data;
-}
 export function drawLoveLens(ctx:CanvasRenderingContext2D,video:CanvasImageSource,
  canvas:HTMLCanvasElement,lens:LoveLensId,points:FacePoint[]|null,now:number){
  const w=canvas.width,h=canvas.height;if(!w||!h)return;
- ctx.save();ctx.clearRect(0,0,w,h);
- ctx.drawImage(video,0,0,w,h);
- if(lens==="beauty"||lens==="rose"||lens==="vintage"||lens==="comic"){
-  const pixels=ctx.getImageData(0,0,w,h);
-  ctx.putImageData(applyLovePixelFilter(pixels,lens),0,0);
- }
- if(lens==="rose"||lens==="hearts"){
-  const fade=ctx.createLinearGradient(0,0,w,h);
-  fade.addColorStop(0,"rgba(246,119,189,0.13)");
-  fade.addColorStop(1,"rgba(111,83,188,0.07)");
-  ctx.fillStyle=fade;ctx.fillRect(0,0,w,h);
- }
- if(lens==="hearts"||lens==="sparkles")dance(ctx,w,h,now,lens==="hearts"?"💖":"✨");
- if(isFaceLens(lens)){
-  const face=faceGeometry(points,w,h);
-  ctx.translate(face.x,face.y);ctx.rotate(face.angle);
-  const fw=face.width,fh=face.height;
-  if(lens==="glasses"){
-   ctx.shadowColor="rgba(0,0,0,.4)";ctx.shadowBlur=fw*.08;
-   emoji(ctx,"🕶️",0,-fh*.14,fw*.95);
-  }else if(lens==="crown"){
-   ctx.shadowColor="rgba(255,196,92,.6)";ctx.shadowBlur=fw*.15;
-   emoji(ctx,"👑",0,-fh*.59,fw*.85);
-  }else if(lens==="puppy"){
-   ctx.shadowColor="rgba(32,16,15,.3)";ctx.shadowBlur=fw*.05;
-   emoji(ctx,"🐕",0,-fh*.59,fw*.66);
-   emoji(ctx,"🐽",0,fh*.10,fw*.26);
-   ctx.globalAlpha=.85;emoji(ctx,"💗",0,fh*.34,fw*.22);
+ ctx.save();ctx.clearRect(0,0,w,h);ctx.drawImage(video,0,0,w,h);
+ const face=faceGeometry(points,w,h);
+ if(!face||lens==="none"){ctx.restore();return}
+ ctx.translate(face.x,face.y);ctx.rotate(face.angle);
+ const fw=face.width,fh=face.height;
+ if(lens==="glasses"){
+  ctx.shadowColor="rgba(0,0,0,.4)";ctx.shadowBlur=fw*.08;
+  emoji(ctx,"🕶️",0,-fh*.14,fw*.95);
+ }else if(lens==="crown"){
+  ctx.shadowColor="rgba(255,196,92,.6)";ctx.shadowBlur=fw*.15;
+  emoji(ctx,"👑",0,-fh*.59,fw*.85);
+ }else if(lens==="puppy"){
+  ctx.shadowColor="rgba(32,16,15,.3)";ctx.shadowBlur=fw*.05;
+  emoji(ctx,"🐶",0,-fh*.62,fw*.78);
+  emoji(ctx,"🐽",0,fh*.10,fw*.26);
+ }else if(lens==="halo"){
+  ctx.shadowColor="rgba(255,226,123,.85)";ctx.shadowBlur=fw*.14;
+  emoji(ctx,"😇",0,-fh*.65,fw*.68);
+ }else if(lens==="hearts"||lens==="sparkles"){
+  const symbol=lens==="hearts"?"💖":"✨";
+  for(let i=0;i<9;i++){
+   const angle=(i/9)*Math.PI*2+now/2600;
+   const radiusX=fw*(.58+.06*Math.sin(now/500+i));
+   const radiusY=fh*(.57+.06*Math.cos(now/650+i));
+   const x=Math.cos(angle)*radiusX,y=Math.sin(angle)*radiusY;
+   ctx.globalAlpha=.68+.3*Math.sin(now/500+i);
+   emoji(ctx,symbol,x,y,fw*(.15+.03*(i%3)));
   }
+  ctx.globalAlpha=1;
  }
  ctx.restore();
 }
@@ -188,6 +140,7 @@ export async function createLensProcessor(initial:MediaStreamTrack,lens:LoveLens
  }
  return {
   track,stream,canvas,isTransmittable:!previewOnly,
+  trackingStatus(){return detectorFailed?"unavailable":!detectorReady?"loading":points?"ready":"missing"},
   setLens(value){lensId=value;if(isFaceLens(value)&&!detectorReady)void startDetector()},
   async setSource(source){
    if(stopped)throw Error("Effets fermés.");
