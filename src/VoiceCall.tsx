@@ -713,6 +713,37 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   for(const t of local.current.getAudioTracks())t.enabled=!next;
   setMuted(next);
  }
+ async function chooseCallLens(id:LoveLensId){
+  const currentCall=current.current,raw=local.current?.getVideoTracks()[0];
+  if(currentCall?.mode!=="video"||!raw||raw.readyState!=="live"||lensBusy||cameraSwitching.current)return;
+  const sequence=++lensRequest.current;
+  setLensBusy(true);setCameraWarning("");
+  try{
+   const sender=pc.current?.getSenders().find(s=>s.track?.kind==="video");
+   if(id==="none"){
+    if(sender)await sender.replaceTrack(raw);
+    if(sequence!==lensRequest.current||!local.current||current.current?.id!==currentCall.id)return;
+    lensProcessor.current?.stop();lensProcessor.current=null;
+    setCallLens("none");
+   }else if(lensProcessor.current){
+    lensProcessor.current.setLens(id);setCallLens(id);
+   }else{
+    const processed=await createLensProcessor(raw,id);
+    if(sequence!==lensRequest.current||current.current?.id!==currentCall.id||
+      local.current?.getVideoTracks()[0]!==raw){processed.stop();return}
+    processed.track.enabled=!cameraOff;
+    try{if(sender)await sender.replaceTrack(processed.track)}
+    catch(err){processed.stop();throw err}
+    if(sequence!==lensRequest.current||current.current?.id!==currentCall.id){
+     processed.stop();return;
+    }
+    lensProcessor.current=processed;setCallLens(id);
+   }
+   if(localVideo.current)void playLocalPreview();
+  }catch(err){
+   setCameraWarning("Effet indisponible : "+(err instanceof Error?err.message:"réessaie."));
+  }finally{setLensBusy(false)}
+ }
  function toggleCamera(){
   if(current.current?.mode!=="video"||!local.current)return;
   const tracks=local.current.getVideoTracks();
@@ -745,7 +776,8 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    if(!track)throw Error("Aucune caméra détectée.");
    track.enabled=!cameraOff;
    // The outgoing caller has no video sender until the call is answered.
-   if(sender)await sender.replaceTrack(track);
+   if(lensProcessor.current)await lensProcessor.current.setSource(track);
+   else {if(sender)await sender.replaceTrack(track)}
    local.current.removeTrack(existing);local.current.addTrack(track);
    if(!stopped)existing.stop();
    adopted=true;
@@ -758,7 +790,9 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
     try{
      const restored=await acquire(oldFacing),track=restored.getVideoTracks()[0];
      if(track){
-      track.enabled=!cameraOff;if(sender)await sender.replaceTrack(track);
+      track.enabled=!cameraOff;
+      if(lensProcessor.current)await lensProcessor.current.setSource(track);
+      else {if(sender)await sender.replaceTrack(track)}
       local.current.removeTrack(existing);local.current.addTrack(track);
       setLocalPreviewReady(false);
       if(localVideo.current)void playLocalPreview();
