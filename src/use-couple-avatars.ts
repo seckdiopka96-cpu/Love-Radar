@@ -1,3 +1,4 @@
+import {validAvatar3DLook,type Avatar3DLook} from "./avatar-3d-look";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {apiFetch} from "./api";
 import {DEFAULT_COUPLE_AVATARS,safeCoupleAvatarState,validAvatarStyle,validCouplePose,
@@ -44,10 +45,11 @@ export function useCoupleAvatars(token:string,roomId:string|undefined){
    window.removeEventListener("focus",resume);
   };
  },[token,roomId]);
- const update=useCallback(async(payload:{kind:"style";style:AvatarStyle}|{kind:"pose";pose:CouplePose})=>{
+ const update=useCallback(async(payload:{kind:"style";style:AvatarStyle}|{kind:"pose";pose:CouplePose}|{kind:"look3d";look:Avatar3DLook})=>{
   if(!token||!roomId||latestRoom.current!==roomId||busy.current)throw Error("Patiente un instant.");
   if(payload.kind==="style"&&!validAvatarStyle(payload.style))throw Error("Personnage inconnu.");
   if(payload.kind==="pose"&&!validCouplePose(payload.pose))throw Error("Pose inconnue.");
+  if(payload.kind==="look3d"&&!validAvatar3DLook(payload.look))throw Error("Style 3D inconnu.");
   busy.current=true;setSaving(true);
   try{
    const response=await apiFetch("/api/couple-avatars",{
@@ -78,5 +80,6 @@ export function useCoupleAvatars(token:string,roomId:string|undefined){
  },[token,roomId]);
  const saveStyle=useCallback((style:AvatarStyle)=>update({kind:"style",style}),[update]);
  const savePose=useCallback((pose:CouplePose)=>update({kind:"pose",pose}),[update]);
- return {avatars,saving,saveStyle,savePose,reload};
+ const saveLook3d=useCallback((look:Avatar3DLook)=>update({kind:"look3d",look}),[update]);
+ return {avatars,saving,saveStyle,savePose,saveLook3d,reload};
 }
