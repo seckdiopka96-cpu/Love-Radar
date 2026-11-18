@@ -1,6 +1,6 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
 // Refresh the installed PWA shell after the Cloudflare Pages GIPHY build variable was configured.
-const CACHE="love-radar-static-v139";
+const CACHE="love-radar-static-v140";
 const PRIVATE_AVATAR_CACHE="love-radar-private-notification-avatar-v1";
 const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png","/ludo-mark.svg","/ludo-solo/index.html","/ludo-solo/style.css","/ludo-solo/script.js","/ludo-duo/index.html","/ludo-duo/style.css","/ludo-duo/script.js"];
 self.addEventListener("install",event=>{
@@ -81,7 +81,7 @@ const SUPPORTED_TABS=new Set(["home","settings","chat","games","ludo-room","ludo
 /* Every kind sent by Cloudflare has an explicit landing page. */
 const KIND_TABS={
  "message":"chat","photo":"chat","audio":"chat","call":"chat",
- "ludo-challenge":"ludo","memory-challenge":"memory","rps-challenge":"rps",
+ "ludo-challenge":"ludo","ludo-joined":"ludo","memory-challenge":"memory","rps-challenge":"rps",
  "daily-question":"moment","love-signal":"together",
  "love-letter":"memories","album-memory":"memories",
  "couple-date":"life","couple-mood":"life","couple-dream":"life",
