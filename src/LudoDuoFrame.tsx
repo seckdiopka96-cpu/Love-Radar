@@ -18,8 +18,8 @@ type Props={
  remaining:number|null;rolling:boolean;rollingFace:number;
  busy:boolean;animationBusy:boolean;
  motion:Motion|null;capturedMotions:CapturedMotion[];
- error:string;
- onAction:(action:"roll"|"move"|"restart"|"exit"|"gift"|"menu",pawn?:number)=>void;
+ error:string;overlayOpen:boolean;
+ onAction:(action:"roll"|"move"|"restart"|"exit"|"leave"|"gift"|"menu",pawn?:number)=>void;
 };
 /** Shared appearance of the pure-HTML Solo; multiplayer turns and dice remain
  * entirely managed and authenticated by the existing React + D1 backend.
@@ -45,11 +45,12 @@ export default function LudoDuoFrame(props:Props){
    myAvatar:props.myAvatar||"",partnerAvatar:props.partnerAvatar||"",
    remaining:props.remaining,rolling:props.rolling,rollingFace:props.rollingFace,
    busy:props.busy,animationBusy:props.animationBusy,
-   motion:props.motion,capturedMotions:props.capturedMotions,error:props.error
+   motion:props.motion,capturedMotions:props.capturedMotions,error:props.error,
+   overlayOpen:props.overlayOpen
   },window.location.origin);
  },[props.game,props.palette,props.lastRoll,props.mySeat,props.myName,props.partnerName,props.myAvatar,props.partnerAvatar,
     props.remaining,props.rolling,props.rollingFace,props.busy,props.animationBusy,
-    props.motion,props.capturedMotions,props.error]);
+    props.motion,props.capturedMotions,props.error,props.overlayOpen]);
  useEffect(()=>{if(ready)send()},[ready,send]);
  // Keep the handshake reliable even when a locally cached iframe executes
  // before React's message listener is installed (common on iOS WebKit).
@@ -71,7 +72,7 @@ export default function LudoDuoFrame(props:Props){
    if(data.type==="ready"){setReady(true);setFailed(false);send();return}
    if(data.type!=="action")return;
    switch(data.action){
-    case "roll":case "restart":case "exit":case "gift":case "menu":
+    case "roll":case "restart":case "exit":case "leave":case "gift":case "menu":
      props.onAction(data.action);break;
     case "move":
      if(Number.isInteger(data.pawn)&&data.pawn>=0&&data.pawn<4)props.onAction("move",data.pawn);
@@ -84,7 +85,7 @@ export default function LudoDuoFrame(props:Props){
  },[props.onAction,send]);
  return <section className="ludo-duo-shared-frame" aria-label="Plateau Ludo Duo identique au Ludo Solo">
   <iframe key={retry} ref={ref} className="ludo-duo-shared-iframe"
-   src="/ludo-duo/index.html?v=ludo-room-20261117-v9" title="Ludo Duo : plateau et dé synchronisés avec ton partenaire"
+   src="/ludo-duo/index.html?v=ludo-room-20261118-v10" title="Ludo Duo : plateau et dé synchronisés avec ton partenaire"
    referrerPolicy="same-origin" loading="eager" onError={()=>setFailed(true)}/>
   {failed&&!ready?<div className="ludo-duo-frame-error" role="alert">
    <strong>Impossible de charger le nouveau plateau Duo.</strong>

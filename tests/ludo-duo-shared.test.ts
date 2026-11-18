@@ -20,9 +20,9 @@ test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()
  const boardSlice=s=>(s.slice(s.indexOf(start),s.indexOf(end))).replace(/^\s+|\s+$/g,"");
  assert.ok(duoHTML.includes(start));
  assert.equal(boardSlice(duoHTML),boardSlice(soloHTML));
- assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261117-v9"'));
- assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261117-v9"'));
- assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261117-v9" defer'));
+ assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v10"'));
+ assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v10"'));
+ assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v10" defer'));
  assert.ok(duoHTML.includes('LUDO <span>♥</span> DUO'));
  assert.ok(duoHTML.includes('id="roll-dice"'));
  assert.ok(duoCSS.includes('.duo-side-actions'));
@@ -55,7 +55,8 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
  assert.ok(bridge.includes('type:"ping"'),"parent retries initialization");
  assert.ok(duoJS.includes('e.data.type==="ping"'),"child responds to parent initialization ping");
  assert.ok(!bridge.includes('onLoad={()=>setReady(true)}'),"iframe load alone does not confirm game ready");
- assert.ok(duoJS.includes('victoryGiftButton.addEventListener("click",()=>send("gift"))'),"Gifts must stay accessible after victory");
+ assert.ok(duoJS.includes('victoryGiftButton.addEventListener("click",()=>{closeVictory();send("gift")}'),
+   "the gift dialog must open without a modal layered over it");
  assert.ok(parent.includes('action:"choose_color"'));
  assert.ok(parent.includes('const stamp=game.id+":"+game.version+":"+pawns[0]'));
  assert.ok(parent.includes('void act("move",pawns[0])'));
@@ -63,7 +64,7 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
  'function duoFrameAction(','signRules()', 'giftAction(','ludo-agreement-backdrop','ludo-gift-dialog','ludo-modal-backdrop']){
   assert.ok(parent.includes(unchanged),unchanged);
  }
- assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261117-v9"'));
+ assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v10"'));
  assert.ok(bridge.includes('event.source!==frame'));
  assert.ok(bridge.includes('event.origin!==window.location.origin'));
  assert.ok(!bridge.includes("token:"));
@@ -89,7 +90,7 @@ test("Duo iframe works offline and uses only a same-origin parent, never replaci
   assert.ok(sw.includes('"'+path+'"'),path);
  }
  assert.ok(sw.includes('url.pathname.startsWith("/ludo-duo/")'));
- assert.ok(sw.includes("love-radar-static-v133"),"new PWA release must invalidate old shell");
+ assert.ok(sw.includes("love-radar-static-v134"),"new PWA release must invalidate old shell");
 });
 
 test("live Duo synchronizes promptly with conditional server reads",()=>{
@@ -213,4 +214,26 @@ test("players can quit from the visible Duo board or abandon immediately",()=>{
   "show a clear warning on the second missed turn");
  assert.ok(duoJS.includes('state.game.lastAction.includes("Défaite automatique")'),
   "winner panel states explicitly that the game ended by inactivity");
+});
+
+test("finished Duo has an unblocked escape route and a visible rematch state",()=>{
+ assert.ok(duoHTML.includes('id="leave-after-win"'),"result dialog has a Leave button");
+ assert.ok(duoHTML.includes("← Quitter le Ludo"));
+ assert.ok(duoHTML.includes('id="win-action-status"'),"replay feedback is readable");
+ assert.ok(duoJS.includes('send("leave")'),"the iframe can request immediate exit");
+ assert.ok(bridge.includes('case "leave"'),"parent accepts the same-origin finished-game exit action");
+ assert.ok(parent.includes('if(action==="leave"){if(game?.status==="won")onExit();else setMenu(true);return}'),
+  "leaving a finished match does not demand another confirmation");
+ assert.ok(duoJS.includes('restartPending=true'),"slow restart is not a silent freeze");
+ assert.ok(duoJS.includes('replayButton.disabled=true;colorButton.disabled=true'));
+ assert.ok(duoJS.includes('actionStatus.textContent="Préparation de la nouvelle manche…"'));
+ assert.ok(duoJS.includes('else if(restartPending&&state.error)'),
+  "a failed restart re-enables controls and gives a readable error");
+ assert.ok(duoJS.includes('colorButton.addEventListener("click",requestRematch)'),
+  "choosing a different color starts the next signing/color screen");
+ assert.ok(parent.includes('overlayOpen={menu||giftOpen||rules||mustSign}'),
+  "game-over dialog never sits above gift/menu/rules overlays");
+ assert.ok(duoJS.includes('!state.overlayOpen'));
+ assert.ok(duoCSS.includes(".duo-win-leave"));
+ assert.ok(duoCSS.includes(".duo-win-action-status"));
 });

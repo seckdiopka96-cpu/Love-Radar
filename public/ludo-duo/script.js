@@ -58,6 +58,11 @@
  document.querySelector(".game-actions")?.after(duoActions);
  const lastColor=document.getElementById("duo-colors-label");
  let state=null;
+ let restartPending=false;
+ let lastFinishedGameId="";
+ const actionStatus=document.getElementById("win-action-status");
+ const replayButton=document.getElementById("play-again");
+ const colorButton=document.getElementById("change-color-after-win");
  let lastBoardKey="";
  let lastAnimatedRoll="",remoteDieTimer=null,receivedState=false;
  // Keep the moving pawn in its own layer. Redrawing its DOM on every square
@@ -239,7 +244,7 @@
   }
  }
  function showVictory(){
-  if(!state?.game||state.game.status!=="won")return;
+  if(!state?.game||state.game.status!=="won"||state.overlayOpen||restartPending)return;
   document.getElementById("win-title").textContent=state.game.winner===state.mySeat?"Tu as gagné ! 🎉":"Ton partenaire a gagné";
   document.getElementById("win-text").textContent=state.game.lastAction.includes("Défaite automatique")?
    state.game.lastAction:
@@ -253,6 +258,14 @@
  function closeVictory(){
   if(victory.open&&typeof victory.close==="function")victory.close();
   else victory.removeAttribute("open");
+ }
+ function requestRematch(){
+  if(restartPending||!state||state.game?.status!=="won"||state.busy)return;
+  restartPending=true;
+  replayButton.disabled=true;colorButton.disabled=true;
+  actionStatus.textContent="Préparation de la nouvelle manche…";
+  actionStatus.hidden=false;
+  send("restart");
  }
  function updateClock(){
   if(!state)return;
@@ -359,7 +372,16 @@
   if(renderKey!==lastBoardKey){lastBoardKey=renderKey;drawPawns()}
   updateClock();
   receivedState=true;
-  if(g.status==="won")showVictory();else closeVictory();
+  // Don't trap someone behind a win dialog when a rematch request failed.
+  if(g.status!=="won"||(lastFinishedGameId&&lastFinishedGameId!==g.id)){
+   restartPending=false;replayButton.disabled=false;colorButton.disabled=false;
+   actionStatus.hidden=true;
+  }else if(restartPending&&state.error){
+   restartPending=false;replayButton.disabled=false;colorButton.disabled=false;
+   actionStatus.textContent=state.error;actionStatus.hidden=false;
+  }
+  if(g.status==="won")lastFinishedGameId=g.id;
+  if(g.status==="won"&&!state.overlayOpen)showVictory();else closeVictory();
  }
  window.addEventListener("message",e=>{
   if(e.origin!==location.origin||e.source!==window.parent)return;
@@ -388,12 +410,15 @@
  const victoryGiftButton=document.createElement("button");
  victoryGiftButton.type="button";victoryGiftButton.className="dialog-secondary";
  victoryGiftButton.textContent="🎁 Voir le défi cadeau";
- victoryGiftButton.addEventListener("click",()=>send("gift"));
+ victoryGiftButton.addEventListener("click",()=>{closeVictory();send("gift")});
  victory.querySelector("#change-color-after-win")?.after(victoryGiftButton);
- document.getElementById("play-again").addEventListener("click",()=>send("restart"));
- document.getElementById("change-color-after-win").addEventListener("click",()=>send("restart"));
- const gameDialog=document.getElementById("win-dialog");
- if(gameDialog)gameDialog.addEventListener("close",()=>{});
+ replayButton.addEventListener("click",requestRematch);
+ // A new match returns to the consent/color selection screen.
+ colorButton.addEventListener("click",requestRematch);
+ document.getElementById("leave-after-win").addEventListener("click",()=>{
+  closeVictory();
+  send("leave");
+ });
  makeDice();
  screen.classList.add("is-active");screen.setAttribute("aria-hidden","false");
  selection.classList.add("is-hidden");selection.setAttribute("aria-hidden","true");
