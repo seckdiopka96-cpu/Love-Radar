@@ -53,7 +53,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  // Conditional refreshes only apply after both players have signed.
  const activeDuoGame=useRef(false);
  const lastFullRefresh=useRef(0);
- const presenceSession=useRef(crypto.randomUUID());
+ 
  const [presence,setPresence]=useState<Presence>([{online:false,joinedAt:null},{online:false,joinedAt:null}]);
  const [partnerJustJoined,setPartnerJustJoined]=useState(false);
  const previousPartnerOnline=useRef<boolean|null>(null);
@@ -268,7 +268,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  // Old iPhone tabs cannot delete a newer session's presence lease.
  useEffect(()=>{
   if(!game?.id||members!==2)return;
-  const gameId=game.id,sessionId=presenceSession.current;
+  const gameId=game.id,sessionId=crypto.randomUUID();
   let closed=false,inFlight=false;
   const send=async(mode:"join"|"leave")=>{
    if(mode==="join"&&inFlight)return;
