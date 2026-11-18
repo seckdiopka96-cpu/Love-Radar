@@ -1,6 +1,6 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
 // A new shell cache revision discards offline HTML generated before favorites were removed.
-const CACHE="love-radar-static-v113";
+const CACHE="love-radar-static-v114";
 const PRIVATE_AVATAR_CACHE="love-radar-private-notification-avatar-v1";
 const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png","/ludo-mark.svg","/ludo-solo/index.html","/ludo-solo/style.css","/ludo-solo/script.js","/ludo-duo/index.html","/ludo-duo/style.css","/ludo-duo/script.js"];
 self.addEventListener("install",event=>{
@@ -77,7 +77,7 @@ async function notificationAvatar(memberId){
 }
 
 /* Notifications open their exact content, not just the app's welcome page. */
-const SUPPORTED_TABS=new Set(["home","chat","games","ludo-room","ludo","memory","rps","rapid","truth","memories","moment","together","watch","watch-tiktok","puzzle","reconcile","story","reunion","care"]);
+const SUPPORTED_TABS=new Set(["home","chat","games","ludo-room","ludo","memory","rps","draw","escape","rapid","truth","memories","moment","together","watch","watch-tiktok","puzzle","reconcile","story","reunion","care"]);
 const TARGET_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","rps-challenge","daily-question","love-signal"]);
 function notificationTarget(info){
  const kind=typeof info?.kind==="string"&&TARGET_KINDS.has(info.kind)?info.kind:null;
