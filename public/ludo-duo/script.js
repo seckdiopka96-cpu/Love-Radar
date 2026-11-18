@@ -38,8 +38,6 @@
  const dice=document.getElementById("dice-3d");
  const dieResult=document.getElementById("die-result");
  const roll=document.getElementById("roll-dice");
- const status=document.getElementById("turn-message");
- const statusMeta=document.getElementById("turn-meta");
  const feedback=document.getElementById("game-feedback");
  const choices=document.getElementById("pawn-choices");
  const rules=document.getElementById("rules-dialog");
@@ -297,9 +295,7 @@
  function showVictory(){
   if(!state?.game||state.game.status!=="won"||state.overlayOpen||restartPending)return;
   document.getElementById("win-title").textContent=state.game.winner===state.mySeat?"Tu as gagné ! 🎉":"Ton partenaire a gagné";
-  document.getElementById("win-text").textContent=state.game.lastAction.includes("Défaite automatique")?
-   state.game.lastAction:
-   state.game.lastAction.includes("abandonné la partie")?state.game.lastAction:
+  document.getElementById("win-text").textContent=state.game.lastAction.includes("abandonné la partie")?state.game.lastAction:
    "La partie est terminée. Les défis et cadeaux restent disponibles dans Love Radar.";
   if(!victory.open){
    if(typeof victory.showModal==="function")victory.showModal();
@@ -318,14 +314,7 @@
   actionStatus.hidden=false;
   send("restart");
  }
- function updateClock(){
-  if(!state)return;
-  const remaining=state.remaining;
-  if(statusMeta){
-   const auto=state.game?.autoCounts?.[state.mySeat]||0;
-   statusMeta.textContent=remaining===null||remaining===undefined?"LUDO DUO":remaining+" s"+(auto?" · "+auto+"/3 auto":"");
-  }
- }
+ 
   // The authenticated React parent already loaded private avatars. The
   // same-origin frame only displays those temporary object URLs; no tokens,
   // profile API calls or additional downloads on every multiplayer refresh.
@@ -378,11 +367,9 @@
   document.querySelector(".player--cpu").classList.toggle("is-turn",g.turn!==state.mySeat&&g.status==="playing");
   document.querySelector(".player--human b").textContent="TOI";
   document.querySelector(".player--cpu b").textContent="PARTENAIRE";
-  const myAuto=g.autoCounts?.[state.mySeat]||0;
-  document.getElementById("player-count").textContent=g.positions[state.mySeat].filter(p=>p>=FINISH_PROGRESS).length+" / 4 · Auto "+myAuto+"/3";
-  const partnerAuto=g.autoCounts?.[1-state.mySeat]||0;
-  document.getElementById("computer-count").textContent=g.positions[1-state.mySeat].filter(p=>p>=FINISH_PROGRESS).length+" / 4 · Auto "+partnerAuto+"/3";
-  const legal=legalPawns();
+  document.getElementById("player-count").textContent=g.positions[state.mySeat].filter(p=>p>=FINISH_PROGRESS).length+" / 4";
+   document.getElementById("computer-count").textContent=g.positions[1-state.mySeat].filter(p=>p>=FINISH_PROGRESS).length+" / 4";
+   const legal=legalPawns();
   const isMine=g.turn===state.mySeat,canRoll=isMine&&g.dice===null&&g.status==="playing"&&!state.busy&&!state.rolling&&!state.overlayOpen;
   roll.disabled=!canRoll;
   roll.classList.toggle("is-ready",canRoll);
@@ -407,22 +394,11 @@
   dieResult.setAttribute("aria-label",rollingNow?"Le dé tourne":"Dernier lancer : "+diceValue);
   roll.setAttribute("aria-label",canRoll?"Lancer le dé":"Dé : "+diceValue);
   const isSix=g.dice===6;
-  status.textContent=g.status==="won"?"Partie terminée":
-    state.rolling?"🎲 Le dé roule…":
-    g.dice!==null&&isMine?
-      (isSix&&g.positions[state.mySeat].some(p=>p===-1)?"🎲 6 ! Touche un pion de ta base pour le sortir !":"À toi : touche ton pion pour avancer !"):
-    g.dice!==null?"⏳ Déplacement en cours…":
-    state.motion?"Le pion avance…":
-    isMine?"✅ À ton tour ! Appuie sur le dé.":"⏳ En attente du lancer…";
-  feedback.classList.toggle("is-auto-warning",g.status==="playing"&&myAuto>=2);
-  feedback.textContent=state.error||
-   (g.status==="playing"&&myAuto>=2?"⚠️ 2/3 tours automatiques : un prochain retard te fera perdre.":g.lastAction)||
-   "Jouez à deux en direct.";
-  matchButton.disabled=g.status!=="won";
+  feedback.textContent=state.error||g.lastAction||"Jouez à deux en direct.";
+   matchButton.disabled=g.status!=="won";
   matchButton.textContent=g.status==="won"?"↺ Nouvelle manche":"♥ Partie en direct";
   const renderKey=JSON.stringify([g.id,g.version,g.positions,g.dice,g.turn,g.status,colors,state.motion,state.capturedMotions,legal]);
   if(renderKey!==lastBoardKey){lastBoardKey=renderKey;drawPawns()}
-  updateClock();
   receivedState=true;
   // Don't trap someone behind a win dialog when a rematch request failed.
   if(g.status!=="won"||(lastFinishedGameId&&lastFinishedGameId!==g.id)){
@@ -453,7 +429,6 @@
   // Show a response on tap; the authoritative dice result still comes from D1.
   roll.disabled=true;
   animateRealDieRoll();
-  status.textContent="🎲 Le dé roule…";
   send("roll");
  });
  document.getElementById("choose-again").addEventListener("click",()=>send("exit"));
