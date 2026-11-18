@@ -30,8 +30,19 @@ async function photoAsJpeg(file:File):Promise<File>{
  }finally{URL.revokeObjectURL(resource)}
 }
 function AlbumAsset({token,item,privacyEnabled,viewer}:{token:string;item:AlbumItem;privacyEnabled:boolean;viewer:string}){
+ const video=item.mime.startsWith("video/");
+ const holder=useRef<HTMLDivElement|null>(null);
+ const [visible,setVisible]=useState(false),[wanted,setWanted]=useState(!video);
  const [src,setSrc]=useState(""),[failed,setFailed]=useState(false);
  useEffect(()=>{
+  const node=holder.current;if(!node)return;
+  if(!("IntersectionObserver" in window)){setVisible(true);return}
+  const observer=new IntersectionObserver(entries=>{if(entries[0]?.isIntersecting)setVisible(true)},{rootMargin:"320px"});
+  observer.observe(node);
+  return()=>observer.disconnect();
+ },[]);
+ useEffect(()=>{
+  if(!visible||!wanted)return;
   let active=true,objectUrl="";
   setSrc("");setFailed(false);
   void (async()=>{
@@ -44,12 +55,14 @@ function AlbumAsset({token,item,privacyEnabled,viewer}:{token:string;item:AlbumI
    }catch{if(active)setFailed(true)}
   })();
   return()=>{active=false;if(objectUrl)URL.revokeObjectURL(objectUrl)};
- },[token,item.id]);
- if(failed)return <div className="sk-asset-placeholder" role="status">Souvenir indisponible</div>;
- if(!src)return <div className="sk-asset-placeholder">Chargement…</div>;
- return item.mime.startsWith("video/")?
-  <video className="sk-video" controls playsInline preload="metadata" src={src} aria-label="Vidéo souvenir du couple"/>:
-  <PrivatePhoto src={src} alt={item.caption||"Photo de notre album partagé"} viewer={viewer} enabled={privacyEnabled} variant="album"/>;
+ },[token,item.id,visible,wanted]);
+ return <div ref={holder} className="sk-media">
+  {video&&!wanted?<button type="button" className="sk-play-video" onClick={()=>setWanted(true)} aria-label="Charger la vidéo souvenir">▶ Voir la vidéo</button>:
+   failed?<div className="sk-asset-placeholder" role="status">Souvenir indisponible</div>:
+   !src?<div className="sk-asset-placeholder">{visible?"Chargement…":"Souvenir privé"}</div>:
+   video?<video className="sk-video" controls playsInline preload="metadata" src={src} aria-label="Vidéo souvenir du couple"/>:
+   <PrivatePhoto src={src} alt={item.caption||"Photo de notre album partagé"} viewer={viewer} enabled={privacyEnabled} variant="album"/>}
+ </div>;
 }
 export default function SharedKeepsakes({token,myId,myName,partnerName,privacyEnabled,focusKind,focusId}:Props){
  const [album,setAlbum]=useState<AlbumItem[]>([]),[letters,setLetters]=useState<LetterItem[]>([]);
