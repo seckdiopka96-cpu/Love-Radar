@@ -2,26 +2,27 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {TRACK,HOME,BASE,CELL,SAFE,key,pointForProgress,movementSteps,stackPosition,stackCellStyle} from "../src/ludo-visuals";
 
-test("authentic 52-square outer path, six-square home, 225-cell board",()=>{
+test("authentic 52-square outer path, five-square home, 225-cell board",()=>{
  assert.equal(TRACK.length,52);
  assert.equal(new Set(TRACK.map(([r,c])=>key(r,c))).size,52);
  assert.equal(CELL.length,225);
- assert.equal(HOME[0].length,6);
- assert.equal(HOME[1].length,6);
+ assert.equal(HOME[0].length,5);
+ assert.equal(HOME[1].length,5);
  assert.deepEqual([...SAFE],[0,8,13,21,26,34,39,47]);
 });
 test("progress follows one visible cell at a time, including entering and finishing",()=>{
  assert.deepEqual(movementSteps(-1,0),[0]);
  assert.deepEqual(movementSteps(4,10),[5,6,7,8,9,10]);
  assert.deepEqual(movementSteps(50,56),[51,52,53,54,55,56]);
- assert.deepEqual(movementSteps(51,57),[52,53,54,55,56,57]);
+ assert.deepEqual(movementSteps(51,56),[52,53,54,55,56]);
  assert.deepEqual(movementSteps(12,20),[]);
  assert.deepEqual(pointForProgress(0,0,-1),BASE[0][0]);
  assert.deepEqual(pointForProgress(1,2,-1),BASE[1][2]);
  assert.deepEqual(pointForProgress(0,0,0),TRACK[0]);
  assert.deepEqual(pointForProgress(1,0,0),TRACK[26]);
  assert.deepEqual(pointForProgress(0,0,57),[7,7]);
- assert.deepEqual(pointForProgress(1,3,56),HOME[1][5]);
+ assert.deepEqual(pointForProgress(1,3,55),HOME[1][4]);
+ assert.deepEqual(pointForProgress(1,3,56),[7,7]);
 });
 test("pawns form a compact overlapping pile, never a triangle or horizontal row",()=>{
  for(let count=1;count<=8;count++){
