@@ -9,6 +9,7 @@ export const ROOM_DATA_TABLES=[
  "message_replies","message_reactions","message_edits","message_hidden",
  "message_one_time","messages","e2ee_keys","chat_presence","voice_signals","voice_calls","voice_call_history","voice_call_modes","native_voip_devices","native_android_devices",
  "profile_photos","couple_story_events","couple_stories","keepsake_album","keepsake_letters",
+ "couple_moods","couple_dreams","couple_hugs","couple_weekly_challenges","couple_date_nights","couple_surprises",
  "screenshot_events","care_notices","care_period_preferences","care_prayer_settings","care_prayer_cache","care_prayer_sent",
  "couple_location_requests","couple_canvas_presence","couple_canvas_events",
  "couple_canvas_invites","affection_signals","daily_moments",
@@ -115,7 +116,7 @@ async function purgeReferencedObjects(db:D1Database,storage:R2Bucket|undefined,r
  // Also purge obsolete/replaced pictures whose paths remain in the private
  // bucket but are no longer referenced by current profile/story rows.
  if(storage){
-  for(const prefix of ["profile/"+roomId+"/","couple-story/"+roomId+"/","keepsake-album/"+roomId+"/"]){
+  for(const prefix of ["profile/"+roomId+"/","couple-story/"+roomId+"/","keepsake-album/"+roomId+"/","couple-gifts/"+roomId+"/"]){
    // Always scan the first page again after deleting it: opaque R2 cursors
    // may skip objects if earlier entries have been removed.
    for(let page=0;page<10000;page++){
