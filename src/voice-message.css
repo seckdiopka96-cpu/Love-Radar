@@ -233,11 +233,12 @@
  .lr-chat .lr-voice-note-playhead{transition:none}
 }
 
-/* Partner voice notes: near-black charcoal rather than medium grey.
-   Scope strictly to incoming audio so outgoing pink and other chat bubbles remain intact. */
+/* Received voices are BLACK (not charcoal), while outgoing notes stay pink. */
 .lr-app.lr-chat-mode .lr-chat .lr-bubble-row.other .lr-bubble.lr-bubble-audio{
- background:#141719!important;
- border-color:#2b3338!important;
+ background:#000000!important;
+ background-image:none!important;
+ border-color:#000000!important;
+ box-shadow:none!important;
  color:#f2f6f8!important;
 }
 .lr-app.lr-chat-mode .lr-chat .lr-bubble-row.other .lr-voice-note-wave>span{
