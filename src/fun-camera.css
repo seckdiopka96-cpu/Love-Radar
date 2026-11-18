@@ -1,0 +1,68 @@
+/* Love Radar camera studio — midnight blue + rose, entirely separate from chat/Ludo. */
+.lr-fun-camera{position:relative;min-height:0;width:100%;max-width:820px;margin:0 auto;padding:10px 14px calc(95px + env(safe-area-inset-bottom));box-sizing:border-box;overflow-y:auto;color:#fff5f7}
+.lr-fun-camera-head{display:flex;align-items:center;gap:12px;margin:8px 0 14px}
+.lr-fun-camera-head>button{display:grid;place-items:center;flex:0 0 43px;height:43px;border-radius:14px;background:#1c344a;color:#fae9f2;border:1px solid #4c6075;font-size:32px}
+.lr-fun-camera-head>div{flex:1;min-width:0}
+.lr-fun-camera-head small{display:block;font-size:9px;letter-spacing:.16em;color:#eeafca;font-weight:850}
+.lr-fun-camera-head h1{font-size:clamp(20px,5vw,27px);font-weight:900;letter-spacing:-.04em;margin:4px 0 0}
+.lr-fun-camera-head h1 span{font-size:22px}
+.lr-fun-camera-badge{padding:7px 10px;border-radius:999px;background:#385363;border:1px solid #64778d;font-size:10px;font-weight:900;letter-spacing:.08em;color:#e9ddeb}
+.lr-fun-preview{height:min(58dvh,650px);min-height:350px;position:relative;overflow:hidden;border:2px solid #7a617f;border-radius:28px;background:radial-gradient(ellipse at 20% 10%,#5c4665,#172b41 56%,#0d1423);box-shadow:0 15px 36px #05091780,0 0 0 5px #dfa1c20b}
+.lr-fun-preview video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#111a2c}
+.lr-fun-preview video.mirrored{transform:scaleX(-1)}
+.lr-fun-camera-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;gap:13px}
+.lr-fun-camera-placeholder>span{font-size:65px;filter:drop-shadow(0 10px 24px #fa9ab550)}
+.lr-fun-camera-placeholder h2{font-size:21px;margin:5px 0 0}
+.lr-fun-camera-placeholder p{font-size:13px;line-height:1.6;color:#e4d6e4;max-width:270px;margin:0}
+.lr-fun-camera-placeholder button{margin-top:12px;border:0;border-radius:17px;color:#2c1a34;background:linear-gradient(135deg,#ffcae1,#ed9cbd);font-size:14px;font-weight:900;padding:14px 21px}
+.lr-fun-preview-top{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between;align-items:center;z-index:2}
+.lr-fun-preview-top span{padding:7px 12px;background:#131d30ae;backdrop-filter:blur(10px);border:1px solid #ffffff4a;border-radius:999px;font-size:10px;letter-spacing:.07em;font-weight:850}
+.lr-fun-preview-top button{width:43px;height:43px;border-radius:50%;background:#152d43c7;color:#f7ecf4;border:1px solid #ffffff70;font-size:24px;backdrop-filter:blur(8px)}
+.lr-fun-shutter{position:absolute;bottom:18px;left:0;right:0;z-index:2;display:flex;align-items:center;justify-content:center;gap:18px}
+.lr-fun-photo-shutter{width:69px;height:69px;border-radius:50%;background:#ffdeed;color:#ae4b78;font-size:50px;line-height:1;border:5px solid #fff;box-shadow:0 4px 13px #090f20aa}
+.lr-fun-record{min-height:45px;padding:11px 16px;border-radius:999px;border:1px solid #ffffff77;background:#2b3048b8;color:#ffeaf3;font-size:12px;font-weight:850;backdrop-filter:blur(10px)}
+.lr-fun-record.is-recording{background:#b53c58;border-color:#ffd7df}
+.lr-fun-lenses{margin:14px 0;padding:14px 0;background:linear-gradient(135deg,#1a2f44,#1c263a);border:1px solid #49536f;border-radius:20px}
+.lr-fun-lenses-title{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 16px 13px}
+.lr-fun-lenses-title strong{font-size:10px;letter-spacing:.12em;color:#f5d5e7}
+.lr-fun-lenses-title small{font-size:11px;color:#bfbdcd}
+.lr-lenses-picker{display:flex;gap:10px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding:0 14px 7px;touch-action:pan-x;scroll-snap-type:x proximity}
+.lr-lenses-picker::-webkit-scrollbar{display:none}
+.lr-lens-option{flex:0 0 auto;width:73px;display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px 4px 8px;border-radius:15px;border:1px solid transparent;background:transparent;color:#e6cfdc;font-size:11px;font-weight:750;scroll-snap-align:start;transition:transform .15s ease,background .15s ease}
+.lr-lens-option .lr-lens-icon{display:grid;place-items:center;width:56px;height:56px;border-radius:18px;background:linear-gradient(145deg,#405268,#27354f);border:1px solid #78809966;font-size:30px;box-shadow:0 5px 13px #05091d3b}
+.lr-lens-option.is-selected{color:#fff4fb;background:#cb8caf25;border-color:#e8a5c0a8}
+.lr-lens-option.is-selected .lr-lens-icon{background:linear-gradient(135deg,#a56594,#564e85);border-color:#ffc4e0;box-shadow:0 0 0 2px #f2a9ca24}
+.lr-lens-option:disabled{opacity:.55}
+.lr-fun-result{display:grid;gap:12px;padding:14px;margin:12px 0;border:1px solid #a16b8f;background:#1c2941;border-radius:20px}
+.lr-fun-result-head{display:flex;justify-content:space-between;align-items:center;font-size:15px;color:#fbe6f2}
+.lr-fun-result-head button{width:32px;height:32px;border-radius:11px;color:#fff;background:#473850;border:1px solid #885c7a;font-size:22px}
+.lr-fun-result>img,.lr-fun-result>video{width:min(100%,440px);max-height:350px;object-fit:contain;justify-self:center;border-radius:13px}
+.lr-fun-result-actions{display:flex;flex-wrap:wrap;gap:8px}
+.lr-fun-result-actions button{flex:1;min-width:150px;min-height:43px;border-radius:13px;border:1px solid #dd9abb;background:#855478;color:#fff5f7;font-size:12px;font-weight:850;padding:11px}
+.lr-fun-result-actions button:last-child{background:#efb8d3;color:#321d32}
+.lr-fun-result>small{font-size:11px;line-height:1.5;color:#c9c3d1}
+.lr-fun-error,.lr-fun-notice{padding:11px 13px;border-radius:12px;font-size:12px;line-height:1.5;margin:9px 0;background:#77394e6e;color:#ffe2e8;border:1px solid #c97d94}
+.lr-fun-notice{background:#4162555e;border-color:#6a9c89;color:#d7ffef}
+.lr-fun-privacy{text-align:center;font-size:11px;line-height:1.6;color:#b7baca;padding:0 10px}
+/* The call mini-preview has an independent lens trigger; no extra buttons in the call HUD. */
+.lr-call-backdrop .lr-video-call{position:relative}
+.lr-call-backdrop .lr-video-call .lr-call-lens-trigger{position:absolute;z-index:7;top:8px;left:8px;min-width:36px;height:36px;border:1px solid #fff8;border-radius:13px;background:#1b2738c9;backdrop-filter:blur(7px);font-size:21px;color:#fff;box-shadow:0 3px 10px #0005}
+.lr-call-backdrop .lr-video-call .lr-call-lens-trigger.is-active{border-color:#ffb8dc;background:#974a82db}
+.lr-call-backdrop .lr-video-call.is-controls-hidden .lr-call-lens-trigger{visibility:hidden!important;pointer-events:none!important}
+.lr-call-backdrop .lr-video-call .lr-call-lens-panel{position:absolute;left:9px;right:9px;bottom:max(107px,calc(98px + env(safe-area-inset-bottom)));z-index:25;padding:14px 0 9px;border:1px solid #e4a7c780;border-radius:21px;background:linear-gradient(140deg,#1c283eea,#28314def);box-shadow:0 14px 38px #040711be;backdrop-filter:blur(16px)}
+.lr-call-lens-heading{display:flex;justify-content:space-between;align-items:center;padding:0 15px 12px;color:#ffdeee}
+.lr-call-lens-heading strong{font-size:12px;letter-spacing:.04em}
+.lr-call-lens-heading button{color:#fff;font-size:24px;width:31px;height:31px;border:1px solid #ffffff55;border-radius:10px;background:#ffffff15}
+.lr-call-backdrop .lr-call-lens-panel .lr-lens-option{width:66px}
+.lr-call-backdrop .lr-call-lens-panel .lr-lens-option .lr-lens-icon{width:47px;height:47px;font-size:25px}
+.lr-call-lens-note{padding:7px 15px 1px;color:#d8cada;font-size:10px;line-height:1.3}
+.lr-together-fun-feature{width:100%;display:flex;align-items:center;gap:13px;text-align:left;background:linear-gradient(135deg,#49385d,#26314c);border:1px solid #b379a79c;border-radius:18px;padding:15px;min-height:81px;color:#fff1f8;box-shadow:0 8px 20px #07121d3a}
+.lr-together-fun-icon{display:grid;place-items:center;background:#b3689969;border-radius:14px;width:48px;height:48px;font-size:29px}
+.lr-together-fun-feature>span:nth-child(2){display:grid;gap:3px;flex:1;min-width:0}
+.lr-together-fun-feature small{font-size:10px;letter-spacing:.09em;color:#ffcada;font-weight:850}
+.lr-together-fun-feature strong{font-size:16px}
+.lr-together-fun-feature em{font-size:11px;font-style:normal;color:#d7c7dd}
+.lr-together-fun-feature>b{font-size:26px;font-weight:400}
+.lr-chat-fun-trigger{flex:0 0 38px;min-width:38px;height:38px;display:grid;place-items:center;border-radius:12px;border:1px solid #e7bad0a3;background:#65506a87;color:#fff;font-size:22px}
+@media(max-width:380px){.lr-fun-camera{padding-left:9px;padding-right:9px}.lr-fun-preview{min-height:300px;height:52dvh}.lr-call-backdrop .lr-video-call .lr-call-lens-panel{bottom:96px}}
+@media(prefers-reduced-motion:reduce){.lr-lens-option{transition:none}}
