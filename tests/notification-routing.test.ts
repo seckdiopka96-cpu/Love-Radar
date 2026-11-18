@@ -62,6 +62,8 @@ test("iPhone notification routing is confirmed after restoring the private room"
  assert.ok(calls.includes("focusCallId&&active?.id===focusCallId"));
  assert.ok(calls.includes("setMinimized(false)"));
  assert.ok(app.includes('focusKind={noticeTarget?.kind} focusId={noticeTarget?.id}'));
+ assert.ok(app.includes('tab==="moment"?<DailyMoment'),"Question du jour renders the real page");
+ assert.ok(app.includes('focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}'));
 });
 
 test("notification targets survive an iPhone cold start and open their precise screen",()=>{
@@ -87,7 +89,7 @@ test("message notifications jump to their actual chat bubble",()=>{
  assert.ok(app.includes('if(lastMessageJump.current===id)return'),"do not force-scroll after every new message");
  assert.ok(app.includes('noticeTarget?.id===m.id&&tab==="chat"?" lr-notified-bubble"'));
  assert.ok(app.includes('!room.messages.some(m=>m.id===noticeTarget.id)'),"show fallback only if message is older than loaded chat");
- assert.ok(app.includes('const notified=noticeTarget?.id&&["message","photo","audio"].includes'));
+ assert.ok(app.includes('const notified=noticeTarget?.id&&["message","photo","audio","call"].includes'));
  assert.ok(readFileSync("src/delivery-status-ui.css","utf8").includes(".lr-notified-bubble"));
 });
 
