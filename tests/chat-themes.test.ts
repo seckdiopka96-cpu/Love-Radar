@@ -102,6 +102,6 @@ test("Chat header removes circled couple/avatar and palette icons but keeps phon
  assert.ok(header.includes('lr-partner-photo-trigger'),"keep profile photo access");
  assert.ok(header.includes('lr-chat-status-trigger'),"keep online and last seen access");
  assert.ok(app.includes('showButton={tab==="'),"call controls remain enabled in chat");
- assert.ok(app.includes('navigate("avatars")'),
-  "avatar studio remains accessible outside the chat header");
+ assert.ok(!app.includes('navigate("avatars")'),
+  "avatar studio has been retired entirely");
 });

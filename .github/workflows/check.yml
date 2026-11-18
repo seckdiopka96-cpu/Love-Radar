@@ -35,8 +35,7 @@ jobs:
       - run: npm run test:chat-type-push
       - run: npm run test:expressions
       - run: npm run test:themes
-      - run: npm run test:avatars
-      - run: npm run test:avaturn
+      - run: npm run test:avatar-removal
       - run: npm run test:activity
       - run: npm run test:animation
       - run: npm run test:replies

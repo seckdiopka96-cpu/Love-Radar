@@ -1,12 +1,14 @@
 import {getSticker,readStickerId} from "./stickers";
 import {readGifId} from "./gif-provider";
-import {readAvatarMessage,POSE_LABEL} from "./couple-avatar-model";
+/** Retain old encrypted text markers without loading the retired avatar feature. */
+export function readLegacyCoupleMoment(content:string|null|undefined):boolean{
+ return typeof content==="string"&&/^\[couple-avatar:v1:(?:main|calin|bisou|danse)\]$/.test(content);
+}
 export type QuoteKind="text"|"image"|"audio";
 export function quotePreview(kind:QuoteKind,content:string|null|undefined,max=95):string{
  if(kind==="image")return "📷 Photo";
  if(kind==="audio")return "🎙️ Message vocal";
- const avatarPose=readAvatarMessage(content);
- if(avatarPose)return "🥰 Avatars amoureux · "+POSE_LABEL[avatarPose];
+ if(readLegacyCoupleMoment(content))return "💌 Ancien moment partagé";
  const sticker=readStickerId(content);
  if(sticker)return "🎟️ Sticker · "+(getSticker(sticker)?.label||"Sticker");
  if(readGifId(content))return "🎞️ GIF animé";
