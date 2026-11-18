@@ -25,7 +25,7 @@ import TikTokTogether from "./TikTokTogether";
 import SharedPuzzle from "./SharedPuzzle";
 import Reconcile from "./Reconcile";
 import HomeDashboard from "./HomeDashboard";
-import {readAvatarMessage} from "./couple-avatar-model";
+import {readLegacyCoupleMoment} from "./message-quote";
 import DiscoveryMode from "./DiscoveryMode";
 import ChatThemePicker from "./ChatThemePicker";
 import {DEFAULT_CHAT_THEME,type ChatTheme} from "./chat-themes";
@@ -2129,7 +2129,7 @@ export default function LoveRadar(){
            {m.reply_to_id?<QuoteCard author={quoteAuthor(m.reply_sender_id,room.user.id,partner)}
             kind={m.reply_kind||"text"} content={m.reply_kind?m.reply_content:"Message supprimé"}
             onJump={chatMessages.some(item=>item.id===m.reply_to_id)?()=>jumpToQuote(m.reply_to_id!):undefined}/>:null}
-           {m.view_once?<div className="lr-legacy-expired" role="note">Ancien média temporaire indisponible</div>:m.kind==="text"?(readAvatarMessage(m.content)?
+           {m.view_once?<div className="lr-legacy-expired" role="note">Ancien média temporaire indisponible</div>:m.kind==="text"?(readLegacyCoupleMoment(m.content)?
             <p>💌 Ancien moment partagé</p>:readStickerId(m.content)?<StickerArt id={readStickerId(m.content)!}/>:readGifId(m.content)?<GifMessage id={readGifId(m.content)!}/>:<p><AnimatedEmojiText content={m.content||""}/></p>):m.kind==="image"?
           media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} enabled={privacyEnabled} viewer={room.user.name} variant="chat" onImageError={()=>retryMedia(m)}/>:
           <div className="lr-photo-loading" role="status">
