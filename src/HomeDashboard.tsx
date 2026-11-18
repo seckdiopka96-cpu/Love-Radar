@@ -82,7 +82,8 @@ export default function HomeDashboard({room,token,mineAvatar,partnerAvatar,onEdi
    onClick={()=>onNavigate("avatars")}>
    <span className="lr-avatar-home-entry-heading"><strong>Nos avatars amoureux</strong><small>NOTRE DUO ✦</small></span>
    <CoupleAvatarDuo mine={coupleAvatars.mine} partner={coupleAvatars.partner}
-    pose={coupleAvatars.pose} mode="home" mineName={room.user.name} partnerName={room.partner||"Ton amour"}/>
+    pose={coupleAvatars.pose} mode="home" mineName={room.user.name} partnerName={room.partner||"Ton amour"}
+    token={token} mine3d={Boolean(coupleAvatars.mine3d)} partner3d={Boolean(coupleAvatars.partner3d)}/>
    <span className="lr-avatar-home-entry-footer"><span>Deux personnages, une histoire.</span><b>Personnaliser ›</b></span>
   </button>
     <div className="lr-home-quick" aria-label="Accès rapides">
