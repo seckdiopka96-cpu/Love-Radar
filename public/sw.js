@@ -139,7 +139,7 @@ async function pendingRoute(){
  if(!stored)return null;
  try{
   const record=await stored.json();
-  if(!record||!Number.isFinite(record.at)||Date.now()-record.at>120000||
+  if(!record||!Number.isFinite(record.at)||Date.now()-record.at>600000||
     typeof record.routeId!=="string"){
    await cache.delete(PENDING_ROUTE_URL);
    return null;
