@@ -237,3 +237,39 @@ test("finished Duo has an unblocked escape route and a visible rematch state",()
  assert.ok(duoCSS.includes(".duo-win-leave"));
  assert.ok(duoCSS.includes(".duo-win-action-status"));
 });
+
+test("Solo and Duo share a stable stage, and dice respond in under a half-second",()=>{
+ const soloJS=readFileSync("public/ludo-solo/script.js","utf8");
+ const soloCSS=readFileSync("public/ludo-solo/style.css","utf8");
+ const soloFrame=readFileSync("src/LudoSoloEmbedded.tsx","utf8");
+ assert.ok(soloJS.includes("await sleep(reducedMotion?120:330)"),
+  "solo dice animation is fast but still reveals the real RNG value");
+ assert.ok(parent.includes("Math.max(0,320-(Date.now()-actionStarted))"),
+  "Duo never waits 690ms just to stop the local spinning die");
+ assert.ok(duoJS.includes("remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},250)"),
+  "the partner sees the final roll promptly");
+ assert.ok(soloCSS.includes("animation:dice-tumble-real .43s"),
+  "both dice inherit the same short 3D animation");
+ assert.ok(soloCSS.includes(".game-screen .board-area{"),
+  "the board remains in a fixed container on both screens");
+ assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .app{"),
+  "Duo does not overwrite Solo's stable blue theme");
+ assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .game-screen{"),
+  "Duo does not move or resize the game stage with a different theme");
+ assert.ok(soloFrame.includes("ludo-room-20261118-v6"));
+ assert.ok(bridge.includes("ludo-room-20261118-v11"));
+});
+test("synced Duo never restarts the same animated pawn hop on a clock tick",()=>{
+ assert.ok(duoJS.includes("movingPawn.dataset.motionProgress=String(m.from)"));
+ assert.ok(duoJS.includes('movingPawn.dataset.motionProgress!==String(m.progress)'));
+ assert.ok(duoJS.includes("pawn.dataset.motionProgress=String(m.progress)"));
+ assert.ok(duoJS.includes("pawn.dataset.motionProgress!==String(m.progress)"));
+ assert.ok(duoJS.includes('if(pawn!==movingPawn||pawn.dataset.motionProgress!==String(m.progress))return'));
+ assert.ok(duoJS.includes('roll.disabled=true;'));
+ assert.ok(duoJS.includes('dice.classList.add("is-rolling")'));
+ assert.ok(duoJS.includes('send("roll")'));
+ // No local random result; the server remains the only dice authority.
+ assert.ok(!duoJS.includes("Math.random()*6"));
+ assert.ok(!duoJS.includes("crypto.getRandomValues"));
+ assert.ok(backend.includes("function die(){"));
+});
