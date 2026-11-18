@@ -21,6 +21,7 @@
     "test:couple-experiences": "tsx --test tests/couple-experiences.test.ts",
     "test:background-call": "tsx --test tests/native-background-call.test.ts",
     "test:iphone": "tsx --test tests/iphone-testflight.test.ts",
+    "test:pwa-update": "tsx --test tests/pwa-update.test.ts",
     "test:e2ee": "tsx --test tests/e2ee.test.ts",
     "test:server": "tsx --test tests/server-diagnostics.test.ts",
     "test:server-scale": "node scripts/server-sql-scale-check.mjs",
