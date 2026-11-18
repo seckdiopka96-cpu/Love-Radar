@@ -20,9 +20,9 @@ test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()
  const boardSlice=s=>(s.slice(s.indexOf(start),s.indexOf(end))).replace(/^\s+|\s+$/g,"");
  assert.ok(duoHTML.includes(start));
  assert.equal(boardSlice(duoHTML),boardSlice(soloHTML));
- assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v12"'));
- assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v12"'));
- assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v12" defer'));
+ assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v13"'));
+ assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v13"'));
+ assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v13" defer'));
  assert.ok(duoHTML.includes('LUDO <span>♥</span> DUO'));
  assert.ok(duoHTML.includes('id="roll-dice"'));
  assert.ok(duoCSS.includes('.duo-side-actions'));
@@ -59,12 +59,14 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
    "the gift dialog must open without a modal layered over it");
  assert.ok(parent.includes('action:"choose_color"'));
  assert.ok(parent.includes('const stamp=game.id+":"+game.version+":"+pawns[0]'));
+ assert.ok(parent.includes('},1500)'),"a 1.5-second fallback leaves time to tap a single playable pawn");
+ assert.ok(duoJS.includes("const selectable=seat===state.mySeat&&legal.includes(pawn)"),"the only legal pawn is clickable");
  assert.ok(parent.includes('void act("move",pawns[0])'));
  for(const unchanged of ['const onGame=useCallback','async function act(','async function sendReaction(',
  'function duoFrameAction(','signRules()', 'giftAction(','ludo-agreement-backdrop','ludo-gift-dialog','ludo-modal-backdrop']){
   assert.ok(parent.includes(unchanged),unchanged);
  }
- assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v12"'));
+ assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v13"'));
  assert.ok(bridge.includes('event.source!==frame'));
  assert.ok(bridge.includes('event.origin!==window.location.origin'));
  assert.ok(!bridge.includes("token:"));
@@ -155,8 +157,8 @@ test("live Duo synchronizes promptly with conditional server reads",()=>{
  assert.ok(parent.includes('!activeDuoGame.current?700'),"avoid expensive full pre-game polling");
  assert.ok(parent.includes('inFlight=true'),"never stack network checks");
  assert.ok(!parent.includes('setInterval(()=>{if(document.visibilityState==="visible")void load()},1600)'),"remove 1.6s polling delay");
- assert.ok(parent.includes('Math.max(0,320-(Date.now()-actionStarted))'),"finish dice animation sooner");
- assert.ok(duoJS.includes('remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},250)'),"partner dice resolves promptly");
+ assert.ok(parent.includes('Math.max(0,170-(Date.now()-actionStarted))'),"finish dice animation sooner");
+ assert.ok(duoJS.includes('remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},120)'),"partner dice resolves promptly");
  const server=backend;
  assert.ok(server.includes('if(method==="GET"&&g?.status==="playing")'),"fast path only for active game");
  assert.ok(server.includes('params.get("game")===g.game_id'),"refuse stale game ids");
@@ -297,9 +299,9 @@ test("Solo and Duo share a stable stage, and dice respond in under a half-second
  const soloFrame=readFileSync("src/LudoSoloEmbedded.tsx","utf8");
  assert.ok(soloJS.includes("await sleep(reducedMotion?120:330)"),
   "solo dice animation is fast but still reveals the real RNG value");
- assert.ok(parent.includes("Math.max(0,320-(Date.now()-actionStarted))"),
+ assert.ok(parent.includes("Math.max(0,170-(Date.now()-actionStarted))"),
   "Duo never waits 690ms just to stop the local spinning die");
- assert.ok(duoJS.includes("remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},250)"),
+ assert.ok(duoJS.includes("remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},120)"),
   "the partner sees the final roll promptly");
  assert.ok(soloCSS.includes("animation:dice-tumble-real .43s"),
   "both dice inherit the same short 3D animation");
@@ -310,7 +312,20 @@ test("Solo and Duo share a stable stage, and dice respond in under a half-second
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .game-screen{"),
   "Duo does not move or resize the game stage with a different theme");
  assert.ok(soloFrame.includes("ludo-room-20261118-v6"));
- assert.ok(bridge.includes("ludo-room-20261118-v12"));
+ assert.ok(bridge.includes("ludo-room-20261118-v13"));
+});
+
+test("one playable pawn exits its base on tap and die gives clear turn feedback",()=>{
+ assert.ok(duoJS.includes('const selectable=seat===state.mySeat&&legal.includes(pawn)'),"do not disable the only valid base pawn");
+ assert.ok(!duoJS.includes('canChoose=legal.length>1'),"previous Duo selection bug cannot return");
+ assert.ok(duoJS.includes('if(selectable)b.addEventListener("click"'),"real home pawn handles tap");
+ assert.ok(duoJS.includes('b.disabled=true;b.classList.remove("piece--selectable")'),"rapid repeated taps are guarded");
+ assert.ok(duoJS.includes("6 ! Touche un pion de ta base"),"show what to do after a six");
+ assert.ok(duoJS.includes("C'est le tour de ton partenaire"),"other player's six cannot control your pin");
+ assert.ok(!duoJS.includes('&&!state.animationBusy&&!state.overlayOpen'),"previous motion does not freeze your new turn");
+ assert.ok(parent.includes('},1500)'),"autoplay waits long enough for a manual tap");
+ assert.ok(parent.includes('STEP_MS=moved?.from===-1?220:240,START_MS=90'),"Duo-only pawn movement is responsive");
+ assert.ok(duoCSS.includes('animation-duration:.28s!important'),"Duo die has a quick physical tumble");
 });
 test("synced Duo never restarts the same animated pawn hop on a clock tick",()=>{
  assert.ok(duoJS.includes("movingPawn.dataset.motionProgress=String(m.from)"));

@@ -133,3 +133,25 @@
 }
 .lr-ludo-duo-ui .victory-dialog .duo-win-action-status[hidden]{display:none!important}
 .lr-ludo-duo-ui .victory-dialog button:disabled{opacity:.6;cursor:wait}
+
+/* Ludo Duo: the touchable pin always wins over decoration. Solo is untouched. */
+.lr-ludo-duo-ui .piece--selectable{
+ cursor:pointer!important;touch-action:manipulation!important;
+ -webkit-tap-highlight-color:#ffe06755;
+ filter:drop-shadow(0 0 8px #ffdb55)!important;
+}
+.lr-ludo-duo-ui .base-spot .piece--selectable{
+ z-index:60!important;pointer-events:auto!important;
+}
+.lr-ludo-duo-ui .base-spot .piece--selectable::after{
+ content:"";position:absolute;inset:-11px;pointer-events:none;
+}
+.lr-ludo-duo-ui .ludo-duo-motion-overlay .piece--moving{
+ transition:left .18s linear,top .18s linear!important;
+}
+.lr-ludo-duo-ui .ludo-duo-motion-overlay .piece--moving.is-hopping .piece-svg{
+ animation-duration:.20s!important;
+}
+.lr-ludo-duo-ui .dice-3d.is-rolling{
+ animation-duration:.28s!important;
+}

@@ -140,7 +140,8 @@
  function color(side){return state.palette.colors[side]}
  function legalPawns(){
   const g=state?.game;
-  if(!g||g.status!=="playing"||g.turn!==state.mySeat||g.dice===null||state.busy||state.rolling||state.animationBusy||state.overlayOpen)return [];
+  // The previous pawn's animation must never lock the NEXT legal turn.
+  if(!g||g.status!=="playing"||g.turn!==state.mySeat||g.dice===null||state.busy||state.rolling||state.overlayOpen)return [];
   return g.positions[state.mySeat].flatMap((p,i)=>(p===-1?g.dice===6:p>=0&&p<57&&p+g.dice<=57)?[i]:[]);
  }
  function createPawn(paletteColor,seat,index,selectable){
@@ -153,7 +154,11 @@
   svg.setAttribute("viewBox","0 0 58 74");svg.setAttribute("aria-hidden","true");svg.classList.add("piece-svg");
   const use=document.createElementNS("http://www.w3.org/2000/svg","use");use.setAttribute("href","#pin-shape");
   svg.append(use);b.append(svg);
-  if(selectable)b.addEventListener("click",()=>send("move",index));
+  if(selectable)b.addEventListener("click",()=>{
+   // Freeze this button immediately: the React parent guards concurrent writes.
+   b.disabled=true;b.classList.remove("piece--selectable");
+   send("move",index);
+  });
   return b;
  }
  /** Keep captured pins on the board, then return each one to its actual home
@@ -191,7 +196,7 @@
  }
  function drawPawns(){
   if(!state?.game)return;
-  const g=state.game,legal=legalPawns(),canChoose=legal.length>1;
+  const g=state.game,legal=legalPawns();
   for(const base of document.querySelectorAll(".base")){
    const c=[...base.classList].find(x=>x.startsWith("base--"))?.slice(6);
    base.querySelectorAll(".base-spot").forEach(spot=>spot.replaceChildren());
@@ -203,7 +208,7 @@
    const c=color(seat);
    for(let pawn=0;pawn<4;pawn++){
     const progress=g.positions[seat][pawn];
-    const selectable=canChoose&&seat===state.mySeat&&legal.includes(pawn);
+    const selectable=seat===state.mySeat&&legal.includes(pawn);
     // The original synchronized Ludo engine drives each animation frame.
     if(state.motion?.seat===seat&&state.motion?.pawn===pawn)continue;
     if(state.capturedMotions?.some(m=>m.seat===seat&&m.pawn===pawn))continue;
@@ -333,7 +338,7 @@
   const partnerAuto=g.autoCounts?.[1-state.mySeat]||0;
   document.getElementById("computer-count").textContent=g.positions[1-state.mySeat].filter(p=>p===57).length+" / 4 · Auto "+partnerAuto+"/3";
   const legal=legalPawns();
-  const isMine=g.turn===state.mySeat,canRoll=isMine&&g.dice===null&&g.status==="playing"&&!state.busy&&!state.rolling&&!state.animationBusy&&!state.overlayOpen;
+  const isMine=g.turn===state.mySeat,canRoll=isMine&&g.dice===null&&g.status==="playing"&&!state.busy&&!state.rolling&&!state.overlayOpen;
   roll.disabled=!canRoll;
   roll.classList.toggle("is-ready",canRoll);
   roll.classList.toggle("is-busy",state.busy||state.rolling);
@@ -344,7 +349,7 @@
    // Recreate a short dice roll for the partner, once per server roll.
    if(receivedState&&last.seat!==state.mySeat&&!state.rolling){
     if(remoteDieTimer!==null)clearTimeout(remoteDieTimer);
-    remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},250);
+    remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},120);
    }
   }
   const rollingNow=Boolean(state.rolling)||remoteDieTimer!==null;
@@ -359,13 +364,14 @@
   dieResult.value=rollingNow?"":String(diceValue);
   dieResult.setAttribute("aria-label",rollingNow?"Le dé tourne":"Dernier lancer : "+diceValue);
   roll.setAttribute("aria-label",canRoll?"Lancer le dé":"Dé : "+diceValue);
-  const only=legal.length===1;
+  const isSix=g.dice===6;
   status.textContent=g.status==="won"?"Partie terminée":
     state.rolling?"🎲 Le dé roule…":
-    state.motion?"Un pion avance…":
-    g.dice!==null&&isMine?(only?"Ton pion avance automatiquement…":"Touche le pion à déplacer"):
-    g.dice!==null?"Ton partenaire joue son pion…":
-    isMine?"À toi de jouer : lance le dé !":"Au tour de ton partenaire…";
+    g.dice!==null&&isMine?
+      (isSix&&g.positions[state.mySeat].some(p=>p===-1)?"🎲 6 ! Touche un pion de ta base pour le sortir !":"À toi : touche ton pion pour avancer !"):
+    g.dice!==null?"⏳ C'est le tour de ton partenaire : attends qu'il déplace son pion.":
+    state.motion?"Le pion avance…":
+    isMine?"✅ À ton tour ! Appuie sur le dé.":"⏳ Au tour de ton partenaire. Patiente…";
   feedback.classList.toggle("is-auto-warning",g.status==="playing"&&myAuto>=2);
   feedback.textContent=state.error||
    (g.status==="playing"&&myAuto>=2?"⚠️ 2/3 tours automatiques : un prochain retard te fera perdre.":g.lastAction)||

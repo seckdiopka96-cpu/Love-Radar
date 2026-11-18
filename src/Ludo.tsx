@@ -129,14 +129,14 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    // The same server event clock controls movement on both phones.
    // A resumed phone catches up to the current square instead of replaying.
    const elapsed=event?.at?Math.max(0,Date.now()+serverClockOffset.current-event.at):0;
-   const STEP_MS=moved?.from===-1?520:540,START_MS=250;
+   const STEP_MS=moved?.from===-1?220:240,START_MS=90;
    const finish=START_MS+route.length*STEP_MS+90;
    const canAnimate=Boolean(moved&&route.length&&document.visibilityState==="visible"&&
     latest.version-prev.version===1&&elapsed<finish);
    if(moved||captured.length||celebration){
     setEffect(celebration?"win":captured.length?"capture":"move");
     if(effectTimeout.current!==null)window.clearTimeout(effectTimeout.current);
-    effectTimeout.current=window.setTimeout(()=>{if(isActive.current){setEffect("");setCaptureFlash(false)}},Math.max(3500,250+route.length*(moved?.from===-1?520:540)+900));
+    effectTimeout.current=window.setTimeout(()=>{if(isActive.current){setEffect("");setCaptureFlash(false)}},Math.max(1200,90+route.length*(moved?.from===-1?220:240)+350));
     clearMotionTimers();setLanding(null);
     if(canAnimate&&moved){
      // Hold each square long enough for the pawn to be readable on mobile.
@@ -387,7 +387,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
   }finally{
    actionInFlight.current=false;
    setBusy(false);
-   if(action==="roll")window.setTimeout(()=>{if(isActive.current)setRolling(false)},Math.max(0,320-(Date.now()-actionStarted)));
+   if(action==="roll")window.setTimeout(()=>{if(isActive.current)setRolling(false)},Math.max(0,170-(Date.now()-actionStarted)));
   }
  }
 
@@ -478,8 +478,9 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
   if(action==="gift"){setGiftOpen(true);return}
   if(action==="roll"||action==="move"||action==="restart")void act(action,pawn);
  }
- // One legal pawn means automatic movement, just as in the new Solo.
- // Deduplicate this action across clock updates and repeated polls.
+ // Leave a clear tap window even when there is only ONE legal pawn.
+ // Automatic fallback is deliberately delayed: touching the home pin is
+ // always the primary way to bring it out after rolling six.
  useEffect(()=>{
   if(!game||!agreement?.startedAt||game.status!=="playing"||game.turn!==mySeat||
       game.dice===null||busy||rolling||motion||capturedMotions.length)return;
@@ -490,7 +491,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
   const timer=window.setTimeout(()=>{
    autoDuoPawn.current=stamp;
    void act("move",pawns[0]);
-  },190);
+  },1500);
   return()=>window.clearTimeout(timer);
  },[game,agreement?.startedAt,mySeat,busy,rolling,motion,capturedMotions.length]);
 

@@ -45,7 +45,7 @@ test("four pawns are chosen by touching the board, never from a second numbered 
  assert.ok(duo.includes('if(selectable)b.addEventListener("click",()=>send("move",index))'),
   "each selectable Duo pawn must be actionable on the board");
  assert.ok(solo.includes('const canChoose=playable.length>1;'));
- assert.ok(duo.includes('canChoose=legal.length>1;'));
+ assert.ok(duo.includes('const selectable=seat===state.mySeat&&legal.includes(pawn);'),"every legal Duo pin is directly tappable, even if it is the only one");
  assert.ok(solo.includes("pawnChoices.hidden=true"));
  assert.ok(duo.includes("choices.replaceChildren();choices.hidden=true"));
  assert.ok(!solo.includes('textContent="Pion "+(index+1)'));
@@ -203,7 +203,7 @@ test("React Solo, Duo and Senegal use a single-face die and readable movement",(
  const arenaCSS=readFileSync("src/ludo-arena.css","utf8");
  const senegalCSS=readFileSync("src/ludo-senegal.css","utf8");
  assert.ok(reactSolo.includes('stepDuration=move.from===-1?520:540,initialDelay=250'));
- assert.ok(parent.includes('STEP_MS=moved?.from===-1?520:540,START_MS=250'));
+ assert.ok(parent.includes('STEP_MS=moved?.from===-1?220:240,START_MS=90'));
   assert.ok(parent.includes('serverClockOffset.current-event.at'),"server event clock is the reference");
  assert.ok(senegal.includes('STEP_MS=move.from.zone==="base"?520:540,START_MS=250'));
  assert.ok(senegal.includes('path.forEach((point,i)=>later('));
@@ -237,7 +237,7 @@ test("visible steps are not accelerated away by iOS Reduce Motion, and Senegal c
 
 test("Solo and synchronized Duo do not skip fast between board squares",()=>{
  assert.ok(solo.includes('await sleep(start===HOME?520:540)'));
- assert.ok(parent.includes('const STEP_MS=moved?.from===-1?520:540,START_MS=250'));
+ assert.ok(parent.includes('const STEP_MS=moved?.from===-1?220:240,START_MS=90'));
   assert.ok(parent.includes('const completedSteps=route.filter'),"late phone skips only already completed squares");
   assert.ok(parent.includes('Math.max(0,finish-elapsed)'),"both devices align the animation finish");
  assert.ok(soloCSS.includes('transition:left .40s cubic-bezier'));
