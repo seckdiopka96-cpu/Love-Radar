@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b1e3c">
   <title>Love Radar — Ludo Duo</title>
-  <link rel="stylesheet" href="../ludo-solo/style.css?v=ludo-room-20261118-v18">
-  <link rel="stylesheet" href="./style.css?v=ludo-room-20261118-v18">
+  <link rel="stylesheet" href="../ludo-solo/style.css?v=ludo-room-20261118-v19">
+  <link rel="stylesheet" href="./style.css?v=ludo-room-20261118-v19">
   
 </head>
 <body>
@@ -87,7 +87,7 @@
         <div class="game-title"><img class="ludo-header-logo" src="../ludo-mark.svg" alt="Logo Ludo"><strong>LUDO <span>♥</span> DUO</strong><small>TOI CONTRE TON PARTENAIRE</small></div>
         <button type="button" id="show-rules" class="header-help" aria-label="Voir les règles">?</button>
       </header>
-      <div class="turn-banner" aria-live="polite"><span aria-hidden="true">✦</span><strong id="turn-message">À toi de jouer !</strong><small id="turn-meta">Lance le dé</small></div>
+
 
       <div class="board-area">
         <div class="board-frame">
@@ -401,7 +401,7 @@
       <p><strong>Déplacer :</strong> avance du nombre exact de cases obtenu. Touche le pion à déplacer, même si un seul pion est jouable. Il avancera automatiquement seulement si tu ne touches rien.</p>
       <p><strong>Capturer :</strong> tomber sur un pion adverse hors d’une case étoilée le renvoie à sa maison et offre un nouveau tour. Deux pions adverses regroupés forment un barrage.</p>
       <p><strong>Gagner :</strong> le couloir final comporte cinq cases colorées. Depuis la cinquième, un 1 suffit pour entrer au centre. Il faut le nombre exact, sans dépasser. Une arrivée réussie offre un nouveau tour.</p>
-      <p><strong>Inactivité :</strong> tu as 15 secondes pour jouer. Après 3 tours joués à ta place par l’ordinateur, tu perds automatiquement la manche.</p>
+      <p><strong>Inactivité :</strong> tu as 15 secondes pour jouer. Après 15 secondes sans action, l’ordinateur joue à ta place, sans défaite automatique.</p>
       <button type="button" id="close-rules" class="dialog-button">C’est compris</button>
     </dialog>
     <dialog id="win-dialog" class="game-dialog victory-dialog" aria-labelledby="win-title">
@@ -414,6 +414,6 @@
       <button type="button" id="leave-after-win" class="dialog-secondary duo-win-leave">← Quitter le Ludo</button>
     </dialog>
   </main>
-<script src="./script.js?v=ludo-room-20261118-v18" defer></script>
+<script src="./script.js?v=ludo-room-20261118-v19" defer></script>
 </body>
 </html>
