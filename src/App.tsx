@@ -25,10 +25,7 @@ import TikTokTogether from "./TikTokTogether";
 import SharedPuzzle from "./SharedPuzzle";
 import Reconcile from "./Reconcile";
 import HomeDashboard from "./HomeDashboard";
-import CoupleAvatarStudio from "./CoupleAvatarStudio";
-import CoupleAvatarDuo from "./CoupleAvatarDuo";
-import {useCoupleAvatars} from "./use-couple-avatars";
-import {avatarMessage,readAvatarMessage,type CouplePose} from "./couple-avatar-model";
+import {readAvatarMessage} from "./couple-avatar-model";
 import DiscoveryMode from "./DiscoveryMode";
 import ChatThemePicker from "./ChatThemePicker";
 import {DEFAULT_CHAT_THEME,type ChatTheme} from "./chat-themes";
@@ -94,7 +91,7 @@ import "./delivery-status-ui.css";
 import "./chat-themes.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
-type Tab = "avatars" | "home" | "together" | "camera" | "life" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "ludo-room" | "rps" | "draw" | "escape" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
+type Tab = "home" | "together" | "camera" | "life" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "ludo-room" | "rps" | "draw" | "escape" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
 type EncryptionState={mine:string|null;partner:string|null;required:boolean};
 type ScreenshotEvent={id:string;member_id:string;created_at:number};
 type ChatTimelineItem = {type:"message";message:Message;index:number;createdAt:number}|{type:"call";call:CallHistoryEvent;createdAt:number}|{type:"screenshot";event:ScreenshotEvent;createdAt:number};
@@ -142,7 +139,7 @@ function parseNotice(search:string):NoticeTarget|null{
  const q=new URLSearchParams(search);
  const tab=q.get("tab");
  if(tab==="location")return {tab:"together",kind:null,id:null};
- if(tab!=="avatars"&&tab!=="settings"&&tab!=="home"&&tab!=="life"&&tab!=="care"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="puzzle"&&tab!=="reconcile"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo-room"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="memory"&&tab!=="rps"&&tab!=="draw"&&tab!=="escape"&&tab!=="rapid"&&tab!=="truth"&&tab!=="memories")return null;
+ if(tab!=="settings"&&tab!=="home"&&tab!=="life"&&tab!=="care"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="puzzle"&&tab!=="reconcile"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo-room"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="memory"&&tab!=="rps"&&tab!=="draw"&&tab!=="escape"&&tab!=="rapid"&&tab!=="truth"&&tab!=="memories")return null;
  const kind=q.get("kind"),id=q.get("id");
  if(!kind||!NOTICE_KINDS.has(kind)||!id||!(/^[0-9a-f-]{36}$/i.test(id)||(kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(id))))return {tab,kind:null,id:null};
  return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":kind==="rps-challenge"?"rps":kind==="daily-question"?"moment":kind==="love-signal"?"together":kind==="love-letter"||kind==="album-memory"?"memories":kind.startsWith("couple-")?"life":"chat",kind:kind as NoticeKind,id};
@@ -168,8 +165,6 @@ export default function LoveRadar(){
  const [e2eeDeviceReady,setE2eeDeviceReady]=useState(false);
  const [e2eeVerified,setE2eeVerified]=useState(false);
  const avatars=useProfileAvatars(token,room?.user.id,room?.user.avatarVersion,room?.partnerId,room?.partnerAvatarVersion);
- const {avatars:coupleAvatars,saving:coupleAvatarSaving,saveStyle:saveCoupleAvatarStyle,savePose:saveCoupleAvatarPose,saveLook3d:saveCouple3DLook,reload:reloadCoupleAvatars}=
-  useCoupleAvatars(token,room?.roomId);
  useEffect(()=>{
   let alive=true;
   setE2eeBackup("");
@@ -1542,19 +1537,6 @@ export default function LoveRadar(){
   requestAnimationFrame(scrollToLatest);
   void sendQueuedText(entry);
  }
- function sendAvatarSticker(pose:CouplePose){
-  if(!room?.partner||busy||recording)return;
-  const text=avatarMessage(pose);
-  const entry:LocalText={
-   id:crypto.randomUUID(),created_at:Date.now(),text,
-   replyToId:replyTarget?.id,replyKind:replyTarget?.kind,replyContent:replyTarget?.content,
-   replySenderId:replyTarget?.sender_id,status:"sending"
-  };
-  setTextOutbox(items=>[...items,entry]);
-  setReplyTarget(null);typingActive.current=false;setError("");
-  requestAnimationFrame(scrollToLatest);
-  void sendQueuedText(entry);
- }
  function cancelEditing(){
   const previous=composerBeforeEdit.current;
   setEditTarget(null);
@@ -1903,7 +1885,7 @@ export default function LoveRadar(){
  // Each outgoing message displays its own receipt, not just the most recent one.
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
- return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(demoOpen&&!room&&!token?"lr-discovery-mode ":"")+(room&&tab==="chat"?"lr-conv-wallpaper-"+chatTheme.wallpaper+" lr-conv-color-"+chatTheme.color+" lr-conv-bubbles-"+chatTheme.bubble+" "+(chatTheme.animated?"lr-conv-animated ":""):"")+(room?"lr-app-locked ":"")+(tab==="home"&&room?"lr-home-mode ":"")+(tab==="avatars"&&room?"lr-avatar-mode ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+((tab==="together"||tab==="life"||tab==="camera")&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
+ return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(demoOpen&&!room&&!token?"lr-discovery-mode ":"")+(room&&tab==="chat"?"lr-conv-wallpaper-"+chatTheme.wallpaper+" lr-conv-color-"+chatTheme.color+" lr-conv-bubbles-"+chatTheme.bubble+" "+(chatTheme.animated?"lr-conv-animated ":""):"")+(room?"lr-app-locked ":"")+(tab==="home"&&room?"lr-home-mode ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+((tab==="together"||tab==="life"||tab==="camera")&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
   {recoveryCode?<RecoveryCodeDialog code={recoveryCode} onClose={()=>setRecoveryCode("")}/>:null}
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-header-context" aria-label="Espace privé"><span>ESPACE PRIVÉ</span><strong>{tab==="settings"?"Paramètres":room?.partner?"Notre univers":"Bienvenue"}</strong></div>
@@ -2026,17 +2008,11 @@ export default function LoveRadar(){
      onPrivacyChange={updatePrivacy}
      onEnableNotifications={()=>void enableNotifications(notificationsOn)}
      onTestNotifications={()=>void testNotifications()} onDisableNotifications={()=>void disableNotifications()}
-     onShareInvite={()=>void shareCode()} onLogout={logout} onDeleteRoom={()=>void deleteRoom()} onOpenAvatars={()=>navigate("avatars")}/>:null}
+     onShareInvite={()=>void shareCode()} onLogout={logout} onDeleteRoom={()=>void deleteRoom()}/>:null}
     {tab==="home"?<HomeDashboard room={room} token={token} media={media} privacyEnabled={privacyEnabled}
      mineAvatar={avatars.mine} partnerAvatar={avatars.partner}
      onEditProfile={()=>profilePicker.current?.click()} onInvite={()=>void shareCode()} onNavigate={navigate}
-     coupleAvatars={coupleAvatars}/>:null}
-    {tab==="avatars"?<CoupleAvatarStudio key={room.roomId+":"+room.user.id}
-     data={coupleAvatars} myName={room.user.name} partnerName={room.partner||"Ton amour"} hasPartner={Boolean(room.partner)}
-     saving={coupleAvatarSaving} token={token} onModelImported={reloadCoupleAvatars}
-     onSaveStyle={saveCoupleAvatarStyle} onSavePose={saveCoupleAvatarPose} onSaveLook3d={saveCouple3DLook}
-     onSend={pose=>{sendAvatarSticker(pose);navigate("chat")}} onBack={()=>navigate("home")}/>:null}
-    {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
+/>:null}
     {tab==="care"?<CoupleCare key={room.roomId+":"+room.user.id} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenWatch={()=>navigate("watch")} onOpenPuzzle={()=>navigate("puzzle")} onOpenReconcile={()=>navigate("reconcile")} onOpenCare={()=>navigate("care")} onOpenLife={()=>navigate("life")} onOpenCamera={()=>navigate("camera")} focusKind={noticeTarget?.kind==="love-signal"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"?noticeTarget.id:null}/>:null}
     {tab==="camera"?<FunCamera key={room.roomId+":"+room.user.id} partner={room.partner} onBack={()=>navigate("together")}
@@ -2149,18 +2125,12 @@ export default function LoveRadar(){
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 10 4 14l5 4"/><path d="M4 14h9a7 7 0 0 0 7-7"/></svg>
          </span>
          <div className={"lr-bubble-stack"+(m.kind==="image"?" lr-image-stack":"")}>
-          <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":m.kind==="image"?" lr-bubble-image":m.kind==="text"&&readAvatarMessage(m.content)?" lr-bubble-avatar":m.kind==="text"&&isSticker(m.content)?" lr-bubble-sticker":m.kind==="text"&&readGifId(m.content)?" lr-bubble-gif":m.kind==="text"&&emojiOnlyText(m.content)?" lr-bubble-emoji":"")}>
+          <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":m.kind==="image"?" lr-bubble-image":m.kind==="text"&&isSticker(m.content)?" lr-bubble-sticker":m.kind==="text"&&readGifId(m.content)?" lr-bubble-gif":m.kind==="text"&&emojiOnlyText(m.content)?" lr-bubble-emoji":"")}>
            {m.reply_to_id?<QuoteCard author={quoteAuthor(m.reply_sender_id,room.user.id,partner)}
             kind={m.reply_kind||"text"} content={m.reply_kind?m.reply_content:"Message supprimé"}
             onJump={chatMessages.some(item=>item.id===m.reply_to_id)?()=>jumpToQuote(m.reply_to_id!):undefined}/>:null}
            {m.view_once?<div className="lr-legacy-expired" role="note">Ancien média temporaire indisponible</div>:m.kind==="text"?(readAvatarMessage(m.content)?
-            <div className="lr-avatar-sticker">
-             <CoupleAvatarDuo mine={coupleAvatars.mine} partner={coupleAvatars.partner}
-              pose={readAvatarMessage(m.content)!} mode="sticker"
-              token={token} mine3d={Boolean(coupleAvatars.mine3d)} partner3d={Boolean(coupleAvatars.partner3d)}
-              mineName={room.user.name} partnerName={partner}/>
-             <small>Nos avatars amoureux 🥰</small>
-            </div>:readStickerId(m.content)?<StickerArt id={readStickerId(m.content)!}/>:readGifId(m.content)?<GifMessage id={readGifId(m.content)!}/>:<p><AnimatedEmojiText content={m.content||""}/></p>):m.kind==="image"?
+            <p>💌 Ancien moment partagé</p>:readStickerId(m.content)?<StickerArt id={readStickerId(m.content)!}/>:readGifId(m.content)?<GifMessage id={readGifId(m.content)!}/>:<p><AnimatedEmojiText content={m.content||""}/></p>):m.kind==="image"?
           media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt={"Photo envoyée "+(mine?"par toi":"par "+partner)} enabled={privacyEnabled} viewer={room.user.name} variant="chat" onImageError={()=>retryMedia(m)}/>:
           <div className="lr-photo-loading" role="status">
            <span aria-hidden="true">▧</span>
