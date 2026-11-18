@@ -38,3 +38,8 @@
 @media(min-width:680px){.sk-panel{padding:23px}.sk-album-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.sk-photo-card img,.sk-video,.sk-asset-placeholder,.sk-photo-card .lr-private-photo img{height:205px}}
 @media(max-width:370px){.sk-section-head{align-items:flex-start}.sk-action{padding:8px;font-size:12px}.sk-photo-card img,.sk-video,.sk-asset-placeholder,.sk-photo-card .lr-private-photo img{height:135px}}
 @media(prefers-reduced-motion:reduce){.sk-letter.is-sealed .sk-letter-envelope{animation:none}}
+
+.sk-media{width:100%;min-width:0}
+.sk-play-video{display:grid;place-items:center;width:100%;height:165px;border:0;background:radial-gradient(circle at 50% 45%,#52416d,#151b3d 72%);color:#ffe0f1;font-weight:800;font-size:15px;cursor:pointer}
+@media(min-width:680px){.sk-play-video{height:205px}}
+@media(max-width:370px){.sk-play-video{height:135px}}
