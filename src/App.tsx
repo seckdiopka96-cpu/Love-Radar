@@ -2038,7 +2038,6 @@ export default function LoveRadar(){
           <span className={"lr-chat-status "+(partnerOnline?"online":"offline")}>{partnerStatusText}</span>
          </button></div>
       </div>
-      <button type="button" className="lr-chat-fun-trigger" aria-label="Ouvrir la caméra avec effets" title="Effets caméra" onClick={()=>navigate("camera")}>✨</button>
       <div id="lr-voice-button-slot"/>
      </div>
      <div className="lr-chat-messages" ref={chatScroller} onScroll={e=>{const list=e.currentTarget;const near=list.scrollHeight-list.scrollTop-list.clientHeight<120;chatAtBottomRef.current=near;setChatAtBottom(prev=>prev===near?prev:near)}} role="log" aria-label="Messages" aria-live="off">
