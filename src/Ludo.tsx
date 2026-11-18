@@ -101,7 +101,8 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  const [busy,setBusy]=useState(false);
  const actionInFlight=useRef(false);
  const [rolling,setRolling]=useState(false);
- const [rollingFace,setRollingFace]=useState(1);
+ // The shared iframe animates a real 3D throw. No fake sequence of 1–6 faces.
+ const rollingFace=1;
  const [error,setError]=useState("");
  const [loading,setLoading]=useState(true);
  const [frameReady,setFrameReady]=useState(false);
@@ -382,12 +383,6 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  useEffect(()=>{
   if(challengeId&&game&&palette&&frameReady&&!loading)onNotificationReady?.(challengeId);
  },[challengeId,game?.id,Boolean(palette),frameReady,loading,onNotificationReady]);
-
- useEffect(()=>{
-  if(!rolling)return;
-  const interval=window.setInterval(()=>setRollingFace(1+Math.floor(Math.random()*6)),55);
-  return()=>window.clearInterval(interval);
- },[rolling]);
 
  async function act(action:"roll"|"move"|"restart"|"forfeit",pawn?:number){
   if(actionInFlight.current||busy||!game||(action!=="restart"&&!agreement?.startedAt))return false;
