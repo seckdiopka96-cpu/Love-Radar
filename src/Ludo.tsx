@@ -268,7 +268,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
 
  useEffect(()=>{
   if(!rolling)return;
-  const interval=window.setInterval(()=>setRollingFace(1+Math.floor(Math.random()*6)),90);
+  const interval=window.setInterval(()=>setRollingFace(1+Math.floor(Math.random()*6)),55);
   return()=>window.clearInterval(interval);
  },[rolling]);
 
@@ -300,7 +300,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    return false;
   }finally{
    setBusy(false);
-   if(action==="roll")window.setTimeout(()=>{if(isActive.current)setRolling(false)},Math.max(0,690-(Date.now()-actionStarted)));
+   if(action==="roll")window.setTimeout(()=>{if(isActive.current)setRolling(false)},Math.max(0,320-(Date.now()-actionStarted)));
   }
  }
 
