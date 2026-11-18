@@ -18,8 +18,7 @@ export function embeddedAvatarBaseColors(bytes:ArrayBuffer):EmbeddedAvatarColor[
  const binStart=binChunkAt+8,binEnd=binStart+binLength;
  if(binEnd>bytes.byteLength)return [];
  try{
-  const gltf=JSON.parse(new TextDecoder().decode(new Uint8Array(bytes,20,jsonLength)))
-   as Record<string,unknown>;
+  const gltf=JSON.parse(new TextDecoder().decode(new Uint8Array(bytes,20,jsonLength))) as Record<string,unknown>;
   const list=(key:string):Record<string,unknown>[]=>Array.isArray(gltf[key])?
    (gltf[key] as unknown[]).map(item=>
     item&&typeof item==="object"&&!Array.isArray(item)?
