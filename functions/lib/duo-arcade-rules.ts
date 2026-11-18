@@ -29,7 +29,7 @@ export const ESCAPE_SCENES=[
 ] as const;
 export function normalizeGuess(value:unknown):string{
  if(typeof value!=="string")return "";
- return value.trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleUpperCase("fr").replace(/[^A-Z0-9]/g,"").slice(0,48);
+ return value.trim().replace(/[œŒ]/g,"oe").replace(/[æÆ]/g,"ae").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleUpperCase("fr").replace(/[^A-Z0-9]/g,"").slice(0,48);
 }
 export function validStroke(value:unknown):value is Stroke{
  if(!value||typeof value!=="object")return false;
