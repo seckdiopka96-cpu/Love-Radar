@@ -93,7 +93,7 @@ export async function browseGiphy(kind:GiphyKind,query:string,offset:number,sign
   data=await giphyRequest(new URL("https://api.giphy.com/v2/emoji"),params,signal);
  }else{
   const path=value?"/search":"/trending";
-  const extra=value?{q:value,lang:"fr"}:{};
+  const extra:Record<string,string>=value?{q:value,lang:"fr"}:{};
   if(kind==="gif")data=await gifApi(path,{...params,...extra},signal);
   else data=await giphyRequest(
    new URL("https://api.giphy.com/v1/stickers"+path),
