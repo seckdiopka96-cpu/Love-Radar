@@ -12,7 +12,7 @@ export type Outfit=typeof OUTFITS[number];
 export type Accessory=typeof ACCESSORIES[number];
 export type CouplePose=typeof COUPLE_POSES[number];
 export type AvatarStyle={skin:Skin;hair:Hair;hairColor:HairColor;outfit:Outfit;accessory:Accessory};
-export type CoupleAvatarState={mine:AvatarStyle|null;partner:AvatarStyle|null;pose:CouplePose;version:number};
+export type CoupleAvatarState={mine:AvatarStyle|null;partner:AvatarStyle|null;pose:CouplePose;version:number;mine3d?:boolean;partner3d?:boolean};
 export const DEFAULT_AVATAR:AvatarStyle={skin:"caramel",hair:"boucles",hairColor:"nuit",outfit:"rose",accessory:"aucun"};
 export const DEFAULT_PARTNER_AVATAR:AvatarStyle={skin:"brun",hair:"courts",hairColor:"chocolat",outfit:"bleu",accessory:"aucun"};
 export const DEFAULT_COUPLE_AVATARS:CoupleAvatarState={mine:null,partner:null,pose:"main",version:0};
@@ -49,7 +49,9 @@ export function safeCoupleAvatarState(value:unknown):CoupleAvatarState{
  return {mine:validAvatarStyle(v.mine)?safeAvatarStyle(v.mine):null,
   partner:validAvatarStyle(v.partner)?safeAvatarStyle(v.partner):null,
   pose:validCouplePose(v.pose)?v.pose:"main",
-  version:Number.isSafeInteger(v.version)&&Number(v.version)>=0?Number(v.version):0};
+  version:Number.isSafeInteger(v.version)&&Number(v.version)>=0?Number(v.version):0,
+  ...(typeof v.mine3d==="boolean"?{mine3d:v.mine3d}:{}),
+  ...(typeof v.partner3d==="boolean"?{partner3d:v.partner3d}:{})};
 }
 /** An encrypted text-message token, never executable HTML or an external URL. */
 export const AVATAR_TOKEN_PREFIX="[couple-avatar:v1:";

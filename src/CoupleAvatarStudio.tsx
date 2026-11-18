@@ -1,11 +1,14 @@
 import {useEffect,useState} from "react";
 import CoupleAvatarDuo,{AvatarCharacter} from "./CoupleAvatarDuo";
+import Avaturn3DEditor from "./Avaturn3DEditor";
+import {apiFetch} from "./api";
 import {DEFAULT_AVATAR,DEFAULT_PARTNER_AVATAR,SKINS,HAIRS,HAIR_COLORS,OUTFITS,
  ACCESSORIES,COUPLE_POSES,POSE_LABEL,SKIN_HEX,HAIR_HEX,OUTFIT_HEX,
  type AvatarStyle,type CoupleAvatarState,type CouplePose} from "./couple-avatar-model";
 import "./couple-avatars.css";
 
 type Props={data:CoupleAvatarState;myName:string;partnerName:string;hasPartner:boolean;
+ token:string;onModelImported:()=>Promise<void>;
  saving:boolean;onSaveStyle:(value:AvatarStyle)=>Promise<unknown>;
  onSavePose:(pose:CouplePose)=>Promise<unknown>;
  onSend:(pose:CouplePose)=>void;onBack:()=>void};
@@ -23,7 +26,7 @@ const HAIR_COLOR_NAMES=["Noir","Chocolat","Châtain","Blond","Roux"];
 const OUTFIT_NAMES=["Rose","Bleu","Lilas","Vert","Soleil"];
 const ACCESSORY_NAMES=["Naturel","Lunettes","Fleur","Bonnet"];
 
-export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,saving,
+export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,saving,token,onModelImported,
  onSaveStyle,onSavePose,onSend,onBack}:Props){
  const [draft,setDraft]=useState<AvatarStyle>(data.mine||DEFAULT_AVATAR);
  const [modified,setModified]=useState(false);
@@ -31,9 +34,26 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
  const [category,setCategory]=useState<Category>("hair");
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
+ const [openAvaturn,setOpenAvaturn]=useState(false);
+ const [showClassic,setShowClassic]=useState(false);
+ const [confirmRemove3d,setConfirmRemove3d]=useState(false);
+ const [removing3d,setRemoving3d]=useState(false);
  const [notice,setNotice]=useState("");
  useEffect(()=>{if(!modified)setDraft(data.mine||DEFAULT_AVATAR)},[data.mine,modified]);
  useEffect(()=>{if(!busy)setPosePreview(data.pose)},[data.pose,busy]);
+ async function remove3D(){
+  if(!confirmRemove3d||removing3d)return;
+  setRemoving3d(true);setError("");setNotice("");
+  try{
+   const response=await apiFetch("/api/couple-avatar-model",{method:"DELETE",
+    cache:"no-store",headers:{"Authorization":"Bearer "+token}});
+   const result=await response.json() as {ok?:boolean;error?:string};
+   if(!response.ok||!result.ok)throw Error(result.error||"Suppression impossible.");
+   await onModelImported();setConfirmRemove3d(false);
+   setNotice("Modèle 3D effacé. Ton personnage classique est toujours disponible.");
+  }catch(e){setError(e instanceof Error?e.message:"Impossible de supprimer le modèle.")}
+  finally{setRemoving3d(false)}
+ }
  function change(key:Category,value:AvatarStyle[Category]){
   if(draft[key]===value)return;
   setDraft(old=>({...old,[key]:value}));setModified(true);setNotice("");setError("");
@@ -74,13 +94,49 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
   <div className="lr-avatar-studio-stage">
    <div className="lr-avatar-studio-stage-heading"><span>✧</span> VOTRE DUO <span>✧</span></div>
    <CoupleAvatarDuo mine={draft} partner={data.partner||DEFAULT_PARTNER_AVATAR}
-    pose={posePreview} mode="hero" mineName={myName} partnerName={partnerName}/>
+    pose={posePreview} mode="hero" mineName={myName} partnerName={partnerName}
+    token={token} mine3d={Boolean(data.mine3d)} partner3d={Boolean(data.partner3d)} modelVersion={data.version}/>
    <div className="lr-avatar-studio-names"><span><i/> {myName}</span><span><i/> {partnerName}</span></div>
    {!data.partner&&hasPartner?<p className="lr-avatar-studio-hint">Ton partenaire personnalisera son personnage de son côté.</p>:null}
    {!hasPartner?<p className="lr-avatar-studio-hint">Invite ton partenaire pour retrouver vos deux avatars.</p>:null}
   </div>
 
-  <section className="lr-avatar-studio-editor" aria-label="Crée ton avatar et personnalise ton personnage">
+  <section className="lr-avaturn-card" aria-label="Créer un véritable avatar en 3D">
+   <div className="lr-avaturn-card-head">
+    <span className="lr-avaturn-card-symbol" aria-hidden="true">3D</span>
+    <div><small>PERSONNALISATION · AVATURN</small>
+     <h2>{data.mine3d?"Ton avatar 3D est actif":"Passe à ton véritable avatar 3D"}</h2>
+     <p>Visage, coiffure et vêtements réalistes : crée ton personnage gratuitement dans Avaturn.
+      Les deux avatars bougent ensuite ensemble dans Love Radar.</p>
+    </div>
+   </div>
+   <button type="button" className="lr-avaturn-launch" onClick={()=>setOpenAvaturn(true)}>
+    {data.mine3d?"Recréer mon avatar 3D":"Créer mon avatar 3D"} <span aria-hidden="true">↗</span>
+   </button>
+   {data.mine3d?<><p className="lr-avaturn-card-active" role="status">
+    Modèle 3D enregistré dans l’espace privé du couple ✓</p>
+    {!confirmRemove3d?<button type="button" className="lr-avaturn-remove-link"
+     onClick={()=>setConfirmRemove3d(true)}>Supprimer mon modèle 3D</button>:
+     <div className="lr-avaturn-remove-confirm" role="group" aria-label="Confirmer la suppression du modèle 3D">
+      <p>Effacer ton modèle 3D ? Ton avatar classique sera conservé.</p>
+      <button type="button" disabled={removing3d} onClick={()=>void remove3D()}>
+       {removing3d?"Suppression…":"Oui, supprimer"}
+      </button>
+      <button type="button" disabled={removing3d} onClick={()=>setConfirmRemove3d(false)}>
+       Annuler
+      </button>
+     </div>}
+   </>:null}
+   <p className="lr-avaturn-card-note">
+    Avaturn est un service externe. Tes selfies restent chez Avaturn, tes modèles 3D sont
+    enregistrés dans l’espace privé Love Radar.
+   </p>
+  </section>
+  {data.mine3d?<button type="button" className="lr-avaturn-classic-toggle"
+   onClick={()=>setShowClassic(value=>!value)}>
+   {showClassic?"Masquer les anciens avatars":"Afficher les avatars classiques (secours)"}
+  </button>:null}
+  {(!data.mine3d||showClassic)?<section className="lr-avatar-studio-editor" aria-label="Crée ton avatar et personnalise ton personnage">
    <div className="lr-avatar-studio-section-top">
     <div><span>01 · PERSONNALISATION</span><h2>Ton personnage, ton style</h2></div>
     <small>✨ À TON IMAGE</small>
@@ -115,8 +171,7 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
     <span aria-hidden="true">{modified||!data.mine?"→":"✓"}</span>
    </button>
    <p className="lr-avatar-studio-editor-note">Tes choix sont privés et synchronisés avec ton amour.</p>
-  </section>
-
+  </section>:null}
   <section className="lr-avatar-studio-poses" aria-label="Animations à deux">
    <div className="lr-avatar-studio-section-top">
     <div><span>02 · NOTRE COMPLICITÉ</span><h2>Vos moments à deux</h2></div>
@@ -127,8 +182,12 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
      aria-pressed={posePreview===pose}
      className={"lr-avatar-pose-choice"+(posePreview===pose?" selected":"")}
      disabled={busy||saving||modified} onClick={()=>void choosePose(pose)}>
-     <CoupleAvatarDuo mine={draft} partner={data.partner||DEFAULT_PARTNER_AVATAR}
-      pose={pose} mode="sticker" animate={true} mineName={myName} partnerName={partnerName}/>
+     {data.mine3d||data.partner3d?
+      <span className="lr-avaturn-pose-symbol" aria-hidden="true">
+       {pose==="main"?"🫶":pose==="calin"?"🤗":pose==="bisou"?"😘":"💃"}
+      </span>:
+      <CoupleAvatarDuo mine={draft} partner={data.partner||DEFAULT_PARTNER_AVATAR}
+       pose={pose} mode="sticker" animate={true} mineName={myName} partnerName={partnerName}/>}
      <span className="lr-avatar-pose-label">{POSE_LABEL[pose]}{posePreview===pose?<b> ✓</b>:null}</span>
     </button>)}
    </div>
@@ -141,5 +200,7 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
   {notice?<p className="lr-avatar-toast success" role="status">{notice}</p>:null}
   {error?<p className="lr-avatar-toast error" role="alert">{error}</p>:null}
   <footer className="lr-avatar-studio-footer">Une création Love Radar · Diao-Tech.com</footer>
+  {openAvaturn?<Avaturn3DEditor token={token} onSaved={onModelImported}
+   onClose={()=>setOpenAvaturn(false)}/>:null}
  </section>;
 }
