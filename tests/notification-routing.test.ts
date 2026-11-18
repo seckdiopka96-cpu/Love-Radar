@@ -18,7 +18,7 @@ test("all real notification kinds open the correct Love Radar content",()=>{
  const id="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
  const expected:Record<string,string>={
   "message":"chat","photo":"chat","audio":"chat","call":"chat",
-  "ludo-challenge":"ludo","memory-challenge":"memory","rps-challenge":"rps",
+  "ludo-challenge":"ludo","ludo-joined":"ludo","memory-challenge":"memory","rps-challenge":"rps",
   "daily-question":"moment","love-signal":"together",
   "love-letter":"memories","album-memory":"memories",
   "couple-date":"life","couple-mood":"life","couple-dream":"life",
