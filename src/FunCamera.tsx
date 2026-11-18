@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from "react";
+import {createPortal} from "react-dom";
 import LensPicker from "./LensPicker";
 import {isCallAudioActive} from "./audio-focus";
 import {createLensProcessor,type LensProcessor,type LoveLensId} from "./love-lenses";
@@ -251,21 +252,21 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
   }catch(e){if(alive.current)setError(e instanceof Error?e.message:"Envoi impossible.")}
   finally{if(alive.current)setSending(false)}
  }
- return <section className="lr-fun-camera" aria-label="Caméra fun avec effets Love Radar">
+ return createPortal(<section className="lr-fun-camera" aria-label="Caméra fun avec effets Love Radar">
   <header className="lr-fun-camera-head">
    <button type="button" onClick={()=>{cleanup();onBack()}} aria-label="Quitter la caméra">‹</button>
-   <div><small>LOVE RADAR · STUDIO</small><h1>Caméra fun <span>✨</span></h1></div>
-   <span className="lr-fun-camera-badge">PRIVÉ</span>
+   <div><small>LOVE RADAR</small><h1>Caméra <span>✨</span></h1></div>
+   <span className="lr-fun-camera-badge">🔒</span>
   </header>
   <div className="lr-fun-preview">
    {active?<video ref={preview} autoPlay muted playsInline className={facing==="user"?"mirrored":""} aria-label="Aperçu caméra avec effet"/>:
     <div className="lr-fun-camera-placeholder"><span aria-hidden="true">📸</span><h2>Amuse-toi avec tes effets</h2><p>Prends des photos et de courtes vidéos, même sans être en appel.</p>
      <button type="button" disabled={busy} onClick={()=>void openCamera()}>{busy?"Ouverture…":"Activer ma caméra"}</button></div>}
    <div className={"lr-fun-processed-frame"+(facing==="user"?" mirrored":"")} ref={canvasHost} aria-hidden="true"/>
-   {active&&lens!=="none"?<div className="lr-fun-face-status" role="status">
+   {active&&lens!=="none"&&tracking!=="ready"?<div className="lr-fun-face-status" role="status">
     {tracking==="unavailable"?"Suivi du visage indisponible sur cet appareil.":tracking==="missing"?"Place ton visage dans le cadre.":tracking==="loading"?"Détection du visage…":"Effet fixé sur ton visage ✓"}
    </div>:null}
-   {active?<div className="lr-fun-preview-top"><span>● {recording?formatRecording(seconds):"EN DIRECT"}</span>
+   {active?<div className="lr-fun-preview-top"><span>{recording?"● "+formatRecording(seconds):""}</span>
     <button type="button" onClick={()=>void flip()} disabled={busy||recording} aria-label="Retourner la caméra">⇄</button>
    </div>:null}
    {active?<div className="lr-fun-shutter">
@@ -274,7 +275,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
      disabled={busy} aria-label={recording?"Arrêter l’enregistrement":"Enregistrer une vidéo de 20 secondes"}>{recording?"■ Arrêter":"● Vidéo"}</button>
    </div>:null}
   </div>
-  {active?<div className="lr-fun-lenses"><div className="lr-fun-lenses-title"><strong>CHOISIS UN EFFET</strong><small>10 looks · en direct</small></div>
+  {active?<div className="lr-fun-lenses" aria-label="Choisir un effet visage">
    <LensPicker value={lens} onSelect={value=>void chooseLens(value)} disabled={busy||recording}/></div>:null}
   {(photoUrl||recordedUrl)?<div className="lr-fun-result" aria-label="Votre création">
    <div className="lr-fun-result-head"><strong>{photoUrl?"Ta photo ❤️":"Ta vidéo 🎬"}</strong><button type="button" onClick={clearOutputs}>×</button></div>
@@ -286,7 +287,6 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
    {recordedUrl?<small>Les vidéos se partagent via ton téléphone. Elles ne sont pas envoyées automatiquement à ton partenaire.</small>:null}
   </div>:null}
   {error?<p role="alert" className="lr-fun-error">{error}</p>:null}
-  {notice?<p role="status" className="lr-fun-notice">{notice}</p>:null}
-  <p className="lr-fun-privacy">🔒 Les effets et la détection du visage fonctionnent sur ton appareil. Tu choisis si tu envoies une photo.</p>
- </section>;
+  {notice&&!active?<p role="status" className="lr-fun-notice">{notice}</p>:null}
+ </section>,document.body);
 }
