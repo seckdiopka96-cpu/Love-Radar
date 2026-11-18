@@ -117,7 +117,7 @@ self.addEventListener("push",event=>{
   });
   // When the app is open, also signal it to refresh the conversation badge.
   const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
-  for(const client of windows)client.postMessage({type:"love-radar-push-received",tab:destination.tab,kind:destination.kind});
+  for(const client of windows)client.postMessage({type:"love-radar-push-received",tab:destination.tab,kind:destination.kind,id:destination.id});
  })());
 });
 // iOS may reopen an installed PWA at its manifest start_url rather than the
