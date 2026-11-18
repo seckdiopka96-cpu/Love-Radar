@@ -48,7 +48,15 @@ async function gifApi(path:string,params:Record<string,string>,signal:AbortSigna
  url.searchParams.set("api_key",GIPHY_KEY);
  url.searchParams.set("rating","g");
  for(const [key,value] of Object.entries(params))url.searchParams.set(key,value);
- const response=await fetch(url.toString(),{signal,credentials:"omit",cache:"no-store"});
+ let response:Response;
+ try{
+  response=await fetch(url.toString(),{signal,credentials:"omit",cache:"no-store"});
+ }catch(error){
+  if(signal.aborted)throw error;
+  throw Error("Connexion à GIPHY impossible. Réessaie ou vérifie ta connexion.");
+ }
+ if(response.status===429)throw Error("Limite gratuite de recherches GIPHY atteinte. Réessaie plus tard.");
+ if(response.status===401||response.status===403)throw Error("Accès GIPHY refusé. Vérifie la clé API.");
  if(!response.ok)throw Error("Catalogue GIF temporairement indisponible.");
  return response.json();
 }
