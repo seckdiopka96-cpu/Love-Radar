@@ -32,6 +32,7 @@ import RpsDuo from "./RpsDuo";
 import CoupleParty from "./CoupleParty";
 import CoupleStory from "./CoupleStory";
 import SharedKeepsakes from "./SharedKeepsakes";
+import CoupleExperiences from "./CoupleExperiences";
 import PrivatePhoto from "./PrivatePhoto";
 import ProfilePhotoEditor from "./ProfilePhotoEditor";
 import {useProfileAvatars} from "./use-profile-avatars";
@@ -83,7 +84,7 @@ import "./clean-home-chat.css";
 import "./delivery-status-ui.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
-type Tab = "home" | "together" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "ludo-room" | "rps" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
+type Tab = "home" | "together" | "life" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "ludo-room" | "rps" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
 type EncryptionState={mine:string|null;partner:string|null;required:boolean};
 type ScreenshotEvent={id:string;member_id:string;created_at:number};
 type ChatTimelineItem = {type:"message";message:Message;index:number;createdAt:number}|{type:"call";call:CallHistoryEvent;createdAt:number}|{type:"screenshot";event:ScreenshotEvent;createdAt:number};
@@ -114,7 +115,7 @@ function NavGlyph({tab}:{tab:Tab}){
  </svg>;
 }
 function selectedNav(tab:Tab):Tab {
- if(tab==="care"||tab==="moment"||tab==="puzzle"||tab==="reconcile"||tab==="reunion"||tab==="watch"||tab==="watch-tiktok")return "together";
+ if(tab==="life"||tab==="care"||tab==="moment"||tab==="puzzle"||tab==="reconcile"||tab==="reunion"||tab==="watch"||tab==="watch-tiktok")return "together";
  if(tab==="story")return "memories";
  if(tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo"||tab==="memory"||tab==="rps"||tab==="rapid"||tab==="truth")return "games";
  return tab;
@@ -123,17 +124,17 @@ const HEARTS = ["♡","♥","✦","♡","♥"];
 const CHAT_REACTIONS=["👍","❤️","😂","😮","😢","🙏","👏"];
 const EXTRA_CHAT_REACTIONS=["🥰","😍","😘","💗","🔥","🎉","💯","🤗","😎","💐","🤲","😅"];
 
-type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"rps-challenge"|"daily-question"|"love-signal"|"love-letter"|"album-memory";
+type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"rps-challenge"|"daily-question"|"love-signal"|"love-letter"|"album-memory"|"couple-date"|"couple-mood"|"couple-dream"|"couple-hug"|"couple-challenge"|"couple-gift";
 type NoticeTarget={tab:Tab;kind:NoticeKind|null;id:string|null};
-const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","rps-challenge","daily-question","love-signal","love-letter","album-memory"]);
+const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","rps-challenge","daily-question","love-signal","love-letter","album-memory","couple-date","couple-mood","couple-dream","couple-hug","couple-challenge","couple-gift"]);
 function parseNotice(search:string):NoticeTarget|null{
  const q=new URLSearchParams(search);
  const tab=q.get("tab");
  if(tab==="location")return {tab:"together",kind:null,id:null};
- if(tab!=="settings"&&tab!=="home"&&tab!=="care"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="puzzle"&&tab!=="reconcile"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo-room"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="memory"&&tab!=="rps"&&tab!=="rapid"&&tab!=="truth"&&tab!=="memories")return null;
+ if(tab!=="settings"&&tab!=="home"&&tab!=="life"&&tab!=="care"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="puzzle"&&tab!=="reconcile"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo-room"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="memory"&&tab!=="rps"&&tab!=="rapid"&&tab!=="truth"&&tab!=="memories")return null;
  const kind=q.get("kind"),id=q.get("id");
  if(!kind||!NOTICE_KINDS.has(kind)||!id||!(/^[0-9a-f-]{36}$/i.test(id)||(kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(id))))return {tab,kind:null,id:null};
- return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":kind==="rps-challenge"?"rps":kind==="daily-question"?"moment":kind==="love-signal"?"together":kind==="love-letter"||kind==="album-memory"?"memories":"chat",kind:kind as NoticeKind,id};
+ return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":kind==="rps-challenge"?"rps":kind==="daily-question"?"moment":kind==="love-signal"?"together":kind==="love-letter"||kind==="album-memory"?"memories":kind.startsWith("couple-")?"life":"chat",kind:kind as NoticeKind,id};
 }
 function noticeUrl(target:NoticeTarget){
  const q=new URLSearchParams({tab:target.tab});
@@ -684,7 +685,7 @@ export default function LoveRadar(){
      setNoticeTarget(dest);
      setTab(dest.tab);setWatchInvite(null);setReconcileInvite(false);firstPoll.current=true;
     }
-   }else if(["chat","watch","watch-tiktok","games","ludo-room","ludo","ludo-solo","ludo-senegal","ludo-senegal-solo","memory","rps" ,"moment","together","puzzle","reconcile","reunion","story","home","memories"].includes(data?.tab)){
+   }else if(["chat","watch","watch-tiktok","games","ludo-room","ludo","ludo-solo","ludo-senegal","ludo-senegal-solo","memory","rps" ,"moment","together","life","puzzle","reconcile","reunion","story","home","memories"].includes(data?.tab)){
     const dest=data.tab as Tab;
     setTab(dest);setNoticeTarget({tab:dest,kind:null,id:null});if(dest==="reconcile")setReconcileInvite(false);firstPoll.current=true;
    }
@@ -1874,7 +1875,7 @@ export default function LoveRadar(){
  // Each outgoing message displays its own receipt, not just the most recent one.
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
- return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="home"&&room?"lr-home-mode ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+(tab==="together"&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
+ return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="home"&&room?"lr-home-mode ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+((tab==="together"||tab==="life")&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
   {recoveryCode?<RecoveryCodeDialog code={recoveryCode} onClose={()=>setRecoveryCode("")}/>:null}
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-header-context" aria-label="Espace privé"><span>ESPACE PRIVÉ</span><strong>{tab==="settings"?"Paramètres":room?.partner?"Notre univers":"Bienvenue"}</strong></div>
@@ -1997,8 +1998,9 @@ export default function LoveRadar(){
     {tab==="home"?<HomeDashboard room={room} token={token} media={media} privacyEnabled={privacyEnabled} mineAvatar={avatars.mine} partnerAvatar={avatars.partner} onEditProfile={()=>profilePicker.current?.click()} onInvite={()=>void shareCode()} onNavigate={navigate}/>:null}
     {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
     {tab==="care"?<CoupleCare key={room.roomId+":"+room.user.id} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} onOpenChat={()=>navigate("chat")}/>:null}
-    {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenWatch={()=>navigate("watch")} onOpenPuzzle={()=>navigate("puzzle")} onOpenReconcile={()=>navigate("reconcile")} onOpenCare={()=>navigate("care")} focusKind={noticeTarget?.kind==="love-signal"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"?noticeTarget.id:null}/>:null}
-    {tab==="watch"?<WatchTogether token={token} myId={room.user.id} myName={room.user.name}
+    {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenWatch={()=>navigate("watch")} onOpenPuzzle={()=>navigate("puzzle")} onOpenReconcile={()=>navigate("reconcile")} onOpenCare={()=>navigate("care")} onOpenLife={()=>navigate("life")} focusKind={noticeTarget?.kind==="love-signal"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"?noticeTarget.id:null}/>:null}
+    {tab==="life"?<CoupleExperiences token={token} myId={room.user.id} myName={room.user.name} partnerName={room.partner} privacyEnabled={privacyEnabled} onExit={()=>navigate("together")} onChat={()=>navigate("chat")} onWatch={()=>navigate("watch")} onGames={()=>navigate("games")} onMoment={()=>navigate("moment")} focusKind={noticeTarget?.kind} focusId={noticeTarget?.id}/>:null}
+     {tab==="watch"?<WatchTogether token={token} myId={room.user.id} myName={room.user.name}
       partnerName={room.partner} messages={room.messages}
       onSendText={async text=>{await sendBackgroundText(text)}}
       onOpenChat={()=>navigate("chat")} onOpenTikTok={()=>navigate("watch-tiktok")} onExit={()=>navigate("together")}/>:null}
@@ -2275,7 +2277,7 @@ export default function LoveRadar(){
       {partnerPhotoOpen&&token&&room?.partner?<PartnerProfileViewer
        name={partner} src={avatars.partner} onClose={()=>setPartnerPhotoOpen(false)}/>:null}
       {profileFile?<ProfilePhotoEditor key={profileFile.name+":"+profileFile.lastModified+":"+profileFile.size} file={profileFile} onCancel={()=>{if(!profileBusy){setProfileFile(null);setProfileError("")}}} onSave={saveProfilePhoto}/>:null}
-   {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} avatarSrc={avatars.partner} hasPartner={Boolean(room.partner)} showButton={tab==="chat"||tab==="watch"||tab==="watch-tiktok"||tab==="reconcile"} onOpenChat={()=>navigate("chat")}/>:null}
+   {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} avatarSrc={avatars.partner} hasPartner={Boolean(room.partner)} showButton={tab==="life"||tab==="chat"||tab==="watch"||tab==="watch-tiktok"||tab==="reconcile"} onOpenChat={()=>navigate("chat")}/>:null}
    {room&&token&&tab==="chat"&&noticeTarget?.id&&!room.messages.some(m=>m.id===noticeTarget.id)&&["message","photo","audio"].includes(noticeTarget.kind||"")?<div className="lr-push-focus-backdrop" role="dialog" aria-modal="true" aria-label="Contenu de la notification">
     <div className="lr-push-focus-card">
      <div className="lr-push-focus-header"><strong>{noticeTarget.kind==="photo"?"📸 Photo reçue":noticeTarget.kind==="audio"?"🎙️ Message vocal reçu":"💌 Message reçu"}</strong><button type="button" onClick={closeNotice} aria-label="Fermer le contenu">×</button></div>
