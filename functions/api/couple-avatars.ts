@@ -17,6 +17,9 @@ async function ensure(db:D1Database){
    "hair TEXT NOT NULL,hair_color TEXT NOT NULL,outfit TEXT NOT NULL,"+
    "accessory TEXT NOT NULL,updated_at INTEGER NOT NULL,"+
    "PRIMARY KEY(room_id,member_id))");
+  await db.exec("CREATE TABLE IF NOT EXISTS couple_avatar_models("+
+   "room_id TEXT NOT NULL,member_id TEXT NOT NULL,object_key TEXT NOT NULL,"+
+   "updated_at INTEGER NOT NULL,PRIMARY KEY(room_id,member_id))");
   await db.exec("CREATE TABLE IF NOT EXISTS couple_avatar_rooms("+
    "room_id TEXT PRIMARY KEY,pose TEXT NOT NULL DEFAULT 'main',"+
    "version INTEGER NOT NULL DEFAULT 0)");
@@ -37,15 +40,19 @@ function style(row:SavedStyle|undefined):AvatarStyle|null{
  return validAvatarStyle(candidate)?candidate:null;
 }
 async function state(db:D1Database,member:Member){
- const [styles,scene]=await Promise.all([
+ const [styles,scene,models]=await Promise.all([
   db.prepare("SELECT member_id,skin,hair,hair_color,outfit,accessory FROM couple_avatar_styles WHERE room_id=?")
    .bind(member.room_id).all<SavedStyle>(),
   db.prepare("SELECT pose,version FROM couple_avatar_rooms WHERE room_id=?")
-   .bind(member.room_id).first<RoomPose>()
+   .bind(member.room_id).first<RoomPose>(),
+  db.prepare("SELECT member_id FROM couple_avatar_models WHERE room_id=?")
+   .bind(member.room_id).all<{member_id:string}>()
  ]);
  const mine=styles.results.find(row=>row.member_id===member.id);
  const partner=styles.results.find(row=>row.member_id!==member.id);
  return {mine:style(mine),partner:style(partner),
+  mine3d:models.results.some(row=>row.member_id===member.id),
+  partner3d:models.results.some(row=>row.member_id!==member.id),
   pose:scene&&validCouplePose(scene.pose)?scene.pose:DEFAULT_COUPLE_AVATARS.pose,
   version:Number(scene?.version||0)};
 }
