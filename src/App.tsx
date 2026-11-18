@@ -685,10 +685,14 @@ export default function LoveRadar(){
     firstPoll.current=true;
     if(data.tab==="watch"||data.tab==="watch-tiktok")setWatchInvite(data.tab);
     if(data.tab==="reconcile")setReconcileInvite(true);
-    if(document.visibilityState==="visible"&&["message","photo","audio"].includes(data.kind||"")){
+    if(document.visibilityState==="visible"&&NOTICE_KINDS.has(data.kind||"")&&typeof data.id==="string"){
      const dest=parseNotice(new URL(noticeUrl({tab:data.tab,kind:data.kind,id:data.id}),window.location.origin).search);
-     setPushToastTarget(dest);
-     setNotice("lr-partner-push:"+String(data.kind||"message"));
+     if(dest?.kind){
+      // Even when Love Radar is already foregrounded, a game invitation
+      // should offer a one-tap path into that same Ludo agreement.
+      setPushToastTarget(dest);
+      setNotice("lr-partner-push:"+dest.kind);
+     }
     }
     return;
    }
@@ -1992,7 +1996,14 @@ export default function LoveRadar(){
    {notice.startsWith("lr-partner-push:")?<><span className="lr-push-avatar-thumb" aria-hidden="true">
     {avatars.partner?<img src={avatars.partner} alt=""/>:(room?.partner||"♡").slice(0,1).toUpperCase()}
    </span><span className="lr-push-avatar-copy"><strong>{room?.partner||"Ton partenaire"}</strong>
-    <small>{notice.endsWith(":audio")?"🎙️ Nouveau message vocal":notice.endsWith(":photo")?"📷 Nouvelle photo":"💌 Nouveau message"}</small></span></>:notice}
+    <small>{notice.endsWith(":audio")?"🎙️ Nouveau message vocal":
+      notice.endsWith(":photo")?"📷 Nouvelle photo":
+      notice.endsWith(":ludo-challenge")?"🎲 Invitation Ludo Duo · Appuie pour jouer":
+      notice.endsWith(":memory-challenge")?"🧠 Invitation au Memory · Appuie pour jouer":
+      notice.endsWith(":rps-challenge")?"✊ Invitation au jeu · Appuie pour jouer":
+      notice.endsWith(":call")?"📞 Appel de ton partenaire":
+      notice.endsWith(":message")?"💌 Nouveau message":
+      "💗 Nouveau moment à deux · Appuie pour ouvrir"}</small></span></>:notice}
    <span className="lr-push-toast-x" aria-hidden="true">×</span>
   </div>:null}
   {error&&room?<div className="lr-error" role="alert">{error}<button onClick={()=>setError("")} aria-label="Fermer">×</button></div>:null}
