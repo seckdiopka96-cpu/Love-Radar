@@ -110,9 +110,9 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
     })}
    </div>
    <button className="lr-avatar-save" type="button" onClick={()=>void store()}
-    disabled={!modified||busy||saving}>
-    <span>{busy||saving?"Enregistrement…":modified?"Enregistrer mon avatar":"Personnage enregistré"}</span>
-    <span aria-hidden="true">{modified?"→":"✓"}</span>
+    disabled={(!modified&&Boolean(data.mine))||busy||saving}>
+    <span>{busy||saving?"Enregistrement…":!data.mine?"Créer mon avatar":modified?"Enregistrer mon avatar":"Personnage enregistré"}</span>
+    <span aria-hidden="true">{modified||!data.mine?"→":"✓"}</span>
    </button>
    <p className="lr-avatar-studio-editor-note">Tes choix sont privés et synchronisés avec ton amour.</p>
   </section>
