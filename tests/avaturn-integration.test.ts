@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {requiresTopLevelAvaturnAuth} from "../src/avaturn-auth";
+import {inspectAvatarGlb} from "../src/avatar-3d-diagnostics";
 const read=(p:string)=>readFileSync(p,"utf8");
 
 test("free Avaturn embedded creator is present, no premium API secrets or paywall",()=>{
@@ -101,4 +102,42 @@ test("iPhone and iPad open Avaturn in a first-party Safari tab to avoid broken r
  assert.ok(editor.includes("n’est pas transféré automatiquement"),"no misleading automatic export claim");
  const css=read("src/avaturn-3d.css");
  assert.ok(css.includes(".lr-avaturn-external-launch"));
+});
+
+test("GLB diagnostics distinguish grayscale files from textured rigged models without uploading private data",()=>{
+ function glb(json:Record<string,unknown>):ArrayBuffer{
+  const body=new TextEncoder().encode(JSON.stringify({asset:{version:"2.0"},...json}));
+  const n=Math.ceil(body.byteLength/4)*4;
+  const bytes=new ArrayBuffer(20+n);
+  const view=new DataView(bytes);
+  view.setUint32(0,0x46546c67,true);
+  view.setUint32(4,2,true);
+  view.setUint32(8,bytes.byteLength,true);
+  view.setUint32(12,n,true);
+  view.setUint32(16,0x4e4f534a,true);
+  const array=new Uint8Array(bytes);
+  array.set(body,20);array.fill(32,20+body.byteLength);
+  return bytes;
+ }
+ const noColors=inspectAvatarGlb(glb({meshes:[{}],materials:[{}]}));
+ assert.equal(noColors?.images,0);
+ assert.equal(noColors?.texturedMaterials,0);
+ assert.equal(noColors?.skins,0);
+ const colored=inspectAvatarGlb(glb({
+  images:[{bufferView:0,mimeType:"image/png"}],
+  materials:[{pbrMetallicRoughness:{baseColorTexture:{index:0}}}],
+  skins:[{joints:[0,1,2]}],meshes:[{}],animations:[{channels:[]}]
+ }));
+ assert.deepEqual(colored,{images:1,texturedMaterials:1,skins:1,animations:1,meshes:1});
+ assert.equal(inspectAvatarGlb(new ArrayBuffer(25)),null);
+ const viewer=read("src/Avatar3DScene.tsx");
+ assert.ok(viewer.includes("const info=inspectAvatarGlb(bytes);"));
+ assert.ok(viewer.includes("info.images===0||info.texturedMaterials===0"));
+ assert.ok(viewer.includes("figure.root.position.x=figure.mirror*(.82-closeness)"),
+  "my character starts on left, partner on right");
+ assert.ok(viewer.includes("const correction=parentQuat.clone().invert()"),
+  "skeleton posing uses world axes instead of guessing bone axes");
+ assert.ok(viewer.includes("side*(1.12+.19*wave)"),
+  "dance visibly raises arms on supported rigs");
+ assert.ok(read("src/avaturn-3d.css").includes(".lr-avatar-three-warning"));
 });
