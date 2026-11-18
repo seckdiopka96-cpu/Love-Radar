@@ -180,7 +180,7 @@ test("real Duo base pawn sends one move after a playable six",()=>{
    const clicks=[];
    const fakeNode=()=>({
     dataset:{},disabled:false,className:"",title:"",
-    handlers:{},classList:{remove(){}},
+    handlers:{},classList:{add(){},remove(){}},
     setAttribute(){},append(){},
     addEventListener(type,handler){this.handlers[type]=handler},
     click(){this.handlers.click?.()}
