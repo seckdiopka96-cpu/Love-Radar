@@ -143,8 +143,6 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
     <span aria-hidden="true">{modified||!data.mine?"→":"✓"}</span>
    </button>
    <p className="lr-avatar-studio-editor-note">Tes choix sont privés et synchronisés avec ton amour.</p>
-  </section>
-
   </section>:null}
   <section className="lr-avatar-studio-poses" aria-label="Animations à deux">
    <div className="lr-avatar-studio-section-top">
