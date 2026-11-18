@@ -8,6 +8,7 @@
  document.documentElement.classList.add("lr-ludo-duo-ui");
  const COLORS={blue:"Bleu",red:"Rouge",green:"Vert",yellow:"Jaune"};
  const SPAWNS={blue:0,red:13,green:26,yellow:39};
+ const FINISH_PROGRESS=56; // Five coloured home squares (51–55), then the centre.
  const TRACK=[
    ...Array.from({length:5},(_,i)=>[13-i,6]),
    ...Array.from({length:6},(_,i)=>[8,5-i]),
@@ -163,16 +164,15 @@
  }
  const send=(action,pawn)=>window.parent.postMessage({source:"love-radar-ludo-duo",type:"action",action,...(pawn===undefined?{}:{pawn})},window.location.origin);
  function pointFor(color,progress){
-  if(progress===57){
+  if(progress>=FINISH_PROGRESS){
    const p={blue:[7.24,6.8],red:[6.8,6.8],green:[6.8,7.24],yellow:[7.24,7.24]}[color];
    return p;
   }
   if(progress>=51){
    const lane=LANES[color][progress-51];
    if(lane)return lane;
-   // The server has six final steps (51-56), whereas the classical board
-   // has five colored cells; the sixth is the step adjacent to the center.
-   return {blue:[8,7],red:[7,6],green:[6,7],yellow:[7,8]}[color];
+   // A five-square lane goes straight to the centre, without a sixth cell.
+   return null;
   }
   if(progress>=0)return TRACK[(SPAWNS[color]+progress)%52];
   return null;
@@ -183,7 +183,7 @@
   const g=state?.game;
   // The previous pawn's animation must never lock the NEXT legal turn.
   if(!g||g.status!=="playing"||g.turn!==state.mySeat||g.dice===null||state.busy||state.rolling||state.overlayOpen)return [];
-  return g.positions[state.mySeat].flatMap((p,i)=>(p===-1?g.dice===6:p>=0&&p<57&&p+g.dice<=57)?[i]:[]);
+  return g.positions[state.mySeat].flatMap((p,i)=>(p===-1?g.dice===6:p>=0&&p<FINISH_PROGRESS&&p+g.dice<=FINISH_PROGRESS)?[i]:[]);
  }
  function createPawn(paletteColor,seat,index,selectable){
   const b=document.createElement("button");
@@ -273,7 +273,7 @@
   for(const group of groups.values())group.forEach(({point,piece,progress},i)=>{
    const shift=(i-(group.length-1)/2)*Math.min(3,7/group.length);
    piece.classList.add("piece--board");
-   if(progress===57)piece.classList.add("piece--finished");
+   if(progress>=FINISH_PROGRESS)piece.classList.add("piece--finished");
    piece.style.top=((point[0]+.5)/15*100)+"%";
    piece.style.left=((point[1]+.5)/15*100)+"%";
    piece.style.setProperty("--pawn-shift",shift.toFixed(1)+"px");
@@ -379,9 +379,9 @@
   document.querySelector(".player--human b").textContent="TOI";
   document.querySelector(".player--cpu b").textContent="PARTENAIRE";
   const myAuto=g.autoCounts?.[state.mySeat]||0;
-  document.getElementById("player-count").textContent=g.positions[state.mySeat].filter(p=>p===57).length+" / 4 · Auto "+myAuto+"/3";
+  document.getElementById("player-count").textContent=g.positions[state.mySeat].filter(p=>p>=FINISH_PROGRESS).length+" / 4 · Auto "+myAuto+"/3";
   const partnerAuto=g.autoCounts?.[1-state.mySeat]||0;
-  document.getElementById("computer-count").textContent=g.positions[1-state.mySeat].filter(p=>p===57).length+" / 4 · Auto "+partnerAuto+"/3";
+  document.getElementById("computer-count").textContent=g.positions[1-state.mySeat].filter(p=>p>=FINISH_PROGRESS).length+" / 4 · Auto "+partnerAuto+"/3";
   const legal=legalPawns();
   const isMine=g.turn===state.mySeat,canRoll=isMine&&g.dice===null&&g.status==="playing"&&!state.busy&&!state.rolling&&!state.overlayOpen;
   roll.disabled=!canRoll;
