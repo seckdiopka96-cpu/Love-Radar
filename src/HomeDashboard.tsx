@@ -1,8 +1,6 @@
 import {useEffect,useState} from "react";
 import {apiFetch} from "./api";
 import {quotePreview} from "./message-quote";
-import CoupleAvatarDuo from "./CoupleAvatarDuo";
-import type {CoupleAvatarState} from "./couple-avatar-model";
 import "./home-dashboard.css";
 
 type Message={id:string;sender_id:string;kind:"text"|"image"|"audio";content:string|null;created_at:number;view_once?:number|boolean};
@@ -11,11 +9,11 @@ type DailyOverview={ok:boolean;question:string;mine:{text:string}|null;partnerAn
 type Reaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
 type Room={user:{id:string;name:string;seat:number};partner:string|null;code:string;partnerLastSeenAt?:number;messages:Message[];recentReaction?:Reaction|null;unreadCount?:number};
 type Props={
- room:Room;token:string;media:Record<string,string>;privacyEnabled:boolean;coupleAvatars:CoupleAvatarState;
+ room:Room;token:string;media:Record<string,string>;privacyEnabled:boolean;
  mineAvatar?:string;partnerAvatar?:string;onEditProfile:()=>void;onInvite:()=>void;
- onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"watch"|"reconcile"|"puzzle"|"story"|"reunion"|"games"|"avatars")=>void;
+ onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"watch"|"reconcile"|"puzzle"|"story"|"reunion"|"games")=>void;
 };
-export default function HomeDashboard({room,token,mineAvatar,partnerAvatar,onEditProfile,onInvite,onNavigate,coupleAvatars}:Props){
+export default function HomeDashboard({room,token,mineAvatar,partnerAvatar,onEditProfile,onInvite,onNavigate}:Props){
  const [daily,setDaily]=useState<DailyOverview|null>(null);
  const [game,setGame]=useState<Game|null>(null);
  useEffect(()=>{
@@ -78,16 +76,6 @@ export default function HomeDashboard({room,token,mineAvatar,partnerAvatar,onEdi
    <div className="lr-home-couple-label"><h1>{room.user.name} <span>&</span> {room.partner||"ton amour"}</h1>
     <p><span className={"lr-home-online"+(online?" is-online":"")}/>{!room.partner?"En attente de ton partenaire":online?"En ligne":"Votre espace privé"}</p></div>
   </section>
-  <button className="lr-avatar-home-entry" type="button" aria-label="Créer et animer nos avatars amoureux"
-   onClick={()=>onNavigate("avatars")}>
-   <span className="lr-avatar-home-entry-heading"><strong>Nos avatars amoureux</strong><small>NOTRE DUO ✦</small></span>
-   <CoupleAvatarDuo mine={coupleAvatars.mine} partner={coupleAvatars.partner}
-    pose={coupleAvatars.pose} mode="home" mineName={room.user.name} partnerName={room.partner||"Ton amour"}
-    token={token} mine3d={Boolean(coupleAvatars.mine3d)} partner3d={Boolean(coupleAvatars.partner3d)}
-    mineLook3d={coupleAvatars.mineLook3d} partnerLook3d={coupleAvatars.partnerLook3d}
-    modelVersion={coupleAvatars.version}/>
-   <span className="lr-avatar-home-entry-footer"><span>Deux personnages, une histoire.</span><b>Personnaliser ›</b></span>
-  </button>
     <div className="lr-home-quick" aria-label="Accès rapides">
    <button type="button" onClick={()=>onNavigate("chat")}><span className="lr-home-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></span><span><strong>Écrire</strong><small>Un petit mot</small></span><b>↗</b></button>
    <button type="button" onClick={()=>onNavigate("watch")}><span className="lr-home-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="m10 8 6 4-6 4Z" fill="currentColor" stroke="none"/></svg></span><span><strong>Regarder</strong><small>À deux</small></span><b>↗</b></button>
