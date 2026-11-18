@@ -18,7 +18,7 @@ type Props={
  onBack:()=>void;onChoosePhoto:()=>void;onAdjustPhoto:()=>void;onRemovePhoto:()=>void;
  onPrivacyChange:(enabled:boolean)=>void;
  onEnableNotifications:()=>void;onTestNotifications:()=>void;onDisableNotifications:()=>void;
- onShareInvite:()=>void;onLogout:()=>void;onDeleteRoom:()=>void;onOpenAvatars:()=>void;
+ onShareInvite:()=>void;onLogout:()=>void;onDeleteRoom:()=>void;
 };
 export default function SettingsPage({
 name,code,owner,token,avatarSrc,avatarVersion,recoveryMemberId,recoveryPartnerId,recoveryRoomId,profileBusy,profileError,recoveryBusy,onGenerateRecovery,privacyEnabled,
@@ -26,7 +26,7 @@ name,code,owner,token,avatarSrc,avatarVersion,recoveryMemberId,recoveryPartnerId
  e2ee,e2eeBusy,e2eeBackup,e2eeOwnCode,e2eePartnerCode,e2eeDeviceReady,e2eeVerified,
  onEnableE2EE,onFinishE2EE,onRestoreE2EE,onVerifyPartnerKey,
  onBack,onChoosePhoto,onAdjustPhoto,onRemovePhoto,onPrivacyChange,
- onEnableNotifications,onTestNotifications,onDisableNotifications,onShareInvite,onLogout,onDeleteRoom,onOpenAvatars
+ onEnableNotifications,onTestNotifications,onDisableNotifications,onShareInvite,onLogout,onDeleteRoom
 }:Props){
  const [passphrase,setPassphrase]=useState("");
  const [restorePhrase,setRestorePhrase]=useState("");
@@ -77,12 +77,6 @@ name,code,owner,token,avatarSrc,avatarVersion,recoveryMemberId,recoveryPartnerId
    <button type="button" onClick={onBack} className="lr-settings-back" aria-label="Retour à l’accueil">‹</button>
    <div><span>ESPACE PRIVÉ</span><h1>Paramètres</h1><p>Personnalise ton expérience à deux.</p></div>
   </header>
-  <section className="lr-settings-section" aria-labelledby="lr-avatar-settings-title">
-    <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">🥰</span>
-      <div><h2 id="lr-avatar-settings-title">Nos avatars amoureux</h2>
-       <p>Crée ton personnage, anime votre couple et partagez vos poses. 100 % gratuit.</p></div></div>
-    <button className="lr-settings-primary" type="button" onClick={onOpenAvatars}>Personnaliser mon avatar</button>
-   </section>
   <section className="lr-settings-section" aria-labelledby="lr-profile-settings-title">
    <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">◉</span><div><h2 id="lr-profile-settings-title">Mon profil</h2><p>Visible seulement par ton partenaire.</p></div></div>
    <div className="lr-settings-profile">
