@@ -140,7 +140,7 @@
  function color(side){return state.palette.colors[side]}
  function legalPawns(){
   const g=state?.game;
-  if(!g||g.status!=="playing"||g.turn!==state.mySeat||g.dice===null||state.busy||state.rolling||state.animationBusy)return [];
+  if(!g||g.status!=="playing"||g.turn!==state.mySeat||g.dice===null||state.busy||state.rolling||state.animationBusy||state.overlayOpen)return [];
   return g.positions[state.mySeat].flatMap((p,i)=>(p===-1?g.dice===6:p>=0&&p<57&&p+g.dice<=57)?[i]:[]);
  }
  function createPawn(paletteColor,seat,index,selectable){
@@ -333,7 +333,7 @@
   const partnerAuto=g.autoCounts?.[1-state.mySeat]||0;
   document.getElementById("computer-count").textContent=g.positions[1-state.mySeat].filter(p=>p===57).length+" / 4 · Auto "+partnerAuto+"/3";
   const legal=legalPawns();
-  const isMine=g.turn===state.mySeat,canRoll=isMine&&g.dice===null&&g.status==="playing"&&!state.busy&&!state.rolling&&!state.animationBusy;
+  const isMine=g.turn===state.mySeat,canRoll=isMine&&g.dice===null&&g.status==="playing"&&!state.busy&&!state.rolling&&!state.animationBusy&&!state.overlayOpen;
   roll.disabled=!canRoll;
   roll.classList.toggle("is-ready",canRoll);
   roll.classList.toggle("is-busy",state.busy||state.rolling);
