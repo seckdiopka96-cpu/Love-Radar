@@ -2,7 +2,7 @@ import {getSticker,readStickerId} from "./stickers";
 import {readGifId} from "./gif-provider";
 /** Retain old encrypted text markers without loading the retired avatar feature. */
 export function readLegacyCoupleMoment(content:string|null|undefined):boolean{
- return typeof content==="string"&&/^\\[couple-avatar:v1:(?:main|calin|bisou|danse)\\]$/.test(content);
+ return typeof content==="string"&&/^\[couple-avatar:v1:(?:main|calin|bisou|danse)\]$/.test(content);
 }
 export type QuoteKind="text"|"image"|"audio";
 export function quotePreview(kind:QuoteKind,content:string|null|undefined,max=95):string{
