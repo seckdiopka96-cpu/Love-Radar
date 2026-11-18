@@ -80,3 +80,9 @@
 .lr-call-backdrop .lr-video-call .lr-call-video-self.is-camera-off .lr-call-processed-frame{
  visibility:hidden;
 }
+
+/* Fixed camera viewport: no reflow when the phone moves or a lens starts. */
+.lr-fun-preview{height:auto;min-height:0;aspect-ratio:3/4;max-height:min(65dvh,650px);width:100%;margin-inline:auto;contain:layout paint}
+.lr-fun-preview video,.lr-fun-processed-frame,.lr-fun-processed-frame canvas{inset:0;width:100%;height:100%;object-fit:cover}
+.lr-fun-face-status{position:absolute;z-index:4;left:50%;bottom:100px;transform:translateX(-50%);max-width:calc(100% - 30px);width:max-content;text-align:center;padding:8px 13px;border-radius:999px;background:#14273cd9;border:1px solid #ffffff5a;color:#fff;font-size:11px;line-height:1.35;pointer-events:none}
+@media(max-width:380px){.lr-fun-preview{height:auto;min-height:0;max-height:60dvh}}
