@@ -28,8 +28,8 @@ test("drawLoveLens applies the pixel result into the same canvas saved for a pho
   putImageData(data:{data:Uint8ClampedArray}){calls.push("written-"+data.data[0])}
  };
  const canvas={width:2,height:1};
- drawLoveLens(ctx as unknown as CanvasRenderingContext2D,{} as HTMLVideoElement,canvas as HTMLCanvasElement,"rose",null,0);
- assert.deepEqual(calls,["save","clear","draw","read","written-126","restore"]);
+ drawLoveLens(ctx as unknown as CanvasRenderingContext2D,{} as HTMLVideoElement,canvas as HTMLCanvasElement,"beauty",null,0);
+ assert.deepEqual(calls,["save","clear","draw","read","written-109","restore"]);
 });
 test("star button is absent from chat header but live effects remain accessible elsewhere",()=>{
  const app=file("src/App.tsx");
