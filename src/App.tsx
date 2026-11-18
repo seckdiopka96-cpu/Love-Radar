@@ -298,6 +298,45 @@ export default function LoveRadar(){
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
  const [pushToastTarget,setPushToastTarget]=useState<NoticeTarget|null>(null);
+ const lastInAppLudoInvite=useRef("");
+ // Invite and join signals must be visible inside Love Radar without
+ // relying on APNs/Web Push. Only poll while outside the Ludo game itself.
+ useEffect(()=>{
+  if(!token||!room?.roomId||!room.partner||tab==="ludo")return;
+  let stopped=false,inFlight=false;
+  const poll=async()=>{
+   if(stopped||inFlight||document.visibilityState!=="visible")return;
+   inFlight=true;
+   try{
+    const response=await apiFetch("/api/ludo?inbox=1",{
+     headers:{Authorization:"Bearer "+token},cache:"no-store"
+    });
+    if(response.ok){
+     const data=await response.json() as {ok?:boolean;invite?:{kind:"ludo-challenge"|"ludo-joined";id:string;at:number}|null};
+     if(!stopped&&data.ok&&data.invite&&currentTab.current!=="ludo"){
+      const incoming=data.invite;
+      const stamp=room.roomId+":"+incoming.kind+":"+incoming.id+":"+incoming.at;
+      if(lastInAppLudoInvite.current!==stamp){
+       lastInAppLudoInvite.current=stamp;
+       setPushToastTarget({tab:"ludo",kind:incoming.kind,id:incoming.id});
+       setNotice("lr-partner-push:"+incoming.kind);
+      }
+     }
+    }
+   }catch{/* Network interruptions should not block other screens. */}
+   finally{inFlight=false}
+  };
+  void poll();
+  const timer=window.setInterval(()=>{void poll()},2800);
+  const resume=()=>{if(document.visibilityState==="visible")void poll()};
+  document.addEventListener("visibilitychange",resume);
+  window.addEventListener("focus",resume);
+  return()=>{
+   stopped=true;window.clearInterval(timer);
+   document.removeEventListener("visibilitychange",resume);
+   window.removeEventListener("focus",resume);
+  };
+ },[token,room?.roomId,room?.partner,tab]);
  const [olderMessages,setOlderMessages]=useState<Message[]>([]);
  const [historyBusy,setHistoryBusy]=useState(false);
  const [historyMore,setHistoryMore]=useState(true);

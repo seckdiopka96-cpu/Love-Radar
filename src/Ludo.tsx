@@ -92,6 +92,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  const {enabled:soundOn,unlock:unlockSound,play:playSound,toggle:toggleSound}=useLudoSounds();
  const boardStage=useRef<HTMLDivElement|null>(null);
  const prior=useRef<Game|null>(null);
+ const serverClockOffset=useRef(0);
  const effectTimeout=useRef<number|null>(null);
  const movementTimers=useRef<number[]>([]);
  const captureTimer=useRef<number|null>(null);
@@ -124,8 +125,13 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    }));
    const celebration=latest.status==="won"&&prev.status!=="won";
    const route=moved?movementSteps(moved.from,moved.to):[];
-   const canAnimate=Boolean(moved&&route.length&&document.visibilityState==="visible"
-);
+   // The same server event clock controls movement on both phones.
+   // A resumed phone catches up to the current square instead of replaying.
+   const elapsed=event?.at?Math.max(0,Date.now()+serverClockOffset.current-event.at):0;
+   const STEP_MS=moved?.from===-1?520:540,START_MS=250;
+   const finish=START_MS+route.length*STEP_MS+90;
+   const canAnimate=Boolean(moved&&route.length&&document.visibilityState==="visible"&&
+    latest.version-prev.version===1&&elapsed<finish);
    if(moved||captured.length||celebration){
     setEffect(celebration?"win":captured.length?"capture":"move");
     if(effectTimeout.current!==null)window.clearTimeout(effectTimeout.current);
@@ -135,18 +141,20 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
      // Hold each square long enough for the pawn to be readable on mobile.
       // Match Solo's deliberate pace. Every square stays visible on both phones
       // long enough to see the pin land before moving to the next square.
-      const STEP_MS=moved.from===-1?520:540,START_MS=250;
+      const completedSteps=route.filter((_,index)=>START_MS+index*STEP_MS<=elapsed).length;
+     const initialProgress=completedSteps?route[completedSteps-1]:moved.from;
      setCapturedMotions(captured.map(p=>({...p,returning:false,progress:p.from})));
-     setMotion({seat:moved.seat,pawn:moved.pawn,from:moved.from,to:moved.to,progress:moved.from});
+     setMotion({seat:moved.seat,pawn:moved.pawn,from:moved.from,to:moved.to,progress:initialProgress});
      route.forEach((progress,index)=>{
+      const remaining=START_MS+index*STEP_MS-elapsed;
+      if(remaining<=0)return;
       movementTimers.current.push(window.setTimeout(()=>{
        if(!isActive.current)return;
        setMotion({seat:moved.seat,pawn:moved.pawn,from:moved.from,to:moved.to,progress});
        playSound("step");
        if(index===route.length-1)haptic(18);
-      },START_MS+index*STEP_MS));
+      },remaining));
      });
-     const finish=START_MS+route.length*STEP_MS+90;
      movementTimers.current.push(window.setTimeout(()=>{
       if(!isActive.current)return;
       setMotion(null);
@@ -173,8 +181,8 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
        },240+maxBack*50));
       }
       if(celebration){playSound("win");haptic([55,70,65])}
-     },finish));
-     movementTimers.current.push(window.setTimeout(()=>{if(isActive.current)setLanding(null)},finish+1100));
+     },Math.max(0,finish-elapsed)));
+     movementTimers.current.push(window.setTimeout(()=>{if(isActive.current)setLanding(null)},Math.max(0,finish+1100-elapsed)));
     }else{
      setMotion(null);setCapturedMotions([]);
      if(moved){setLanding(pointForProgress(moved.seat,moved.pawn,moved.to));playSound("step");haptic(14)}
@@ -202,6 +210,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    if(!isActive.current)return;
    if(!quick)lastFullRefresh.current=Date.now();
    if(data.presence)setPresence(data.presence);
+   if(typeof data.serverNow==="number")serverClockOffset.current=data.serverNow-Date.now();
    // No board state changed: do not make React re-render every half second.
    if(data.unchanged){setError("");return}
    if(data.delta){
@@ -356,6 +365,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    });
    const data=await res.json() as ResponseData;
    if(!res.ok||!data.ok)throw Error(data.error||"Action impossible.");
+   if(typeof data.serverNow==="number")serverClockOffset.current=data.serverNow-Date.now();
    if(data.game)onGame(data.game,data.moveEvent);
    if(data.gift)setGift(data.gift);
    if(data.agreement){setAgreement(data.agreement);activeDuoGame.current=Boolean(data.agreement.startedAt);}
@@ -415,6 +425,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    if(data.agreement)setAgreement(data.agreement);
    if(data.gift)setGift(data.gift);
    if(data.palette)setPalette(data.palette);
+   if(typeof data.serverNow==="number")serverClockOffset.current=data.serverNow-Date.now();
    if(data.game)onGame(data.game,data.moveEvent);
    if(typeof data.serverNow==="number")setClockOffset(data.serverNow-Date.now());
   }catch(e){setError(e instanceof Error?e.message:"Signature non enregistrée.")}

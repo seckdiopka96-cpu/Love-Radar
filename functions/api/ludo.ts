@@ -293,6 +293,20 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    await createIfMissing(db,player.room_id);
    g=await getGame(db,player.room_id);
   }
+  // Foreground in-app invitations also work on iPhones with push disabled.
+  // This small, authenticated endpoint never returns messages or game secrets.
+  if(method==="GET"&&new URL(ctx.request.url).searchParams.get("inbox")==="1"){
+   if(!g)return reply({ok:true,invite:null});
+   const [pending,live]=await Promise.all([challenge(db,g),ludoPresence(db,g)]);
+   const now=Date.now(),other=1-player.seat;
+   const invitation=pending?.fromSeat===other&&now-pending.sentAt<=120000?
+    {kind:"ludo-challenge" as const,id:g.game_id,at:pending.sentAt}:null;
+   const joinedAt=live[other].online?live[other].joinedAt:null;
+   const arrival=joinedAt&&now-joinedAt<=120000?
+    {kind:"ludo-joined" as const,id:g.game_id,at:joinedAt}:null;
+   const invite=invitation&&(!arrival||invitation.at>=arrival.at)?invitation:arrival;
+   return reply({ok:true,invite});
+  }
   // Active matches use the authenticated versioned delta protocol. Most
   // polls are unchanged; a real roll/move returns only the essentials.
   // Signed pre-game flows and completed matches still return complete state.

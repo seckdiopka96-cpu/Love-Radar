@@ -90,7 +90,7 @@ test("Duo iframe works offline and uses only a same-origin parent, never replaci
   assert.ok(sw.includes('"'+path+'"'),path);
  }
  assert.ok(sw.includes('url.pathname.startsWith("/ludo-duo/")'));
- assert.ok(sw.includes("love-radar-static-v140"),"new PWA release must invalidate old shell");
+ assert.ok(sw.includes("love-radar-static-v141"),"new PWA release must invalidate old shell");
 });
 
 
@@ -131,6 +131,18 @@ test("Duo iPhone frame keeps event subscription stable as snapshots tick",()=>{
   "never allow a roll or pawn move behind agreement or pause modal");
 });
 
+test("Ludo invitations appear in app without push; pawn motion follows server time",()=>{
+ const app=readFileSync("src/App.tsx","utf8");
+ assert.ok(backend.includes('searchParams.get("inbox")==="1"'),"lightweight authenticated in-app inbox");
+ assert.ok(backend.includes('pending?.fromSeat===other'),"invitation is for the other player");
+ assert.ok(backend.includes('live[other].online'),"arrival tracks real partner presence");
+ assert.ok(app.includes('apiFetch("/api/ludo?inbox=1"'),"notification works with push disabled");
+ assert.ok(app.includes('window.setInterval(()=>{void poll()},2800)'),"screen checks for new invites");
+ assert.ok(app.includes('setNotice("lr-partner-push:"+incoming.kind)'),"one-tap invitation is visible");
+ assert.ok(parent.includes('serverClockOffset.current-event.at'),"server timeline aligns both phones");
+ assert.ok(parent.includes('const completedSteps=route.filter'),"slow devices skip old hop steps");
+ assert.ok(parent.includes('Math.max(0,finish-elapsed)'),"pawn reaches square at aligned time");
+});
 test("live Duo synchronizes promptly with conditional server reads",()=>{
  assert.ok(parent.includes('activeDuoGame=useRef(false)'),"avoid fast path until both signed");
  assert.ok(parent.includes('"/api/ludo?since="+previous.version'),"send the last synchronized version");
