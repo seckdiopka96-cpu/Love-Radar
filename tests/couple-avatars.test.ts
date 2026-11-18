@@ -63,7 +63,7 @@ test("avatars are rendered on home and in chat, and pose stickers use encrypted 
  assert.ok(app.includes("sendAvatarSticker(pose)"));
  assert.ok(app.includes("void sendQueuedText(entry)"));
  assert.ok(app.includes("async function encryptedOutgoing"));
- assert.ok(studio.includes("onSaveStyle(draft)"));
+ assert.ok(studio.includes("onModelImported"));
  assert.ok(studio.includes("onSavePose(value)"));
  assert.ok(studio.includes("onSend(posePreview)"));
  assert.ok(studio.includes("Cré"));
@@ -95,20 +95,22 @@ test("room erasure deletes avatar styles and shared pose together with the rest 
  assert.ok(existsSync("src/CoupleAvatarStudio.tsx"));
 });
 
-test("premium avatars use full illustrated selectors instead of emoji placeholders",()=>{
+test("Avaturn is the only visible studio editor; original styles remain stored but never offered",()=>{
  const studio=read("src/CoupleAvatarStudio.tsx");
- const vector=read("src/CoupleAvatarDuo.tsx");
+ const duo=read("src/CoupleAvatarDuo.tsx");
  const css=read("src/couple-avatars.css");
- assert.ok(studio.includes('AvatarCharacter style={preview}'),"each option previews the actual selected hairstyle, outfit and accessory");
- assert.ok(studio.includes('portrait={category!=="outfit"}'),"outfits show the whole silhouette");
- assert.ok(vector.includes("useId()"),"SVG gradients have unique IDs across both partners and all previews");
- assert.ok(vector.includes("linearGradient"),"characters include lighting and shaded skin, hair and clothes");
- assert.ok(!studio.includes('option.id==="hijab"?"🧕"'),"no generic emoji masquerades as hair styles");
- assert.ok(!vector.includes('pose==="bisou"?"💋"'),"no floating lip emoji pasted on the face");
- assert.ok(css.includes("lr-avatar-duo-mine")&&css.includes("lr-avatar-duo-partner"));
- assert.ok(css.includes("Reserved head distance is larger than the face diameter"),"two portraits remain individually visible");
- assert.ok(css.includes("lr-avatar-studio-options"),"responsive gallery exists");
+ assert.ok(studio.includes('aria-label="Nos avatars 3D"'));
+ assert.ok(studio.includes("Avaturn3DEditor"));
+ assert.ok(!studio.includes("lr-avatar-studio-editor"),"classic customization editor is gone");
+ assert.ok(!studio.includes("lr-avaturn-classic-toggle"),"no route to rejected avatars");
+ assert.ok(!studio.includes("AvatarCharacter"),"the classic previews are not presented");
+ assert.ok(duo.includes("lr-avatar-3d-invite"),"premium empty state is present");
+ assert.ok(!duo.slice(duo.indexOf("type DuoProps")).includes("<AvatarCharacter"),
+  "not even the failure fallback displays legacy cartoons");
+ assert.ok(css.includes("lr-avatar-3d-orb"),"polished neutral empty state");
+ assert.ok(css.includes("lr-avatar-studio-3d"),"studio uses 3D-first art direction");
 });
+
 test("iPhone avatar page gets its own full-screen scroller without an overlaying bottom dock",()=>{
  const app=read("src/App.tsx");
  const css=read("src/couple-avatars.css");
@@ -122,12 +124,13 @@ test("iPhone avatar page gets its own full-screen scroller without an overlaying
  assert.ok(dock.includes(":not(.lr-avatar-mode)"));
  assert.ok(shell.includes(":not(.lr-avatar-mode)"));
 });
-test("a brand-new partner can save their default avatar and preview remains scoped to their own style",()=>{
+test("first-time members can start in Avaturn without saving any rejected legacy preset",()=>{
  const studio=read("src/CoupleAvatarStudio.tsx");
- assert.ok(studio.includes('!data.mine?"Créer mon avatar"'));
- assert.ok(studio.includes("Boolean(data.mine)"));
- assert.ok(studio.includes("partner={data.partner||DEFAULT_PARTNER_AVATAR}"));
- assert.ok(studio.includes("await onSaveStyle(draft)"));
+ assert.ok(studio.includes('data.mine3d?"Personnaliser à nouveau":"Créer mon avatar 3D"'));
+ assert.ok(studio.includes("setOpenAvaturn(true)"));
+ assert.ok(studio.includes("data.partner3d"),"partner model availability is tracked");
+ assert.ok(!studio.includes("onSaveStyle(draft)"));
+ assert.ok(studio.includes("onSaved={onModelImported}"));
 });
 
 test("animated hugs move articulated arms and tilt independent heads, not just whole bodies",()=>{
@@ -135,7 +138,7 @@ test("animated hugs move articulated arms and tilt independent heads, not just w
  const css=read("src/couple-avatars.css");
  assert.ok(svg.includes("lr-avatar-arm-figure"),"arm groups have distinct pivots");
  assert.ok(svg.includes("lr-avatar-arm-near"),"each partner raises their near arm");
- assert.ok(svg.includes('side="left"')&&svg.includes('side="right"'),"partners have mirrored arms");
+ assert.ok(svg.includes("export function AvatarCharacter"),"legacy illustration component remains for backwards compatibility");
  assert.ok(svg.includes('lr-avatar-head'),"heads can lean independently");
  assert.ok(svg.includes('lr-avatar-eyes'),"characters blink naturally");
  assert.ok(svg.includes('lr-avatar-legs'),"dancing includes footwork");
@@ -163,15 +166,15 @@ test("kiss, hand holding and dancing animate separately and keep readable faces"
  assert.ok(model.includes('main:"Main dans la main"'));
  assert.ok(model.includes('calin:"Gros câlin"'));
 });
-test("preview cards and sent chat stickers use the same running animations, respecting reduced motion",()=>{
+test("pose choices remain light and chat stickers avoid WebGL and rejected portraits",()=>{
  const studio=read("src/CoupleAvatarStudio.tsx");
  const app=read("src/App.tsx");
+ const duo=read("src/CoupleAvatarDuo.tsx");
  const css=read("src/couple-avatars.css");
- assert.ok(studio.includes('mode="sticker" animate={true}'),"cards must not be frozen");
- assert.ok(app.includes('mode="sticker"'),"chat reuses the same animated scene");
- assert.ok(css.includes(".lr-avatar-duo.lr-avatar-animate .lr-avatar-arm-figure"));
- assert.ok(css.includes(".lr-avatar-duo.lr-avatar-animate .lr-avatar-head"));
- assert.ok(css.includes(".lr-avatar-duo.lr-avatar-animate .lr-avatar-eyes"));
- assert.ok(css.includes(".lr-avatar-duo.lr-avatar-animate .lr-avatar-legs"));
+ assert.ok(studio.includes("COUPLE_POSES.map"));
+ assert.ok(studio.includes("lr-avaturn-pose-symbol"),"pose buttons use lightweight previews");
+ assert.ok(app.includes('mode="sticker"'),"existing encrypted chat sticker route is preserved");
+ assert.ok(duo.includes('mode!=="sticker"&&!renderFailed'),"no multiple WebGL contexts in conversation");
+ assert.ok(!duo.slice(duo.indexOf("type DuoProps")).includes("<AvatarCharacter"));
  assert.ok(css.includes("@media(prefers-reduced-motion:reduce)"));
 });
