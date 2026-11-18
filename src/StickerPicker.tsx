@@ -222,6 +222,7 @@ export default function StickerPicker({storageKey,onSend,onSendEmoji,onSendGif,o
      <button key={tab.id} type="button" role="tab" aria-selected={gifGroup===tab.id}
       className={gifGroup===tab.id?"is-selected":""} onClick={()=>setGifGroup(tab.id)}>{tab.label}</button>)}
    </div>
+   {GIPHY_KEY?<div className="lr-gif-attribution" aria-label="Powered By GIPHY"><span>Powered by <strong>GIPHY</strong></span></div>:null}
    <div className="lr-sticker-scroll lr-gif-scroll" role="tabpanel" aria-label="GIF animés">
     {GIPHY_KEY?<>
      {loadingGifs?<p className="lr-sticker-empty" role="status">Recherche des GIF animés…</p>:null}
@@ -245,8 +246,7 @@ export default function StickerPicker({storageKey,onSend,onSendEmoji,onSendGif,o
      </button>)}</div>
     </>}
    </div>
-   {GIPHY_KEY?<div className="lr-sticker-footer"><strong>Powered By GIPHY</strong><span>GIF servis directement par GIPHY</span></div>:
-    <div className="lr-sticker-footer"><span>32 animations Love Radar incluses</span><span>GIF externes en option</span></div>}
+   {!GIPHY_KEY?<div className="lr-sticker-footer"><span>32 animations Love Radar incluses</span><span>GIF externes en option</span></div>:null}
   </>}
  </section>;
 }

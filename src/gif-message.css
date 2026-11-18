@@ -3,8 +3,16 @@
  width:min(210px,55vw);max-width:100%;overflow:hidden;align-items:stretch}
 .lr-chat .lr-chat-gif img{display:block;width:100%;height:auto;max-height:230px;min-height:80px;
  object-fit:cover;border-radius:13px;background:#243547}
-.lr-chat .lr-chat-gif figcaption{color:#d7b6e0;font-size:9px!important;letter-spacing:.3px;
- text-align:right;padding-right:3px}
+/* WhatsApp-like source mark is inside the GIF, not a separate footer. */
+.lr-chat .lr-chat-gif-media{position:relative;width:100%;min-width:0;overflow:hidden;border-radius:13px}
+.lr-chat .lr-chat-gif figcaption.lr-chat-gif-brand{
+ position:absolute;left:9px;bottom:8px;z-index:1;max-width:calc(100% - 18px);
+ margin:0!important;padding:0!important;text-align:left!important;
+ color:#fff!important;font-size:10px!important;font-weight:800!important;
+ letter-spacing:.55px!important;line-height:1.1!important;
+ text-shadow:0 1px 5px #000,0 0 2px #000;
+ pointer-events:none;
+}
 .lr-chat .lr-chat-gif-placeholder{display:grid;place-items:center;min-height:118px;
  padding:12px;border:1px solid #ffffff18;border-radius:14px;background:#26384a;
  color:#d0dbe5;font-size:11px!important;text-align:center}
