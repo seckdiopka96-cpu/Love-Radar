@@ -34,7 +34,7 @@ test("one visible Ludo entrance opens the room with all four games",()=>{
 });
 
 test("classic Duo loads the newest shared board, never a cached legacy iframe",()=>{
- const duoVersion="ludo-room-20261117-v9";
+ const duoVersion="ludo-room-20261118-v10";
  const soloVersion="ludo-room-20261117-v5";
  assert.ok(duoFrame.includes('/ludo-duo/index.html?v='+duoVersion));
  assert.ok(soloFrame.includes('&v='+soloVersion));
@@ -43,7 +43,7 @@ test("classic Duo loads the newest shared board, never a cached legacy iframe",(
  assert.ok(soloHTML.includes('./style.css?v='+soloVersion));
  assert.ok(duoCSS.includes(".lr-ludo-duo-ui .app"));
  assert.ok(duoCSS.includes(".lr-ludo-duo-ui .board-frame"));
- assert.ok(read("public/sw.js").includes('love-radar-static-v133'));
+ assert.ok(read("public/sw.js").includes('love-radar-static-v134'));
 });
 
 test("the eight classic safe cells each have a visible star on both boards",()=>{
