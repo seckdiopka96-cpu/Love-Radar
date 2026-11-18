@@ -305,3 +305,13 @@ CREATE TABLE IF NOT EXISTS couple_avatar_models (
  room_id TEXT NOT NULL,member_id TEXT NOT NULL,object_key TEXT NOT NULL,
  updated_at INTEGER NOT NULL,PRIMARY KEY(room_id,member_id)
 );
+
+-- Each member's optional 3D look is independent of their GLB and legacy SVG styles.
+CREATE TABLE IF NOT EXISTS couple_avatar_looks (
+ room_id TEXT NOT NULL,member_id TEXT NOT NULL,
+ outfit_color TEXT NOT NULL DEFAULT 'original',
+ hair_color TEXT NOT NULL DEFAULT 'original',
+ shoes_color TEXT NOT NULL DEFAULT 'original',
+ updated_at INTEGER NOT NULL,
+ PRIMARY KEY(room_id,member_id)
+);

@@ -1,3 +1,4 @@
+import {safeAvatar3DLook,type Avatar3DLook} from "./avatar-3d-look";
 /** Original vector characters: presets are finite, validated and entirely free. */
 export const SKINS=["porcelaine","sable","miel","caramel","brun","ebene"] as const;
 export const HAIRS=["courts","boucles","tresses","locks","longs","hijab"] as const;
@@ -12,7 +13,8 @@ export type Outfit=typeof OUTFITS[number];
 export type Accessory=typeof ACCESSORIES[number];
 export type CouplePose=typeof COUPLE_POSES[number];
 export type AvatarStyle={skin:Skin;hair:Hair;hairColor:HairColor;outfit:Outfit;accessory:Accessory};
-export type CoupleAvatarState={mine:AvatarStyle|null;partner:AvatarStyle|null;pose:CouplePose;version:number;mine3d?:boolean;partner3d?:boolean};
+export type CoupleAvatarState={mine:AvatarStyle|null;partner:AvatarStyle|null;pose:CouplePose;version:number;mine3d?:boolean;partner3d?:boolean;
+ mineLook3d?:Avatar3DLook|null;partnerLook3d?:Avatar3DLook|null};
 export const DEFAULT_AVATAR:AvatarStyle={skin:"caramel",hair:"boucles",hairColor:"nuit",outfit:"rose",accessory:"aucun"};
 export const DEFAULT_PARTNER_AVATAR:AvatarStyle={skin:"brun",hair:"courts",hairColor:"chocolat",outfit:"bleu",accessory:"aucun"};
 export const DEFAULT_COUPLE_AVATARS:CoupleAvatarState={mine:null,partner:null,pose:"main",version:0};
@@ -50,6 +52,7 @@ export function safeCoupleAvatarState(value:unknown):CoupleAvatarState{
   partner:validAvatarStyle(v.partner)?safeAvatarStyle(v.partner):null,
   pose:validCouplePose(v.pose)?v.pose:"main",
   version:Number.isSafeInteger(v.version)&&Number(v.version)>=0?Number(v.version):0,
+  mineLook3d:safeAvatar3DLook(v.mineLook3d),partnerLook3d:safeAvatar3DLook(v.partnerLook3d),
   ...(typeof v.mine3d==="boolean"?{mine3d:v.mine3d}:{}),
   ...(typeof v.partner3d==="boolean"?{partner3d:v.partner3d}:{})};
 }

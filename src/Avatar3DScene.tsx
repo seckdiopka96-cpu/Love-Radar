@@ -3,10 +3,14 @@ import {apiFetch} from "./api";
 import {inspectAvatarGlb} from "./avatar-3d-diagnostics";
 import {restoreAvatarColorsOnIOS} from "./avatar-3d-image-fallback";
 import {requiresTopLevelAvaturnAuth} from "./avaturn-auth";
+import {applyAvatar3DLook} from "./avatar-3d-recolor";
+import {DEFAULT_3D_LOOK,type Avatar3DLook} from "./avatar-3d-look";
 import type {CouplePose,AvatarStyle} from "./couple-avatar-model";
 import "./avaturn-3d.css";
 type Props={token:string;mine:boolean;partner:boolean;pose:CouplePose;
- mineStyle:AvatarStyle;partnerStyle:AvatarStyle;onUnavailable:()=>void};
+ mineStyle:AvatarStyle;partnerStyle:AvatarStyle;
+ mineLook3d?:Avatar3DLook|null;partnerLook3d?:Avatar3DLook|null;
+ onUnavailable:()=>void};
 type Imported=typeof import("three");
 type BonePose={bone:import("three").Bone;rest:import("three").Quaternion;side:number};
 type Figure={root:import("three").Group;bone:Record<string,BonePose|undefined>;mirror:number};
@@ -82,7 +86,8 @@ function animateFigure(T:Imported,figure:Figure,pose:CouplePose,t:number,duoRead
  move("leftLeg",active==="danse"?.17*Math.sin(t*2.5):0,x);
  move("rightLeg",active==="danse"?-.17*Math.sin(t*2.5):0,x);
 }
-export default function Avatar3DScene({token,mine,partner,pose,mineStyle,partnerStyle,onUnavailable}:Props){
+export default function Avatar3DScene({token,mine,partner,pose,mineStyle,partnerStyle,
+ mineLook3d,partnerLook3d,onUnavailable}:Props){
  const canvas=useRef<HTMLCanvasElement>(null);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState("");
@@ -122,7 +127,7 @@ export default function Avatar3DScene({token,mine,partner,pose,mineStyle,partner
      new T.MeshBasicMaterial({color:0x8b6f9a,transparent:true,opacity:.1}));
     floor.rotation.x=-Math.PI/2;floor.position.y=-.02;scene.add(floor);
     const fetchFigure=async(which:"mine"|"partner",available:boolean,
-      style:AvatarStyle,mirror:number):Promise<Figure>=>{
+      style:AvatarStyle,mirror:number,look:Avatar3DLook):Promise<Figure>=>{
       const root=new T.Group();
       root.position.x=mine&&partner?mirror*.82:0;scene.add(root);created.push(root);
       const bone:Record<string,BonePose|undefined>={};
@@ -151,6 +156,8 @@ export default function Avatar3DScene({token,mine,partner,pose,mineStyle,partner
          setWarning("Les couleurs sont dans ton GLB, mais Safari n’a pas pu charger ses textures. Réouvre Love Radar ou réimporte le même fichier.");
        }
        if(disposed)throw Error("Cancelled");
+       await applyAvatar3DLook(T,model,look,()=>disposed);
+       if(disposed)throw Error("Cancelled");
        model.updateMatrixWorld(true);
        const box=new T.Box3().setFromObject(model);
        const size=box.getSize(new T.Vector3());
@@ -178,8 +185,8 @@ export default function Avatar3DScene({token,mine,partner,pose,mineStyle,partner
       return {root,bone,mirror};
     };
     const figures=await Promise.all([
-     fetchFigure("mine",mine,mineStyle,-1),
-     fetchFigure("partner",partner,partnerStyle,1)
+     fetchFigure("mine",mine,mineStyle,-1,mineLook3d||DEFAULT_3D_LOOK),
+     fetchFigure("partner",partner,partnerStyle,1,partnerLook3d||DEFAULT_3D_LOOK)
     ]);
     if(disposed)return;
     const resize=()=>{
@@ -231,7 +238,8 @@ export default function Avatar3DScene({token,mine,partner,pose,mineStyle,partner
    }
    if(renderer){renderer.dispose();renderer.forceContextLoss()}
   };
- },[token,mine,partner]);
+ },[token,mine,partner,mineLook3d?.outfit,mineLook3d?.hair,mineLook3d?.shoes,
+  partnerLook3d?.outfit,partnerLook3d?.hair,partnerLook3d?.shoes]);
  return <div className="lr-avatar-three-stage">
   <canvas ref={canvas} className="lr-avatar-three-canvas" aria-label="Vos deux avatars 3D en mouvement"/>
   {loading?<div className="lr-avatar-three-message" role="status">Préparation de vos avatars 3D…</div>:null}

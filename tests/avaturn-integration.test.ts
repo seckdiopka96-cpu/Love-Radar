@@ -4,6 +4,9 @@ import {readFileSync} from "node:fs";
 import {requiresTopLevelAvaturnAuth} from "../src/avaturn-auth";
 import {inspectAvatarGlb} from "../src/avatar-3d-diagnostics";
 import {embeddedAvatarBaseColors} from "../src/avatar-3d-textures";
+import {validAvatar3DLook,safeAvatar3DLook,DEFAULT_3D_LOOK,
+ type Avatar3DLook} from "../src/avatar-3d-look";
+import {recolorAvatarPixels} from "../src/avatar-3d-recolor";
 const read=(p:string)=>readFileSync(p,"utf8");
 
 test("free Avaturn embedded creator is present, no premium API secrets or paywall",()=>{
@@ -218,4 +221,64 @@ test("one real 3D avatar has its own spotlight instead of a fake sphere partner"
  assert.ok(duo.includes("Danse en solo"));
  assert.ok(css.includes(".lr-avatar-real-solo .lr-avatar-duo-heart{display:none}"));
  assert.ok(studio.includes("Les câlins, bisous et danses à deux prendront vie"));
+});
+
+test("real 3D avatar is editable inside the app with private per-partner sync",()=>{
+ const studio=read("src/CoupleAvatarStudio.tsx");
+ const picker=read("src/Avatar3DQuickEditor.tsx");
+ const hook=read("src/use-couple-avatars.ts");
+ const api=read("functions/api/couple-avatars.ts");
+ const state=read("src/couple-avatar-model.ts");
+ const scene=read("src/Avatar3DScene.tsx");
+ const home=read("src/HomeDashboard.tsx");
+ const deletion=read("functions/lib/delete-room.ts");
+ const schema=read("schema.sql");
+ assert.ok(studio.includes('quickEdit?"Fermer les modifications":"Modifier mon avatar"'));
+ assert.ok(studio.includes("<Avatar3DQuickEditor"));
+ assert.ok(studio.includes("onSaveLook3d(draftLook)"));
+ assert.ok(studio.includes("mineLook3d={draftLook||data.mineLook3d}"));
+ assert.ok(picker.includes('title:"Couleur des vêtements"'));
+ assert.ok(picker.includes('title:"Couleur des cheveux"'));
+ assert.ok(picker.includes('title:"Couleur des chaussures"'));
+ assert.ok(picker.includes("Enregistrer mon look"));
+ assert.ok(picker.includes("onAdvanced"));
+ assert.ok(hook.includes('kind:"look3d"'));
+ assert.ok(hook.includes("saveLook3d"));
+ assert.ok(api.includes('input.kind==="look3d"'));
+ assert.ok(api.includes("validAvatar3DLook(input.look)"));
+ assert.ok(api.includes("member.room_id,member.id,saved.outfit,saved.hair,saved.shoes"));
+ assert.ok(state.includes("mineLook3d:safeAvatar3DLook(v.mineLook3d)"));
+ assert.ok(state.includes("partnerLook3d:safeAvatar3DLook(v.partnerLook3d)"));
+ assert.ok(scene.includes("await applyAvatar3DLook(T,model,look,()=>disposed)"));
+ assert.ok(home.includes("mineLook3d={coupleAvatars.mineLook3d}"));
+ assert.ok(deletion.includes('"couple_avatar_looks"'),"erase 3D looks with the private room");
+ assert.ok(schema.includes("CREATE TABLE IF NOT EXISTS couple_avatar_looks"));
+});
+test("3D color choices preserve original materials and reject unexpected values",()=>{
+ assert.deepEqual(DEFAULT_3D_LOOK,{outfit:"original",hair:"original",shoes:"original"});
+ assert.equal(validAvatar3DLook(DEFAULT_3D_LOOK),true);
+ assert.equal(validAvatar3DLook({outfit:"rose",hair:"blond",shoes:"noir"}),true);
+ assert.equal(validAvatar3DLook({outfit:"../../private",hair:"blond",shoes:"noir"}),false);
+ assert.equal(validAvatar3DLook({outfit:"bleu",hair:"nuit",shoes:"javascript:alert(1)"}),false);
+ assert.equal(safeAvatar3DLook({outfit:"bleu",hair:"chatain",shoes:"blanc"})?.shoes,"blanc");
+ assert.equal(safeAvatar3DLook(null),null);
+ const valid:Avatar3DLook={outfit:"soleil",hair:"roux",shoes:"noir"};
+ assert.equal(validAvatar3DLook(valid),true);
+});
+test("texture recoloring changes a saturated shirt without recoloring muted denim",()=>{
+ const bytes=new Uint8Array(4*512);
+ for(let i=0;i<256;i++){bytes.set([34,153,49,255],i*4)}
+ for(let i=256;i<512;i++){bytes.set([91,108,134,255],i*4)}
+ const recolored=recolorAvatarPixels(bytes,"outfit","#e77fa2");
+ assert.notDeepEqual(Array.from(recolored.slice(0,4)),Array.from(bytes.slice(0,4)),
+  "shirt hue changes to the chosen swatch");
+ assert.deepEqual(Array.from(recolored.slice(256*4,256*4+4)),[91,108,134,255],
+  "muted denim remains untouched");
+ assert.deepEqual(Array.from(bytes.slice(0,4)),[34,153,49,255],
+  "the original GLB texture is not modified in place");
+ const code=read("src/avatar-3d-recolor.ts");
+ assert.ok(code.includes("tex.colorSpace=T.SRGBColorSpace"));
+ assert.ok(code.includes("tex.flipY=false"));
+ assert.ok(code.includes('document.createElement("canvas")'));
+ assert.ok(!code.includes("fetch("),"the in-app editor never uploads JPEG assets externally");
 });
