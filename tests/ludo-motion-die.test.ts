@@ -51,7 +51,7 @@ test("four pawns are chosen by touching the board, never from a second numbered 
  assert.ok(!solo.includes('textContent="Pion "+(index+1)'));
  assert.ok(!duo.includes('textContent="Pion "+(pawn+1)'));
  assert.ok(soloCSS.includes('.lr-ludo-solo-ui #turn-meta'));
- // The Duo countdown remains visible; it is not a duplicate die result.
+ // The redundant Duo banner is removed; turn indication stays on the active house.
  assert.ok(!soloCSS.includes('.lr-ludo-duo-ui #turn-meta'));
  assert.ok(soloCSS.includes('.lr-ludo-solo-ui #pawn-choices'));
  assert.ok(soloCSS.includes('.lr-ludo-duo-ui #pawn-choices'));
@@ -64,7 +64,8 @@ test("four pawns are chosen by touching the board, never from a second numbered 
   "Senegal pawns remain touchable while the necessary path-choice dialog stays intact");
  assert.ok(senegal.includes('className={"ludo-senegal-choice"'));
  assert.ok(solo.includes('choices.length>1 ? "Touche le pion à déplacer"'));
- assert.ok(duo.includes("À toi : touche ton pion pour avancer !"),"the Duo shows a clear, direct touch instruction");
+ assert.ok(!duoHTML.includes('class="turn-banner"'),"the redundant Duo waiting HUD is gone");
+ assert.ok(duo.includes('base.is-current-turn'),"the active turn is still indicated on the player's house");
 });
 test("moving pin shadow follows the pawn, not the board, in all modes",()=>{
  const immersive=readFileSync("src/ludo-immersive.css","utf8");
