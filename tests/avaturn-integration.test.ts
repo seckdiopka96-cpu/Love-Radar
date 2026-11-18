@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
+import {requiresTopLevelAvaturnAuth} from "../src/avaturn-auth";
 const read=(p:string)=>readFileSync(p,"utf8");
 
 test("free Avaturn embedded creator is present, no premium API secrets or paywall",()=>{
@@ -79,4 +80,25 @@ test("private GLBs are erased with room deletion and model replacement",()=>{
  assert.ok(api.includes("await env.STORAGE.delete(row.object_key)"),"per-member deletion exists");
  assert.ok(api.includes('if(owner!=="partner")return null'));
  assert.ok(api.includes('if(owner==="mine")return room.id'));
+});
+
+
+test("iPhone and iPad open Avaturn in a first-party Safari tab to avoid broken redirect sessions",()=>{
+ assert.equal(requiresTopLevelAvaturnAuth(
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 26_2 like Mac OS X) AppleWebKit/605.1.15",
+  "iPhone",5),true);
+ assert.equal(requiresTopLevelAvaturnAuth(
+  "Mozilla/5.0 (iPad; CPU OS 26_2 like Mac OS X)","iPad",5),true);
+ assert.equal(requiresTopLevelAvaturnAuth("Mozilla/5.0 (Macintosh; Intel Mac OS X)",
+  "MacIntel",5),true,"desktop-mode iPadOS is treated as iPad");
+ assert.equal(requiresTopLevelAvaturnAuth("Mozilla/5.0 (Android 16)", "Linux armv8l",5),false);
+ assert.equal(requiresTopLevelAvaturnAuth("Mozilla/5.0 (Macintosh)", "MacIntel",0),false);
+ const editor=read("src/Avaturn3DEditor.tsx");
+ assert.ok(editor.includes("if(externalOnIOS)return;"),"never loads nested auth iframe on iOS");
+ assert.ok(editor.includes("href={AVATURN_URL+\"/\"}"),"restart the editor on its own origin, not auth1 redirect URL");
+ assert.ok(editor.includes('target="_blank" rel="noopener noreferrer"'));
+ assert.ok(editor.includes("Importer un fichier GLB"),"private manual import remains available");
+ assert.ok(editor.includes("n’est pas transféré automatiquement"),"no misleading automatic export claim");
+ const css=read("src/avaturn-3d.css");
+ assert.ok(css.includes(".lr-avaturn-external-launch"));
 });
