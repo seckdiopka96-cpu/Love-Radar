@@ -12,6 +12,7 @@ const TOKEN=["a".repeat(64),"b".repeat(64),"c".repeat(64)];
 function fixture(){
  const sql=new DatabaseSync(":memory:");
  sql.exec(readFileSync("schema.sql","utf8"));
+ sql.exec("CREATE TABLE IF NOT EXISTS message_hidden(room_id TEXT NOT NULL,message_id TEXT NOT NULL,member_id TEXT NOT NULL,hidden_at INTEGER NOT NULL,PRIMARY KEY(room_id,message_id,member_id));CREATE TABLE IF NOT EXISTS message_one_time(room_id TEXT NOT NULL,message_id TEXT PRIMARY KEY,opened_by TEXT,opened_at INTEGER NOT NULL DEFAULT 0)");
  sql.prepare("INSERT INTO rooms(id,invite,owner_id,created_at) VALUES(?,?,?,?)").run("room-A","CODEAA","uA",Date.now());
  sql.prepare("INSERT INTO rooms(id,invite,owner_id,created_at) VALUES(?,?,?,?)").run("room-B","CODEBB","uC",Date.now());
  for(const [i,id,room,seat] of [[0,"uA","room-A",0],[1,"uB","room-A",1],[2,"uC","room-B",0]] as const)
