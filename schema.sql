@@ -275,12 +275,3 @@ CREATE TABLE IF NOT EXISTS couple_surprises(
  image_key TEXT,image_mime TEXT,audio_key TEXT,audio_mime TEXT,opened_at INTEGER,created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_surprises_room ON couple_surprises(room_id,created_at DESC);
-
-
--- Private per-member stars: only message UUIDs and save timestamps, never duplicate plaintext.
-CREATE TABLE IF NOT EXISTS message_favorites (
- room_id TEXT NOT NULL,member_id TEXT NOT NULL,message_id TEXT NOT NULL,created_at INTEGER NOT NULL,
- PRIMARY KEY(room_id,member_id,message_id)
-);
-CREATE INDEX IF NOT EXISTS idx_message_favorites_member
- ON message_favorites(room_id,member_id,created_at DESC);
