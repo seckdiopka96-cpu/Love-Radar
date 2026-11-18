@@ -109,7 +109,7 @@ test("Solo and Duo both display the final real die result, separate from transie
  assert.ok(duo.includes("const diceValue=g.dice??last?.face??"));
  assert.ok(duo.includes('dieResult.textContent=rollingNow?"·":String(diceValue)'));
  assert.ok(duo.includes("lastAnimatedRoll"));
- assert.ok(duo.includes("remoteDieTimer"));
+ assert.ok(duo.includes("dieVisualUntil"),"animation lasts long enough to show a physical throw");
  assert.ok(duo.includes("receivedState"));
  assert.ok(!duo.includes("dé\\\\s"),"regexp must have real whitespace escapes");
 });
