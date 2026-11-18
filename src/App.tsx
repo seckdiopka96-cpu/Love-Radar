@@ -684,7 +684,7 @@ export default function LoveRadar(){
     if(data.tab==="watch"||data.tab==="watch-tiktok")setWatchInvite(data.tab);
     if(data.tab==="reconcile")setReconcileInvite(true);
     if(document.visibilityState==="visible"&&["message","photo","audio"].includes(data.kind||"")){
-     const dest=parseNotice(noticeUrl({tab:data.tab,kind:data.kind,id:data.id}));
+     const dest=parseNotice(new URL(noticeUrl({tab:data.tab,kind:data.kind,id:data.id}),window.location.origin).search);
      setPushToastTarget(dest);
      setNotice("lr-partner-push:"+String(data.kind||"message"));
     }
