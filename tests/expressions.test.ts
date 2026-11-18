@@ -90,7 +90,8 @@ test("external GIFs use only client-side GIPHY API and send encrypted ID tokens"
  assert.ok(provider.includes('cache:"no-store"'),"no API response caching");
  assert.ok(!provider.includes("fetchGifFile"),"no downloading or R2 copying GIPHY media");
  assert.ok(renderer.includes("gifById(id,controller.signal)"),"recipient fetches directly");
- assert.ok(renderer.includes("Powered By GIPHY"),"mandatory provider attribution");
+ assert.ok(renderer.includes('className="lr-chat-gif-brand"'),"sent GIF shows a small source watermark");
+ assert.ok(renderer.includes('GIPHY</figcaption>'),"GIF source mark is concise");
  assert.ok(app.includes("onSendGif={sendGif}"));
  assert.ok(app.includes("text=encodeGif(id)"),"send as encrypted text message");
  assert.ok(app.includes("readGifId(m.content)?<GifMessage"),"render GIPHY ID without exposing raw token");
@@ -142,4 +143,20 @@ test("Pages CSP allows GIPHY API requests and animated media without opening oth
  assert.ok(provider.includes('response.status===429'),"explain rate-limit problems");
  assert.ok(provider.includes('response.status===401||response.status===403'),"explain invalid API key");
  assert.ok(provider.includes('Connexion à GIPHY impossible.'),"avoid raw WebKit Load failed errors");
+});
+
+test("GIPHY picker credits provider subtly above results and sent GIFs have an overlaid source mark",()=>{
+ const picker=readFileSync("src/StickerPicker.tsx","utf8");
+ const pickerStyles=readFileSync("src/sticker-picker-premium.css","utf8");
+ const render=readFileSync("src/GifMessage.tsx","utf8");
+ const renderStyles=readFileSync("src/gif-message.css","utf8");
+ assert.ok(picker.includes('className="lr-gif-attribution" aria-label="Powered By GIPHY"'));
+ assert.ok(picker.includes("Powered by <strong>GIPHY</strong>"));
+ assert.ok(!picker.includes('className="lr-sticker-footer"><strong>Powered By GIPHY</strong>'),
+  "picker does not waste space with a bottom GIPHY attribution bar");
+ assert.ok(pickerStyles.includes(".lr-expressive-picker .lr-gif-attribution"));
+ assert.ok(render.includes('className="lr-chat-gif-media"'));
+ assert.ok(render.includes('className="lr-chat-gif-brand"'));
+ assert.ok(renderStyles.includes("position:absolute;left:9px;bottom:8px"));
+ assert.ok(renderStyles.includes("pointer-events:none"));
 });
