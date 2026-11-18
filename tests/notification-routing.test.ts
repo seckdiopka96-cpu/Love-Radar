@@ -66,6 +66,16 @@ test("iPhone notification routing is confirmed after restoring the private room"
  assert.ok(app.includes('focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}'));
 });
 
+test("foreground notification toast opens its exact clicked message",()=>{
+ assert.ok(worker.includes('tab:destination.tab,kind:destination.kind,id:destination.id'),
+  "service worker must send the real message id to the foreground app");
+ assert.ok(app.includes('setPushToastTarget(dest)'),"banner stores the notification route");
+ assert.ok(app.includes('const target=pushToastTarget'));
+ assert.ok(app.includes('window.history.replaceState(null,"",noticeUrl(target))'));
+ assert.ok(app.includes('setNoticeTarget(target);setTab(target.tab)'));
+ assert.ok(app.includes('setNoticeTap(n=>n+1)'),"repeated taps on the same message must focus again");
+});
+
 test("notification targets survive an iPhone cold start and open their precise screen",()=>{
  assert.ok(worker.includes('PENDING_ROUTE_CACHE="love-radar-notification-route-v1"'));
  assert.ok(worker.includes("rememberNotificationRoute(destination)"));
