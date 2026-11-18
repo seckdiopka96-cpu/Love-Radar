@@ -12,8 +12,7 @@ export function inspectAvatarGlb(bytes:ArrayBuffer):AvatarGlbInfo|null{
  if(jsonLength<2||jsonLength>Math.min(bytes.byteLength-20,1_000_000)||
     view.getUint32(16,true)!==0x4e4f534a)return null;
  try{
-  const json=JSON.parse(new TextDecoder().decode(new Uint8Array(bytes,20,jsonLength)))
-   as Record<string,unknown>;
+  const json=JSON.parse(new TextDecoder().decode(new Uint8Array(bytes,20,jsonLength))) as Record<string,unknown>;
   const list=(key:string):Record<string,unknown>[]=>Array.isArray(json[key])?
    (json[key] as unknown[]).filter((x):x is Record<string,unknown>=>
     Boolean(x)&&typeof x==="object"&&!Array.isArray(x)):[];
