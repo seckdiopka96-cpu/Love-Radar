@@ -132,9 +132,9 @@ const HEARTS = ["♡","♥","✦","♡","♥"];
 const CHAT_REACTIONS=["👍","❤️","😂","😮","😢","🙏","👏"];
 const EXTRA_CHAT_REACTIONS=["🥰","😍","😘","💗","🔥","🎉","💯","🤗","😎","💐","🤲","😅"];
 
-type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"rps-challenge"|"daily-question"|"love-signal"|"love-letter"|"album-memory"|"couple-date"|"couple-mood"|"couple-dream"|"couple-hug"|"couple-challenge"|"couple-gift";
+type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"ludo-joined"|"memory-challenge"|"rps-challenge"|"daily-question"|"love-signal"|"love-letter"|"album-memory"|"couple-date"|"couple-mood"|"couple-dream"|"couple-hug"|"couple-challenge"|"couple-gift";
 type NoticeTarget={tab:Tab;kind:NoticeKind|null;id:string|null};
-const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","rps-challenge","daily-question","love-signal","love-letter","album-memory","couple-date","couple-mood","couple-dream","couple-hug","couple-challenge","couple-gift"]);
+const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","ludo-joined","memory-challenge","rps-challenge","daily-question","love-signal","love-letter","album-memory","couple-date","couple-mood","couple-dream","couple-hug","couple-challenge","couple-gift"]);
 function parseNotice(search:string):NoticeTarget|null{
  const q=new URLSearchParams(search);
  const tab=q.get("tab");
@@ -143,7 +143,7 @@ function parseNotice(search:string):NoticeTarget|null{
  if(tab!=="settings"&&tab!=="home"&&tab!=="life"&&tab!=="care"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="puzzle"&&tab!=="reconcile"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo-room"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="memory"&&tab!=="rps"&&tab!=="draw"&&tab!=="escape"&&tab!=="rapid"&&tab!=="truth"&&tab!=="memories")return null;
  const kind=q.get("kind"),id=q.get("id");
  if(!kind||!NOTICE_KINDS.has(kind)||!id||!(/^[0-9a-f-]{36}$/i.test(id)||(kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(id))))return {tab,kind:null,id:null};
- return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":kind==="rps-challenge"?"rps":kind==="daily-question"?"moment":kind==="love-signal"?"together":kind==="love-letter"||kind==="album-memory"?"memories":kind.startsWith("couple-")?"life":"chat",kind:kind as NoticeKind,id};
+ return {tab:kind==="ludo-challenge"||kind==="ludo-joined"?"ludo":kind==="memory-challenge"?"memory":kind==="rps-challenge"?"rps":kind==="daily-question"?"moment":kind==="love-signal"?"together":kind==="love-letter"||kind==="album-memory"?"memories":kind.startsWith("couple-")?"life":"chat",kind:kind as NoticeKind,id};
 }
 function noticeUrl(target:NoticeTarget){
  const q=new URLSearchParams({tab:target.tab});
@@ -790,7 +790,7 @@ export default function LoveRadar(){
   if(!routeId||!token||!room||!noticeTarget||tab!==noticeTarget.tab)return;
   // Display the Ludo agreement before clearing the saved iPhone invitation.
   // A mounted but still-loading game must not count as a successful open.
-  if(noticeTarget.kind==="ludo-challenge"&&readyLudoNotice!==noticeTarget.id)return;
+  if((noticeTarget.kind==="ludo-challenge"||noticeTarget.kind==="ludo-joined")&&readyLudoNotice!==noticeTarget.id)return;
   const kind=noticeTarget.kind,id=noticeTarget.id;
   if(id&&["message","photo","audio"].includes(kind||"")&&
    !room.messages.some(message=>message.id===id)&&
@@ -2013,6 +2013,7 @@ export default function LoveRadar(){
     <small>{notice.endsWith(":audio")?"🎙️ Nouveau message vocal":
       notice.endsWith(":photo")?"📷 Nouvelle photo":
       notice.endsWith(":ludo-challenge")?"🎲 Invitation Ludo Duo · Appuie pour jouer":
+      notice.endsWith(":ludo-joined")?"🎲 Ton partenaire a rejoint Ludo Duo · Rejoins-le":
       notice.endsWith(":memory-challenge")?"🧠 Invitation au Memory · Appuie pour jouer":
       notice.endsWith(":rps-challenge")?"✊ Invitation au jeu · Appuie pour jouer":
       notice.endsWith(":call")?"📞 Appel de ton partenaire":
@@ -2136,7 +2137,7 @@ export default function LoveRadar(){
     {tab==="rps"?<RpsDuo key={room.roomId+":"+room.user.id} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} onOpenChat={()=>navigate("chat")}/>:null}
      {tab==="draw"||tab==="escape"?<DuoArcade key={room.roomId+":"+room.user.id+":"+tab} mode={tab} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="rapid"||tab==="truth"?<CoupleParty key={room.roomId+":"+room.user.id+":"+tab} mode={tab} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} onOpenChat={()=>navigate("chat")}/>:null}
-    {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} myAvatar={avatars.mine} partnerAvatar={avatars.partner} onExit={()=>navigate("ludo-room")} challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}
+    {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} myAvatar={avatars.mine} partnerAvatar={avatars.partner} onExit={()=>navigate("ludo-room")} challengeId={noticeTarget?.kind==="ludo-challenge"||noticeTarget?.kind==="ludo-joined"?noticeTarget.id:null}
       onNotificationReady={markLudoNoticeReady}/>:null}
      {tab==="ludo-solo"?<LudoSoloEmbedded scope={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null}
      {tab==="ludo-senegal"?<SenegalLudo mode="duo" token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null}
