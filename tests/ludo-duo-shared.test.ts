@@ -89,7 +89,7 @@ test("Duo iframe works offline and uses only a same-origin parent, never replaci
   assert.ok(sw.includes('"'+path+'"'),path);
  }
  assert.ok(sw.includes('url.pathname.startsWith("/ludo-duo/")'));
- assert.ok(sw.includes("love-radar-static-v132"),"new PWA release must invalidate old shell");
+ assert.ok(sw.includes("love-radar-static-v133"),"new PWA release must invalidate old shell");
 });
 
 test("live Duo synchronizes promptly with conditional server reads",()=>{
