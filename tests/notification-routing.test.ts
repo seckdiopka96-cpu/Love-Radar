@@ -74,7 +74,7 @@ test("notification targets survive an iPhone cold start and open their precise s
  assert.ok(worker.includes("deliverPendingRoute(event.source)"));
  assert.ok(worker.includes("await self.clients.openWindow(url)"));
  assert.ok(worker.includes('focused.postMessage({type:"love-radar-open-notification",...destination,routeId})'));
- assert.ok(!worker.includes("await focused.navigate(url)"),"do not reload an existing chat on notification tap");
+ assert.ok(worker.includes('["ludo-challenge","memory-challenge","rps-challenge"].includes(destination.kind)'),"game invitations must force an exact URL navigation on iPhone");
  assert.ok(app.includes('window.addEventListener("pageshow",onPageShow)'));
  assert.ok(app.includes('navigator.serviceWorker?.ready.then(reg=>'));
  assert.ok(app.includes('type:"love-radar-request-pending-notification"'));
@@ -182,4 +182,40 @@ test("push worker remembers an exact route on cold iPhone launch",async()=>{
   waitUntil(p:Promise<unknown>){job=p as Promise<void>}});
  await job;
  assert.equal(stored.size,0,"clear route only after the app confirms navigation");
+});
+
+test("tap on Ludo invitation navigates the existing iPhone PWA to its exact game",async()=>{
+ const listeners=new Map<string,(ev:any)=>void>();
+ const stored=new Map<string,Response>();
+ const events:any[]=[];
+ let navigated="";
+ const client:any={
+  url:"https://love-radar-acd.pages.dev/?tab=home",
+  visibilityState:"visible",
+  focus:async()=>client,
+  navigate:async(url:string)=>{navigated=url;return client},
+  postMessage:(data:any)=>events.push(data)
+ };
+ const caches={open:async()=>({
+  put:async(k:string,v:Response)=>{stored.set(k,v)},
+  match:async(k:string)=>stored.get(k)?.clone(),
+  delete:async(k:string)=>stored.delete(k)
+ })};
+ const self={
+  location:{origin:"https://love-radar-acd.pages.dev"},
+  clients:{matchAll:async()=>[client],openWindow:async()=>{throw Error("should reuse installed PWA")}},
+  addEventListener:(name:string,fn:(event:any)=>void)=>listeners.set(name,fn)
+ };
+ new Script(worker,{filename:"public/sw.js"}).runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request,caches});
+ let task=Promise.resolve();
+ listeners.get("notificationclick")!({
+  notification:{close(){},data:{tab:"ludo",kind:"ludo-challenge",id:"44444444-4444-4444-8444-444444444444"}},
+  waitUntil(p:Promise<unknown>){task=p as Promise<void>}
+ });
+ await task;
+ assert.match(navigated,/\?tab=ludo&kind=ludo-challenge&id=44444444/);
+ assert.equal(events[0].tab,"ludo");
+ assert.equal(events[0].kind,"ludo-challenge");
+ assert.equal(events[0].id,"44444444-4444-4444-8444-444444444444");
+ assert.equal(stored.size,1,"iOS still has a persistent fallback if navigation fails to mount");
 });
