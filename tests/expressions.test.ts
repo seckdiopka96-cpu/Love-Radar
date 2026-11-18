@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {EMOJIS,EMOJI_CATEGORIES,filterEmojis} from "../src/emoji-catalog";
 import {STICKERS,MOTION_STICKERS,encodeSticker,readStickerId} from "../src/stickers";
-import {validGifUrl,readGifResults,readGifId,encodeGif} from "../src/gif-provider";
+import {validGifUrl,readGifResults,readGiphyPage,GIPHY_PAGE_SIZE,readGifId,encodeGif} from "../src/gif-provider";
 
 test("Emoji catalog has categorized offline keyboard, search and recent entries",()=>{
  assert.ok(EMOJIS.length>=230,"emoji keyboard should not be a token 20 emoji sample");
@@ -103,13 +103,13 @@ test("Picker has GIF, Stickers and Emojis with search, favorites, recents and le
  const picker=readFileSync("src/StickerPicker.tsx","utf8");
  const css=readFileSync("src/sticker-picker-premium.css","utf8");
  const app=readFileSync("src/App.tsx","utf8");
- for(const text of ["Émojis","GIF","Stickers","Récents","Favoris","Rechercher un GIF",
-  "Rechercher un emoji","onSendEmoji","onSendGif","gifsByIds","Powered By GIPHY"]){
+ for(const text of ["Émojis","GIF","Stickers","Récents","Rechercher un GIF",
+  "Rechercher un emoji","onSendEmoji","onSendGif","GiphyCatalogue"]){
   assert.ok(picker.includes(text),text);
  }
  assert.ok(picker.includes("onSend(id)"),"preserve sender transport");
  assert.ok(picker.includes("onSendEmoji(emoji)"),"emoji insert callback wired");
- assert.ok(picker.includes("onSendGif(item.id)"),"GIF IDs sent through text, no third party media saved");
+ assert.ok(readFileSync("src/GiphyCatalogue.tsx","utf8").includes("onSendGif(item.id)"),"GIF IDs sent through text, no third party media saved");
  assert.ok(app.includes("function insertEmoji(emoji:string)"));
  assert.ok(app.includes('chatInput.current?.setSelectionRange(position,position)'));
  assert.ok(app.includes("function sendSticker(id:string)"));
@@ -123,7 +123,9 @@ test("Picker has GIF, Stickers and Emojis with search, favorites, recents and le
 test("GIF provider is the default expression tab only when a GIPHY key is configured",()=>{
  const picker=readFileSync("src/StickerPicker.tsx","utf8");
  assert.ok(picker.includes('useState<Mode>(GIPHY_KEY?"gif":"stickers")'));
- assert.ok(picker.includes('if(mode!=="gif"||!GIPHY_KEY||gifGroup!=="trending")return;'));
+ assert.ok(picker.includes('<GiphyCatalogue key="gif" kind="gif"'));
+ assert.ok(picker.includes('<GiphyCatalogue key="sticker" kind="sticker"'));
+ assert.ok(picker.includes('<GiphyCatalogue key="emoji" kind="emoji"'));
 });
 
 test("Pages CSP allows GIPHY API requests and animated media without opening other origins",()=>{
@@ -147,16 +149,67 @@ test("Pages CSP allows GIPHY API requests and animated media without opening oth
 
 test("GIPHY picker credits provider subtly above results and sent GIFs have an overlaid source mark",()=>{
  const picker=readFileSync("src/StickerPicker.tsx","utf8");
+ const catalog=readFileSync("src/GiphyCatalogue.tsx","utf8");
  const pickerStyles=readFileSync("src/sticker-picker-premium.css","utf8");
  const render=readFileSync("src/GifMessage.tsx","utf8");
  const renderStyles=readFileSync("src/gif-message.css","utf8");
- assert.ok(picker.includes('className="lr-gif-attribution" aria-label="Powered By GIPHY"'));
- assert.ok(picker.includes("Powered by <strong>GIPHY</strong>"));
- assert.ok(!picker.includes('className="lr-sticker-footer"><strong>Powered By GIPHY</strong>'),
+ assert.ok(catalog.includes('className="lr-gif-attribution" aria-label="Powered By GIPHY"'));
+ assert.ok(catalog.includes("Powered by <strong>GIPHY</strong>"));
+ assert.ok(!catalog.includes('className="lr-sticker-footer"><strong>Powered By GIPHY</strong>'),
   "picker does not waste space with a bottom GIPHY attribution bar");
  assert.ok(pickerStyles.includes(".lr-expressive-picker .lr-gif-attribution"));
  assert.ok(render.includes('className="lr-chat-gif-media"'));
  assert.ok(render.includes('className="lr-chat-gif-brand"'));
  assert.ok(renderStyles.includes("position:absolute;left:9px;bottom:8px"));
  assert.ok(renderStyles.includes("pointer-events:none"));
+});
+
+test("GIPHY API supports 50 results, raw pagination offsets and distinct sticker/emoji endpoints",()=>{
+ assert.equal(GIPHY_PAGE_SIZE,50);
+ const fake=Array.from({length:50},(_,i)=>({
+  id:"TEST"+String(i).padStart(3,"0"),
+  title:"GIF "+i,
+  images:{fixed_width:{url:"https://media.giphy.com/media/example/giphy.gif"},
+   downsized:{url:"https://media2.giphy.com/media/example/giphy.gif"}}
+ }));
+ assert.equal(readGifResults({data:fake}).length,50);
+ const page=readGiphyPage({data:fake,pagination:{count:50,total_count:125}},0);
+ assert.equal(page.items.length,50);
+ assert.equal(page.nextOffset,50);
+ assert.equal(page.hasMore,true);
+ const next=readGiphyPage({data:fake,pagination:{count:50,total_count:125}},50);
+ assert.equal(next.nextOffset,100);
+ const last=readGiphyPage({data:fake.slice(0,25),pagination:{count:25,total_count:125}},100);
+ assert.equal(last.hasMore,false);
+ assert.equal(last.nextOffset,125);
+ assert.equal(readGiphyPage({data:[],pagination:{count:0,total_count:0}},0).hasMore,false);
+ const provider=readFileSync("src/gif-provider.ts","utf8");
+ assert.ok(provider.includes('new URL("https://api.giphy.com/v1/stickers"+path)'));
+ assert.ok(provider.includes('new URL("https://api.giphy.com/v2/emoji")'));
+ assert.ok(provider.includes('new URL("https://api.giphy.com/v1/gifs"+path)'));
+ assert.ok(provider.includes('limit:String(GIPHY_PAGE_SIZE)'));
+ assert.ok(provider.includes('offset:String(safeOffset)'));
+ assert.ok(provider.includes('q:value'),"send exact user search term");
+ assert.ok(provider.includes('cache:"no-store"'),"do not cache provider responses");
+});
+
+test("GIPHY collections paginate only near end, avoid stale results and send opaque IDs",()=>{
+ const catalog=readFileSync("src/GiphyCatalogue.tsx","utf8");
+ const picker=readFileSync("src/StickerPicker.tsx","utf8");
+ const css=readFileSync("src/sticker-picker-premium.css","utf8");
+ assert.ok(catalog.includes("onScroll={onScroll}"));
+ assert.ok(catalog.includes("element.scrollTop+element.clientHeight>=element.scrollHeight-220"));
+ assert.ok(catalog.includes("browseGiphy(kind,effectiveQuery,nextOffset,controller.signal)"));
+ assert.ok(catalog.includes("pagingBusy.current=true"));
+ assert.ok(catalog.includes("pagingController.current?.abort()"));
+ assert.ok(catalog.includes("generation.current!==epoch"));
+ assert.ok(catalog.includes("!known.has(item.id)"));
+ assert.ok(catalog.includes("onSendGif(item.id)"));
+ assert.ok(catalog.includes('localStorage.setItem(key,JSON.stringify(ids))'));
+ assert.ok(!catalog.includes("preview:"));
+ assert.ok(picker.includes('Stickers GIPHY'));
+ assert.ok(picker.includes('Émojis GIPHY'));
+ assert.ok(picker.includes('Classiques'));
+ assert.ok(css.includes(".lr-giphy-source-switch"));
+ assert.ok(css.includes(".lr-giphy-emoji .lr-gif-grid"));
 });
