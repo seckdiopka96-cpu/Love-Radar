@@ -139,3 +139,10 @@ test("last seen shows local day and time, but never invents unknown presence",()
  assert.ok(chat.includes('partnerOnline?"En ligne"'));
  assert.ok(chat.includes("setInterval(()=>setPresenceNow(Date.now()),10000)"));
 });
+
+test("successive voice bubbles have distinct spacing without enlarging regular messages",()=>{
+ const theme=readFileSync("src/clean-home-chat.css","utf8");
+ assert.ok(chat.includes('m.kind==="audio"&&previous?.kind==="audio"&&!newDay?" lr-voice-after-voice"'));
+ assert.match(theme,/\.lr-app\.lr-chat-mode \.lr-chat \.lr-bubble-row\.lr-voice-after-voice\s*\{\s*margin-top:16px!important;/);
+ assert.ok(!theme.includes(".lr-bubble-row.lr-grouped{margin-top:16px"),"normal grouped messages stay compact");
+});
