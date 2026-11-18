@@ -235,7 +235,7 @@ html.lr-ludo-duo-ui body{
  overflow:hidden!important;overscroll-behavior:none!important;
  scroll-behavior:auto!important;
 }
-html.lr-ludo-duo-ui .app{
+html.lr-ludo-duo-ui > body > main.app{
  height:100%!important;min-height:0!important;max-height:100%!important;
  overflow:hidden!important;overscroll-behavior:none;
 }
