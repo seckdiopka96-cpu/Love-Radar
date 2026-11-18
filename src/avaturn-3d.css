@@ -100,3 +100,47 @@
 .lr-avaturn-remove-confirm button{border:1px solid #a57e9d!important;border-radius:10px!important;
  color:#fff!important;background:#714660!important;font-size:11px!important;
  padding:9px 12px!important}
+
+/* iOS cannot reliably complete Avaturn's redirect sign-in from a third-party iframe.
+   Top-level Safari mode keeps the original Love Radar session untouched. */
+.lr-avaturn-embed{position:absolute;inset:0;width:100%;height:100%}
+.lr-avaturn-external{
+ display:flex;flex:1;min-height:0;flex-direction:column;justify-content:center;
+ align-items:center;gap:14px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+ padding:20px 16px;border:1px solid #6d5b86;border-radius:19px;
+ background:radial-gradient(ellipse at 49% 24%,#9e6ca438,transparent 69%),
+ linear-gradient(155deg,#212b48,#161e36 76%);text-align:center;
+}
+.lr-avaturn-external-icon{
+ width:70px;height:70px;border-radius:24px;display:grid;place-items:center;
+ font-size:36px;color:#ffe6f7;background:linear-gradient(145deg,#d98abd,#875cae);
+ box-shadow:0 13px 35px #060c2688,inset 0 1px 0 #fff6;
+}
+.lr-avaturn-external h3{font-size:21px;margin:2px 0 0;color:#fff4fc;line-height:1.25}
+.lr-avaturn-external>p{margin:0;max-width:480px;font-size:13px;line-height:1.65;color:#ced4e6}
+.lr-avaturn-external-launch{
+ display:flex;justify-content:center;align-items:center;gap:12px;
+ width:min(100%,370px);min-height:52px;padding:12px 18px;
+ text-decoration:none!important;border-radius:15px!important;
+ background:linear-gradient(120deg,#e58fc3,#9b6dbd)!important;
+ color:#fff!important;font-size:14px!important;font-weight:830!important;
+ box-shadow:0 10px 25px #070a2466;
+}
+.lr-avaturn-external-launch span{font-size:19px}
+.lr-avaturn-external .lr-avaturn-external-help{
+ padding:13px;max-width:450px;border-radius:14px;
+ border:1px solid #ddacd63b;background:#141b2e77;
+ font-size:11px;line-height:1.65;text-align:left;
+}
+.lr-avaturn-external-backup{
+ display:block;align-self:center;padding:8px 4px;color:#ecc3dd!important;
+ text-decoration:underline!important;text-underline-offset:3px;
+ font-size:11px!important;text-align:center;
+}
+@media(max-height:680px){
+ .lr-avaturn-external{justify-content:flex-start;padding:14px}
+ .lr-avaturn-external-icon{width:45px;height:45px;font-size:24px;flex-shrink:0}
+ .lr-avaturn-external h3{font-size:18px}
+ .lr-avaturn-external>p{font-size:11px}
+ .lr-avaturn-external-launch{min-height:46px;flex-shrink:0}
+}
