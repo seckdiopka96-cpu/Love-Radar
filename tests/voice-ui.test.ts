@@ -143,5 +143,5 @@ test("received voice bubbles use their original grey while outgoing voices stay 
   assert.ok(finalCss.includes("background-image:none!important"));
   assert.ok(finalCss.includes("border-color:#33393b!important"));
   assert.ok(voiceCss.includes("background:#bd2763!important"),"pink outgoing voices unchanged");
-  assert.ok(sw.includes('love-radar-static-v129'),"refresh older PWA cache");
+  assert.ok(sw.includes('love-radar-static-v130'),"refresh older PWA cache");
  });
