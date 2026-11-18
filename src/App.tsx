@@ -2078,16 +2078,7 @@ export default function LoveRadar(){
           <span className={"lr-chat-status "+(partnerOnline?"online":"offline")}>{partnerStatusText}</span>
          </button></div>
       </div>
-      <button type="button" className="lr-avatar-chat-open" aria-label="Nos avatars amoureux"
-       title="Nos avatars amoureux" onClick={()=>navigate("avatars")}>
-       <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" strokeWidth="1.8"
-        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="8" cy="8" r="3.2"/><circle cx="17" cy="9" r="2.7"/>
-        <path d="M2.5 21v-2a5.5 5.5 0 0 1 11 0v2m2-5a4 4 0 0 1 6 3.5V21"/>
-        <path d="M11 3.5c.5-1 1.9-1 2.4 0 .5-1 2-1 2.5 0 .7 1.1-1.1 2.6-2.5 3.5C12 6.1 10.3 4.6 11 3.5Z" fill="currentColor" stroke="none"/>
-       </svg>
-      </button>
-      <ChatThemePicker key={room.roomId} token={token} roomId={room.roomId} theme={chatTheme} onChange={setChatTheme}/>
+      <ChatThemePicker key={room.roomId} token={token} roomId={room.roomId} theme={chatTheme} onChange={setChatTheme} hideTrigger/>
       <div id="lr-voice-button-slot"/>
      </div>
      <div className="lr-chat-messages" ref={chatScroller} onScroll={e=>{const list=e.currentTarget;const near=list.scrollHeight-list.scrollTop-list.clientHeight<120;chatAtBottomRef.current=near;setChatAtBottom(prev=>prev===near?prev:near)}} role="log" aria-label="Messages" aria-live="off">
