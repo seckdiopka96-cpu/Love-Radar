@@ -18,7 +18,7 @@ import "./fun-camera.css";
 type Call = {id:string;status:"ringing"|"active";direction:"incoming"|"outgoing";createdAt:number;updatedAt:number;expiresAt:number;mode?:"audio"|"video"};
 type Signal = {id:number;kind:"offer"|"answer"|"candidate"|"restart";payload:string};
 type Result = {ok:boolean;error?:string;call?:Call|null;signals?:Signal[]};
-type Props = {token:string;partner:string;avatarSrc?:string;hasPartner:boolean;showButton:boolean;onOpenChat:()=>void};
+type Props = {token:string;partner:string;avatarSrc?:string;hasPartner:boolean;showButton:boolean;onOpenChat:()=>void;focusCallId?:string|null};
 
 const networkIsOffline=()=>navigator.onLine===false;
 const peerHasLocalOffer=(peer:RTCPeerConnection)=>peer.signalingState==="have-local-offer";
@@ -26,7 +26,7 @@ const STUN_SERVERS:RTCIceServer[]=[
  {urls:"stun:stun.cloudflare.com:3478"},
  {urls:"stun:stun.l.google.com:19302"}
 ];
-export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton,onOpenChat}:Props){
+export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton,onOpenChat,focusCallId}:Props){
  const [anchor,setAnchor]=useState<HTMLElement|null>(null);
  const [active,setActive]=useState<Call|null>(null);
  const [minimized,setMinimized]=useState(false);
@@ -59,6 +59,14 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const [localPreviewReady,setLocalPreviewReady]=useState(false);
  const [localPreviewHelp,setLocalPreviewHelp]=useState("");
  const current=useRef<Call|null>(null);
+ // A tapped incoming-call notification must expand the precise active call,
+ // even when the user previously minimized its video window.
+ useEffect(()=>{
+  if(focusCallId&&active?.id===focusCallId){
+   setMinimized(false);
+   setCallPanel("none");
+  }
+ },[focusCallId,active?.id]);
  const pc=useRef<RTCPeerConnection|null>(null);
  const iceServers=useRef<RTCIceServer[]>(STUN_SERVERS);
  const local=useRef<MediaStream|null>(null);
