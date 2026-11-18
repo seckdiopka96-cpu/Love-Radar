@@ -9,9 +9,12 @@ import {reconnectDelayMs,mustReconnect,MAX_RECONNECT_ATTEMPTS,clampFloatingCall}
 import type {PointerEvent as ReactPointerEvent,MouseEvent as ReactMouseEvent,CSSProperties} from "react";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
+import LensPicker from "./LensPicker";
+import {createLensProcessor,type LensProcessor,type LoveLensId} from "./love-lenses";
 import "./voice-call.css";
 import "./video-call.css";
 import "./floating-video.css";
+import "./fun-camera.css";
 
 type Call = {id:string;status:"ringing"|"active";direction:"incoming"|"outgoing";createdAt:number;updatedAt:number;expiresAt:number;mode?:"audio"|"video"};
 type Signal = {id:number;kind:"offer"|"answer"|"candidate"|"restart";payload:string};
@@ -49,6 +52,9 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const [cameraFacing,setCameraFacing]=useState<"user"|"environment">("user");
  const [cameraBusy,setCameraBusy]=useState(false);
  const [cameraWarning,setCameraWarning]=useState("");
+ const [callLens,setCallLens]=useState<LoveLensId>("none");
+ const [lensTray,setLensTray]=useState(false);
+ const [lensBusy,setLensBusy]=useState(false);
  const [remoteHasVideo,setRemoteHasVideo]=useState(false);
  const [remoteVideoReady,setRemoteVideoReady]=useState(false);
  const [localPreviewReady,setLocalPreviewReady]=useState(false);
@@ -62,10 +68,13 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const remoteVideo=useRef<HTMLVideoElement|null>(null);
  const localVideo=useRef<HTMLVideoElement|null>(null);
  const cameraSwitching=useRef(false);
+ const lensProcessor=useRef<LensProcessor|null>(null);
+ const lensRequest=useRef(0);
  const cancelPendingStart=useRef(false);
  const playLocalPreview=useCallback(async()=>{
   const element=localVideo.current;
-  const track=local.current?.getVideoTracks().find(video=>video.readyState==="live");
+  const track=lensProcessor.current?.track?.readyState==="live"?lensProcessor.current.track:
+   local.current?.getVideoTracks().find(video=>video.readyState==="live");
   if(!element)return;
   if(!track){
    element.srcObject=null;
@@ -276,6 +285,8 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   const p=pc.current;
   pc.current=null;
   if(p){p.ontrack=null;p.onicecandidate=null;p.onconnectionstatechange=null;p.oniceconnectionstatechange=null;p.close()}
+  lensRequest.current++;
+  lensProcessor.current?.stop();lensProcessor.current=null;
   if(local.current){local.current.getTracks().forEach(track=>track.stop());local.current=null}
   if(remote.current){remote.current.pause();remote.current.srcObject=null}
   if(remoteVideo.current){remoteVideo.current.pause();remoteVideo.current.srcObject=null}
@@ -289,6 +300,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(audioSession){try{audioSession.type="auto"}catch{/* Browser controls audio routing. */}}
   previousSinkId.current="";
   setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setSpeakerBusy(false);setMinimized(false);setVideoControlsVisible(true);setCallPanel("none");setDialed("");
+  setCallLens("none");setLensTray(false);setLensBusy(false);
   cameraSwitching.current=false;setCameraOff(false);setCameraFacing("user");setCameraBusy(false);setCameraWarning("");setRemoteHasVideo(false);setRemoteVideoReady(false);setLocalPreviewReady(false);setLocalPreviewHelp("");
  },[]);
  const reset=useCallback(()=>{
@@ -322,7 +334,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   for(const track of local.current.getAudioTracks())peer.addTrack(track,local.current);
   if(current.current?.mode==="video"){
    const videos=local.current.getVideoTracks();
-   if(videos.length)for(const track of videos)peer.addTrack(track,local.current);
+   if(videos.length)for(const track of videos)peer.addTrack(lensProcessor.current?.track||track,lensProcessor.current?.stream||local.current);
    else peer.addTransceiver("video",{direction:"recvonly"});
   }
   peer.ontrack=event=>{
@@ -701,12 +713,44 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   for(const t of local.current.getAudioTracks())t.enabled=!next;
   setMuted(next);
  }
+ async function chooseCallLens(id:LoveLensId){
+  const currentCall=current.current,raw=local.current?.getVideoTracks()[0];
+  if(currentCall?.mode!=="video"||!raw||raw.readyState!=="live"||lensBusy||cameraSwitching.current)return;
+  const sequence=++lensRequest.current;
+  setLensBusy(true);setCameraWarning("");
+  try{
+   const sender=pc.current?.getSenders().find(s=>s.track?.kind==="video");
+   if(id==="none"){
+    if(sender)await sender.replaceTrack(raw);
+    if(sequence!==lensRequest.current||!local.current||current.current?.id!==currentCall.id)return;
+    lensProcessor.current?.stop();lensProcessor.current=null;
+    setCallLens("none");
+   }else if(lensProcessor.current){
+    lensProcessor.current.setLens(id);setCallLens(id);
+   }else{
+    const processed=await createLensProcessor(raw,id);
+    if(sequence!==lensRequest.current||current.current?.id!==currentCall.id||
+      local.current?.getVideoTracks()[0]!==raw){processed.stop();return}
+    processed.track.enabled=!cameraOff;
+    try{if(sender)await sender.replaceTrack(processed.track)}
+    catch(err){processed.stop();throw err}
+    if(sequence!==lensRequest.current||current.current?.id!==currentCall.id){
+     processed.stop();return;
+    }
+    lensProcessor.current=processed;setCallLens(id);
+   }
+   if(localVideo.current)void playLocalPreview();
+  }catch(err){
+   setCameraWarning("Effet indisponible : "+(err instanceof Error?err.message:"réessaie."));
+  }finally{setLensBusy(false)}
+ }
  function toggleCamera(){
   if(current.current?.mode!=="video"||!local.current)return;
   const tracks=local.current.getVideoTracks();
   if(!tracks.length){setCameraWarning("Cette caméra est indisponible. Autorise-la puis rappelle.");return}
   const next=!cameraOff;
   tracks.forEach(track=>{track.enabled=!next});
+  if(lensProcessor.current)lensProcessor.current.track.enabled=!next;
   setCameraOff(next);
   if(next)setLocalPreviewReady(false);
   else void playLocalPreview();
@@ -732,7 +776,8 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    if(!track)throw Error("Aucune caméra détectée.");
    track.enabled=!cameraOff;
    // The outgoing caller has no video sender until the call is answered.
-   if(sender)await sender.replaceTrack(track);
+   if(lensProcessor.current)await lensProcessor.current.setSource(track);
+   else {if(sender)await sender.replaceTrack(track)}
    local.current.removeTrack(existing);local.current.addTrack(track);
    if(!stopped)existing.stop();
    adopted=true;
@@ -745,7 +790,9 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
     try{
      const restored=await acquire(oldFacing),track=restored.getVideoTracks()[0];
      if(track){
-      track.enabled=!cameraOff;if(sender)await sender.replaceTrack(track);
+      track.enabled=!cameraOff;
+      if(lensProcessor.current)await lensProcessor.current.setSource(track);
+      else {if(sender)await sender.replaceTrack(track)}
       local.current.removeTrack(existing);local.current.addTrack(track);
       setLocalPreviewReady(false);
       if(localVideo.current)void playLocalPreview();
@@ -867,6 +914,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(!call)return;
   // Keep the video peer and camera alive while sending messages, even during ringing.
   if(call.status!=="active"&&!(call.status==="ringing"&&call.direction==="outgoing"))return;
+  setLensTray(false);
   setCallPanel("none");setVideoControlsVisible(true);setMinimized(true);
   onOpenChat();
  }
@@ -888,6 +936,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(!videoCanToggleControls||callPanel!=="none")return;
   // Tapping camera retry or other embedded actions must not hide the HUD.
   if(event?.target instanceof Element&&event.target.closest("button,a,input"))return;
+  if(lensTray){setLensTray(false);return}
   setVideoControlsVisible(visible=>!visible);
  }
  const callStatus=isIncoming?(isVideo?"Appel vidéo entrant…":"Appel vocal entrant…"):isOutgoing?(isVideo?"Appel vidéo sortant…":"Appel vocal sortant…"):phase||"Connexion en cours…";
@@ -963,8 +1012,16 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
        <button type="button" className="lr-call-video-self-help" onClick={()=>void playLocalPreview()} aria-label="Relancer ma caméra">{localPreviewHelp||"Afficher ma caméra"}</button>
       :null}
       <button type="button" className="lr-call-video-retry" onClick={()=>void playLocalPreview()} title="Rafraîchir ma caméra" aria-label="Rafraîchir ma caméra">↻</button>
+      {!cameraOff?<button type="button" className={"lr-call-lens-trigger"+(callLens!=="none"?" is-active":"")}
+       aria-label="Choisir un effet pour mon visage" title="Effets caméra" onClick={()=>{setLensTray(v=>!v);setVideoControlsVisible(true)}}>✨</button>:null}
      </div>
      <div className="lr-call-video-tag">{showPartnerFullscreen?"EN APPEL · VIDÉO":"MA CAMÉRA · EN DIRECT"}</div>
+    </div>:null}
+    {isVideo&&lensTray?<div className="lr-call-lens-panel" role="dialog" aria-label="Choisir un effet vidéo">
+     <div className="lr-call-lens-heading"><strong>✨ Effets vidéo en direct</strong>
+      <button type="button" aria-label="Fermer les effets" onClick={()=>setLensTray(false)}>×</button></div>
+     <LensPicker value={callLens} onSelect={id=>void chooseCallLens(id)} disabled={lensBusy||cameraBusy}/>
+     <p className="lr-call-lens-note">Ton partenaire voit aussi l’effet. Les images restent traitées sur ton appareil.</p>
     </div>:null}
     <div className={"lr-call-actions"+(isIncoming?" is-ringing":"")} aria-label="Commandes de l’appel">
      {isIncoming?<>
@@ -1120,6 +1177,9 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
     </div>:<div className="lr-video-options-list">
      <button type="button" onClick={minimizeAndWrite}>
       <span className="lr-video-options-glyph" aria-hidden="true">✉</span><span><strong>Messages</strong><small>Écrire sans raccrocher, même pendant la sonnerie</small></span><b aria-hidden="true">›</b>
+     </button>
+     <button type="button" onClick={()=>{setCallPanel("none");setLensTray(true);setVideoControlsVisible(true)}}>
+      <span className="lr-video-options-glyph" aria-hidden="true">✨</span><span><strong>Effets caméra</strong><small>Ajoute des cœurs, des lunettes ou une couronne en direct</small></span><b aria-hidden="true">›</b>
      </button>
      <button type="button" onClick={()=>{setCallPanel("none");toggleCamera()}}>
       <span className="lr-video-options-glyph" aria-hidden="true">▣</span><span><strong>{cameraOff?"Réactiver la caméra":"Désactiver la caméra"}</strong><small>Gérer ce que voit ton partenaire</small></span><b aria-hidden="true">›</b>

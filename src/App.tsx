@@ -11,6 +11,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useLayoutE
 import {createPortal} from "react-dom";
 import "./love-radar.css";
 import VoiceCall from "./VoiceCall";
+import FunCamera from "./FunCamera";
 import CallHistoryBubble,{type CallHistoryEvent} from "./CallHistoryBubble";
 import Ludo from "./Ludo";
 import LudoSoloEmbedded from "./LudoSoloEmbedded";
@@ -84,7 +85,7 @@ import "./clean-home-chat.css";
 import "./delivery-status-ui.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
-type Tab = "home" | "together" | "life" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "ludo-room" | "rps" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
+type Tab = "home" | "together" | "camera" | "life" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "ludo-room" | "rps" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
 type EncryptionState={mine:string|null;partner:string|null;required:boolean};
 type ScreenshotEvent={id:string;member_id:string;created_at:number};
 type ChatTimelineItem = {type:"message";message:Message;index:number;createdAt:number}|{type:"call";call:CallHistoryEvent;createdAt:number}|{type:"screenshot";event:ScreenshotEvent;createdAt:number};
@@ -115,7 +116,7 @@ function NavGlyph({tab}:{tab:Tab}){
  </svg>;
 }
 function selectedNav(tab:Tab):Tab {
- if(tab==="life"||tab==="care"||tab==="moment"||tab==="puzzle"||tab==="reconcile"||tab==="reunion"||tab==="watch"||tab==="watch-tiktok")return "together";
+ if(tab==="camera"||tab==="life"||tab==="care"||tab==="moment"||tab==="puzzle"||tab==="reconcile"||tab==="reunion"||tab==="watch"||tab==="watch-tiktok")return "together";
  if(tab==="story")return "memories";
  if(tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo"||tab==="memory"||tab==="rps"||tab==="rapid"||tab==="truth")return "games";
  return tab;
@@ -1875,7 +1876,7 @@ export default function LoveRadar(){
  // Each outgoing message displays its own receipt, not just the most recent one.
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
- return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="home"&&room?"lr-home-mode ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+((tab==="together"||tab==="life")&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
+ return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(room?"lr-app-locked ":"")+(tab==="home"&&room?"lr-home-mode ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+((tab==="together"||tab==="life"||tab==="camera")&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
   {recoveryCode?<RecoveryCodeDialog code={recoveryCode} onClose={()=>setRecoveryCode("")}/>:null}
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-header-context" aria-label="Espace privé"><span>ESPACE PRIVÉ</span><strong>{tab==="settings"?"Paramètres":room?.partner?"Notre univers":"Bienvenue"}</strong></div>
@@ -1998,7 +1999,9 @@ export default function LoveRadar(){
     {tab==="home"?<HomeDashboard room={room} token={token} media={media} privacyEnabled={privacyEnabled} mineAvatar={avatars.mine} partnerAvatar={avatars.partner} onEditProfile={()=>profilePicker.current?.click()} onInvite={()=>void shareCode()} onNavigate={navigate}/>:null}
     {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
     {tab==="care"?<CoupleCare key={room.roomId+":"+room.user.id} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} onOpenChat={()=>navigate("chat")}/>:null}
-    {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenWatch={()=>navigate("watch")} onOpenPuzzle={()=>navigate("puzzle")} onOpenReconcile={()=>navigate("reconcile")} onOpenCare={()=>navigate("care")} onOpenLife={()=>navigate("life")} focusKind={noticeTarget?.kind==="love-signal"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"?noticeTarget.id:null}/>:null}
+    {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenWatch={()=>navigate("watch")} onOpenPuzzle={()=>navigate("puzzle")} onOpenReconcile={()=>navigate("reconcile")} onOpenCare={()=>navigate("care")} onOpenLife={()=>navigate("life")} onOpenCamera={()=>navigate("camera")} focusKind={noticeTarget?.kind==="love-signal"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"?noticeTarget.id:null}/>:null}
+    {tab==="camera"?<FunCamera key={room.roomId+":"+room.user.id} partner={room.partner} onBack={()=>navigate("together")}
+      onSendPhoto={async file=>upload(file,"image")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="life"?<CoupleExperiences token={token} myId={room.user.id} myName={room.user.name} partnerName={room.partner} privacyEnabled={privacyEnabled} onExit={()=>navigate("together")} onChat={()=>navigate("chat")} onWatch={()=>navigate("watch")} onGames={()=>navigate("games")} onMoment={()=>navigate("moment")} focusKind={noticeTarget?.kind} focusId={noticeTarget?.id}/>:null}
      {tab==="watch"?<WatchTogether token={token} myId={room.user.id} myName={room.user.name}
       partnerName={room.partner} messages={room.messages}
@@ -2035,6 +2038,7 @@ export default function LoveRadar(){
           <span className={"lr-chat-status "+(partnerOnline?"online":"offline")}>{partnerStatusText}</span>
          </button></div>
       </div>
+      <button type="button" className="lr-chat-fun-trigger" aria-label="Ouvrir la caméra avec effets" title="Effets caméra" onClick={()=>navigate("camera")}>✨</button>
       <div id="lr-voice-button-slot"/>
      </div>
      <div className="lr-chat-messages" ref={chatScroller} onScroll={e=>{const list=e.currentTarget;const near=list.scrollHeight-list.scrollTop-list.clientHeight<120;chatAtBottomRef.current=near;setChatAtBottom(prev=>prev===near?prev:near)}} role="log" aria-label="Messages" aria-live="off">

@@ -7,7 +7,7 @@ type Signal={id:string;sender_id:string;seat:number;kind:string;reply_to:string|
 type Reply={ok:boolean;error?:string;signals?:Signal[];focus?:Signal|null};
 type Props={
  token:string;myName:string;partnerName:string|null;mySeat:number;onExit:()=>void;
- onOpenMoment:()=>void;onOpenReunion:()=>void;onOpenWatch:()=>void;onOpenPuzzle:()=>void;onOpenReconcile:()=>void;onOpenCare:()=>void;onOpenLife:()=>void;
+ onOpenMoment:()=>void;onOpenReunion:()=>void;onOpenWatch:()=>void;onOpenPuzzle:()=>void;onOpenReconcile:()=>void;onOpenCare:()=>void;onOpenLife:()=>void;onOpenCamera:()=>void;
  focusKind?:"love-signal"|null;focusId?:string|null
 };
 const RESPONSE_OPTIONS=[
@@ -21,7 +21,7 @@ function messageOf(signal:Signal){
  if(signal.kind==="love")return "Je t’aime 💖";
  return "Tu me manques aussi ❤️";
 }
-export default function Together({token,myName,partnerName,mySeat,onExit,onOpenMoment,onOpenReunion,onOpenWatch,onOpenPuzzle,onOpenReconcile,onOpenCare,onOpenLife,focusKind,focusId}:Props){
+export default function Together({token,myName,partnerName,mySeat,onExit,onOpenMoment,onOpenReunion,onOpenWatch,onOpenPuzzle,onOpenReconcile,onOpenCare,onOpenLife,onOpenCamera,focusKind,focusId}:Props){
  const [signals,setSignals]=useState<Signal[]>([]);
  const [focused,setFocused]=useState<Signal|null>(null);
  const [onlyFocused,setOnlyFocused]=useState(Boolean(focusKind==="love-signal"&&focusId));
@@ -97,6 +97,11 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
     <span className="tg-life-emblem" aria-hidden="true">💞</span>
     <span className="tg-life-content"><small>6 EXPÉRIENCES À DEUX</small><strong>Notre quotidien</strong><span>Soirées · Humeurs · Rêves · Câlins · Défis · Surprises</span></span>
     <span className="tg-life-arrow" aria-hidden="true">›</span>
+   </button>
+   <button type="button" className="lr-together-fun-feature" onClick={onOpenCamera} aria-label="Ouvrir la caméra fun avec effets animés">
+    <span className="lr-together-fun-icon" aria-hidden="true">✨</span>
+    <span><small>NOTRE STUDIO PHOTO</small><strong>Caméra fun</strong><em>Filtres animés · Photos · Vidéos · Sans appel</em></span>
+    <b aria-hidden="true">›</b>
    </button>
    <div className="tg-shortcuts" aria-label="Nos activités à deux">
     <button type="button" className="tg-moment-link" onClick={onOpenMoment}>
