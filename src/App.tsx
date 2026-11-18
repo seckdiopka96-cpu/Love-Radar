@@ -231,6 +231,16 @@ export default function LoveRadar(){
  const [focusMedia,setFocusMedia]=useState("");
  const focusAsset=useRef("");
  function closeNotice(){
+  // Consume a dismissed notification so focus does not reopen it.
+  if(pendingNoticeRouteId){
+   const routeId=pendingNoticeRouteId;
+   void navigator.serviceWorker?.ready.then(reg=>{
+    (navigator.serviceWorker.controller||reg.active)?.postMessage({
+     type:"love-radar-ack-notification",routeId
+    });
+   }).catch(()=>{});
+   setPendingNoticeRouteId("");
+  }
   lastMessageJump.current="";
   setNoticeTarget(null);
   setFocusMessage(null);
@@ -1394,7 +1404,7 @@ export default function LoveRadar(){
 
  function finishApprovedPartnerRecovery(newToken:string){
   setError("");setToken(newToken);setRecoverMode(false);setRecoverInput("");
-  setTab("chat");
+  setTab(parseNotice(window.location.search)?.tab||"chat");
   void refresh(newToken).then(()=>{
    setNotice("Compte retrouvé ! Tes anciens messages disponibles sur le serveur sont de nouveau accessibles.");
   });
@@ -1426,7 +1436,7 @@ export default function LoveRadar(){
    persistSessionToken(data.token);
    setToken(data.token);
    await refresh(data.token);
-   setRecoverInput("");setRecoverMode(false);setTab("home");
+   setRecoverInput("");setRecoverMode(false);setTab(parseNotice(window.location.search)?.tab||"home");
    setRecoveryCode(data.recoveryCode);
    setNotice("Compte retrouvé ! Ton ancien appareil est déconnecté.");
   }catch(e){setError(e instanceof Error?e.message:"Récupération impossible.")}
