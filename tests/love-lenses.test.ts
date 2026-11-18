@@ -92,5 +92,5 @@ test("Face Mesh assets are first-party; WebAssembly permission is scoped and cam
  assert.ok(read("src/love-lenses.ts").includes('"/face-mesh/"+file'));
  assert.ok(headers.includes("Permissions-Policy: camera=(self)"));
  assert.ok(headers.includes("'wasm-unsafe-eval'"));
- assert.ok(sw.includes("love-radar-static-v108"));
+ assert.ok(sw.includes("love-radar-static-v109"));
 });
