@@ -64,7 +64,7 @@ test("3D couple rendering is progressive and never breaks legacy animated avatar
  assert.ok(scene.includes('import("three")'));
  assert.ok(scene.includes('import("three/addons/loaders/GLTFLoader.js")'));
  assert.ok(scene.includes("parseAsync(bytes"));
- assert.ok(scene.includes("animateFigure(T,figure,poseRef.current,t)"));
+ assert.ok(scene.includes("animateFigure(T,figure,poseRef.current,t,mine&&partner)"));
  assert.ok(scene.includes("prefers-reduced-motion"));
  assert.ok(scene.includes("renderer.forceContextLoss()"),"free GPU on exit");
  assert.ok(scene.includes("controller.abort()"));
@@ -180,7 +180,19 @@ test("Avaturn GLB embedded JPEG base-color maps are recoverable for iOS (no netw
  assert.ok(scene.includes("-side*(.83+.50*wave*(near?1:-1))"),
   "Avaturn's horizontally extended arms bend downward in dance mode");
  assert.ok(fallback.includes("new Image()"),"iOS texture decoding does not depend on ImageBitmap");
+ assert.ok(fallback.includes("new T.DataTexture(rgba,width,height,T.RGBAFormat,T.UnsignedByteType)"),
+  "use raw RGBA pixel buffer for iOS WebGL upload instead of DOM image");
+ assert.ok(fallback.includes('context.getImageData(0,0,width,height).data'));
+ assert.ok(fallback.includes("texture.generateMipmaps=true"),"mipmapped filters require mipmaps for complete textures");
  assert.ok(fallback.includes("texture.flipY=false"));
  assert.ok(fallback.includes("texture.colorSpace=T.SRGBColorSpace"));
  assert.ok(!fallback.includes("fetch("),"embedded avatar colors never leave the local device");
+});
+
+test("A missing partner does not leave the first Avaturn avatar in half T-pose",()=>{
+ const scene=read("src/Avatar3DScene.tsx");
+ assert.ok(scene.includes('const angle=(!duoReady&&pose==="main")?-side*1.32'),
+  "both arms rest down when the second partner has not created an avatar");
+ assert.ok(scene.includes("animateFigure(T,figure,poseRef.current,t,mine&&partner)"),
+  "actual couple pose is selected only after both private 3D models are present");
 });
