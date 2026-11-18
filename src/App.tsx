@@ -708,6 +708,12 @@ export default function LoveRadar(){
       // A still-pending notification must be replayable if WebKit restored
       // the homepage after a partial or interrupted navigation. Do not drop
       // this exact destination simply because its routeId was seen before.
+      if(lastHandledNotice.current!==routeId){
+       // New invitation: do not confuse it with an old loaded game or
+       // a previous missing-message error from the same iPhone session.
+       setReadyLudoNotice("");
+       setFocusMessage(null);setFocusError("");
+      }
       lastHandledNotice.current=routeId;
       setPendingNoticeRouteId(routeId);
      }
