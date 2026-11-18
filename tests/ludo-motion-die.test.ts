@@ -64,7 +64,7 @@ test("four pawns are chosen by touching the board, never from a second numbered 
   "Senegal pawns remain touchable while the necessary path-choice dialog stays intact");
  assert.ok(senegal.includes('className={"ludo-senegal-choice"'));
  assert.ok(solo.includes('choices.length>1 ? "Touche le pion à déplacer"'));
- assert.ok(duo.includes('"Touche le pion à déplacer"'));
+ assert.ok(duo.includes("À toi : touche ton pion pour avancer !"),"the Duo shows a clear, direct touch instruction");
 });
 test("moving pin shadow follows the pawn, not the board, in all modes",()=>{
  const immersive=readFileSync("src/ludo-immersive.css","utf8");
