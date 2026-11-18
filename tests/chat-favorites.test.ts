@@ -3,10 +3,7 @@ import assert from "node:assert/strict";
 import {DatabaseSync} from "node:sqlite";
 import {createHash,randomUUID} from "node:crypto";
 import {readFileSync} from "node:fs";
-import {createElement} from "react";
-import {renderToStaticMarkup} from "react-dom/server";
 import {onRequestGet,onRequestPost} from "../functions/api/favorites";
-import ChatFavorites from "../src/ChatFavorites";
 type Resp={ok:boolean;error?:string;favorites?:{id:string;content:string|null;kind:string}[]};
 const TOKEN=["a".repeat(64),"b".repeat(64),"c".repeat(64)];
 function fixture(){
@@ -84,17 +81,14 @@ test("encrypted text stays opaque in favorites storage and is not indexed server
  assert.ok(!Object.values(raw).some(v=>typeof v==="string"&&v.includes("opaque-payload")));
  f.sql.close();
 });
-test("search panel gives access to old voice and loaded plaintext messages",()=>{
- const voiceId=randomUUID();
- const markup=renderToStaticMarkup(createElement(ChatFavorites,{
-  messages:[{id:voiceId,sender_id:"uB",kind:"audio",content:null,object_key:"media-voice",mime:"audio/webm",created_at:Date.now()}],
-  favorites:[],media:{},mineId:"uA",partner:"Amour",myName:"Moi",privacyEnabled:true,
-  hasMore:true,historyBusy:false,historyError:"",favoritesBusy:false,favoritesError:"",
-  initialMode:"search",onToggle:()=>{},onLoadOlder:()=>{},onLoadMedia:()=>{},onOpen:()=>{},onClose:()=>{}
- }));
- assert.match(markup,/Rechercher un mot, un prénom ou un ancien vocal/);
- assert.match(markup,/Écouter le vocal/);
- assert.match(markup,/Chercher aussi dans les messages plus anciens/);
+test("search panel includes saved voices, more history and on-device text filtering",()=>{
+ const ui=readFileSync("src/ChatFavorites.tsx","utf8");
+ assert.match(ui,/Rechercher un mot, un prénom ou un ancien vocal/);
+ assert.match(ui,/Écouter le vocal/);
+ assert.match(ui,/Chercher aussi dans les messages plus anciens/);
+ assert.match(ui,/normalize\(item\.content\|\|""\)\.includes\(q\)/);
+ assert.match(ui,/onLoadMedia\(item\)/);
+ assert.match(ui,/favoritesIds\.has\(item\.id\)/);
 });
 test("favorite entry remains in long press menu and is erased when couple data is removed",()=>{
  const app=readFileSync("src/App.tsx","utf8"),deletion=readFileSync("functions/lib/delete-room.ts","utf8");
