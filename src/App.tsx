@@ -2096,7 +2096,7 @@ export default function LoveRadar(){
        return <Fragment key={m.id}>
         {newDay?<div className="lr-chat-day">{date}</div>:null}
         <div id={"lr-chat-message-"+m.id}
-          className={"lr-bubble-row lr-reply-gesture "+(mine?"mine ":"other ")+(groupedBefore?"lr-grouped ":"")+(groupedAfter?"lr-group-next":"")+(noticeTarget?.id===m.id&&tab==="chat"?" lr-notified-bubble":"")}
+          className={"lr-bubble-row lr-reply-gesture "+(mine?"mine ":"other ")+(groupedBefore?"lr-grouped ":"")+(groupedAfter?"lr-group-next":"")+(m.kind==="audio"&&previous?.kind==="audio"&&!newDay?" lr-voice-after-voice":"")+(noticeTarget?.id===m.id&&tab==="chat"?" lr-notified-bubble":"")}
           onPointerDown={e=>messagePointerDown(e,m)}
           onPointerMove={messagePointerMove}
           onPointerUp={e=>messagePointerUp(e,m)}
