@@ -1,6 +1,8 @@
 import {useEffect,useState} from "react";
 import CoupleAvatarDuo from "./CoupleAvatarDuo";
 import Avaturn3DEditor from "./Avaturn3DEditor";
+import Avatar3DQuickEditor from "./Avatar3DQuickEditor";
+import {DEFAULT_3D_LOOK,type Avatar3DLook} from "./avatar-3d-look";
 import {apiFetch} from "./api";
 import {DEFAULT_AVATAR,DEFAULT_PARTNER_AVATAR,COUPLE_POSES,POSE_LABEL,
  type AvatarStyle,type CoupleAvatarState,type CouplePose} from "./couple-avatar-model";
@@ -10,16 +12,19 @@ type Props={data:CoupleAvatarState;myName:string;partnerName:string;hasPartner:b
  token:string;onModelImported:()=>Promise<void>;
  saving:boolean;onSaveStyle:(value:AvatarStyle)=>Promise<unknown>;
  onSavePose:(pose:CouplePose)=>Promise<unknown>;
+ onSaveLook3d:(look:Avatar3DLook)=>Promise<unknown>;
  onSend:(pose:CouplePose)=>void;onBack:()=>void};
 const POSE_ICONS:Record<CouplePose,string>={main:"🫶",calin:"🤗",bisou:"😘",danse:"💃"};
 
 export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,saving,token,onModelImported,
- onSavePose,onSend,onBack}:Props){
+ onSavePose,onSaveLook3d,onSend,onBack}:Props){
  const [posePreview,setPosePreview]=useState<CouplePose>(data.pose);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
  const [openAvaturn,setOpenAvaturn]=useState(false);
+ const [quickEdit,setQuickEdit]=useState(false);
+ const [draftLook,setDraftLook]=useState<Avatar3DLook|null>(null);
  const [confirmRemove3d,setConfirmRemove3d]=useState(false);
  const [removing3d,setRemoving3d]=useState(false);
  useEffect(()=>{if(!busy)setPosePreview(data.pose)},[data.pose,busy]);
@@ -35,6 +40,16 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
    setNotice("Ton modèle 3D a été supprimé. Tu peux en créer un nouveau.");
   }catch(e){setError(e instanceof Error?e.message:"Impossible de supprimer le modèle.")}
   finally{setRemoving3d(false)}
+ }
+ function closeQuickEdit(){setQuickEdit(false);setDraftLook(null);setError("");}
+ async function saveQuickLook(){
+  if(!draftLook||busy||saving)return;
+  setBusy(true);setError("");setNotice("");
+  try{
+   await onSaveLook3d(draftLook);setDraftLook(null);setQuickEdit(false);
+   setNotice("Ton avatar est modifié et partagé avec ton partenaire ✓");
+  }catch(e){setError(e instanceof Error?e.message:"Modification impossible.");}
+  finally{setBusy(false)}
  }
  async function choosePose(value:CouplePose){
   if(busy||saving||value===posePreview)return;
@@ -60,7 +75,9 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
    <div className="lr-avatar-studio-stage-heading"><span>✧</span> VOTRE DUO <span>✧</span></div>
    <CoupleAvatarDuo mine={data.mine||DEFAULT_AVATAR} partner={data.partner||DEFAULT_PARTNER_AVATAR}
     pose={posePreview} mode="hero" mineName={myName} partnerName={partnerName}
-    token={token} mine3d={Boolean(data.mine3d)} partner3d={Boolean(data.partner3d)} modelVersion={data.version}/>
+    token={token} mine3d={Boolean(data.mine3d)} partner3d={Boolean(data.partner3d)}
+    mineLook3d={draftLook||data.mineLook3d} partnerLook3d={data.partnerLook3d}
+    modelVersion={data.version}/>
    <div className="lr-avatar-studio-names"><span><i/> {myName}</span><span><i/> {partnerName}</span></div>
    {hasPartner&&!data.partner3d?<p className="lr-avatar-studio-hint">Ton avatar s’affiche seul pour le moment. Les câlins, bisous et danses à deux prendront vie quand ton partenaire aura créé son avatar 3D.</p>:null}
    {!hasPartner?<p className="lr-avatar-studio-hint">Invite ton partenaire pour vivre vos animations ensemble.</p>:null}
@@ -71,13 +88,25 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
     <span className="lr-avaturn-card-symbol" aria-hidden="true">3D</span>
     <div><small>TON STYLE · AVATURN</small>
      <h2>{data.mine3d?"Ton personnage est prêt":"Crée ton véritable avatar 3D"}</h2>
-     <p>Choisis ton visage, ta coiffure, tes vêtements et tes accessoires dans Avaturn.
-      Retrouve ensuite ton personnage en 3D dans votre espace à deux.</p>
+     <p>{data.mine3d?
+      "Change les couleurs de ton personnage directement dans Love Radar. Aucun fichier à télécharger.":
+      "Crée ton avatar 3D une seule fois. Ensuite, tu pourras modifier ses couleurs ici."}</p>
     </div>
    </div>
-   <button type="button" className="lr-avaturn-launch" onClick={()=>setOpenAvaturn(true)}>
-    {data.mine3d?"Personnaliser à nouveau":"Créer mon avatar 3D"} <span aria-hidden="true">↗</span>
+   <button type="button" className="lr-avaturn-launch"
+    aria-expanded={data.mine3d?quickEdit:undefined}
+    onClick={()=>{if(data.mine3d){
+     if(quickEdit){closeQuickEdit();return}
+     setDraftLook(data.mineLook3d||DEFAULT_3D_LOOK);setQuickEdit(true);setError("");setNotice("");
+    }else setOpenAvaturn(true)}}>
+    {data.mine3d?(quickEdit?"Fermer les modifications":"Modifier mon avatar"):"Créer mon avatar 3D"}
+    <span aria-hidden="true">✦</span>
    </button>
+   {data.mine3d&&quickEdit&&draftLook?
+    <Avatar3DQuickEditor look={draftLook} disabled={busy||saving}
+     onPreview={setDraftLook} onSave={()=>void saveQuickLook()}
+     onCancel={closeQuickEdit}
+     onAdvanced={()=>{closeQuickEdit();setOpenAvaturn(true)}}/>:null}
    {data.mine3d?<><p className="lr-avaturn-card-active" role="status">Ton avatar 3D est enregistré et partagé avec ton partenaire ✓</p>
     {!confirmRemove3d?<button type="button" className="lr-avaturn-remove-link"
      onClick={()=>setConfirmRemove3d(true)}>Supprimer mon modèle 3D</button>:
