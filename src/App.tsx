@@ -52,6 +52,7 @@ import {encodeGif,readGifId} from "./gif-provider";
 import {encodeSticker,isSticker,readStickerId} from "./stickers";
 import {mediaRetryDelay,MEDIA_AUTO_RETRY_LIMIT} from "./reliability-rules";
 import ChatActivity from "./ChatActivity";
+import ChatFavorites,{type ArchiveMessage,type FavoriteMessage} from "./ChatFavorites";
 import QuoteCard from "./QuoteCard";
 import {quoteAuthor,type QuoteKind} from "./message-quote";
 import {mergeOptimisticMessages,shouldKeepVoiceDraft,type AudioOutboxStatus} from "./voice-outbox";
@@ -82,6 +83,7 @@ import "./call-history.css";
 import "./message-context-premium.css";
 import "./clean-home-chat.css";
 import "./delivery-status-ui.css";
+import "./chat-favorites.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "life" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "ludo-room" | "rps" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
@@ -270,6 +272,12 @@ export default function LoveRadar(){
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
  const [olderMessages,setOlderMessages]=useState<Message[]>([]);
+ const [favoriteMessages,setFavoriteMessages]=useState<FavoriteMessage[]>([]);
+ const [favoritesBusy,setFavoritesBusy]=useState(false);
+ const [favoritesError,setFavoritesError]=useState("");
+ const [archiveOpen,setArchiveOpen]=useState(false);
+ const [archiveMode,setArchiveMode]=useState<"saved"|"search">("saved");
+ const favoriteIds=useMemo(()=>new Set(favoriteMessages.map(m=>m.id)),[favoriteMessages]);
  const [historyBusy,setHistoryBusy]=useState(false);
  const [historyMore,setHistoryMore]=useState(true);
  const [historyError,setHistoryError]=useState("");
@@ -301,6 +309,31 @@ export default function LoveRadar(){
    reply_content:entry.replyContent||null,reply_sender_id:entry.replySenderId||null
   }))
  ]),[olderMessages,room?.messages,room?.user.id,voiceOutbox,textOutbox]);
+ // A favorite is strictly personal. Only encrypted message bytes or opaque IDs are returned from D1.
+ useEffect(()=>{
+  let active=true;
+  setFavoriteMessages([]);setFavoritesError("");
+  setArchiveOpen(false);
+  if(!token||!room?.roomId)return;
+  const rm=room;
+  const reload=async()=>{
+   if(document.visibilityState!=="visible")return;
+   try{
+    const response=await apiFetch("/api/favorites",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+    const data=await response.json() as {ok:boolean;error?:string;favorites?:FavoriteMessage[]};
+    if(!response.ok||!data.ok)throw Error(data.error||"Impossible de retrouver les favoris.");
+    let context:CryptoContext|null=null;
+    if(rm.e2ee?.required)try{context=await cryptoFor(rm)}catch{/* Encrypted messages remain locked, never raw. */}
+    const decrypted=await revealMessages(data.favorites||[],context);
+    if(active){setFavoriteMessages(decrypted);setFavoritesError("")}
+   }catch(e){if(active)setFavoritesError(e instanceof Error?e.message:"Favoris temporairement indisponibles.")}
+  };
+  void reload();
+  const onVisible=()=>void reload();
+  window.addEventListener("focus",onVisible);
+  document.addEventListener("visibilitychange",onVisible);
+  return()=>{active=false;window.removeEventListener("focus",onVisible);document.removeEventListener("visibilitychange",onVisible)};
+ },[token,room?.roomId,room?.e2ee?.mine,room?.e2ee?.partner,room?.e2ee?.required]);
  const chatTimeline=useMemo<ChatTimelineItem[]>(()=>[
   ...chatMessages.map((message,index)=>({type:"message" as const,message,index,createdAt:message.created_at})),
   ...callHistory.map(call=>({type:"call" as const,call,createdAt:call.createdAt})),
@@ -1549,6 +1582,45 @@ export default function LoveRadar(){
    await refresh(undefined,true);
   }catch(err){setError(err instanceof Error?err.message:"Réaction impossible.")}
  }
+ async function toggleFavorite(message:ArchiveMessage){
+  const rm=room;
+  if(!rm||!token||favoritesBusy)return;
+  // Pending outbox messages and one-time media cannot be saved.
+  if(message.view_once||![...chatMessages,...favoriteMessages].some(item=>item.id===message.id)||
+    textOutbox.some(x=>x.id===message.id)||voiceOutbox.some(x=>x.id===message.id)){
+   setFavoritesError("Attends que ce message soit envoyé avant de le garder en favori.");return;
+  }
+  const wasSaved=favoriteIds.has(message.id);
+  setFavoritesBusy(true);setFavoritesError("");setActionMessageId(null);
+  try{
+   const res=await apiFetch("/api/favorites",{
+    method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    cache:"no-store",body:JSON.stringify({action:wasSaved?"remove":"add",id:message.id})
+   });
+   const payload=await res.json() as {ok:boolean;error?:string;favorites?:FavoriteMessage[]};
+   if(!res.ok||!payload.ok)throw Error(payload.error||"Impossible d'enregistrer ce favori.");
+   let context:CryptoContext|null=null;
+   if(rm.e2ee?.required)try{context=await cryptoFor(rm)}catch{/* No plaintext fallback. */}
+   setFavoriteMessages(await revealMessages(payload.favorites||[],context));
+   setNotice(wasSaved?"Message retiré des favoris.":"⭐ Message enregistré dans tes favoris.");
+  }catch(e){setFavoritesError(e instanceof Error?e.message:"Favori indisponible.");}
+  finally{setFavoritesBusy(false)}
+ }
+ function openArchive(mode:"saved"|"search"){
+  setArchiveMode(mode);setArchiveOpen(true);setStickerOpen(false);
+  chatInput.current?.blur();setChatFocused(false);setActionMessageId(null);
+ }
+ function openArchivedMessage(message:ArchiveMessage){
+  setArchiveOpen(false);
+  if(chatMessages.some(item=>item.id===message.id)){
+   requestAnimationFrame(()=>document.getElementById("lr-chat-message-"+message.id)?.scrollIntoView({block:"center",behavior:"smooth"}));
+  }else{
+   const kind=message.kind==="image"?"photo":message.kind==="audio"?"audio":"message";
+   const target:NoticeTarget={tab:"chat",kind,id:message.id};
+   window.history.replaceState(null,"",noticeUrl(target));
+   setNoticeTarget(target);
+  }
+ }
  async function deleteOwnMessage(message:Message){
   setActionMessageId(null);
   if(message.sender_id!==room?.user.id)return;
@@ -1559,6 +1631,7 @@ export default function LoveRadar(){
    if(url?.startsWith("blob:"))URL.revokeObjectURL(url);
    delete mediaCache.current[message.id];
    setMedia(prev=>{if(!prev[message.id])return prev;const next={...prev};delete next[message.id];return next});
+   setFavoriteMessages(items=>items.filter(item=>item.id!==message.id));
    if(replyTarget?.id===message.id)setReplyTarget(null);
    if(editTarget?.id===message.id)cancelEditing();
    await refresh(undefined,true);
@@ -1569,6 +1642,7 @@ export default function LoveRadar(){
   if(!window.confirm("Supprimer ce message uniquement pour toi ? Il restera visible pour ton partenaire."))return;
   try{
    await request("delete-for-me",{id:message.id});
+   setFavoriteMessages(items=>items.filter(item=>item.id!==message.id));
    if(replyTarget?.id===message.id)setReplyTarget(null);
    if(editTarget?.id===message.id)cancelEditing();
    const url=mediaCache.current[message.id];
@@ -2035,6 +2109,10 @@ export default function LoveRadar(){
           <span className={"lr-chat-status "+(partnerOnline?"online":"offline")}>{partnerStatusText}</span>
          </button></div>
       </div>
+      <div className="lr-chat-archive-tools" aria-label="Messages enregistrés et recherche">
+       <button type="button" aria-label="Rechercher dans la conversation" title="Rechercher" onClick={()=>openArchive("search")}>⌕</button>
+       <button type="button" aria-label="Ouvrir mes messages favoris" title="Favoris" onClick={()=>openArchive("saved")}>☆</button>
+      </div>
       <div id="lr-voice-button-slot"/>
      </div>
      <div className="lr-chat-messages" ref={chatScroller} onScroll={e=>{const list=e.currentTarget;const near=list.scrollHeight-list.scrollTop-list.clientHeight<120;chatAtBottomRef.current=near;setChatAtBottom(prev=>prev===near?prev:near)}} role="log" aria-label="Messages" aria-live="off">
@@ -2105,6 +2183,7 @@ export default function LoveRadar(){
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 10 4 14l5 4"/><path d="M4 14h9a7 7 0 0 0 7-7"/></svg>
          </span>
          <div className={"lr-bubble-stack"+(m.kind==="image"?" lr-image-stack":"")}>
+          {favoriteIds.has(m.id)?<span className="lr-chat-favorite-mark" aria-label="Message favori" title="Favori">★</span>:null}
           <div className={"lr-bubble"+(m.kind==="audio"?" lr-bubble-audio":m.kind==="image"?" lr-bubble-image":m.kind==="text"&&isSticker(m.content)?" lr-bubble-sticker":m.kind==="text"&&readGifId(m.content)?" lr-bubble-gif":m.kind==="text"&&emojiOnlyText(m.content)?" lr-bubble-emoji":"")}>
            {m.reply_to_id?<QuoteCard author={quoteAuthor(m.reply_sender_id,room.user.id,partner)}
             kind={m.reply_kind||"text"} content={m.reply_kind?m.reply_content:"Message supprimé"}
@@ -2189,6 +2268,9 @@ export default function LoveRadar(){
         {actionMessage.sender_id===room.user.id&&actionMessage.kind==="text"&&!isSticker(actionMessage.content)&&!readGifId(actionMessage.content)?<button type="button" className="lr-message-action-row" onClick={()=>beginEditing(actionMessage)}>
          <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"><path d="m13 5 6 6M4 20l4.2-1 11.1-11.1a2 2 0 0 0-2.8-2.8L5.3 16.2Z"/></svg></span>Modifier le texte
         </button>:null}
+        <button type="button" className="lr-message-action-row" disabled={favoritesBusy||Boolean(actionMessage.view_once)} onClick={()=>void toggleFavorite(actionMessage)}>
+         <span aria-hidden="true">{favoriteIds.has(actionMessage.id)?"★":"☆"}</span>{favoriteIds.has(actionMessage.id)?"Retirer des favoris":"Ajouter aux favoris"}
+        </button>
         <button type="button" className="lr-message-action-row" onClick={()=>{setInfoMessageId(actionMessage.id);setActionMessageId(null)}}>
          <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></span>Infos du message
         </button>
@@ -2202,6 +2284,14 @@ export default function LoveRadar(){
        <button type="button" className="lr-message-action-close" onClick={()=>setActionMessageId(null)}>Annuler</button>
       </div>
      </div></div>,document.body):null}
+     {archiveOpen?<ChatFavorites key={archiveMode+":"+room.roomId} initialMode={archiveMode} messages={chatMessages}
+      favorites={favoriteMessages} media={media} mineId={room.user.id} partner={partner} myName={room.user.name}
+      privacyEnabled={privacyEnabled} hasMore={historyMore} historyBusy={historyBusy} historyError={historyError}
+      favoritesBusy={favoritesBusy} favoritesError={favoritesError}
+      onToggle={message=>void toggleFavorite(message)}
+      onLoadOlder={()=>void loadEarlierHistory()}
+      onLoadMedia={message=>void fetchMedia(message)}
+      onOpen={openArchivedMessage} onClose={()=>setArchiveOpen(false)}/>:null}
      {infoMessage?<div className="lr-message-action-backdrop" onClick={()=>setInfoMessageId(null)}>
       <div className="lr-message-action-sheet" role="dialog" aria-modal="true" aria-label="Informations du message" onClick={e=>e.stopPropagation()}>
        <strong>Informations du message</strong>
