@@ -221,6 +221,13 @@ CREATE TABLE IF NOT EXISTS ludo_palette (
  chosen_by INTEGER,updated_at INTEGER NOT NULL
 );
 
+-- Short-lived presence of the two authenticated Ludo Duo players.
+CREATE TABLE IF NOT EXISTS ludo_presence (
+ room_id TEXT NOT NULL,seat INTEGER NOT NULL,game_id TEXT NOT NULL,
+ session_id TEXT NOT NULL,joined_at INTEGER NOT NULL,last_seen INTEGER NOT NULL,
+ PRIMARY KEY(room_id,seat)
+);
+
 -- Persistent last real server die result for the Duo, shared on both phones.
 CREATE TABLE IF NOT EXISTS ludo_last_rolls (
  room_id TEXT PRIMARY KEY,game_id TEXT NOT NULL,seat INTEGER NOT NULL,
