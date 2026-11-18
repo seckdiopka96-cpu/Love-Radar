@@ -226,3 +226,121 @@
  background:#1a3c5b;color:#d8f2ff;font-weight:750;
  cursor:pointer;touch-action:manipulation;
 }
+
+
+/* Ludo Duo v17: strict viewport layout, stable home, physical dice toss. */
+html.lr-ludo-duo-ui,
+html.lr-ludo-duo-ui body{
+ height:100%!important;max-height:100%!important;
+ overflow:hidden!important;overscroll-behavior:none!important;
+ scroll-behavior:auto!important;
+}
+html.lr-ludo-duo-ui .app{
+ height:100%!important;min-height:0!important;max-height:100%!important;
+ overflow:hidden!important;overscroll-behavior:none;
+}
+html.lr-ludo-duo-ui #plateau.game-screen{
+ display:flex!important;flex-direction:column!important;justify-content:flex-start!important;
+ height:100%!important;min-height:0!important;max-height:100%!important;
+ overflow:hidden!important;overscroll-behavior:none!important;
+ gap:clamp(5px,1svh,9px)!important;
+}
+html.lr-ludo-duo-ui #plateau .game-header{
+ flex:0 0 54px!important;height:54px!important;min-height:54px!important;
+}
+html.lr-ludo-duo-ui #plateau .turn-banner{
+ flex:0 0 54px!important;height:54px!important;
+ min-height:54px!important;max-height:54px!important;
+}
+html.lr-ludo-duo-ui #plateau .board-area{
+ flex:1 1 0!important;width:100%!important;min-height:0!important;
+ margin:0!important;display:flex!important;
+ align-items:flex-start!important;justify-content:center!important;
+ overflow:hidden!important;position:relative;
+}
+html.lr-ludo-duo-ui #plateau .board-frame{
+ flex:none!important;position:relative;
+ width:var(--lr-duo-board-size,min(100%,58svh))!important;
+ height:var(--lr-duo-board-size,auto)!important;
+ max-width:100%!important;max-height:100%!important;
+ aspect-ratio:1/1!important;margin:0!important;
+ transform:none!important;transition:none!important;animation:none!important;
+}
+html.lr-ludo-duo-ui #plateau .board{
+ width:100%!important;height:100%!important;
+ transform:none!important;transition:none!important;animation:none!important;
+}
+html.lr-ludo-duo-ui #plateau .game-bottom{
+ flex:0 0 130px!important;height:130px!important;
+ min-height:130px!important;max-height:130px!important;
+ align-content:start!important;gap:7px!important;
+}
+html.lr-ludo-duo-ui #plateau .board-area,
+html.lr-ludo-duo-ui #plateau .board-frame,
+html.lr-ludo-duo-ui #plateau .board{
+ touch-action:manipulation;
+}
+/* A single clearly defined border on the active cage. No breathing scale
+   or pulsing board effect, and the highlight never steals a pawn tap. */
+html.lr-ludo-duo-ui .board .base.is-current-turn::after{
+ inset:1.5%!important;z-index:3!important;
+ border:4px solid #fffde8!important;
+ border-radius:8px!important;
+ box-shadow:inset 0 0 0 2px #19345c,0 0 0 2px #ffca43,0 0 18px #ffef9ae8!important;
+ animation:none!important;opacity:1!important;pointer-events:none!important;
+}
+html.lr-ludo-duo-ui .board .base.is-current-turn::before{
+ top:3%!important;z-index:5!important;pointer-events:none!important;
+ padding:3px 8px!important;
+ font-size:clamp(9px,2.4vw,12px)!important;
+ background:#102e60f2!important;border:1.5px solid #fff4bc!important;
+ box-shadow:0 2px 9px #03132b95!important;
+}
+html.lr-ludo-duo-ui .board .base.is-current-turn.is-my-turn::before{
+ background:#5b4211f2!important;
+}
+@media(max-height:650px){
+ html.lr-ludo-duo-ui #plateau.game-screen{gap:4px!important}
+ html.lr-ludo-duo-ui #plateau .game-header{flex-basis:46px!important;height:46px!important;min-height:46px!important}
+ html.lr-ludo-duo-ui #plateau .turn-banner{flex-basis:48px!important;height:48px!important;min-height:48px!important;max-height:48px!important}
+ html.lr-ludo-duo-ui #plateau .game-bottom{flex-basis:118px!important;height:118px!important;min-height:118px!important;max-height:118px!important;gap:4px!important}
+}
+/* Every toss takes a slightly different 3D path; the numbered result is
+   revealed only after the authoritative server roll has landed. */
+html.lr-ludo-duo-ui .dice-3d.is-rolling{
+ transform-origin:50% 75%!important;
+ will-change:transform;
+}
+html.lr-ludo-duo-ui .dice-3d.is-rolling[data-toss="0"]{
+ animation:lr-duo-throw-a .52s cubic-bezier(.21,.55,.28,1) both!important;
+}
+html.lr-ludo-duo-ui .dice-3d.is-rolling[data-toss="1"]{
+ animation:lr-duo-throw-b .52s cubic-bezier(.16,.64,.30,1) both!important;
+}
+html.lr-ludo-duo-ui .dice-3d.is-rolling[data-toss="2"]{
+ animation:lr-duo-throw-c .52s cubic-bezier(.18,.59,.27,1) both!important;
+}
+@keyframes lr-duo-throw-a{
+ 0%{transform:translate3d(0,0,0) rotateX(-16deg) rotateY(-23deg) rotateZ(0) scale(1)}
+ 25%{transform:translate3d(-4px,-18px,0) rotateX(195deg) rotateY(128deg) rotateZ(30deg) scale(1.2)}
+ 57%{transform:translate3d(5px,-27px,0) rotateX(478deg) rotateY(367deg) rotateZ(53deg) scale(1.24)}
+ 83%{transform:translate3d(-2px,-5px,0) rotateX(689deg) rotateY(621deg) rotateZ(-16deg) scale(1.06)}
+ 100%{transform:translate3d(0,0,0) rotateX(735deg) rotateY(715deg) rotateZ(0) scale(1)}
+}
+@keyframes lr-duo-throw-b{
+ 0%{transform:translate3d(0,0,0) rotateX(-12deg) rotateY(-20deg) rotateZ(0) scale(1)}
+ 24%{transform:translate3d(5px,-22px,0) rotateX(-148deg) rotateY(221deg) rotateZ(-34deg) scale(1.19)}
+ 55%{transform:translate3d(-5px,-24px,0) rotateX(-430deg) rotateY(475deg) rotateZ(-68deg) scale(1.24)}
+ 82%{transform:translate3d(3px,-6px,0) rotateX(-632deg) rotateY(667deg) rotateZ(19deg) scale(1.07)}
+ 100%{transform:translate3d(0,0,0) rotateX(-715deg) rotateY(735deg) rotateZ(0) scale(1)}
+}
+@keyframes lr-duo-throw-c{
+ 0%{transform:translate3d(0,0,0) rotateX(-18deg) rotateY(-12deg) rotateZ(0) scale(1)}
+ 23%{transform:translate3d(-5px,-16px,0) rotateX(126deg) rotateY(-237deg) rotateZ(64deg) scale(1.16)}
+ 54%{transform:translate3d(6px,-29px,0) rotateX(358deg) rotateY(-497deg) rotateZ(112deg) scale(1.25)}
+ 81%{transform:translate3d(-2px,-7px,0) rotateX(587deg) rotateY(-703deg) rotateZ(26deg) scale(1.09)}
+ 100%{transform:translate3d(0,0,0) rotateX(729deg) rotateY(-735deg) rotateZ(0) scale(1)}
+}
+@media(prefers-reduced-motion:reduce){
+ html.lr-ludo-duo-ui .dice-3d.is-rolling[data-toss]{animation:none!important}
+}
