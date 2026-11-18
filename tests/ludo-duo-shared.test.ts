@@ -221,7 +221,7 @@ test("live Duo synchronizes promptly with conditional server reads",()=>{
  assert.ok(parent.includes('inFlight=true'),"never stack network checks");
  assert.ok(!parent.includes('setInterval(()=>{if(document.visibilityState==="visible")void load()},1600)'),"remove 1.6s polling delay");
  assert.ok(parent.includes('Math.max(0,170-(Date.now()-actionStarted))'),"finish dice animation sooner");
- assert.ok(duoJS.includes('remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},120)'),"partner dice resolves promptly");
+ assert.ok(duoJS.includes('if(receivedState&&last.seat!==state.mySeat&&!state.rolling)animateRealDieRoll()'),"partner's dice has a physical, synchronized toss");
  const server=backend;
  assert.ok(server.includes('if(method==="GET"&&g?.status==="playing")'),"fast path only for active game");
  assert.ok(server.includes('params.get("game")===g.game_id'),"refuse stale game ids");
