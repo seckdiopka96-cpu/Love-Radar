@@ -10,6 +10,7 @@ import "./ludo-duo-color.css";
 import PawnShape from "./LudoPawn";
 import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,BASE,SAFE,CELL,key,pointForProgress,movementSteps,stackCellStyle,type Point} from "./ludo-visuals";
+import {canAdvanceDuo,isDuoFinished} from "./ludo-duo-finish";
 
 type Game={id:string;version:number;turn:number;dice:number|null;positions:number[][];status:"playing"|"won";winner:number|null;autoCounts:[number,number];lastAction:string;updatedAt:number;deadlineAt:number|null};
 type Gift={consents:[boolean,boolean];choice:"credit"|"internet"|"wave2000"|null;chosenBy:number|null;given:boolean};
@@ -33,8 +34,8 @@ type Presence=[{online:boolean;joinedAt:number|null},{online:boolean;joinedAt:nu
 type DieResult={seat:number;face:number;at:number};
 type ResponseData={ok:boolean;unchanged?:boolean;delta?:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;reactions?:Reaction[];moveEvent?:MoveEvent|null;gift?:Gift|null;agreement?:Agreement|null;palette?:Palette|null;lastRoll?:DieResult|null;challenge?:Challenge|null;presence?:Presence|null;notificationRequested?:boolean;serverNow?:number};
 type Props={token:string;mySeat:number;myName:string;partnerName:string|null;myAvatar?:string;partnerAvatar?:string;onExit:()=>void;challengeId?:string|null;onNotificationReady?:(challengeId:string)=>void};
-function allowed(progress:number,dice:number|null){return dice!==null&&(progress===-1?dice===6:progress>=0&&progress<57&&progress+dice<=57)}
-function labelPosition(progress:number){return progress===-1?"Dans la base":progress===57?"Arrivé !":progress>=51?"Couloir final":"Sur le plateau"}
+function allowed(progress:number,dice:number|null){return dice!==null&&canAdvanceDuo(progress,dice)}
+function labelPosition(progress:number){return progress===-1?"Dans la base":isDuoFinished(progress)?"Arrivé !":progress>=51?"Couloir final":"Sur le plateau"}
 const trackAt=new Map(TRACK.map((p,i)=>[key(p[0],p[1]),i]));
 const homeAt=HOME.map(list=>new Set(list.map(p=>key(p[0],p[1]))));
 function haptic(duration:number|number[]=12){try{if("vibrate" in navigator)navigator.vibrate(duration)}catch{/* unsupported on iOS */}}
@@ -551,14 +552,14 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  const legal=game?game.positions[mySeat].map(p=>allowed(p,game.dice)):([false,false,false,false] as boolean[]);
  const displayName=(seat:number)=>seat===mySeat?myName:(partnerName||"Ton amour");
  const red= mySeat===0;
- const finished=(seat:number)=>game?.positions[seat].filter(p=>p===57).length||0;
+ const finished=(seat:number)=>game?.positions[seat].filter(isDuoFinished).length||0;
  // Show the real Ludo board with starting pawns even before the second partner joins.
  // This is a visual preview only: the server remains authoritative and controls stay disabled.
  const displayPositions=game?.positions??[[-1,-1,-1,-1],[-1,-1,-1,-1]];
  const pawnCells=new Map<string,{seat:number;pawn:number;active:boolean}[]>();
  for(let side=0;side<2;side++)for(let pawn=0;pawn<4;pawn++){
   const progress=displayPositions[side][pawn];
-  if(progress===57||(motion?.seat===side&&motion.pawn===pawn)
+  if(isDuoFinished(progress)||(motion?.seat===side&&motion.pawn===pawn)
    ||capturedMotions.some(item=>item.seat===side&&item.pawn===pawn))continue;
   const point=pointForProgress(side,pawn,progress);
   const k=key(point[0],point[1]);
