@@ -123,3 +123,12 @@ test("decorative voice waveform is legible and naturally varied without changing
  assert.ok(style.includes("background:#fff!important;"),"played waveform remains white");
  assert.ok(player.includes('onChange={event=>seek(Number(event.target.value))}'),"seeking remains functional");
 });
+
+test("received voice bubbles are charcoal black while outgoing voices stay pink",()=>{
+ const css=readFileSync("src/voice-message.css","utf8");
+ assert.match(css,/\.lr-app\.lr-chat-mode \.lr-chat \.lr-bubble-row\.other \.lr-bubble\.lr-bubble-audio\s*\{\s*background:#141719!important;/);
+ assert.match(css,/\.lr-app\.lr-chat-mode \.lr-chat \.lr-bubble-row\.other \.lr-voice-note-wave>span\s*\{\s*background:#c9d8e2!important;/);
+ assert.match(css,/\.lr-app\.lr-chat-mode \.lr-chat \.lr-bubble-row\.other \.lr-voice-note-time\s*\{\s*color:#cfd8df!important;/);
+ assert.ok(css.includes(".lr-chat .lr-bubble-row.mine .lr-bubble.lr-bubble-audio"));
+ assert.ok(css.includes("background:#bd2763!important"),"sent voice bubbles retain the pink design");
+});
