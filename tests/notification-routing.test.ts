@@ -97,7 +97,7 @@ test("notification targets survive an iPhone cold start and open their precise s
  assert.ok(app.includes('type:"love-radar-ack-notification",routeId'),"SPA must acknowledge a handled notification");
  assert.ok(!app.includes('if(lastHandledNotice.current===routeId)return'),
   "a repeated notification must recover from a failed iPhone resume, never be silently ignored");
- assert.ok(app.includes('challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}'),"Ludo challenge reaches game agreement");
+ assert.ok(app.includes('challengeId={noticeTarget?.kind==="ludo-challenge"||noticeTarget?.kind==="ludo-joined"?noticeTarget.id:null}'),"Ludo challenge reaches game agreement");
 });
 
 test("message notifications jump to their actual chat bubble",()=>{
@@ -110,7 +110,7 @@ test("message notifications jump to their actual chat bubble",()=>{
 });
 
 test("Ludo invitation is not acknowledged until its real agreement loads",()=>{
- assert.ok(app.includes('if(noticeTarget.kind==="ludo-challenge"&&readyLudoNotice!==noticeTarget.id)return'));
+ assert.ok(app.includes('if((noticeTarget.kind==="ludo-challenge"||noticeTarget.kind==="ludo-joined")&&readyLudoNotice!==noticeTarget.id)return'));
  assert.ok(app.includes("onNotificationReady={markLudoNoticeReady}"));
  assert.ok(duo.includes("onNotificationReady?.(challengeId)"));
  assert.ok(duo.includes("if(challengeId&&game&&palette&&!loading)"));
