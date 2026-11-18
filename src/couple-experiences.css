@@ -117,3 +117,13 @@
 @media(min-width:680px){.ce-root{padding:10px 25px 105px}.ce-panel{padding:28px 25px}.ce-activity-options{grid-template-columns:repeat(3,minmax(0,1fr))}.ce-heading{gap:20px}.ce-moods{grid-template-columns:repeat(6,minmax(0,1fr))}}
 @media(max-width:380px){.ce-root{padding-left:10px;padding-right:10px}.ce-panel{padding:18px 12px}.ce-top{gap:9px}.ce-top h1{font-size:20px}.ce-back{padding:0 9px}.ce-challenge{gap:8px;padding:12px 9px}.ce-challenge button{padding:8px 7px;font-size:10px}.ce-gift-attachments{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.ce-hug-scene.is-hugging *,.ce-gift.ce-closed .ce-gift-symbol,.ce-record.is-recording{animation:none!important}.ce-tabs button{transition:none}}
+
+/* Entry point on the established Nous deux page. */
+.tg-life-feature{width:100%;margin:12px 0 15px;display:flex;align-items:center;gap:13px;text-align:left;min-height:88px;padding:16px;border:1px solid rgba(250,199,235,.4);border-radius:19px;background:linear-gradient(116deg,rgba(114,55,119,.70),rgba(53,47,108,.75));color:#fff;box-shadow:0 11px 28px rgba(21,12,54,.2);cursor:pointer}
+.tg-life-emblem{flex:0 0 48px;width:48px;height:48px;border-radius:15px;display:grid;place-items:center;font-size:26px;background:rgba(255,216,238,.17);border:1px solid rgba(255,223,240,.2)}
+.tg-life-content{display:grid;flex:1;min-width:0;gap:3px}
+.tg-life-content>small{font-size:10px;font-weight:800;letter-spacing:.12em;color:#f9c4df}
+.tg-life-content>strong{font-size:19px;font-weight:850;letter-spacing:-.02em}
+.tg-life-content>span{font-size:11px;color:#ded2e7;line-height:1.45}
+.tg-life-arrow{font-size:27px;color:#f6d8e9;padding:0 3px}
+@media(max-width:360px){.tg-life-feature{padding:11px;gap:9px}.tg-life-emblem{flex-basis:40px;width:40px;height:40px}.tg-life-content>strong{font-size:17px}.tg-life-content>span{font-size:10px}}
