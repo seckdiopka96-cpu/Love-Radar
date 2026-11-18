@@ -19,6 +19,7 @@ export type FacePoint={x:number;y:number;z?:number};
 export function isFaceLens(lens:LoveLensId){return lens==="glasses"||lens==="crown"||lens==="puppy"}
 export type LensProcessor={
  readonly track:MediaStreamTrack;readonly stream:MediaStream;readonly canvas:HTMLCanvasElement;
+ readonly isTransmittable:boolean;
  setLens:(lens:LoveLensId)=>void;setSource:(source:MediaStreamTrack)=>Promise<void>;stop:()=>void;
 };
 type Face={x:number;y:number;width:number;height:number;angle:number};
@@ -49,15 +50,47 @@ function dance(ctx:CanvasRenderingContext2D,w:number,h:number,now:number,kind:"�
  }
  ctx.globalAlpha=1;
 }
+/**
+ * Safari iOS/WebKit disables CanvasRenderingContext2D.filter even on recent iPhones.
+ * Use an actual pixel transformation: the change appears both in saved photos
+ * and outgoing canvas video, not merely as a decorative CSS overlay.
+ */
+export function applyLovePixelFilter(data:ImageData,lens:LoveLensId):ImageData{
+ if(lens!=="beauty"&&lens!=="rose"&&lens!=="vintage"&&lens!=="comic")return data;
+ const pixels=data.data;
+ for(let i=0;i<pixels.length;i+=4){
+  const r=pixels[i],g=pixels[i+1],b=pixels[i+2];
+  if(lens==="beauty"){
+   pixels[i]=Math.min(255,r*1.09+9);
+   pixels[i+1]=Math.min(255,g*1.055+5);
+   pixels[i+2]=Math.min(255,b*1.075+7);
+  }else if(lens==="rose"){
+   pixels[i]=Math.min(255,r*1.12+23);
+   pixels[i+1]=Math.min(255,g*.91+2);
+   pixels[i+2]=Math.min(255,b*1.10+16);
+  }else if(lens==="vintage"){
+   pixels[i]=Math.min(255,r*.393+g*.769+b*.189+6);
+   pixels[i+1]=Math.min(255,r*.349+g*.686+b*.168+3);
+   pixels[i+2]=Math.min(255,r*.272+g*.534+b*.131);
+  }else{
+   // Posterized pop-art: visible on Safari without unsupported canvas filters.
+   const brighten=(v:number)=>Math.max(0,Math.min(255,(v-112)*1.42+128));
+   pixels[i]=Math.min(255,Math.round(brighten(r)/51)*51);
+   pixels[i+1]=Math.min(255,Math.round(brighten(g)/51)*51);
+   pixels[i+2]=Math.min(255,Math.round(brighten(b)/51)*51);
+  }
+ }
+ return data;
+}
 export function drawLoveLens(ctx:CanvasRenderingContext2D,video:CanvasImageSource,
  canvas:HTMLCanvasElement,lens:LoveLensId,points:FacePoint[]|null,now:number){
  const w=canvas.width,h=canvas.height;if(!w||!h)return;
  ctx.save();ctx.clearRect(0,0,w,h);
- ctx.filter=lens==="beauty"?"brightness(1.07) saturate(1.11) contrast(.97)":
-  lens==="rose"?"brightness(1.055) sepia(.12) saturate(1.29)":
-  lens==="vintage"?"sepia(.49) saturate(.78) contrast(1.06)":
-  lens==="comic"?"contrast(1.34) saturate(1.75)":"none";
- ctx.drawImage(video,0,0,w,h);ctx.filter="none";
+ ctx.drawImage(video,0,0,w,h);
+ if(lens==="beauty"||lens==="rose"||lens==="vintage"||lens==="comic"){
+  const pixels=ctx.getImageData(0,0,w,h);
+  ctx.putImageData(applyLovePixelFilter(pixels,lens),0,0);
+ }
  if(lens==="rose"||lens==="hearts"){
   const fade=ctx.createLinearGradient(0,0,w,h);
   fade.addColorStop(0,"rgba(246,119,189,0.13)");
@@ -84,23 +117,26 @@ export function drawLoveLens(ctx:CanvasRenderingContext2D,video:CanvasImageSourc
  }
  ctx.restore();
 }
-export async function createLensProcessor(initial:MediaStreamTrack,lens:LoveLensId):Promise<LensProcessor>{
+export async function createLensProcessor(initial:MediaStreamTrack,lens:LoveLensId,options?:{previewOnly?:boolean}):Promise<LensProcessor>{
  if(initial.kind!=="video"||initial.readyState!=="live")throw Error("Caméra indisponible.");
  const video=document.createElement("video");
  video.autoplay=true;video.muted=true;video.playsInline=true;video.setAttribute("playsinline","");
  const canvas=document.createElement("canvas");canvas.width=540;canvas.height=720;
  const ctx=canvas.getContext("2d",{alpha:false});
  if(!ctx)throw Error("Les effets graphiques ne sont pas compatibles avec cet appareil.");
- if(typeof canvas.captureStream!=="function")throw Error("Les effets vidéo ne sont pas disponibles sur cet appareil.");
- const stream=canvas.captureStream(24),track=stream.getVideoTracks()[0];
- if(!track)throw Error("Cette caméra ne permet pas la création d'effets vidéo.");
+ const previewOnly=Boolean(options?.previewOnly);
+ if(!previewOnly&&typeof canvas.captureStream!=="function")
+  throw Error("Cet appareil ne permet pas de transmettre les filtres vidéo en direct.");
+ const stream=previewOnly?new MediaStream():canvas.captureStream(24);
+ const track=previewOnly?initial:stream.getVideoTracks()[0];
+ if(!track)throw Error("Cet appareil ne permet pas la création d'effets vidéo.");
  let stopped=false,lensId=lens,frame=0,points:FacePoint[]|null=null;
  let trackingPending=false,detectorReady=false,detectorFailed=false,detecting=false,lastDetection=0,detectorSeen=0;
  let closeDetector:(()=>void)|null=null;
  let sendFrame:((image:HTMLVideoElement)=>Promise<void>)|null=null;
  function setDimensions(){
   const vw=video.videoWidth,vh=video.videoHeight;if(!vw||!vh)return;
-  const scale=Math.min(1,720/Math.max(vw,vh));
+  const scale=Math.min(1,540/Math.max(vw,vh));
   const w=Math.max(2,Math.round(vw*scale/2)*2),h=Math.max(2,Math.round(vh*scale/2)*2);
   if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
  }
@@ -147,11 +183,11 @@ export async function createLensProcessor(initial:MediaStreamTrack,lens:LoveLens
   await video.play();
   frame=requestAnimationFrame(tick);
  }catch(error){
-  stream.getTracks().forEach(t=>t.stop());video.srcObject=null;
+  if(!previewOnly)stream.getTracks().forEach(t=>t.stop());video.srcObject=null;
   throw Error("Impossible de démarrer le filtre vidéo : "+(error instanceof Error?error.message:"caméra bloquée"));
  }
  return {
-  track,stream,canvas,
+  track,stream,canvas,isTransmittable:!previewOnly,
   setLens(value){lensId=value;if(isFaceLens(value)&&!detectorReady)void startDetector()},
   async setSource(source){
    if(stopped)throw Error("Effets fermés.");
@@ -161,7 +197,7 @@ export async function createLensProcessor(initial:MediaStreamTrack,lens:LoveLens
   },
   stop(){
    if(stopped)return;stopped=true;cancelAnimationFrame(frame);
-   stream.getTracks().forEach(t=>t.stop());
+   if(!previewOnly)stream.getTracks().forEach(t=>t.stop());
    video.pause();video.srcObject=null;
    if(closeDetector)closeDetector();points=null;
   }
