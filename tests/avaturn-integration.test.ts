@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {requiresTopLevelAvaturnAuth} from "../src/avaturn-auth";
 import {inspectAvatarGlb} from "../src/avatar-3d-diagnostics";
+import {embeddedAvatarBaseColors} from "../src/avatar-3d-textures";
 const read=(p:string)=>readFileSync(p,"utf8");
 
 test("free Avaturn embedded creator is present, no premium API secrets or paywall",()=>{
@@ -140,4 +141,46 @@ test("GLB diagnostics distinguish grayscale files from textured rigged models wi
  assert.ok(viewer.includes("side*(1.12+.19*wave)"),
   "dance visibly raises arms on supported rigs");
  assert.ok(read("src/avaturn-3d.css").includes(".lr-avatar-three-warning"));
+});
+
+test("Avaturn GLB embedded JPEG base-color maps are recoverable for iOS (no network)",()=>{
+ const png=new Uint8Array(36);
+ for(let i=0;i<png.length;i++)png[i]=(i*7+23)%256;
+ const jsonData=JSON.stringify({
+  asset:{version:"2.0"},
+  materials:[{name:"avaturn_body_material",pbrMetallicRoughness:{baseColorTexture:{index:0}}},
+   {name:"no_color",pbrMetallicRoughness:{}}],
+  textures:[{source:0}],
+  images:[{mimeType:"image/jpeg",bufferView:0}],
+  bufferViews:[{byteOffset:0,byteLength:png.length}],
+  buffers:[{byteLength:png.length}]
+ });
+ const encoded=new TextEncoder().encode(jsonData);
+ const jsonLen=Math.ceil(encoded.length/4)*4;
+ const glb=new ArrayBuffer(28+jsonLen+png.length);
+ const view=new DataView(glb),body=new Uint8Array(glb);
+ view.setUint32(0,0x46546c67,true);view.setUint32(4,2,true);
+ view.setUint32(8,glb.byteLength,true);view.setUint32(12,jsonLen,true);
+ view.setUint32(16,0x4e4f534a,true);
+ body.set(encoded,20);body.fill(32,20+encoded.length,20+jsonLen);
+ view.setUint32(20+jsonLen,png.length,true);
+ view.setUint32(24+jsonLen,0x004e4942,true);
+ body.set(png,28+jsonLen);
+ const result=embeddedAvatarBaseColors(glb);
+ assert.equal(result.length,1);
+ assert.equal(result[0].materialName,"avaturn_body_material");
+ assert.equal(result[0].mimeType,"image/jpeg");
+ assert.deepEqual(new Uint8Array(result[0].data),png);
+ assert.equal(embeddedAvatarBaseColors(new ArrayBuffer(120)).length,0);
+ const scene=read("src/Avatar3DScene.tsx");
+ const fallback=read("src/avatar-3d-image-fallback.ts");
+ assert.ok(scene.includes("restoreAvatarColorsOnIOS(T,model,bytes,()=>disposed)"));
+ assert.ok(scene.includes("renderer.outputColorSpace=T.SRGBColorSpace"));
+ assert.ok(scene.includes("renderer.toneMapping=T.NeutralToneMapping"));
+ assert.ok(scene.includes("-side*(.83+.50*wave*(near?1:-1))"),
+  "Avaturn's horizontally extended arms bend downward in dance mode");
+ assert.ok(fallback.includes("new Image()"),"iOS texture decoding does not depend on ImageBitmap");
+ assert.ok(fallback.includes("texture.flipY=false"));
+ assert.ok(fallback.includes("texture.colorSpace=T.SRGBColorSpace"));
+ assert.ok(!fallback.includes("fetch("),"embedded avatar colors never leave the local device");
 });
