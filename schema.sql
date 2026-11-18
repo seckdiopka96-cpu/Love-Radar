@@ -243,3 +243,35 @@ CREATE TABLE IF NOT EXISTS keepsake_letters (
  created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_keepsake_letters_room ON keepsake_letters(room_id,created_at DESC);
+
+
+-- Six optional, private relationship experiences.
+CREATE TABLE IF NOT EXISTS couple_moods(
+ id TEXT PRIMARY KEY,room_id TEXT NOT NULL,member_id TEXT NOT NULL,day TEXT NOT NULL,
+ mood TEXT NOT NULL,note TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,
+ UNIQUE(room_id,member_id,day)
+);
+CREATE INDEX IF NOT EXISTS idx_couple_moods_room_day ON couple_moods(room_id,day);
+CREATE TABLE IF NOT EXISTS couple_dreams(
+ id TEXT PRIMARY KEY,room_id TEXT NOT NULL,author_id TEXT NOT NULL,title TEXT NOT NULL,
+ detail TEXT NOT NULL DEFAULT '',done_at INTEGER,created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_couple_dreams_room ON couple_dreams(room_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS couple_hugs(
+ id TEXT PRIMARY KEY,room_id TEXT NOT NULL,sender_id TEXT NOT NULL,reply_to TEXT,created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_couple_hugs_room ON couple_hugs(room_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS couple_weekly_challenges(
+ id TEXT PRIMARY KEY,room_id TEXT NOT NULL,member_id TEXT NOT NULL,week TEXT NOT NULL,
+ challenge_key TEXT NOT NULL,created_at INTEGER NOT NULL,UNIQUE(room_id,member_id,week,challenge_key)
+);
+CREATE INDEX IF NOT EXISTS idx_couple_challenges_room_week ON couple_weekly_challenges(room_id,week);
+CREATE TABLE IF NOT EXISTS couple_date_nights(
+ room_id TEXT PRIMARY KEY,id TEXT NOT NULL,author_id TEXT NOT NULL,activity TEXT NOT NULL,
+ planned_at INTEGER NOT NULL,accepted_by TEXT,created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS couple_surprises(
+ id TEXT PRIMARY KEY,room_id TEXT NOT NULL,sender_id TEXT NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,
+ image_key TEXT,image_mime TEXT,audio_key TEXT,audio_mime TEXT,opened_at INTEGER,created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_surprises_room ON couple_surprises(room_id,created_at DESC);
