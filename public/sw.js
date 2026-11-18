@@ -230,7 +230,7 @@ self.addEventListener("notificationclick",event=>{
     const focused=focusResult.value||client;
     // Game invitations additionally update the real URL. This makes a cold
     // PWA boot read ?tab=ludo&kind=ludo-challenge&id=... directly.
-    if(["ludo-challenge","memory-challenge","rps-challenge"].includes(destination.kind)){
+    if(["ludo-challenge","ludo-joined","memory-challenge","rps-challenge"].includes(destination.kind)){
      const navigation=await settled(focused.navigate(url));
      if(navigation.ok){
       (navigation.value||focused).postMessage(routeMessage);

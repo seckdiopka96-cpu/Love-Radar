@@ -20,6 +20,7 @@ type Props={
  motion:Motion|null;capturedMotions:CapturedMotion[];
  error:string;overlayOpen:boolean;
  onAction:(action:"roll"|"move"|"restart"|"exit"|"leave"|"gift"|"menu",pawn?:number)=>void;
+ onReady?:()=>void;
 };
 /** Shared appearance of the pure-HTML Solo; multiplayer turns and dice remain
  * entirely managed and authenticated by the existing React + D1 backend.
@@ -32,6 +33,8 @@ export default function LudoDuoFrame(props:Props){
  const [retry,setRetry]=useState(0);
  const actionRef=useRef(props.onAction);
  actionRef.current=props.onAction;
+ const readyRef=useRef(props.onReady);
+ readyRef.current=props.onReady;
  useEffect(()=>{
   if(ready){setFailed(false);return}
   const id=window.setTimeout(()=>setFailed(true),8000);
@@ -73,7 +76,7 @@ export default function LudoDuoFrame(props:Props){
    if(!frame||event.source!==frame||event.origin!==window.location.origin)return;
    const data=event.data;
    if(!data||data.source!=="love-radar-ludo-duo")return;
-   if(data.type==="ready"){setReady(true);setFailed(false);sendRef.current();return}
+   if(data.type==="ready"){setReady(true);setFailed(false);sendRef.current();readyRef.current?.();return}
    if(data.type!=="action")return;
    switch(data.action){
     case "roll":case "restart":case "exit":case "leave":case "gift":case "menu":

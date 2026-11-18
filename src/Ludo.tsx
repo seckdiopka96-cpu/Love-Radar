@@ -77,6 +77,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  const [rollingFace,setRollingFace]=useState(1);
  const [error,setError]=useState("");
  const [loading,setLoading]=useState(true);
+ const [frameReady,setFrameReady]=useState(false);
  const [menu,setMenu]=useState(false);
  const [rules,setRules]=useState(false);
  const [tutorialOpen,setTutorialOpen]=useState(false);
@@ -330,8 +331,8 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  // agreement and color palette have been fetched from the authenticated API.
  // The parent may now consume the pending notification without losing it.
  useEffect(()=>{
-  if(challengeId&&game&&palette&&!loading)onNotificationReady?.(challengeId);
- },[challengeId,game?.id,Boolean(palette),loading,onNotificationReady]);
+  if(challengeId&&game&&palette&&frameReady&&!loading)onNotificationReady?.(challengeId);
+ },[challengeId,game?.id,Boolean(palette),frameReady,loading,onNotificationReady]);
 
  useEffect(()=>{
   if(!rolling)return;
@@ -641,7 +642,8 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    <LudoDuoFrame game={game} palette={palette} lastRoll={lastRoll} mySeat={mySeat} myName={myName} partnerName={partnerName} myAvatar={myAvatar} partnerAvatar={partnerAvatar}
     remaining={remaining} rolling={rolling} rollingFace={rollingFace}
     busy={busy} animationBusy={animationBusy} motion={motion} capturedMotions={capturedMotions}
-    error={error} overlayOpen={menu||giftOpen||rules||mustSign} onAction={duoFrameAction}/>:null}
+    error={error} overlayOpen={menu||giftOpen||rules||mustSign} onAction={duoFrameAction}
+     onReady={()=>setFrameReady(true)}/>:null}
   {tutorialOpen&&Boolean(agreement?.startedAt)&&game?.status==="playing"&&!mustSign&&!giftOpen&&!rules?<LudoTutorial mode="duo" onClose={()=>setTutorialOpen(false)}/>:null}
   {mustSign?<div className="ludo-agreement-backdrop">
    <div className="ludo-agreement-dialog ludo-ready-dialog" role="dialog" aria-modal="true" aria-label="Accord pour jouer au Ludo Duo">

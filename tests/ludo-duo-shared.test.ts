@@ -124,6 +124,8 @@ test("Duo iPhone frame keeps event subscription stable as snapshots tick",()=>{
  assert.ok(bridge.includes("const actionRef=useRef(props.onAction)"));
  assert.ok(bridge.includes("actionRef.current(data.action)"));
  assert.ok(bridge.includes("sendRef.current()"));
+ assert.ok(bridge.includes("readyRef.current?.()"),"frame confirms real render readiness");
+ assert.ok(parent.includes("frameReady&&!loading"),"Ludo tap waits for frame handshake");
  assert.ok(bridge.includes('if(data.type!=="action")return'));
  assert.ok(duoJS.includes("state.animationBusy||state.overlayOpen"),
   "never allow a roll or pawn move behind agreement or pause modal");

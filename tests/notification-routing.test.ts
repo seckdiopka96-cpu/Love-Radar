@@ -89,7 +89,7 @@ test("notification targets survive an iPhone cold start and open their precise s
  assert.ok(worker.includes("await self.clients.openWindow(url)"));
  assert.ok(worker.includes('client.postMessage(routeMessage)'),"post before waiting for stalled iPhone focus");
  assert.ok(worker.includes('focused.postMessage(routeMessage)'),"retry after focus");
- assert.ok(worker.includes('["ludo-challenge","memory-challenge","rps-challenge"].includes(destination.kind)'),"game invitations must force an exact URL navigation on iPhone");
+ assert.ok(worker.includes('["ludo-challenge","ludo-joined","memory-challenge","rps-challenge"].includes(destination.kind)'),"game invitations must force an exact URL navigation on iPhone");
  assert.ok(app.includes('window.addEventListener("pageshow",onPageShow)'));
  assert.ok(app.includes('navigator.serviceWorker?.ready.then(reg=>'));
  assert.ok(app.includes('type:"love-radar-request-pending-notification"'));
@@ -113,7 +113,8 @@ test("Ludo invitation is not acknowledged until its real agreement loads",()=>{
  assert.ok(app.includes('if((noticeTarget.kind==="ludo-challenge"||noticeTarget.kind==="ludo-joined")&&readyLudoNotice!==noticeTarget.id)return'));
  assert.ok(app.includes("onNotificationReady={markLudoNoticeReady}"));
  assert.ok(duo.includes("onNotificationReady?.(challengeId)"));
- assert.ok(duo.includes("if(challengeId&&game&&palette&&!loading)"));
+ assert.ok(duo.includes("if(challengeId&&game&&palette&&frameReady&&!loading)"),"do not mark Ludo open until its actual board is ready");
+ assert.ok(duo.includes("onReady={()=>setFrameReady(true)}"),"board handshake confirms rendering");
  assert.ok(app.includes('!room.messages.some(message=>message.id===id)'),"messages wait for server content");
  assert.ok(app.includes("focusMessage?.id!==id&&!focusError"),"old messages wait for the precise fetch or an error");
 });
@@ -331,4 +332,42 @@ test("tap on Ludo invitation navigates the existing iPhone PWA to its exact game
  assert.equal(events[0].kind,"ludo-challenge");
  assert.equal(events[0].id,"44444444-4444-4444-8444-444444444444");
  assert.equal(stored.size,1,"iOS still has a persistent fallback if navigation fails to mount");
+});
+
+
+test("Ludo joined notification navigates the existing iPhone straight into the shared game",async()=>{
+ const listeners=new Map<string,(ev:any)=>void>();
+ const stored=new Map<string,Response>(),messages:any[]=[];
+ let navigated="",opened=false;
+ const client:any={
+  url:"https://love-radar-acd.pages.dev/?tab=chat",visibilityState:"hidden",
+  focus:async()=>client,
+  navigate:async(url:string)=>{navigated=url;return client},
+  postMessage:(message:any)=>messages.push(message)
+ };
+ const cache={open:async()=>({
+  put:async(k:string,v:Response)=>{stored.set(k,v)},
+  match:async(k:string)=>stored.get(k)?.clone(),
+  delete:async(k:string)=>stored.delete(k)
+ })};
+ const self={
+  location:{origin:"https://love-radar-acd.pages.dev"},
+  clients:{matchAll:async()=>[client],openWindow:async()=>{opened=true}},
+  addEventListener:(name:string,fn:(event:any)=>void)=>listeners.set(name,fn)
+ };
+ new Script(worker,{filename:"public/sw.js"}).runInNewContext({
+  self,URL,URLSearchParams,Date,Promise,Response,Request,caches:cache,setTimeout,clearTimeout
+ });
+ let pending=Promise.resolve();
+ listeners.get("notificationclick")!({
+  notification:{title:"🎲 Ton partenaire a rejoint Ludo Duo",close(){},
+   data:{tab:"ludo",kind:"ludo-joined",id:"33333333-3333-4333-8333-333333333333"}},
+  waitUntil(p:Promise<any>){pending=p}
+ });
+ await pending;
+ assert.match(navigated,/\?tab=ludo&kind=ludo-joined&id=33333333/);
+ assert.equal(messages[0].kind,"ludo-joined");
+ assert.equal(messages[0].tab,"ludo");
+ assert.equal(opened,false,"reuse the installed iPhone application");
+ assert.equal(stored.size,1,"retain tapped route until mounted game acknowledges");
 });
