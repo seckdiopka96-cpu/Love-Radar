@@ -9,7 +9,7 @@ test("Love Radar no longer exposes personalizable couple avatars anywhere",()=>{
  const home=read("src/HomeDashboard.tsx");
  const settings=read("src/SettingsPage.tsx");
  assert.ok(!app.includes('type Tab = "avatars"'));
- assert.ok(app.includes('if(tab==="avatars")return "home"'),
+ assert.ok(app.includes('if(tab==="avatars")return {tab:"home",kind:null,id:null}'),
   "deep links from installed older versions safely return to Home");
  assert.ok(!app.includes("<CoupleAvatarStudio"));
  assert.ok(!app.includes("<CoupleAvatarDuo"));
