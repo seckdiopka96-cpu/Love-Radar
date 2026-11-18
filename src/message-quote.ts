@@ -6,7 +6,7 @@ export function quotePreview(kind:QuoteKind,content:string|null|undefined,max=95
  if(kind==="image")return "📷 Photo";
  if(kind==="audio")return "🎙️ Message vocal";
  const avatarPose=readAvatarMessage(content);
- if(avatarPose)return "🥰 Avatars amoureux · "+POSE_LABEL[avatarPose];
+ if(avatarPose)return "💌 Ancien moment partagé";
  const sticker=readStickerId(content);
  if(sticker)return "🎟️ Sticker · "+(getSticker(sticker)?.label||"Sticker");
  if(readGifId(content))return "🎞️ GIF animé";
