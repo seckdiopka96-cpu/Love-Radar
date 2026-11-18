@@ -113,18 +113,21 @@ async function handler(ctx:Ctx,method:"GET"|"POST"|"DELETE"):Promise<Response>{
   if((photo||voice)&&!bucket)return fail("Le stockage privé n'est pas configuré.",503);
   const count=await db.prepare("SELECT COUNT(*) AS n FROM members WHERE room_id=?").bind(u.room_id).first<{n:number}>();
   if(Number(count?.n)!==2)return fail("Invite ton partenaire avant d'envoyer un coffre.",409);
+  // Validate BOTH payloads before writing either R2 object; invalid audio never orphans a valid photo.
+  const photoBytes=photo?new Uint8Array(await photo.arrayBuffer()):null;
+  const voiceBytes=voice?new Uint8Array(await voice.arrayBuffer()):null;
+  if(photoBytes&&!sniff(photoBytes,photo!.type))return fail("La photo ne correspond pas à son format.");
+  if(voiceBytes&&!sniff(voiceBytes,voice!.type))return fail("Le vocal ne correspond pas à son format.");
   const idNew=crypto.randomUUID(),written:string[]=[];
   let imgKey:string|null=null,audKey:string|null=null;
   try{
    if(photo){
-    const bytes=new Uint8Array(await photo.arrayBuffer());
-    if(!sniff(bytes,photo.type))return fail("La photo ne correspond pas à son format.");
+    const bytes=photoBytes!;
     imgKey="couple-gifts/"+u.room_id+"/"+idNew+"/image";
     await bucket!.put(imgKey,bytes,{httpMetadata:{contentType:photo.type}});written.push(imgKey);
    }
    if(voice){
-    const bytes=new Uint8Array(await voice.arrayBuffer());
-    if(!sniff(bytes,voice.type))return fail("Le vocal ne correspond pas à son format.");
+    const bytes=voiceBytes!;
     audKey="couple-gifts/"+u.room_id+"/"+idNew+"/audio";
     await bucket!.put(audKey,bytes,{httpMetadata:{contentType:voice.type}});written.push(audKey);
    }
