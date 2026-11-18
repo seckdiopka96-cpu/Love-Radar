@@ -33,6 +33,7 @@
     "test:chat": "tsx --test tests/chat-stability.test.ts tests/multi-couple.test.ts tests/chat-composer-signature.test.ts tests/message-delivery-ui.test.ts tests/partner-presence-details.test.ts",
     "test:chat-type-push": "tsx --test tests/chat-type-push-avatar.test.ts tests/notification-routing.test.ts",
     "test:expressions": "tsx --test tests/expressions.test.ts",
+    "test:plus": "tsx --test tests/discovery-plus.test.ts",
     "test:activity": "tsx --test tests/activity-icons.test.ts",
     "test:animation": "tsx --test tests/activity-frames.test.ts",
     "test:replies": "tsx --test tests/message-replies.test.ts",
