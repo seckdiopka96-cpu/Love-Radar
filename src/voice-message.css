@@ -233,11 +233,11 @@
  .lr-chat .lr-voice-note-playhead{transition:none}
 }
 
-/* Received voices are BLACK (not charcoal), while outgoing notes stay pink. */
+/* Restored the original soft charcoal-grey for incoming voices; outgoing notes stay pink. */
 .lr-app.lr-chat-mode .lr-chat .lr-bubble-row.other .lr-bubble.lr-bubble-audio{
- background:#000000!important;
+ background:#242729!important;
  background-image:none!important;
- border-color:#000000!important;
+ border-color:#33393b!important;
  box-shadow:none!important;
  color:#f2f6f8!important;
 }
