@@ -28,7 +28,7 @@ function identify(value:string){
  }
  return "";
 }
-function animateFigure(T:Imported,figure:Figure,pose:CouplePose,t:number){
+function animateFigure(T:Imported,figure:Figure,pose:CouplePose,t:number,duoReady:boolean){
  const wave=Math.sin(t*2.4),bounce=Math.sin(t*3.5);
  const closeness=pose==="calin"?.35+.08*Math.sin(t*1.3):
   pose==="bisou"?.37+.05*Math.sin(t*1.5):pose==="main"?.10:0;
@@ -58,7 +58,7 @@ function animateFigure(T:Imported,figure:Figure,pose:CouplePose,t:number){
   const near=side===nearSide;
   // Avaturn's bind pose has arms horizontally extended. Rotating with the
   // OPPOSITE world-side sign lowers them instead of raising them above the head.
-  const angle=pose==="danse"?
+  const angle=(!duoReady&&pose==="main")?-side*1.32:pose==="danse"?
     -side*(.83+.50*wave*(near?1:-1)):
     pose==="calin"?
     -side*(near?.18+.07*Math.sin(t*1.5):1.03):
@@ -206,7 +206,7 @@ export default function Avatar3DScene({token,mine,partner,pose,mineStyle,partner
      if(now-previous<29){frame=requestAnimationFrame(draw);return}
      previous=now;
      const t=noMotion.matches?0:now/1000;
-     for(const figure of figures)animateFigure(T,figure,poseRef.current,t);
+     for(const figure of figures)animateFigure(T,figure,poseRef.current,t,mine&&partner);
      renderer.render(scene,camera);
      frame=requestAnimationFrame(draw);
     }
