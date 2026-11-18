@@ -70,6 +70,10 @@ test("foreground notification toast opens its exact clicked message",()=>{
  assert.ok(worker.includes('tab:destination.tab,kind:destination.kind,id:destination.id'),
   "service worker must send the real message id to the foreground app");
  assert.ok(app.includes('setPushToastTarget(dest)'),"banner stores the notification route");
+  assert.ok(app.includes('NOTICE_KINDS.has(data.kind||"")'),
+   "foreground notifications support every real type including Ludo Duo invitations");
+  assert.ok(app.includes('notice.endsWith(":ludo-challenge")?"🎲 Invitation Ludo Duo · Appuie pour jouer"'),
+   "a visible Ludo invite has an unmistakable one-tap button");
  assert.ok(app.includes('const target=pushToastTarget'));
  assert.ok(app.includes('window.history.replaceState(null,"",noticeUrl(target))'));
  assert.ok(app.includes('setNoticeTarget(target);setTab(target.tab)'));
