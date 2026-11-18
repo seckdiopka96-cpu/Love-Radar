@@ -735,20 +735,37 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
     if(sender)await sender.replaceTrack(raw);
     if(sequence!==lensRequest.current||!local.current||current.current?.id!==currentCall.id)return;
     lensProcessor.current?.stop();lensProcessor.current=null;
-    setCallLens("none");
+    refreshLensCanvas();setCallLens("none");
    }else if(lensProcessor.current){
     lensProcessor.current.setLens(id);setCallLens(id);
+    if(!lensProcessor.current.isTransmittable)
+     setCameraWarning("Effet visible sur ton iPhone, mais cet appareil ne peut pas le transmettre en appel.");
    }else{
-    const processed=await createLensProcessor(raw,id);
+    let warning="";
+    let processed:LensProcessor;
+    try{processed=await createLensProcessor(raw,id)}
+    catch{
+     // A missing/black WebKit canvas capture capability must not make
+     // a selected lens invisible to the person holding the iPhone.
+     processed=await createLensProcessor(raw,id,{previewOnly:true});
+     warning="Effet visible sur ton iPhone, mais la diffusion du filtre en appel n'est pas prise en charge ici.";
+    }
     if(sequence!==lensRequest.current||current.current?.id!==currentCall.id||
       local.current?.getVideoTracks()[0]!==raw){processed.stop();return}
-    processed.track.enabled=!cameraOff;
-    try{if(sender)await sender.replaceTrack(processed.track)}
-    catch(err){processed.stop();throw err}
-    if(sequence!==lensRequest.current||current.current?.id!==currentCall.id){
-     processed.stop();return;
+    if(processed.isTransmittable){
+     processed.track.enabled=!cameraOff;
+     try{if(sender)await sender.replaceTrack(processed.track)}
+     catch{
+      processed.stop();
+      processed=await createLensProcessor(raw,id,{previewOnly:true});
+      warning="Effet affiché localement. L'envoi de ce filtre vidéo n'est pas pris en charge sur cet appareil.";
+     }
     }
-    lensProcessor.current=processed;setCallLens(id);
+    if(sequence!==lensRequest.current||current.current?.id!==currentCall.id){processed.stop();return}
+    lensProcessor.current=processed;
+    refreshLensCanvas();
+    setCallLens(id);
+    if(warning)setCameraWarning(warning);
    }
    if(localVideo.current)void playLocalPreview();
   }catch(err){
@@ -1017,6 +1034,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
        onPlaying={revealLocalFrame} onLoadedData={revealLocalFrame} onLoadedMetadata={revealLocalFrame}
        onError={()=>{setLocalPreviewReady(false);setLocalPreviewHelp("Aperçu indisponible. Appuie pour réessayer.")}}
        aria-label="Ma caméra"/>
+      <div ref={attachLensCanvas} className="lr-call-processed-frame" aria-hidden="true"/>
       {cameraOff||!local.current?.getVideoTracks().some(track=>track.readyState==="live")?
        <span>{active.id==="preparing-video"?"Ouverture de la caméra…":"Caméra indisponible"}</span>
       :!localPreviewReady?
@@ -1032,7 +1050,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
      <div className="lr-call-lens-heading"><strong>✨ Effets vidéo en direct</strong>
       <button type="button" aria-label="Fermer les effets" onClick={()=>setLensTray(false)}>×</button></div>
      <LensPicker value={callLens} onSelect={id=>void chooseCallLens(id)} disabled={lensBusy||cameraBusy}/>
-     <p className="lr-call-lens-note">Ton partenaire voit aussi l’effet. Les images restent traitées sur ton appareil.</p>
+     <p className="lr-call-lens-note">{lensProcessor.current&&!lensProcessor.current.isTransmittable?"Effet visible sur ton téléphone uniquement : diffusion non prise en charge.":"Les effets sont traités sur ton appareil puis envoyés à ton partenaire si le téléphone le permet."}</p>
     </div>:null}
     <div className={"lr-call-actions"+(isIncoming?" is-ringing":"")} aria-label="Commandes de l’appel">
      {isIncoming?<>
