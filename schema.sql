@@ -276,11 +276,12 @@ CREATE TABLE IF NOT EXISTS couple_surprises(
 );
 CREATE INDEX IF NOT EXISTS idx_surprises_room ON couple_surprises(room_id,created_at DESC);
 
--- One paid subscription per room. Both partners inherit the same Plus entitlement.
-CREATE TABLE IF NOT EXISTS room_plus(
- room_id TEXT PRIMARY KEY,customer_id TEXT,subscription_id TEXT,
- status TEXT NOT NULL DEFAULT 'inactive',
- period_end INTEGER NOT NULL DEFAULT 0,
- cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
- event_created INTEGER NOT NULL DEFAULT 0
+-- Shared, editable chat appearance; no chat messages or private media stored here.
+CREATE TABLE IF NOT EXISTS chat_themes(
+ room_id TEXT PRIMARY KEY,
+ wallpaper TEXT NOT NULL DEFAULT 'minuit',
+ color TEXT NOT NULL DEFAULT 'rose',
+ bubble TEXT NOT NULL DEFAULT 'classique',
+ animated INTEGER NOT NULL DEFAULT 1,
+ version INTEGER NOT NULL DEFAULT 1
 );

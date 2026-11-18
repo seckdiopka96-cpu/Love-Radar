@@ -2,7 +2,7 @@ import {useState} from "react";
 import LudoSoloEmbedded from "./LudoSoloEmbedded";
 import "./discovery-mode.css";
 
-type Page="home"|"messages"|"games"|"ludo"|"quiz"|"plus";
+type Page="home"|"messages"|"games"|"ludo"|"quiz";
 type Props={onClose:()=>void;onCreate:()=>void;onJoin:()=>void};
 const DEMO_QUIZ=[
  {q:"Quel moment est parfait pour une soirée à deux ?",options:["Un film ensemble","Une surprise","Une longue discussion"],answer:"Il n'y a pas de mauvaise réponse ❤️"},
@@ -22,7 +22,7 @@ export default function DiscoveryMode({onClose,onCreate,onJoin}:Props){
    <button type="button" className="lr-discovery-close" onClick={onClose} aria-label="Fermer le mode découverte">×</button>
   </div>
   <nav className="lr-discovery-tabs" aria-label="Découverte des fonctionnalités">
-   {([{id:"home",label:"Accueil"},{id:"messages",label:"Messages"},{id:"games",label:"Jeux"},{id:"plus",label:"Plus ✦"}] as const).map(item=>
+   {([{id:"home",label:"Accueil"},{id:"messages",label:"Messages"},{id:"games",label:"Jeux"}] as const).map(item=>
     <button type="button" key={item.id} aria-current={page===item.id?"page":undefined}
      className={page===item.id?"active":""} onClick={()=>choose(item.id)}>{item.label}</button>)}
   </nav>
@@ -34,7 +34,7 @@ export default function DiscoveryMode({onClose,onCreate,onJoin}:Props){
    <div className="lr-discovery-cards">
     <button type="button" onClick={()=>choose("messages")}><span>💌</span><strong>Notre conversation</strong><small>Voir un exemple</small></button>
     <button type="button" onClick={()=>choose("games")}><span>🎲</span><strong>Jouer ensemble</strong><small>Essayer sans compte</small></button>
-    <button type="button" onClick={()=>choose("plus")}><span>✨</span><strong>Love Radar Plus</strong><small>Découvrir les extras</small></button>
+    <button type="button" onClick={onCreate}><span>🎨</span><strong>Thèmes à deux</strong><small>Gratuits, dans la conversation</small></button>
    </div>
   </section>:null}
   {page==="messages"?<section className="lr-discovery-stage" aria-label="Simulation de messagerie">
@@ -70,13 +70,6 @@ export default function DiscoveryMode({onClose,onCreate,onJoin}:Props){
      onClick={()=>setSelected(index)}>{option}</button>)}</div>
    {selected!==null?<><p className="lr-discovery-feedback">{quiz.answer}</p>
     <button type="button" className="lr-discovery-primary" onClick={()=>{setSelected(null);setQuestion(q=>q+1)}}>Question suivante →</button></>:null}
-  </section>:null}
-  {page==="plus"?<section className="lr-discovery-stage" aria-label="Love Radar Plus">
-   <span className="lr-discovery-kicker">LOVE RADAR PLUS ✨</span>
-   <h2>Encore plus de magie, à deux.</h2>
-   <p className="lr-discovery-price"><strong>2,99 $</strong> / mois par couple</p>
-   <div className="lr-discovery-perks"><span>✦ Deux thèmes exclusifs</span><span>🎯 Défis bonus pour votre couple</span><span>📖 Créer un livre de souvenirs à imprimer</span></div>
-   <p className="lr-discovery-explainer">La messagerie, les appels et les jeux existants restent gratuits. Les achats nécessitent un compte et l'activation de la facturation.</p>
   </section>:null}
   <footer className="lr-discovery-cta">
    <button type="button" className="lr-discovery-primary" onClick={onCreate}>Créer mon espace gratuit →</button>

@@ -4,7 +4,6 @@ import { ensureProfilePhotos } from "./profile";
 import {roomRevision,markRoomChanged} from "../lib/room-revision";
 import {roomPublicKeys,encryptedText,validateP256PublicKey,ENCRYPTED_TEXT_PREFIX} from "../lib/e2ee";
 import {deleteCoupleRoom} from "../lib/delete-room";
-import {getPlus} from "../lib/plus-plan";
 import {generateRecoveryCode,ensureRecoveryCodes,recoveryHash} from "../lib/account-recovery";
 import {consumePublicLimit,consumeMemberLimit,PUBLIC_LIMITS,MEMBER_LIMITS,throttled} from "../lib/abuse-limits";
 
@@ -457,12 +456,6 @@ async function snapshot(db:D1Database,u:Member){
     }
     if(op==="delete"){
      if(u.owner_id!==u.id)return fail("Seul le créateur de l’espace peut le supprimer.",403);
-     // Never orphan an auto-renewing subscription by deleting the only room
-     // authorized to cancel it. Cancellation via Stripe Portal is required first.
-     const paid=await getPlus(db,u.room_id);
-     if(paid?.subscription_id&&paid.cancel_at_period_end!==1&&
-        !["canceled","incomplete_expired"].includes(paid.status))
-      return fail("Résilie d’abord le renouvellement automatique dans Love Radar Plus avant de supprimer cet espace.",409);
      // Delete every room-scoped feature, one-time recovery, push subscriptions,
      // reconciliation texts, media and portraits; D1 cleanup is transactional.
      // Keep the owner's session when R2 fails, so deletion remains retryable.

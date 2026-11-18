@@ -14,7 +14,7 @@ type Props={
  onRestoreE2EE:(file:File,passphrase:string)=>void;onVerifyPartnerKey:()=>void;
  privacyEnabled:boolean;
  notificationsOn:boolean;notificationsBusy:boolean;notificationsTesting:boolean;notificationsHint:string;
- nativeApp:boolean;plusActive:boolean;onOpenPlus:()=>void;
+ nativeApp:boolean;
  onBack:()=>void;onChoosePhoto:()=>void;onAdjustPhoto:()=>void;onRemovePhoto:()=>void;
  onPrivacyChange:(enabled:boolean)=>void;
  onEnableNotifications:()=>void;onTestNotifications:()=>void;onDisableNotifications:()=>void;
@@ -22,7 +22,7 @@ type Props={
 };
 export default function SettingsPage({
 name,code,owner,token,avatarSrc,avatarVersion,recoveryMemberId,recoveryPartnerId,recoveryRoomId,profileBusy,profileError,recoveryBusy,onGenerateRecovery,privacyEnabled,
- notificationsOn,notificationsBusy,notificationsTesting,notificationsHint,nativeApp,plusActive,onOpenPlus,
+ notificationsOn,notificationsBusy,notificationsTesting,notificationsHint,nativeApp,
  e2ee,e2eeBusy,e2eeBackup,e2eeOwnCode,e2eePartnerCode,e2eeDeviceReady,e2eeVerified,
  onEnableE2EE,onFinishE2EE,onRestoreE2EE,onVerifyPartnerKey,
  onBack,onChoosePhoto,onAdjustPhoto,onRemovePhoto,onPrivacyChange,
@@ -77,14 +77,6 @@ name,code,owner,token,avatarSrc,avatarVersion,recoveryMemberId,recoveryPartnerId
    <button type="button" onClick={onBack} className="lr-settings-back" aria-label="Retour à l’accueil">‹</button>
    <div><span>ESPACE PRIVÉ</span><h1>Paramètres</h1><p>Personnalise ton expérience à deux.</p></div>
   </header>
-  <section className="lr-settings-section" aria-labelledby="lr-plus-settings-title">
-   <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">✦</span>
-    <div><h2 id="lr-plus-settings-title">Love Radar Plus</h2>
-     <p>{plusActive?"Votre couple dispose des avantages Plus.":"Thèmes exclusifs, défis bonus et livre souvenir · 2,99 $/mois par couple."}</p>
-    </div></div>
-   <button className="lr-settings-primary" type="button" onClick={onOpenPlus}>
-    {plusActive?"Voir mes avantages Plus":"Découvrir Love Radar Plus"}</button>
-  </section>
   <section className="lr-settings-section" aria-labelledby="lr-profile-settings-title">
    <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">◉</span><div><h2 id="lr-profile-settings-title">Mon profil</h2><p>Visible seulement par ton partenaire.</p></div></div>
    <div className="lr-settings-profile">
