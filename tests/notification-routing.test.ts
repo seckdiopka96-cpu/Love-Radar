@@ -13,7 +13,7 @@ test("all real notification kinds open the correct Love Radar content",()=>{
  const self={location:{origin:"https://love-radar.example"},
   addEventListener:(key:string,handler:(event:any)=>void)=>clients.set(key,handler)};
  const route=new Script(worker+"\nnotificationTarget",{filename:"public/sw.js"})
-  .runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request}) as
+  .runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request,setTimeout,clearTimeout}) as
   (input:{tab:string;kind:string;id:string})=>{tab:string;kind:string|null;id:string|null;url:string};
  const id="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
  const expected:Record<string,string>={
@@ -90,7 +90,8 @@ test("notification targets survive an iPhone cold start and open their precise s
  assert.ok(app.includes('type:"love-radar-request-pending-notification"'));
  assert.ok(app.includes('setTab(dest.tab)'),"go directly to the chosen page");
  assert.ok(app.includes('type:"love-radar-ack-notification",routeId'),"SPA must acknowledge a handled notification");
- assert.ok(app.includes('if(lastHandledNotice.current===routeId)return'),"duplicate messages cannot reroute the user");
+ assert.ok(!app.includes('if(lastHandledNotice.current===routeId)return'),
+  "a repeated notification must recover from a failed iPhone resume, never be silently ignored");
  assert.ok(app.includes('challengeId={noticeTarget?.kind==="ludo-challenge"?noticeTarget.id:null}'),"Ludo challenge reaches game agreement");
 });
 
@@ -101,6 +102,51 @@ test("message notifications jump to their actual chat bubble",()=>{
  assert.ok(app.includes('!room.messages.some(m=>m.id===noticeTarget.id)'),"show fallback only if message is older than loaded chat");
  assert.ok(app.includes('const notified=noticeTarget?.id&&["message","photo","audio","call"].includes'));
  assert.ok(readFileSync("src/delivery-status-ui.css","utf8").includes(".lr-notified-bubble"));
+});
+
+test("Ludo invitation is not acknowledged until its real agreement loads",()=>{
+ assert.ok(app.includes('if(noticeTarget.kind==="ludo-challenge"&&readyLudoNotice!==noticeTarget.id)return'));
+ assert.ok(app.includes("onNotificationReady={markLudoNoticeReady}"));
+ assert.ok(duo.includes("onNotificationReady?.(challengeId)"));
+ assert.ok(duo.includes("if(challengeId&&game&&palette&&!loading)"));
+ assert.ok(app.includes('!room.messages.some(message=>message.id===id)'),"messages wait for server content");
+ assert.ok(app.includes("focusMessage?.id!==id&&!focusError"),"old messages wait for the precise fetch or an error");
+});
+
+test("stalled WebKit focus cannot swallow a clicked Ludo invitation",async()=>{
+ const listeners=new Map<string,(event:any)=>void>();
+ const stored=new Map<string,Response>(),messages:any[]=[];
+ let opened="";
+ const background={
+  url:"https://love-radar-acd.pages.dev/",visibilityState:"hidden",
+  postMessage:(data:any)=>messages.push(data),
+  // iOS may leave focus permanently pending while the PWA is suspended.
+  focus:()=>new Promise(()=>{}),
+  navigate:async()=>{throw Error("focus was not acquired")}
+ };
+ const cache={open:async()=>({
+  put:async(key:string,response:Response)=>{stored.set(key,response)},
+  match:async(key:string)=>stored.get(key)?.clone(),
+  delete:async(key:string)=>stored.delete(key)
+ })};
+ const context={
+  self:{location:{origin:"https://love-radar-acd.pages.dev"},
+   clients:{matchAll:async()=>[background],openWindow:async(url:string)=>{opened=url}},
+   addEventListener:(key:string,fn:(event:any)=>void)=>listeners.set(key,fn)},
+  caches:cache,URL,URLSearchParams,Date,Promise,Response,Request,
+  setTimeout:(fn:()=>void)=>{queueMicrotask(fn);return 1},clearTimeout:()=>{}
+ };
+ new Script(worker).runInNewContext(context);
+ let pending=Promise.resolve();
+ listeners.get("notificationclick")!({
+  notification:{close(){},data:{tab:"ludo",kind:"ludo-challenge",
+   id:"55555555-5555-4555-8555-555555555555"}},
+  waitUntil(value:Promise<any>){pending=value}
+ });
+ await pending;
+ assert.equal(messages[0].kind,"ludo-challenge","post the route before the stalled focus");
+ assert.match(opened,/tab=ludo&kind=ludo-challenge&id=55555555/);
+ assert.equal(stored.size,1,"retain the clicked invitation if iOS only opens Home");
 });
 
 test("Ludo Duo agreement is one step after color selection, without mandatory gifts",()=>{
@@ -135,7 +181,7 @@ test("push worker routes a warm notification directly without reloading the app"
   clients:{matchAll:async()=>[client],openWindow:async()=>{throw Error("should reuse the active app")}},
   addEventListener:(name:string,fn:(ev:any)=>void)=>listeners.set(name,fn)
  };
- new Script(worker,{filename:"public/sw.js"}).runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request,caches});
+ new Script(worker,{filename:"public/sw.js"}).runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request,caches,setTimeout,clearTimeout});
  let job=Promise.resolve();
  listeners.get("notificationclick")!({notification:{
   close(){},data:{tab:"chat",kind:"message",id:"11111111-1111-4111-8111-111111111111"}
@@ -172,7 +218,7 @@ test("push worker remembers an exact route on cold iPhone launch",async()=>{
   clients:{matchAll:async()=>[],openWindow:async(url:string)=>{opened=url;return null}},
   addEventListener:(name:string,fn:(ev:any)=>void)=>listeners.set(name,fn)
  };
- new Script(worker,{filename:"public/sw.js"}).runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request,caches});
+ new Script(worker,{filename:"public/sw.js"}).runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request,caches,setTimeout,clearTimeout});
  let job=Promise.resolve();
  listeners.get("notificationclick")!({notification:{
   close(){},data:{tab:"ludo",kind:"ludo-challenge",id:"22222222-2222-4222-8222-222222222222"}
@@ -216,7 +262,7 @@ test("tap on Ludo invitation navigates the existing iPhone PWA to its exact game
   clients:{matchAll:async()=>[client],openWindow:async()=>{throw Error("should reuse installed PWA")}},
   addEventListener:(name:string,fn:(event:any)=>void)=>listeners.set(name,fn)
  };
- new Script(worker,{filename:"public/sw.js"}).runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request,caches});
+ new Script(worker,{filename:"public/sw.js"}).runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request,caches,setTimeout,clearTimeout});
  let task=Promise.resolve();
  listeners.get("notificationclick")!({
   notification:{close(){},data:{tab:"ludo",kind:"ludo-challenge",id:"44444444-4444-4444-8444-444444444444"}},
