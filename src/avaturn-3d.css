@@ -90,3 +90,13 @@
 @media(prefers-reduced-motion:reduce){
  .lr-avaturn-pose-symbol{animation:none!important}
 }
+
+.lr-avaturn-remove-link{align-self:flex-start;background:transparent!important;border:0!important;
+ color:#ddb8d2!important;font-size:11px!important;text-decoration:underline;
+ padding:4px 0!important}
+.lr-avaturn-remove-confirm{display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+ padding:11px;border-radius:12px;background:#4734499c;border:1px solid #c68eab55}
+.lr-avaturn-remove-confirm p{width:100%;font-size:11px!important;color:#fff3f6!important}
+.lr-avaturn-remove-confirm button{border:1px solid #a57e9d!important;border-radius:10px!important;
+ color:#fff!important;background:#714660!important;font-size:11px!important;
+ padding:9px 12px!important}
