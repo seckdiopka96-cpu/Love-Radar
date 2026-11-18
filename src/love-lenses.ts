@@ -118,7 +118,7 @@ export async function createLensProcessor(initial:MediaStreamTrack,lens:LoveLens
     points=current?.map(pt=>({x:pt.x,y:pt.y,z:pt.z}))||null;
     detectorSeen=performance.now();
    });
-   closeDetector=()=>{void mesh.close().catch(()=>{})};
+   closeDetector=()=>{void Promise.resolve(mesh.close()).catch(()=>{})};
    sendFrame=async image=>{await mesh.send({image})};
    detectorReady=true;
   }catch{
