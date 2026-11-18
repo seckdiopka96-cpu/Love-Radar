@@ -5,7 +5,7 @@ export type PlusRow={
  room_id:string;customer_id:string|null;subscription_id:string|null;
  status:string;period_end:number;cancel_at_period_end:number;event_created:number;
 };
-export const PLUS_CENTS=399;
+export const PLUS_CENTS=299;
 export const PLUS_CURRENCY="usd";
 export function plusActive(row:PlusRow|null|undefined,now=Math.floor(Date.now()/1000)){
  return Boolean(row&&["active","trialing"].includes(row.status)&&row.period_end>now);
