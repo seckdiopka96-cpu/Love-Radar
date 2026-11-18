@@ -16,6 +16,7 @@ jobs:
       - run: npm run test:watch
       - run: npm run test:privacy
       - run: npm run test:puzzle
+      - run: npm run test:duo
       - run: npm run test:call
       - run: npm run test:care
       - run: npm run test:keepsakes
