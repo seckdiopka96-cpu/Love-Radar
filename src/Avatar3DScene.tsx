@@ -48,27 +48,24 @@ function animateFigure(T:Imported,figure:Figure,pose:CouplePose,t:number){
  move("leftLeg",pose==="danse"?.12*wave:0,x);
  move("rightLeg",pose==="danse"?-.12*wave:0,x);
 }
+/** A neutral 3D presence marker, not a fake low-poly humanoid avatar.
+ * The partner's real Avaturn GLB replaces this automatically when uploaded. */
 function makePlaceholder(T:Imported,style:AvatarStyle){
  const root=new T.Group();
- const skin={porcelaine:"#f4ceb4",sable:"#dfb596",miel:"#cf9671",caramel:"#ae7350",brun:"#834d36",ebene:"#533526"}[style.skin];
- const outfit={rose:"#e77fa2",bleu:"#5489c6",lilas:"#9b78c7",vert:"#54a894",soleil:"#d6a155"}[style.outfit];
- const skinMat=new T.MeshStandardMaterial({color:skin,roughness:.87});
- const outfitMat=new T.MeshStandardMaterial({color:outfit,roughness:.62});
- const pants=new T.MeshStandardMaterial({color:"#28344d",roughness:.83});
- const hair=new T.MeshStandardMaterial({color:"#2b2634",roughness:.8});
- const sphere=new T.SphereGeometry(1,24,16);
- function part(mat:import("three").Material,pos:[number,number,number],scale:[number,number,number]){
-  const m=new T.Mesh(sphere,mat);m.position.set(...pos);m.scale.set(...scale);
-  root.add(m);return m;
- }
- part(pants,[0,.52,0],[.28,.52,.23]);
- part(outfitMat,[0,1.38,0],[.48,.67,.28]);
- part(skinMat,[0,2.38,0],[.37,.46,.32]);
- part(hair,[0,2.74,-.015],[.39,.21,.33]);
- part(outfitMat,[-.55,1.48,0],[.16,.52,.19]);
- part(outfitMat,[.55,1.48,0],[.16,.52,.19]);
- part(pants,[-.20,.2,0],[.15,.34,.17]);
- part(pants,[.20,.2,0],[.15,.34,.17]);
+ const tint={rose:"#e77fa2",bleu:"#86b2e9",lilas:"#be9ae6",vert:"#87d6c6",soleil:"#f1c787"}[style.outfit];
+ const orb=new T.Mesh(new T.IcosahedronGeometry(.40,3),
+  new T.MeshPhysicalMaterial({color:tint,roughness:.16,metalness:.2,clearcoat:1,
+   clearcoatRoughness:.09,transparent:true,opacity:.82}));
+ orb.position.y=1.53;root.add(orb);
+ const ringMat=new T.MeshBasicMaterial({color:"#eecce9",transparent:true,opacity:.52,
+  side:T.DoubleSide});
+ const ring=new T.Mesh(new T.TorusGeometry(.60,.015,9,64),ringMat);
+ ring.position.y=1.53;ring.rotation.y=.32;root.add(ring);
+ const ring2=new T.Mesh(new T.TorusGeometry(.55,.012,9,64),ringMat.clone());
+ ring2.position.y=1.53;ring2.rotation.x=.42;root.add(ring2);
+ const base=new T.Mesh(new T.CircleGeometry(.42,40),
+  new T.MeshBasicMaterial({color:tint,transparent:true,opacity:.18}));
+ base.rotation.x=-Math.PI/2;base.position.y=.015;root.add(base);
  return root;
 }
 export default function Avatar3DScene({token,mine,partner,pose,mineStyle,partnerStyle,onUnavailable}:Props){
