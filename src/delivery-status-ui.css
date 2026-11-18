@@ -91,12 +91,12 @@
  border-radius:15px;
 }
 
-/* Final cascade guard: this stylesheet loads last in the chat.
-   No grey gradients or overlays on received voice bubbles. */
+/* Final cascade guard: restore the original grey received voice bubbles,
+   regardless of later theme overrides. Sent voices remain pink. */
 .lr-app.lr-chat-mode .lr-chat .lr-chat-messages .lr-bubble-row.other .lr-bubble.lr-bubble-audio{
- background:#000000!important;
- background-color:#000000!important;
+ background:#242729!important;
+ background-color:#242729!important;
  background-image:none!important;
- border-color:#000000!important;
+ border-color:#33393b!important;
  box-shadow:none!important;
 }
