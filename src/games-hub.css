@@ -69,3 +69,10 @@
 .lr-games-ludo-room-card .lr-games-art-svg{filter:drop-shadow(0 5px 8px #07152fbb)}
 .lr-games-ludo-room-card .lr-games-copy strong{color:#fff4dc}
 .lr-games-ludo-room-card .lr-games-copy b{color:#ffe49c}
+
+/* Couple arcade: discoverable premium game cards. */
+.lr-games-choice.lr-games-draw{background:radial-gradient(circle at 5% 5%,#90e5e533,transparent 52%),linear-gradient(145deg,#284c66,#332d58)!important;border-color:#a4dbde!important}
+.lr-games-choice.lr-games-escape{background:radial-gradient(circle at 90% 5%,#fbc49d38,transparent 55%),linear-gradient(145deg,#5b3d5a,#2a324f)!important;border-color:#efb3cc!important}
+.lr-games-draw .lr-games-copy strong,.lr-games-escape .lr-games-copy strong{font-size:clamp(23px,3vw,31px)}
+.lr-games-draw .lr-games-copy b,.lr-games-escape .lr-games-copy b{color:#ffdeac}
+@media(max-width:700px){.lr-games-choice.lr-games-draw,.lr-games-choice.lr-games-escape{min-height:136px}.lr-games-draw .lr-games-copy strong,.lr-games-escape .lr-games-copy strong{font-size:24px}}
