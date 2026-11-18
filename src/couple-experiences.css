@@ -127,3 +127,5 @@
 .tg-life-content>span{font-size:11px;color:#ded2e7;line-height:1.45}
 .tg-life-arrow{font-size:27px;color:#f6d8e9;padding:0 3px}
 @media(max-width:360px){.tg-life-feature{padding:11px;gap:9px}.tg-life-emblem{flex-basis:40px;width:40px;height:40px}.tg-life-content>strong{font-size:17px}.tg-life-content>span{font-size:10px}}
+
+.ce-link-action{display:flex;justify-content:center;align-items:center;width:100%;margin:15px 0 0;padding:13px;border:1px solid rgba(243,184,221,.3);border-radius:13px;background:rgba(165,79,146,.18);color:#ffe6f3;font-size:12px;font-weight:800}
