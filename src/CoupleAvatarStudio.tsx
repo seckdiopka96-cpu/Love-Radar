@@ -81,7 +81,7 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
      aria-selected={category===group.id} className={category===group.id?"active":""}
      onClick={()=>setCategory(group.id)}>{group.label}</button>)}
    </div>
-   <div className="lr-avatar-studio-options" role="group" aria-label="Choisir "+groups.find(g=>g.id===category)?.label}>
+   <div className="lr-avatar-studio-options" role="group" aria-label={"Choisir "+(groups.find(g=>g.id===category)?.label||"un style")}>
     {options.map(option=>{
      const selected=draft[category]===option.id;
      return <button key={option.id} type="button" className={"lr-avatar-option"+(selected?" selected":"")}
