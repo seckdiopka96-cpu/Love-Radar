@@ -273,16 +273,10 @@ async function autoIfLate(db:D1Database,g:Game,a:Agreement):Promise<Game>{
  const acting=g.turn;
  const row=await db.prepare("SELECT name FROM members WHERE room_id=? AND seat=?").bind(g.room_id,acting).first<{name:string}>();
  const name=(row?.name||"le joueur").slice(0,30);
- // One takeover = one penalty, even if the computer plays multiple bonus rolls.
+ // Computer takeovers never trigger an automatic defeat.
  const missed=registerAutoTurn(g.auto_counts,acting);
  g.auto_counts=missed.counts;
- let autoRoll:number|null=null;
- if(missed.forfeit){
-  g.status="won";g.winner=1-acting;g.turn=1-acting;g.dice=null;g.streak=0;
-  g.last_action="⏰ "+name+" a laissé l’ordinateur jouer 3 tours à sa place. Défaite automatique !";
- }else{
-  autoRoll=botTurn(g,name);
- }
+ const autoRoll=botTurn(g,name);
  if(!await save(db,g))return await getGame(db,g.room_id)||g;
  const updated=await getGame(db,g.room_id)||g;
  if(autoRoll!==null)await rememberLastRoll(db,updated,acting,autoRoll);
