@@ -20,9 +20,9 @@ test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()
  const boardSlice=s=>(s.slice(s.indexOf(start),s.indexOf(end))).replace(/^\s+|\s+$/g,"");
  assert.ok(duoHTML.includes(start));
  assert.equal(boardSlice(duoHTML),boardSlice(soloHTML));
- assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v11"'));
- assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v11"'));
- assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v11" defer'));
+ assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v12"'));
+ assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v12"'));
+ assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v12" defer'));
  assert.ok(duoHTML.includes('LUDO <span>♥</span> DUO'));
  assert.ok(duoHTML.includes('id="roll-dice"'));
  assert.ok(duoCSS.includes('.duo-side-actions'));
@@ -64,7 +64,7 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
  'function duoFrameAction(','signRules()', 'giftAction(','ludo-agreement-backdrop','ludo-gift-dialog','ludo-modal-backdrop']){
   assert.ok(parent.includes(unchanged),unchanged);
  }
- assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v11"'));
+ assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v12"'));
  assert.ok(bridge.includes('event.source!==frame'));
  assert.ok(bridge.includes('event.origin!==window.location.origin'));
  assert.ok(!bridge.includes("token:"));
@@ -90,7 +90,43 @@ test("Duo iframe works offline and uses only a same-origin parent, never replaci
   assert.ok(sw.includes('"'+path+'"'),path);
  }
  assert.ok(sw.includes('url.pathname.startsWith("/ludo-duo/")'));
- assert.ok(sw.includes("love-radar-static-v139"),"new PWA release must invalidate old shell");
+ assert.ok(sw.includes("love-radar-static-v140"),"new PWA release must invalidate old shell");
+});
+
+
+test("Ludo Duo joins are announced, stay live and resync from D1",()=>{
+ const push=readFileSync("functions/lib/push.ts","utf8");
+ const app=readFileSync("src/App.tsx","utf8");
+ const presenceCSS=readFileSync("src/ludo-duo-color.css","utf8");
+ const schema=readFileSync("schema.sql","utf8");
+ const cleanup=readFileSync("functions/lib/delete-room.ts","utf8");
+ assert.ok(backend.includes("CREATE TABLE IF NOT EXISTS ludo_presence"),"backend creates presence table");
+ assert.ok(backend.includes('if(action==="presence")'),"join and leave are authenticated actions");
+ assert.ok(backend.includes('mode==="leave"'),"leaving clears only this device's row");
+ assert.ok(backend.includes("AND session_id=?"),"late exits cannot clear new joins");
+ assert.ok(backend.includes('kind:"ludo-joined",id:g.game_id'),"offline partner receives game deep link");
+ assert.ok(backend.includes("!live[1-player.seat].online"),"avoid unnecessary push while partner is watching");
+ assert.ok(backend.includes("presence:presenceValue"),"full snapshots include both players' statuses");
+ assert.ok(backend.includes("last_seen>=recent"),"stale presence expires");
+ assert.ok(parent.includes('body:JSON.stringify({action:"presence",mode,gameId,sessionId})'));
+ assert.ok(parent.includes("window.setInterval(ping,7000)"),"heartbeat survives live play");
+ assert.ok(parent.includes('void send("leave")'),"exit clears presence without forfeiting");
+ assert.ok(parent.includes("Date.now()-lastFullRefresh.current<3200"),"full snapshots still arrive during active matches");
+ assert.ok(parent.includes("presence[1-mySeat]?.online"),"both players see who actually joined");
+ assert.ok(presenceCSS.includes(".ludo-presence-status"));
+ assert.ok(push.includes('"ludo-joined"'));
+ assert.ok(app.includes('notice.endsWith(":ludo-joined")'));
+ assert.ok(app.includes('challengeId={noticeTarget?.kind==="ludo-challenge"||noticeTarget?.kind==="ludo-joined"?'));
+ assert.ok(schema.includes("CREATE TABLE IF NOT EXISTS ludo_presence"));
+ assert.ok(cleanup.includes('"ludo_presence"'));
+});
+test("Duo iPhone frame keeps event subscription stable as snapshots tick",()=>{
+ assert.ok(bridge.includes("const actionRef=useRef(props.onAction)"));
+ assert.ok(bridge.includes("actionRef.current(data.action)"));
+ assert.ok(bridge.includes("sendRef.current()"));
+ assert.ok(bridge.includes('if(data.type!=="action")return'));
+ assert.ok(duoJS.includes("state.animationBusy||state.overlayOpen"),
+  "never allow a roll or pawn move behind agreement or pause modal");
 });
 
 test("live Duo synchronizes promptly with conditional server reads",()=>{
@@ -257,7 +293,7 @@ test("Solo and Duo share a stable stage, and dice respond in under a half-second
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .game-screen{"),
   "Duo does not move or resize the game stage with a different theme");
  assert.ok(soloFrame.includes("ludo-room-20261118-v6"));
- assert.ok(bridge.includes("ludo-room-20261118-v11"));
+ assert.ok(bridge.includes("ludo-room-20261118-v12"));
 });
 test("synced Duo never restarts the same animated pawn hop on a clock tick",()=>{
  assert.ok(duoJS.includes("movingPawn.dataset.motionProgress=String(m.from)"));
