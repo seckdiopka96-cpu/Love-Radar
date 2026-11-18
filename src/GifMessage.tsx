@@ -17,10 +17,11 @@ export default function GifMessage({id}:{id:string}){
   return()=>controller.abort();
  },[id]);
  return <figure className="lr-chat-gif" aria-label="GIF animé">
-  {gif?<img src={gif.preview} alt={gif.title||"GIF animé"} loading="lazy"
-   onError={()=>setFailed(true)}/>:null}
+  {gif&&!failed?<div className="lr-chat-gif-media">
+   <img src={gif.preview} alt={gif.title||"GIF animé"} loading="lazy" onError={()=>setFailed(true)}/>
+   <figcaption className="lr-chat-gif-brand" aria-label="GIF fourni par GIPHY">GIPHY</figcaption>
+  </div>:null}
   {!gif&&!failed?<span className="lr-chat-gif-placeholder" role="status">Chargement du GIF…</span>:null}
   {failed?<span className="lr-chat-gif-placeholder">GIF momentanément indisponible</span>:null}
-  <figcaption>Powered By GIPHY</figcaption>
  </figure>;
 }
