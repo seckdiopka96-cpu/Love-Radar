@@ -133,7 +133,7 @@
  .lr-app.lr-app-locked.lr-avatar-mode .lr-shell{
   padding:0!important;min-height:0!important;
  }
- .lr-app.lr-app-locked.lr-avatar-mode .lr-main{
+ .lr-app.lr-app-locked.lr-avatar-mode .lr-avatar-studio{padding-top:calc(max(15px,env(safe-area-inset-top)) + 9px)!important}\n .lr-app.lr-app-locked.lr-avatar-mode .lr-main{
   padding:0!important;overflow-y:auto!important;overscroll-behavior-y:contain;
   -webkit-overflow-scrolling:touch;
  }
