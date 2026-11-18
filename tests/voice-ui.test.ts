@@ -142,5 +142,5 @@ test("received voice bubbles are charcoal black while outgoing voices stay pink"
   assert.match(finalCss,/\.lr-app\.lr-chat-mode \.lr-chat \.lr-chat-messages \.lr-bubble-row\.other \.lr-bubble\.lr-bubble-audio\s*\{\s*background:#000000!important;/);
   assert.ok(finalCss.includes("background-image:none!important"));
   assert.ok(voiceCss.includes("background:#bd2763!important"),"pink outgoing voices unchanged");
-  assert.ok(sw.includes('love-radar-static-v115'),"refresh older PWA cache");
+  assert.ok(sw.includes('love-radar-static-v116'),"refresh older PWA cache");
  });
