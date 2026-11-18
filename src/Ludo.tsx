@@ -58,6 +58,27 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  const agreementEpoch=useRef(0);
  const syncRequested=useRef(0);
  const syncApplied=useRef(0);
+ // A signature and the start of a match are monotonic for one game ID.
+ // Replicated/stale reads must never revert someone to the ready screen.
+ const acknowledgedAgreement=useRef<{gameId:string;state:Agreement}|null>(null);
+ const acceptAgreement=useCallback((incoming:Agreement|null,gameId:string|null)=>{
+  const previous=acknowledgedAgreement.current;
+  let next=incoming;
+  if(next&&previous?.gameId===gameId){
+   const old=previous.state;
+   next={
+    ...next,
+    signed:[next.signed[0]||old.signed[0],next.signed[1]||old.signed[1]],
+    names:[next.names[0]||old.names[0],next.names[1]||old.names[1]],
+    signedAt:[next.signedAt[0]??old.signedAt[0],next.signedAt[1]??old.signedAt[1]],
+    giftChoices:[next.giftChoices[0]??old.giftChoices[0],next.giftChoices[1]??old.giftChoices[1]],
+    startedAt:next.startedAt??old.startedAt
+   };
+  }
+  acknowledgedAgreement.current=next&&gameId?{gameId,state:next}:null;
+  setAgreement(next);
+  return next;
+ },[]);
  
  const [presence,setPresence]=useState<Presence>([{online:false,joinedAt:null},{online:false,joinedAt:null}]);
  const [partnerJustJoined,setPartnerJustJoined]=useState(false);
@@ -229,13 +250,13 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
     setError("");
     return;
    }
-   activeDuoGame.current=Boolean(data.agreement?.startedAt);
+   const resolvedAgreement=acceptAgreement(data.agreement||null,data.game?.id||null);
+   activeDuoGame.current=Boolean(resolvedAgreement?.startedAt);
    setMembers(data.members||0);
    if(data.game)onGame(data.game,data.moveEvent);
    else {prior.current=null;setGame(null)}
    setReactions(data.reactions||(data.reaction?[data.reaction]:[]));
    setGift(data.gift||null);
-   setAgreement(data.agreement||null);
    setPalette(data.palette||null);
    setLastRoll(data.lastRoll||null);
    setChallenge(data.challenge||null);
@@ -243,7 +264,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    setError("");
   }catch(e){if(isActive.current)setError(e instanceof Error?e.message:"Connexion au jeu impossible.")}
   finally{if(isActive.current)setLoading(false)}
- },[token,onGame]);
+ },[token,onGame,acceptAgreement]);
 
  useEffect(()=>{
   isActive.current=true;
@@ -387,7 +408,10 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    if(typeof data.serverNow==="number")serverClockOffset.current=data.serverNow-Date.now();
    if(data.game)onGame(data.game,data.moveEvent);
    if(data.gift)setGift(data.gift);
-   if(data.agreement){setAgreement(data.agreement);activeDuoGame.current=Boolean(data.agreement.startedAt);}
+   if(data.agreement){
+    const received=acceptAgreement(data.agreement,data.game?.id||game.id);
+    activeDuoGame.current=Boolean(received?.startedAt);
+   }
    if(data.palette)setPalette(data.palette);
    if(data.lastRoll!==undefined)setLastRoll(data.lastRoll);
    if(typeof data.serverNow==="number")setClockOffset(data.serverNow-Date.now());
@@ -445,8 +469,8 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    if(!response.ok||!data.ok)throw Error(data.error||"Impossible d’enregistrer la signature.");
    agreementEpoch.current++;
    if(data.agreement){
-    setAgreement(data.agreement);
-    activeDuoGame.current=Boolean(data.agreement.startedAt);
+    const received=acceptAgreement(data.agreement,data.game?.id||game.id);
+    activeDuoGame.current=Boolean(received?.startedAt);
    }
    if(data.gift)setGift(data.gift);
    if(data.palette)setPalette(data.palette);

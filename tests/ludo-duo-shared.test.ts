@@ -164,8 +164,11 @@ test("two signed partners converge to the same started game even on slow iPhones
   "signatures invalidate in-flight old responses");
  assert.ok(parent.includes('epoch!==agreementEpoch.current||requestId<syncApplied.current'),
   "older polls cannot reopen the waiting screen");
- assert.ok(parent.includes('activeDuoGame.current=Boolean(data.agreement.startedAt)'),
+ assert.ok(parent.includes('activeDuoGame.current=Boolean(received?.startedAt)'),
   "signing immediately updates the local game phase");
+ assert.ok(parent.includes('const acceptAgreement=useCallback'),"keep signatures monotonic per game");
+ assert.ok(parent.includes('startedAt:next.startedAt??old.startedAt'),"stale GET never hides a started match");
+ assert.ok(parent.includes('data.game?.id||null'),"restarting a new game safely clears the previous signature");
  assert.ok(parent.includes('void load(true)'),"signing forces authoritative refresh");
  assert.ok(parent.includes('window.addEventListener("focus",visible)'),"iOS resume reloads agreements");
  assert.ok(parent.includes('↻ Vérifier maintenant'),"a visible recovery action exists if the network stalls");
