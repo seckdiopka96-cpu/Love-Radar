@@ -29,8 +29,9 @@ type MoveEvent={gameId:string;version:number;seat:number;pawn:number;from:number
 type PawnMotion={seat:number;pawn:number;progress:number;from:number;to:number};
 type CapturedMotion=CapturedPawn&{returning:boolean;progress:number};
 type Challenge={gameId:string;fromId:string;fromName:string;fromSeat:number;sentAt:number};
+type Presence=[{online:boolean;joinedAt:number|null},{online:boolean;joinedAt:number|null}];
 type DieResult={seat:number;face:number;at:number};
-type ResponseData={ok:boolean;unchanged?:boolean;delta?:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;reactions?:Reaction[];moveEvent?:MoveEvent|null;gift?:Gift|null;agreement?:Agreement|null;palette?:Palette|null;lastRoll?:DieResult|null;challenge?:Challenge|null;notificationRequested?:boolean;serverNow?:number};
+type ResponseData={ok:boolean;unchanged?:boolean;delta?:boolean;error?:string;members?:number;seat?:number;game?:Game|null;reaction?:Reaction|null;reactions?:Reaction[];moveEvent?:MoveEvent|null;gift?:Gift|null;agreement?:Agreement|null;palette?:Palette|null;lastRoll?:DieResult|null;challenge?:Challenge|null;presence?:Presence|null;notificationRequested?:boolean;serverNow?:number};
 type Props={token:string;mySeat:number;myName:string;partnerName:string|null;myAvatar?:string;partnerAvatar?:string;onExit:()=>void;challengeId?:string|null;onNotificationReady?:(challengeId:string)=>void};
 function allowed(progress:number,dice:number|null){return dice!==null&&(progress===-1?dice===6:progress>=0&&progress<57&&progress+dice<=57)}
 function labelPosition(progress:number){return progress===-1?"Dans la base":progress===57?"Arrivé !":progress>=51?"Couloir final":"Sur le plateau"}
@@ -51,6 +52,11 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  const autoDuoPawn=useRef("");
  // Conditional refreshes only apply after both players have signed.
  const activeDuoGame=useRef(false);
+ const lastFullRefresh=useRef(0);
+ const presenceSession=useRef(crypto.randomUUID());
+ const [presence,setPresence]=useState<Presence>([{online:false,joinedAt:null},{online:false,joinedAt:null}]);
+ const [partnerJustJoined,setPartnerJustJoined]=useState(false);
+ const previousPartnerOnline=useRef<boolean|null>(null);
  const [challenge,setChallenge]=useState<Challenge|null>(null);
  const [challengeBusy,setChallengeBusy]=useState(false);
  const [challengeHint,setChallengeHint]=useState("");
@@ -184,12 +190,16 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  const load=useCallback(async()=>{
   try{
    const previous=prior.current;
-   const quick=Boolean(previous&&activeDuoGame.current&&previous.status==="playing");
+   // Version-only checks can miss a partner joining or leaving.
+   const quick=Boolean(previous&&activeDuoGame.current&&previous.status==="playing"&&
+    Date.now()-lastFullRefresh.current<3200);
    const endpoint=quick&&previous?"/api/ludo?since="+previous.version+"&game="+encodeURIComponent(previous.id):"/api/ludo";
    const res=await apiFetch(endpoint,{headers:{Authorization:"Bearer "+token},cache:"no-store"});
    const data=await res.json() as ResponseData;
    if(!res.ok||!data.ok)throw Error(data.error||"Connexion au jeu impossible.");
    if(!isActive.current)return;
+   if(!quick)lastFullRefresh.current=Date.now();
+   if(data.presence)setPresence(data.presence);
    // No board state changed: do not make React re-render every half second.
    if(data.unchanged){setError("");return}
    if(data.delta){
@@ -254,6 +264,51 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
   const id=window.setInterval(()=>setClock(Date.now()),250);
   return()=>window.clearInterval(id);
  },[]);
+ // Presence belongs to this specific mounted device, not the account.
+ // Old iPhone tabs cannot delete a newer session's presence lease.
+ useEffect(()=>{
+  if(!game?.id||members!==2)return;
+  const gameId=game.id,sessionId=presenceSession.current;
+  let closed=false,inFlight=false;
+  const send=async(mode:"join"|"leave")=>{
+   if(mode==="join"&&inFlight)return;
+   if(mode==="join")inFlight=true;
+   try{
+    const response=await apiFetch("/api/ludo",{
+     method:"POST",keepalive:mode==="leave",
+     headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+     body:JSON.stringify({action:"presence",mode,gameId,sessionId})
+    });
+    if(mode==="join"&&response.ok&&!closed){
+     const result=await response.json() as ResponseData;
+     if(result.presence)setPresence(result.presence);
+    }
+   }catch{/* Network loss expires on the server automatically. */}
+   finally{if(mode==="join")inFlight=false}
+  };
+  const ping=()=>{if(document.visibilityState==="visible")void send("join")};
+  ping();
+  const timer=window.setInterval(ping,7000);
+  document.addEventListener("visibilitychange",ping);
+  window.addEventListener("focus",ping);
+  return()=>{
+   closed=true;
+   window.clearInterval(timer);
+   document.removeEventListener("visibilitychange",ping);
+   window.removeEventListener("focus",ping);
+   void send("leave");
+  };
+ },[token,game?.id,members]);
+ useEffect(()=>{
+  const online=Boolean(presence[1-mySeat]?.online);
+  if(previousPartnerOnline.current===false&&online)setPartnerJustJoined(true);
+  previousPartnerOnline.current=online;
+ },[presence,mySeat]);
+ useEffect(()=>{
+  if(!partnerJustJoined)return;
+  const timer=window.setTimeout(()=>setPartnerJustJoined(false),4500);
+  return()=>window.clearTimeout(timer);
+ },[partnerJustJoined]);
 
  useEffect(()=>{
   const el=boardStage.current;
@@ -483,6 +538,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
   <div className={"ludo-turn-banner"+(myTurn?" its-mine":"")} role="status" aria-live="polite">
    <span className="ludo-turn-icon" aria-hidden="true">{status}</span>
    <strong>{message}</strong>
+   {partnerJustJoined?<span className="ludo-partner-joined" role="status">🟢 {displayName(1-mySeat)} vient de rejoindre !</span>:null}
    {remaining!==null?<span className={"ludo-countdown"+(remaining<=5?" urgent":"")} aria-label={"Temps restant : "+remaining+" secondes"}><span className="ludo-time-ring">{remaining}</span><small>s</small></span>:null}
   </div>
 
@@ -588,6 +644,9 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
     </div>
     {challengeId&&game?.id!==challengeId?<div className="ludo-challenge-alert" role="status">⏳ L’ancien défi est terminé. Voici votre partie actuelle.</div>:null}
     {challenge&&challenge.gameId===game?.id&&challenge.fromSeat!==mySeat?<div className="ludo-challenge-alert" role="status">🎲 {challenge.fromName} t’invite à jouer !</div>:null}
+    <div className="ludo-presence-status" role="status" aria-live="polite">
+     {presence[1-mySeat]?.online?"🟢 "+displayName(1-mySeat)+" a rejoint la partie":"⚪ En attente de "+displayName(1-mySeat)+"…"}
+    </div>
     <div className="ludo-agreement-status" aria-label="Accord des deux joueurs">
      {[0,1].map(seat=><div key={seat} className={"ludo-agreement-player"+(agreement?.signed[seat]?" is-signed":"")}>
       <span aria-hidden="true">{agreement?.signed[seat]?"✓":seat===mySeat?"●":"◌"}</span>
