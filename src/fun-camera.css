@@ -63,6 +63,20 @@
 .lr-together-fun-feature strong{font-size:16px}
 .lr-together-fun-feature em{font-size:11px;font-style:normal;color:#d7c7dd}
 .lr-together-fun-feature>b{font-size:26px;font-weight:400}
-.lr-chat-fun-trigger{flex:0 0 38px;min-width:38px;height:38px;display:grid;place-items:center;border-radius:12px;border:1px solid #e7bad0a3;background:#65506a87;color:#fff;font-size:22px}
 @media(max-width:380px){.lr-fun-camera{padding-left:9px;padding-right:9px}.lr-fun-preview{min-height:300px;height:52dvh}.lr-call-backdrop .lr-video-call .lr-call-lens-panel{bottom:96px}}
 @media(prefers-reduced-motion:reduce){.lr-lens-option{transition:none}}
+
+/* WebKit cannot always play canvas.captureStream reliably. Show the real
+   painted canvas above the camera video, including face masks on iPhone. */
+.lr-fun-processed-frame{position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none}
+.lr-fun-processed-frame canvas{display:block;width:100%;height:100%;object-fit:cover}
+.lr-fun-processed-frame.mirrored canvas{transform:scaleX(-1)}
+.lr-call-backdrop .lr-video-call .lr-call-video-self .lr-call-processed-frame{
+ position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden;
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-self .lr-call-processed-frame canvas{
+ display:block;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);
+}
+.lr-call-backdrop .lr-video-call .lr-call-video-self.is-camera-off .lr-call-processed-frame{
+ visibility:hidden;
+}
