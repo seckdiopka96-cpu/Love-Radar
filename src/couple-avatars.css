@@ -372,3 +372,215 @@
  .lr-avatar-duo.lr-avatar-animate .lr-avatar-duo-heart{animation:none!important}
  .lr-avatar-duo-person,.lr-avatar-option{transition:none!important}
 }
+
+/* Avatar animation engine v3. A pose now animates the SVG JOINTS, not just
+   the rectangular avatar image: shoulders/forearms, head, face and feet. */
+.lr-avatar-character-svg .lr-avatar-arm-figure,
+.lr-avatar-character-svg .lr-avatar-head,
+.lr-avatar-character-svg .lr-avatar-legs,
+.lr-avatar-character-svg .lr-avatar-eyes {
+ transform-box:view-box;
+ transform-style:flat;
+ will-change:transform;
+}
+.lr-avatar-character-svg .lr-avatar-arm-figure{
+ transition:transform .34s cubic-bezier(.19,.8,.24,1);
+}
+.lr-avatar-character-svg .lr-avatar-head{
+ transform-origin:90px 145px;
+ transition:transform .4s ease;
+}
+.lr-avatar-character-svg .lr-avatar-legs{transform-origin:91px 238px}
+.lr-avatar-character-svg .lr-avatar-eyes{transform-origin:90px 99px}
+.lr-avatar-character-svg .lr-avatar-smile{transform-origin:90px 123px}
+.lr-avatar-duo-mine .lr-avatar-arm-near{transform-origin:116px 153px}
+.lr-avatar-duo-partner .lr-avatar-arm-near{transform-origin:63px 153px}
+.lr-avatar-duo-mine .lr-avatar-arm-far{transform-origin:63px 153px}
+.lr-avatar-duo-partner .lr-avatar-arm-far{transform-origin:116px 153px}
+/* The hands come towards each other: partners are never simply standing
+   with their arms down in a scene labelled "main dans la main". */
+.lr-avatar-duo.lr-avatar-pose-main .lr-avatar-duo-mine .lr-avatar-arm-near{transform:rotate(-38deg)}
+.lr-avatar-duo.lr-avatar-pose-main .lr-avatar-duo-partner .lr-avatar-arm-near{transform:rotate(38deg)}
+.lr-avatar-duo.lr-avatar-pose-calin .lr-avatar-duo-mine .lr-avatar-arm-near{transform:rotate(-62deg)}
+.lr-avatar-duo.lr-avatar-pose-calin .lr-avatar-duo-partner .lr-avatar-arm-near{transform:rotate(62deg)}
+.lr-avatar-duo.lr-avatar-pose-bisou .lr-avatar-duo-mine .lr-avatar-arm-near{transform:rotate(-37deg)}
+.lr-avatar-duo.lr-avatar-pose-bisou .lr-avatar-duo-partner .lr-avatar-arm-near{transform:rotate(37deg)}
+.lr-avatar-duo.lr-avatar-pose-danse .lr-avatar-duo-mine .lr-avatar-arm-near{transform:rotate(-50deg)}
+.lr-avatar-duo.lr-avatar-pose-danse .lr-avatar-duo-partner .lr-avatar-arm-near{transform:rotate(50deg)}
+.lr-avatar-duo.lr-avatar-pose-calin .lr-avatar-duo-mine .lr-avatar-head{transform:rotate(4deg)}
+.lr-avatar-duo.lr-avatar-pose-calin .lr-avatar-duo-partner .lr-avatar-head{transform:rotate(-4deg)}
+.lr-avatar-duo.lr-avatar-pose-bisou .lr-avatar-duo-mine .lr-avatar-head{transform:rotate(7deg)}
+.lr-avatar-duo.lr-avatar-pose-bisou .lr-avatar-duo-partner .lr-avatar-head{transform:rotate(-7deg)}
+/* Blink is low-frequency and face-only, not a full character blink. */
+.lr-avatar-duo.lr-avatar-animate .lr-avatar-eyes{
+ animation:lr-avatar-blink 6.8s ease-in-out infinite;
+}
+.lr-avatar-duo.lr-avatar-animate .lr-avatar-duo-partner .lr-avatar-eyes{
+ animation-delay:-2.6s;
+}
+@keyframes lr-avatar-blink{
+ 0%,39%,42%,88%,91%,100%{transform:scaleY(1)}
+ 40%,89%{transform:scaleY(.13)}
+}
+/* True embrace: both hands move up from the waist, close around the
+   other's shoulder, rest there, and slowly release for a loop. */
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-calin .lr-avatar-duo-mine .lr-avatar-arm-near{
+ animation:lr-avatar-embrace-left 4.4s cubic-bezier(.4,0,.2,1) infinite;
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-calin .lr-avatar-duo-partner .lr-avatar-arm-near{
+ animation:lr-avatar-embrace-right 4.4s cubic-bezier(.4,0,.2,1) infinite;
+}
+@keyframes lr-avatar-embrace-left{
+ 0%,100%{transform:rotate(-22deg)}
+ 26%,74%{transform:rotate(-70deg)}
+}
+@keyframes lr-avatar-embrace-right{
+ 0%,100%{transform:rotate(22deg)}
+ 26%,74%{transform:rotate(70deg)}
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-calin .lr-avatar-duo-mine .lr-avatar-head{
+ animation:lr-avatar-embrace-head-left 4.4s ease-in-out infinite;
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-calin .lr-avatar-duo-partner .lr-avatar-head{
+ animation:lr-avatar-embrace-head-right 4.4s ease-in-out infinite;
+}
+@keyframes lr-avatar-embrace-head-left{
+ 0%,100%{transform:rotate(0deg)}
+ 30%,74%{transform:rotate(5deg)}
+}
+@keyframes lr-avatar-embrace-head-right{
+ 0%,100%{transform:rotate(0deg)}
+ 30%,74%{transform:rotate(-5deg)}
+}
+/* Kiss: timed lean, head inclination, eye closing, blush and returning.
+   Arms reach the partner too, without hiding either face. */
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-bisou .lr-avatar-duo-mine .lr-avatar-head{
+ animation:lr-avatar-kiss-head-left 3.3s ease-in-out infinite;
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-bisou .lr-avatar-duo-partner .lr-avatar-head{
+ animation:lr-avatar-kiss-head-right 3.3s ease-in-out infinite;
+}
+@keyframes lr-avatar-kiss-head-left{
+ 0%,100%{transform:translateX(-3px) rotate(0deg)}
+ 36%,64%{transform:translateX(7px) rotate(10deg)}
+}
+@keyframes lr-avatar-kiss-head-right{
+ 0%,100%{transform:translateX(3px) rotate(0deg)}
+ 36%,64%{transform:translateX(-7px) rotate(-10deg)}
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-bisou .lr-avatar-duo-mine .lr-avatar-arm-near{
+ animation:lr-avatar-kiss-arm-left 3.3s ease-in-out infinite;
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-bisou .lr-avatar-duo-partner .lr-avatar-arm-near{
+ animation:lr-avatar-kiss-arm-right 3.3s ease-in-out infinite;
+}
+@keyframes lr-avatar-kiss-arm-left{
+ 0%,100%{transform:rotate(-24deg)}
+ 36%,67%{transform:rotate(-48deg)}
+}
+@keyframes lr-avatar-kiss-arm-right{
+ 0%,100%{transform:rotate(24deg)}
+ 36%,67%{transform:rotate(48deg)}
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-bisou .lr-avatar-cheek{
+ animation:lr-avatar-blush 3.3s ease-in-out infinite;
+}
+@keyframes lr-avatar-blush{
+ 0%,100%{opacity:.17;transform:scale(1)}
+ 38%,65%{opacity:.5;transform:scale(1.13)}
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-bisou .lr-avatar-duo-heart{
+ animation:lr-avatar-kiss-heart 3.3s ease-in-out infinite;
+}
+@keyframes lr-avatar-kiss-heart{
+ 0%,20%,82%,100%{opacity:.16;transform:translateX(-50%) translateY(8px) scale(.5)}
+ 43%{opacity:1;transform:translateX(-50%) translateY(-8px) scale(1.28)}
+ 65%{opacity:1;transform:translateX(-50%) translateY(-19px) scale(1.08)}
+}
+/* Dance: independent footwork plus alternating raised arms and head nods. */
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-danse .lr-avatar-duo-mine .lr-avatar-arm-near{
+ animation:lr-avatar-wave-left .95s ease-in-out infinite alternate;
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-danse .lr-avatar-duo-partner .lr-avatar-arm-near{
+ animation:lr-avatar-wave-right .95s ease-in-out infinite alternate;
+}
+@keyframes lr-avatar-wave-left{
+ from{transform:rotate(-15deg)}
+ to{transform:rotate(-80deg)}
+}
+@keyframes lr-avatar-wave-right{
+ from{transform:rotate(80deg)}
+ to{transform:rotate(15deg)}
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-danse .lr-avatar-duo-mine .lr-avatar-legs{
+ animation:lr-avatar-step-left .95s ease-in-out infinite alternate;
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-danse .lr-avatar-duo-partner .lr-avatar-legs{
+ animation:lr-avatar-step-right .95s ease-in-out infinite alternate;
+}
+@keyframes lr-avatar-step-left{
+ from{transform:translateX(-3px) translateY(0)}
+ to{transform:translateX(5px) translateY(-5px)}
+}
+@keyframes lr-avatar-step-right{
+ from{transform:translateX(5px) translateY(-5px)}
+ to{transform:translateX(-3px) translateY(0)}
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-danse .lr-avatar-duo-mine .lr-avatar-head{
+ animation:lr-avatar-dance-nod-left .95s ease-in-out infinite alternate;
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-danse .lr-avatar-duo-partner .lr-avatar-head{
+ animation:lr-avatar-dance-nod-right .95s ease-in-out infinite alternate;
+}
+@keyframes lr-avatar-dance-nod-left{
+ from{transform:rotate(-4deg)}
+ to{transform:rotate(5deg)}
+}
+@keyframes lr-avatar-dance-nod-right{
+ from{transform:rotate(5deg)}
+ to{transform:rotate(-4deg)}
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-danse .lr-avatar-duo-note{
+ animation:lr-avatar-notes .95s ease-in-out infinite alternate;
+}
+@keyframes lr-avatar-notes{
+ from{opacity:.45;transform:translateY(5px) rotate(-8deg)}
+ to{opacity:1;transform:translateY(-9px) rotate(8deg)}
+}
+/* Even tiny preview cards and encrypted chat stickers run the same animated
+   SVG model. Keep animations GPU-friendly and keep tap targets stable. */
+.lr-avatar-pose-choice .lr-avatar-duo-sticker{
+ overflow:visible;
+}
+.lr-avatar-pose-choice.selected{
+ box-shadow:inset 0 0 0 1px #f0b3ce55,0 5px 18px #e09abc36!important;
+}
+.lr-avatar-pose-choice .lr-avatar-pose-label{transition:color .22s ease}
+.lr-avatar-pose-choice.selected .lr-avatar-pose-label{color:#fff}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-main .lr-avatar-duo-mine .lr-avatar-arm-near{
+ animation:lr-avatar-handhold-left 3.2s ease-in-out infinite alternate;
+}
+.lr-avatar-duo.lr-avatar-animate.lr-avatar-pose-main .lr-avatar-duo-partner .lr-avatar-arm-near{
+ animation:lr-avatar-handhold-right 3.2s ease-in-out infinite alternate;
+}
+@keyframes lr-avatar-handhold-left{
+ from{transform:rotate(-34deg)}
+ to{transform:rotate(-42deg)}
+}
+@keyframes lr-avatar-handhold-right{
+ from{transform:rotate(42deg)}
+ to{transform:rotate(34deg)}
+}
+/* The accessibility setting must disable EVERY moving body part, not just
+   the two outer characters. The last rule also covers sticker previews. */
+@media(prefers-reduced-motion:reduce){
+ .lr-avatar-duo.lr-avatar-animate .lr-avatar-arm-figure,
+ .lr-avatar-duo.lr-avatar-animate .lr-avatar-head,
+ .lr-avatar-duo.lr-avatar-animate .lr-avatar-eyes,
+ .lr-avatar-duo.lr-avatar-animate .lr-avatar-legs,
+ .lr-avatar-duo.lr-avatar-animate .lr-avatar-cheek,
+ .lr-avatar-duo.lr-avatar-animate .lr-avatar-duo-note,
+ .lr-avatar-duo.lr-avatar-animate .lr-avatar-duo-heart{
+  animation:none!important;transition:none!important;
+ }
+}

@@ -128,7 +128,7 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
      className={"lr-avatar-pose-choice"+(posePreview===pose?" selected":"")}
      disabled={busy||saving||modified} onClick={()=>void choosePose(pose)}>
      <CoupleAvatarDuo mine={draft} partner={data.partner||DEFAULT_PARTNER_AVATAR}
-      pose={pose} mode="sticker" animate={false} mineName={myName} partnerName={partnerName}/>
+      pose={pose} mode="sticker" animate={true} mineName={myName} partnerName={partnerName}/>
      <span className="lr-avatar-pose-label">{POSE_LABEL[pose]}{posePreview===pose?<b> ✓</b>:null}</span>
     </button>)}
    </div>

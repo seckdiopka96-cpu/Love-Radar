@@ -129,3 +129,49 @@ test("a brand-new partner can save their default avatar and preview remains scop
  assert.ok(studio.includes("partner={data.partner||DEFAULT_PARTNER_AVATAR}"));
  assert.ok(studio.includes("await onSaveStyle(draft)"));
 });
+
+test("animated hugs move articulated arms and tilt independent heads, not just whole bodies",()=>{
+ const svg=read("src/CoupleAvatarDuo.tsx");
+ const css=read("src/couple-avatars.css");
+ assert.ok(svg.includes("lr-avatar-arm-figure"),"arm groups have distinct pivots");
+ assert.ok(svg.includes("lr-avatar-arm-near"),"each partner raises their near arm");
+ assert.ok(svg.includes('side="left"')&&svg.includes('side="right"'),"partners have mirrored arms");
+ assert.ok(svg.includes('lr-avatar-head'),"heads can lean independently");
+ assert.ok(svg.includes('lr-avatar-eyes'),"characters blink naturally");
+ assert.ok(svg.includes('lr-avatar-legs'),"dancing includes footwork");
+ assert.ok(css.includes("@keyframes lr-avatar-embrace-left"));
+ assert.ok(css.includes("@keyframes lr-avatar-embrace-right"));
+ assert.ok(css.includes("@keyframes lr-avatar-embrace-head-left"));
+ assert.ok(css.includes("@keyframes lr-avatar-embrace-head-right"));
+ assert.ok(css.includes("lr-avatar-embrace-left 4.4s"),"cuddle loops with a visible hold phase");
+ assert.ok(css.includes("rotate(-70deg)")&&css.includes("rotate(70deg)"),
+  "both arms close around their partner");
+ assert.ok(css.includes("lr-avatar-arm-near{transform-origin:116px 153px}"));
+ assert.ok(css.includes("lr-avatar-arm-near{transform-origin:63px 153px}"));
+});
+test("kiss, hand holding and dancing animate separately and keep readable faces",()=>{
+ const css=read("src/couple-avatars.css");
+ for(const name of ["lr-avatar-kiss-head-left","lr-avatar-kiss-head-right",
+  "lr-avatar-kiss-arm-left","lr-avatar-kiss-arm-right","lr-avatar-kiss-heart",
+  "lr-avatar-dance-nod-left","lr-avatar-dance-nod-right",
+  "lr-avatar-wave-left","lr-avatar-wave-right","lr-avatar-step-left",
+  "lr-avatar-step-right","lr-avatar-notes",
+  "lr-avatar-handhold-left","lr-avatar-handhold-right","lr-avatar-blink"]){
+  assert.ok(css.includes("@keyframes "+name),"missing articulation "+name);
+ }
+ const model=read("src/couple-avatar-model.ts");
+ assert.ok(model.includes('main:"Main dans la main"'));
+ assert.ok(model.includes('calin:"Gros câlin"'));
+});
+test("preview cards and sent chat stickers use the same running animations, respecting reduced motion",()=>{
+ const studio=read("src/CoupleAvatarStudio.tsx");
+ const app=read("src/App.tsx");
+ const css=read("src/couple-avatars.css");
+ assert.ok(studio.includes('mode="sticker" animate={true}'),"cards must not be frozen");
+ assert.ok(app.includes('mode="sticker"'),"chat reuses the same animated scene");
+ assert.ok(css.includes(".lr-avatar-duo.lr-avatar-animate .lr-avatar-arm-figure"));
+ assert.ok(css.includes(".lr-avatar-duo.lr-avatar-animate .lr-avatar-head"));
+ assert.ok(css.includes(".lr-avatar-duo.lr-avatar-animate .lr-avatar-eyes"));
+ assert.ok(css.includes(".lr-avatar-duo.lr-avatar-animate .lr-avatar-legs"));
+ assert.ok(css.includes("@media(prefers-reduced-motion:reduce)"));
+});

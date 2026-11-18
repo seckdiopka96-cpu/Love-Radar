@@ -3,9 +3,9 @@ import {DEFAULT_AVATAR,DEFAULT_PARTNER_AVATAR,HAIR_HEX,OUTFIT_HEX,SKIN_HEX,
  POSE_LABEL,type AvatarStyle,type CouplePose} from "./couple-avatar-model";
 import "./couple-avatars.css";
 
-type CharacterProps={style:AvatarStyle;label:string;portrait?:boolean};
+type CharacterProps={style:AvatarStyle;label:string;portrait?:boolean;side?:"left"|"right"};
 /** Original layered 2.5D vector. No external image, tracking or paid service. */
-export function AvatarCharacter({style,label,portrait=false}:CharacterProps){
+export function AvatarCharacter({style,label,portrait=false,side="left"}:CharacterProps){
  const unique=useId().replace(/:/g,"");
  const skin=SKIN_HEX[style.skin],hair=HAIR_HEX[style.hairColor],outfit=OUTFIT_HEX[style.outfit];
  const shade="avatar-shade-"+unique, skinLight="avatar-skin-"+unique;
@@ -36,7 +36,7 @@ export function AvatarCharacter({style,label,portrait=false}:CharacterProps){
    </linearGradient>
   </defs>
   {/* Legwear and shoes: softly shaped, no thick black cartoon outlines. */}
-  {!portrait?<g>
+  {!portrait?<g className="lr-avatar-legs">
    <ellipse cx="91" cy="251" rx="51" ry="4.5" fill="#071328" opacity=".20"/>
    <path d="M57 215Q87 223 121 215l-3 29-24 2-6-28-7 28-26-2Z"
     fill="#253b53"/>
@@ -52,12 +52,22 @@ export function AvatarCharacter({style,label,portrait=false}:CharacterProps){
     <path d="M46 74q-1 46 1 92M133 76q2 50-2 92"/>
    </g>:null}
   </g>:null}
-  {/* The silhouette reads as a tailored adult outfit, not a stick figure. */}
-  <g>
-   <path d="M63 151Q49 148 40 169l-17 49q-2 9 8 13 9 3 12-8l17-35Z"
-    fill={`url(#${shirtLight})`}/>
-   <path d="M116 151q14-3 24 18l17 49q2 10-8 13-9 3-12-8l-17-35Z"
-    fill={`url(#${shirtLight})`}/>
+  {/* Independent shoulder joints allow the near arm to actually embrace the other avatar. */}
+  <g className="lr-avatar-figure-body">
+   <g className={"lr-avatar-arm-figure "+(side==="right"?"lr-avatar-arm-near":"lr-avatar-arm-far")}>
+    <path d="M63 153Q46 150 39 169L22 216Q18 227 30 232Q40 235 45 222L62 187Z"
+     fill={`url(#${shirtLight})`}/>
+    <path d="M39 176q-8 20-12 30" stroke="#fff" strokeOpacity=".14" strokeWidth="3"
+     strokeLinecap="round" fill="none"/>
+    <ellipse cx="31" cy="226" rx="8.2" ry="10.3" fill={skin}/>
+   </g>
+   <g className={"lr-avatar-arm-figure "+(side==="left"?"lr-avatar-arm-near":"lr-avatar-arm-far")}>
+    <path d="M116 153q18-5 25 16L158 216q4 11-8 16-10 3-15-10l-17-35Z"
+     fill={`url(#${shirtLight})`}/>
+    <path d="M141 175q7 20 11 31" stroke="#fff" strokeOpacity=".14" strokeWidth="3"
+     strokeLinecap="round" fill="none"/>
+    <ellipse cx="149" cy="226" rx="8.2" ry="10.3" fill={skin}/>
+   </g>
    <path d="M59 154q14-9 31-9 18 0 31 9l14 60q-38 20-89 0Z"
     fill={`url(#${shirtLight})`}/>
    <path d="M66 154q4 16 24 22l-10 13-21-29M115 154q-4 16-25 22l12 13 20-29"
@@ -65,10 +75,10 @@ export function AvatarCharacter({style,label,portrait=false}:CharacterProps){
    <path d="M89 175v46" stroke="#f4d7e8" strokeWidth="1.7" strokeOpacity=".48"/>
    <circle cx="89" cy="189" r="1.8" fill="#fff" opacity=".65"/>
    <circle cx="89" cy="201" r="1.8" fill="#fff" opacity=".65"/>
-   <path d="M49 210q38 12 81 0" fill="none" stroke="#0e1834" strokeWidth="2" strokeOpacity=".14"/>
-   <ellipse cx="31" cy="226" rx="8.2" ry="10.3" fill={skin}/>
-   <ellipse cx="149" cy="226" rx="8.2" ry="10.3" fill={skin}/>
+   <path d="M49 210q38 12 81 0" fill="none" stroke="#0e1834"
+    strokeWidth="2" strokeOpacity=".14"/>
   </g>
+  <g className="lr-avatar-head">
   <path d="M79 130v25q10 13 23 0v-25" fill={`url(#${skinLight})`}/>
   {/* Ears, shaded face, cheeks and grown-up facial details. */}
   <ellipse cx="45" cy="94" rx="9" ry="14" fill={skin}/>
@@ -79,18 +89,20 @@ export function AvatarCharacter({style,label,portrait=false}:CharacterProps){
    fill="none" strokeLinecap="round"/>
   <path d="M49 76C49 52 63 41 89 42c25 0 39 11 41 34" fill="none"
    stroke="#fff4e6" strokeWidth="3" strokeOpacity=".1" strokeLinecap="round"/>
-  <ellipse cx="63" cy="110" rx="11.5" ry="6.3" fill="#d96877" opacity=".17"/>
-  <ellipse cx="117" cy="110" rx="11.5" ry="6.3" fill="#d96877" opacity=".17"/>
+  <ellipse className="lr-avatar-cheek" cx="63" rx="11.5" ry="6.3" fill="#d96877" opacity=".17"/>
+  <ellipse className="lr-avatar-cheek" cx="117" rx="11.5" ry="6.3" fill="#d96877" opacity=".17"/>
   <path d="M59 89q10-7 21 0m20 0q10-7 20 0" fill="none" stroke={hair} strokeWidth="3.6" strokeLinecap="round"/>
   <path d="M62 99q9-7 17 0m22 0q9-7 17 0" fill="none" stroke="#382b35"
    strokeWidth="2.1" strokeLinecap="round"/>
-  <ellipse cx="70.5" cy="99" rx="4" ry="5" fill="#312d36"/>
-  <ellipse cx="110.5" cy="99" rx="4" ry="5" fill="#312d36"/>
-  <circle cx="71.8" cy="97.4" r="1.55" fill="#fff"/>
-  <circle cx="111.8" cy="97.4" r="1.55" fill="#fff"/>
+  <g className="lr-avatar-eyes">
+   <ellipse cx="70.5" cy="99" rx="4" ry="5" fill="#312d36"/>
+   <ellipse cx="110.5" cy="99" rx="4" ry="5" fill="#312d36"/>
+   <circle cx="71.8" cy="97.4" r="1.55" fill="#fff"/>
+   <circle cx="111.8" cy="97.4" r="1.55" fill="#fff"/>
+  </g>
   <path d="M91 99q-5 10 0 13" fill="none" stroke="#6b3d3e" strokeWidth="1.9"
    strokeOpacity=".5" strokeLinecap="round"/>
-  <path d="M81 124q9 6 19-1" fill="none" stroke="#903c58" strokeWidth="2.8" strokeLinecap="round"/>
+  <path className="lr-avatar-smile" d="M81 124q9 6 19-1" fill="none" stroke="#903c58" strokeWidth="2.8" strokeLinecap="round"/>
   <path d="M86 126q4 1 9 0" fill="none" stroke="#ffdade" strokeOpacity=".37" strokeWidth="1.4"/>
   {/* Front hair sits over the forehead with realistic swept, curled, or braided contours. */}
   {hijab?<g>
@@ -151,6 +163,7 @@ export function AvatarCharacter({style,label,portrait=false}:CharacterProps){
    <circle cx="89" cy="14" r="10" fill="#eac5dd"/>
    <path d="M53 54h75" stroke="#fff" strokeOpacity=".3" strokeWidth="2"/>
   </g>:null}
+  </g>
  </svg>;
 }
 type DuoProps={mine?:AvatarStyle|null;partner?:AvatarStyle|null;pose?:CouplePose;
@@ -162,10 +175,10 @@ export default function CoupleAvatarDuo({mine,partner,pose="main",mode="hero",an
   <span className="lr-avatar-duo-halo" aria-hidden="true"/>
   <span className="lr-avatar-duo-orbit" aria-hidden="true"/>
   <span className="lr-avatar-duo-person lr-avatar-duo-mine" aria-hidden="true">
-   <AvatarCharacter style={mine||DEFAULT_AVATAR} label={mineName}/>
+   <AvatarCharacter style={mine||DEFAULT_AVATAR} label={mineName} side="left"/>
   </span>
   <span className="lr-avatar-duo-person lr-avatar-duo-partner" aria-hidden="true">
-   <AvatarCharacter style={partner||DEFAULT_PARTNER_AVATAR} label={partnerName}/>
+   <AvatarCharacter style={partner||DEFAULT_PARTNER_AVATAR} label={partnerName} side="right"/>
   </span>
   <svg className="lr-avatar-duo-heart" viewBox="0 0 44 44" aria-hidden="true">
    <path d="M22 37 7 22C-2 12 10 0 22 13 34 0 46 12 37 22Z" fill="#ffb5d1"/>
