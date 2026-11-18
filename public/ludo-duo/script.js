@@ -64,7 +64,20 @@
  const replayButton=document.getElementById("play-again");
  const colorButton=document.getElementById("change-color-after-win");
  let lastBoardKey="";
- let lastAnimatedRoll="",remoteDieTimer=null,receivedState=false;
+ let lastAnimatedRoll="",receivedState=false;
+ let dieVisualTimer=null,dieVisualUntil=0;
+ const DIE_TUMBLE_MS=460;
+ // The backend alone decides the result. Show a physical 3D tumble even when
+ // it answers in less than 170 ms, without holding back legal pawn moves.
+ function animateRealDieRoll(){
+  dieVisualUntil=Date.now()+DIE_TUMBLE_MS;
+  if(dieVisualTimer!==null)clearTimeout(dieVisualTimer);
+  dice.classList.add("is-rolling");
+  dieVisualTimer=setTimeout(()=>{
+   dieVisualTimer=null;
+   if(state)render();
+  },DIE_TUMBLE_MS+8);
+ }
  // Keep the moving pawn in its own layer. Redrawing its DOM on every square
  // prevents WebKit/iOS from animating the left/top transition.
  const movementLayer=document.createElement("div");
@@ -321,9 +334,12 @@
   const me=color(state.mySeat),other=color(1-state.mySeat);
   renderProfilePhoto(".player--human",state.myAvatar);
   renderProfilePhoto(".player--cpu",state.partnerAvatar);
-  // Label the two occupied houses, leave the other two empty.
+  // Ring the active player's house; never transform the board or its grid.
   for(const el of board.querySelectorAll(".base")){
    const c=[...el.classList].find(x=>x.startsWith("base--"))?.slice(6);
+   const active=g.status==="playing"&&c===colors[g.turn];
+   el.classList.toggle("is-current-turn",active);
+   el.classList.toggle("is-my-turn",active&&g.turn===state.mySeat);
    const human=el.querySelector(".base-label--human");
    const cpu=el.querySelector(".base-label--cpu");
    if(human){human.textContent="TOI";human.style.display=c===me?"block":"none"}
@@ -347,13 +363,10 @@
   const stamp=last?g.id+":"+last.at:"";
   if(stamp&&lastAnimatedRoll!==stamp){
    lastAnimatedRoll=stamp;
-   // Recreate a short dice roll for the partner, once per server roll.
-   if(receivedState&&last.seat!==state.mySeat&&!state.rolling){
-    if(remoteDieTimer!==null)clearTimeout(remoteDieTimer);
-    remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},120);
-   }
+   // Mirror the partner's throw once, ending on the authoritative face.
+   if(receivedState&&last.seat!==state.mySeat&&!state.rolling)animateRealDieRoll();
   }
-  const rollingNow=Boolean(state.rolling)||remoteDieTimer!==null;
+  const rollingNow=Boolean(state.rolling)||Date.now()<dieVisualUntil;
   dice.classList.toggle("is-rolling",rollingNow);
   // The game may clear g.dice immediately after a move; never fall back to
   // a fake "1" when the server has persisted the real last die result.
@@ -411,7 +424,7 @@
   if(roll.disabled)return;
   // Show a response on tap; the authoritative dice result still comes from D1.
   roll.disabled=true;
-  dice.classList.add("is-rolling");
+  animateRealDieRoll();
   status.textContent="🎲 Le dé roule…";
   send("roll");
  });
