@@ -83,7 +83,8 @@ test("notification targets survive an iPhone cold start and open their precise s
  assert.ok(worker.includes('event.data?.type==="love-radar-ack-notification"'));
  assert.ok(worker.includes("deliverPendingRoute(event.source)"));
  assert.ok(worker.includes("await self.clients.openWindow(url)"));
- assert.ok(worker.includes('focused.postMessage({type:"love-radar-open-notification",...destination,routeId})'));
+ assert.ok(worker.includes('client.postMessage(routeMessage)'),"post before waiting for stalled iPhone focus");
+ assert.ok(worker.includes('focused.postMessage(routeMessage)'),"retry after focus");
  assert.ok(worker.includes('["ludo-challenge","memory-challenge","rps-challenge"].includes(destination.kind)'),"game invitations must force an exact URL navigation on iPhone");
  assert.ok(app.includes('window.addEventListener("pageshow",onPageShow)'));
  assert.ok(app.includes('navigator.serviceWorker?.ready.then(reg=>'));
