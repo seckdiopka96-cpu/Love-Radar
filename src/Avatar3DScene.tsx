@@ -1,6 +1,8 @@
 import {useEffect,useRef,useState} from "react";
 import {apiFetch} from "./api";
 import {inspectAvatarGlb} from "./avatar-3d-diagnostics";
+import {restoreAvatarColorsOnIOS} from "./avatar-3d-image-fallback";
+import {requiresTopLevelAvaturnAuth} from "./avaturn-auth";
 import type {CouplePose,AvatarStyle} from "./couple-avatar-model";
 import "./avaturn-3d.css";
 type Props={token:string;mine:boolean;partner:boolean;pose:CouplePose;
@@ -54,13 +56,15 @@ function animateFigure(T:Imported,figure:Figure,pose:CouplePose,t:number){
   const joint=figure.bone[armName];if(!joint)continue;
   const side=joint.side||(armName==="leftArm"?-1:1);
   const near=side===nearSide;
+  // Avaturn's bind pose has arms horizontally extended. Rotating with the
+  // OPPOSITE world-side sign lowers them instead of raising them above the head.
   const angle=pose==="danse"?
-    side*(1.12+.19*wave):
+    -side*(.83+.50*wave*(near?1:-1)):
     pose==="calin"?
-    (near?side*(.1+.12*Math.sin(t*1.5)):-side*.82):
+    -side*(near?.18+.07*Math.sin(t*1.5):1.03):
     pose==="bisou"?
-    -side*(.68+.06*wave):
-    near?side*(-.12+.05*wave):-side*(1.02+.04*wave);
+    -side*(.88+.04*wave):
+    -side*(near?.67+.03*wave:1.20+.03*wave);
   move(armName,angle,z);
  }
  move("leftForearm",pose==="danse"?.37*wave:pose==="calin"?.30:0,z);
@@ -115,14 +119,15 @@ export default function Avatar3DScene({token,mine,partner,pose,mineStyle,partner
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
     renderer.setClearColor(0x0b1627,0);
     renderer.outputColorSpace=T.SRGBColorSpace;
-    renderer.toneMapping=T.ACESFilmicToneMapping;
+    renderer.toneMapping=T.NeutralToneMapping;
+    renderer.toneMappingExposure=1.0;
     const scene=new T.Scene();
     const camera=new T.PerspectiveCamera(32,1,.1,100);
     camera.position.set(0,1.5,7.1);
     camera.lookAt(0,1.4,0);
-    scene.add(new T.HemisphereLight(0xe9edff,0x28304e,2.25));
-    const front=new T.DirectionalLight(0xffffff,2.7);front.position.set(-3,5,5);scene.add(front);
-    const rim=new T.DirectionalLight(0xf7a8da,2.0);rim.position.set(3,3,-4);scene.add(rim);
+    scene.add(new T.HemisphereLight(0xe9edff,0x28304e,1.35));
+    const front=new T.DirectionalLight(0xffffff,2.0);front.position.set(-3,5,5);scene.add(front);
+    const rim=new T.DirectionalLight(0xf7a8da,0.85);rim.position.set(3,3,-4);scene.add(rim);
     const floor=new T.Mesh(new T.CircleGeometry(2.7,40),
      new T.MeshBasicMaterial({color:0x8b6f9a,transparent:true,opacity:.1}));
     floor.rotation.x=-Math.PI/2;floor.position.y=-.02;scene.add(floor);
@@ -145,6 +150,17 @@ export default function Avatar3DScene({token,mine,partner,pose,mineStyle,partner
        }
        const gltf=await new loaders.GLTFLoader().parseAsync(bytes,"");
        const model=gltf.scene;
+       // On iPhone, Three.js ImageBitmap-backed textures can upload as
+       // monochrome despite the GLB containing valid JPEG colors. Rebind the
+       // embedded base-color maps through HTMLImageElement with glTF sRGB/UV
+       // conventions, keeping the original GLB in private R2 unchanged.
+       if(requiresTopLevelAvaturnAuth(navigator.userAgent,navigator.platform,
+        navigator.maxTouchPoints)){
+        const restored=await restoreAvatarColorsOnIOS(T,model,bytes,()=>disposed);
+        if(restored===0&&info&&info.texturedMaterials>0&&which==="mine")
+         setWarning("Les couleurs sont dans ton GLB, mais Safari n’a pas pu charger ses textures. Réouvre Love Radar ou réimporte le même fichier.");
+       }
+       if(disposed)throw Error("Cancelled");
        model.updateMatrixWorld(true);
        const box=new T.Box3().setFromObject(model);
        const size=box.getSize(new T.Vector3());
