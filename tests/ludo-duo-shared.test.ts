@@ -20,9 +20,9 @@ test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()
  const boardSlice=s=>(s.slice(s.indexOf(start),s.indexOf(end))).replace(/^\s+|\s+$/g,"");
  assert.ok(duoHTML.includes(start));
  assert.equal(boardSlice(duoHTML),boardSlice(soloHTML));
- assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v18"'));
- assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v18"'));
- assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v18" defer'));
+ assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v19"'));
+ assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v19"'));
+ assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v19" defer'));
  assert.ok(duoHTML.includes('LUDO <span>♥</span> DUO'));
  assert.ok(duoHTML.includes('id="roll-dice"'));
  assert.ok(duoCSS.includes('.duo-side-actions'));
@@ -66,7 +66,7 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
  'function duoFrameAction(','signRules()', 'giftAction(','ludo-agreement-backdrop','ludo-gift-dialog','ludo-modal-backdrop']){
   assert.ok(parent.includes(unchanged),unchanged);
  }
- assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v18"'));
+ assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v19"'));
  assert.ok(bridge.includes('event.source!==frame'));
  assert.ok(bridge.includes('event.origin!==window.location.origin'));
  assert.ok(!bridge.includes("token:"));
@@ -92,7 +92,7 @@ test("Duo iframe works offline and uses only a same-origin parent, never replaci
   assert.ok(sw.includes('"'+path+'"'),path);
  }
  assert.ok(sw.includes('url.pathname.startsWith("/ludo-duo/")'));
- assert.ok(sw.includes("love-radar-static-v145"),"new PWA release must invalidate old shell");
+ assert.ok(sw.includes("love-radar-static-v146"),"new PWA release must invalidate old shell");
 });
 
 
@@ -270,26 +270,20 @@ test("both players show the real app profile photos throughout Ludo Duo",()=>{
  assert.ok(!duoJS.includes("Authorization"));
 });
 
-test("three automatic turns cause a loss for that player, regardless of bonus throws",()=>{
+test("computer takeover never causes an automatic loss, even after three turns",()=>{
  assert.equal(MAX_AUTO_TURNS,3);
  let count:[number,number]=[0,0];
- for(const expected of [1,2]){
+ for(let i=0;i<8;i++){
   const result=registerAutoTurn(count,0);
   count=result.counts;
-  assert.deepEqual(count,[expected,0],"each takeover must be counted exactly once");
-  assert.equal(result.forfeit,false);
+  assert.deepEqual(count,[Math.min(i+1,3),0]);
+  assert.ok(!("forfeit" in result),"no timeout can force a surrender");
  }
- const last=registerAutoTurn(count,0);
- assert.deepEqual(last.counts,[3,0]);
- assert.equal(last.forfeit,true,"third missed turn forfeits to the active partner");
- assert.deepEqual(registerAutoTurn([0,2],1),{counts:[0,3],forfeit:true},
-  "both seats have independent penalties");
- assert.equal(registerAutoTurn([0,0],0).forfeit,false,
-  "new matches start without penalties");
+ assert.deepEqual(registerAutoTurn([0,2],1),{counts:[0,3]});
  assert.throws(()=>registerAutoTurn([0,0],2),/Invalid Ludo player seat/);
 });
 
-test("Duo persists inactivity penalties in D1 and resets them for a new match",()=>{
+test("Duo keeps synchronized takeover counters without awarding timeout victories",()=>{
  const schema=readFileSync("schema.sql","utf8");
  assert.ok(backend.includes("ALTER TABLE ludo_games ADD COLUMN auto_counts"),
   "existing couples must be migrated without deleting games");
@@ -301,11 +295,10 @@ test("Duo persists inactivity penalties in D1 and resets them for a new match",(
   "optimistic versioned game save must persist both counters");
  assert.ok(backend.includes("g.auto_counts=missed.counts"),
   "each server timeout increments the acting player only");
- assert.ok(backend.includes("if(missed.forfeit)"));
- assert.ok(backend.includes('g.status="won";g.winner=1-acting'),
-  "the opponent wins on the third automatic takeover");
- assert.ok(backend.includes('autoRoll=botTurn(g,name)'),
-  "the computer still plays the first two missed turns");
+ assert.ok(!backend.includes("if(missed.forfeit)"));
+ assert.ok(!backend.includes('g.status="won";g.winner=1-acting'),"missed turns cannot crown an opponent");
+  assert.ok(backend.includes('autoRoll=botTurn(g,name)'),
+  "the computer plays all missed turns, including after the third");
  assert.ok(backend.includes("g.auto_counts=[0,0]"),"restart clears both players' counters");
  assert.ok(backend.includes("autoCounts:g.auto_counts"),
   "both clients receive the same authoritative penalties");
@@ -324,14 +317,10 @@ test("players can quit from the visible Duo board or abandon immediately",()=>{
  assert.ok(backend.includes('if(action==="forfeit")'));
  assert.ok(backend.includes('g.status="won";g.winner=1-player.seat'),
   "voluntary surrender should award the opponent a win immediately");
- assert.ok(parent.includes("après 3 tours joués par l’ordinateur à ta place"),
-  "leaving the screen alone must not falsely promise to stop the timer");
- assert.ok(duoJS.includes('g.autoCounts?.[state.mySeat]'),
-  "show player-specific 0/3 count on the visible match screen");
- assert.ok(duoJS.includes("un prochain retard te fera perdre"),
-  "show a clear warning on the second missed turn");
- assert.ok(duoJS.includes('state.game.lastAction.includes("Défaite automatique")'),
-  "winner panel states explicitly that the game ended by inactivity");
+ assert.ok(parent.includes("le chronomètre continue"),"leaving the screen does not stop the timer");
+ assert.ok(!duoJS.includes("un prochain retard te fera perdre"),"no automatic defeat warning");
+ assert.ok(!duoJS.includes('state.game.lastAction.includes("Défaite automatique")'),"no timeout loss dialog");
+
 });
 
 test("finished Duo has an unblocked escape route and a visible rematch state",()=>{
@@ -379,7 +368,7 @@ test("Solo and Duo share a stable stage, and dice respond in under a half-second
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .game-screen{"),
   "Duo does not move or resize the game stage with a different theme");
  assert.ok(soloFrame.includes("ludo-room-20261118-v6"));
- assert.ok(bridge.includes("ludo-room-20261118-v18"));
+ assert.ok(bridge.includes("ludo-room-20261118-v19"));
 });
 
 test("one playable pawn exits its base on tap and die gives clear turn feedback",()=>{
@@ -387,10 +376,11 @@ test("one playable pawn exits its base on tap and die gives clear turn feedback"
  assert.ok(!duoJS.includes('canChoose=legal.length>1'),"previous Duo selection bug cannot return");
  assert.ok(duoJS.includes('if(selectable)b.addEventListener("click"'),"real home pawn handles tap");
  assert.ok(duoJS.includes('b.disabled=true;b.classList.remove("piece--selectable")'),"rapid repeated taps are guarded");
- assert.ok(duoJS.includes("6 ! Touche un pion de ta base"),"show what to do after a six");
+ assert.ok(duoJS.includes("const selectable=seat===state.mySeat&&legal.includes(pawn)"),"a playable base pawn remains selectable");
  assert.ok(!duoJS.includes("C'est le tour de ton partenaire"),"no verbose partner-turn banner");
  assert.ok(!duoJS.includes("Au tour de ton partenaire. Patiente"),"turn is shown in the active house");
- assert.ok(duoJS.includes("En attente du lancer"),"the waiting banner stays short");
+ assert.ok(!duoHTML.includes('class="turn-banner"'),"remove the top waiting banner entirely");
+ assert.ok(!duoJS.includes("En attente du lancer"),"no waiting message");
  assert.ok(duoCSS.includes('content:"À SON TOUR"'),"partner house shows whose turn it is");
  assert.ok(duoCSS.includes('content:"À TOI"'),"own house shows whose turn it is");
  assert.ok(!duoJS.includes('&&!state.animationBusy&&!state.overlayOpen'),"previous motion does not freeze your new turn");
