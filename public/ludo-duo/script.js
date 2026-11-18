@@ -383,9 +383,9 @@
     state.rolling?"🎲 Le dé roule…":
     g.dice!==null&&isMine?
       (isSix&&g.positions[state.mySeat].some(p=>p===-1)?"🎲 6 ! Touche un pion de ta base pour le sortir !":"À toi : touche ton pion pour avancer !"):
-    g.dice!==null?"⏳ C'est le tour de ton partenaire : attends qu'il déplace son pion.":
+    g.dice!==null?"⏳ Déplacement en cours…":
     state.motion?"Le pion avance…":
-    isMine?"✅ À ton tour ! Appuie sur le dé.":"⏳ Au tour de ton partenaire. Patiente…";
+    isMine?"✅ À ton tour ! Appuie sur le dé.":"⏳ En attente du lancer…";
   feedback.classList.toggle("is-auto-warning",g.status==="playing"&&myAuto>=2);
   feedback.textContent=state.error||
    (g.status==="playing"&&myAuto>=2?"⚠️ 2/3 tours automatiques : un prochain retard te fera perdre.":g.lastAction)||
