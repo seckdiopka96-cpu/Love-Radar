@@ -15,6 +15,7 @@ type Gift={consents:[boolean,boolean];choice:"credit"|"internet"|"wave2000"|null
 type AgreementRow={room_id:string;game_id:string;signed_0_name:string|null;signed_1_name:string|null;signed_0_at:number|null;signed_1_at:number|null;gift_0:number|null;gift_1:number|null;started_at:number|null;updated_at:number};
 type Agreement={signed:[boolean,boolean];names:[string|null,string|null];giftChoices:[boolean|null,boolean|null];signedAt:[number|null,number|null];startedAt:number|null};
 type Challenge={gameId:string;fromId:string;fromName:string;fromSeat:number;sentAt:number};
+type Presence=[{online:boolean;joinedAt:number|null},{online:boolean;joinedAt:number|null}];
 type LudoColor="blue"|"red"|"green"|"yellow";
 type Palette={colors:[LudoColor,LudoColor];chosenBy:number|null};
 type PaletteRow={game_id:string;seat0_color:string;chosen_by:number|null};
@@ -42,7 +43,8 @@ async function ensureTable(db:D1Database){
    "CREATE TABLE IF NOT EXISTS ludo_agreements (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, signed_0_name TEXT, signed_1_name TEXT, signed_0_at INTEGER, signed_1_at INTEGER, gift_0 INTEGER, gift_1 INTEGER, started_at INTEGER, updated_at INTEGER NOT NULL);"+
    "CREATE TABLE IF NOT EXISTS ludo_challenges (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, from_id TEXT NOT NULL, from_name TEXT NOT NULL, sent_at INTEGER NOT NULL);"+
    "CREATE TABLE IF NOT EXISTS ludo_palette (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, seat0_color TEXT NOT NULL DEFAULT 'blue', chosen_by INTEGER, updated_at INTEGER NOT NULL);"+
-   "CREATE TABLE IF NOT EXISTS ludo_last_rolls (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, seat INTEGER NOT NULL, face INTEGER NOT NULL, updated_at INTEGER NOT NULL)" ).then(async()=>{
+   "CREATE TABLE IF NOT EXISTS ludo_last_rolls (room_id TEXT PRIMARY KEY, game_id TEXT NOT NULL, seat INTEGER NOT NULL, face INTEGER NOT NULL, updated_at INTEGER NOT NULL);"+
+    "CREATE TABLE IF NOT EXISTS ludo_presence (room_id TEXT NOT NULL, seat INTEGER NOT NULL, game_id TEXT NOT NULL, session_id TEXT NOT NULL, joined_at INTEGER NOT NULL, last_seen INTEGER NOT NULL, PRIMARY KEY(room_id,seat))" ).then(async()=>{
    // Existing couples may already have active Ludo games. Add counters without
    // discarding their board or changing their match id.
    const columns=await db.prepare("PRAGMA table_info(ludo_games)").all<{name:string}>();
@@ -77,6 +79,17 @@ function parse(row:GameRow):Game{
 async function countMembers(db:D1Database,room:string){
  const row=await db.prepare("SELECT COUNT(*) AS total FROM members WHERE room_id=?").bind(room).first<{total:number}>();
  return Number(row?.total||0);
+}
+async function ludoPresence(db:D1Database,g:Game):Promise<Presence>{
+ const rows=await db.prepare("SELECT seat,joined_at,last_seen FROM ludo_presence WHERE room_id=? AND game_id=?")
+  .bind(g.room_id,g.game_id).all<{seat:number;joined_at:number;last_seen:number}>();
+ const recent=Date.now()-20000;
+ const live:Presence=[{online:false,joinedAt:null},{online:false,joinedAt:null}];
+ for(const row of rows.results||[]){
+  if((row.seat===0||row.seat===1)&&row.last_seen>=recent)
+   live[row.seat]={online:true,joinedAt:row.joined_at};
+ }
+ return live;
 }
 async function getGame(db:D1Database,room:string):Promise<Game|null>{
  const row=await db.prepare("SELECT * FROM ludo_games WHERE room_id=?").bind(room).first<GameRow>();
@@ -322,12 +335,12 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
     g?lastMoveEvent(db,player.room_id,g.game_id):Promise.resolve(null),
     g?gift(db,g):Promise.resolve(null),
     g?palette(db,g):Promise.resolve(null),
-    (async()=>[g?await getLastRoll(db,g):null,g?await challenge(db,g):null] as const)()
+    (async()=>[g?await getLastRoll(db,g):null,g?await challenge(db,g):null,g?await ludoPresence(db,g):null] as const)()
    ]);
-   const [lastRoll,challengeValue]=rollAndChallenge;
+   const [lastRoll,challengeValue,presenceValue]=rollAndChallenge;
    return reply({ok:true,members,seat:player.seat,game:g?publicGame(g,signed):null,
     reaction:reactionValue,reactions,moveEvent,gift:giftValue,agreement:signed,
-    palette:paletteValue,lastRoll,challenge:challengeValue,serverNow:Date.now()});
+    palette:paletteValue,lastRoll,challenge:challengeValue,presence:presenceValue,serverNow:Date.now()});
   }
   const text=await ctx.request.text();
   if(text.length>1024)return fail("Requête trop grande.",413);
@@ -336,6 +349,37 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
   if(members!==2)return fail("Il faut exactement deux partenaires pour jouer.",409);
   if(!g)return fail("La partie n'est pas disponible.",503);
   const action=data.action;
+  if(action==="presence"){
+   const mode=data.mode,sessionId=data.sessionId;
+   if(typeof sessionId!=="string"||!/^[a-f0-9-]{36}$/i.test(sessionId))return fail("Session de présence invalide.",400);
+   if(data.gameId!==g.game_id)return fail("Une nouvelle manche a commencé. Actualise le jeu.",409);
+   if(mode==="leave"){
+    await db.prepare("DELETE FROM ludo_presence WHERE room_id=? AND seat=? AND game_id=? AND session_id=?")
+     .bind(player.room_id,player.seat,g.game_id,sessionId).run();
+    return reply({ok:true});
+   }
+   if(mode!=="join")return fail("État de présence invalide.",400);
+   const now=Date.now();
+   const previous=await db.prepare("SELECT game_id,last_seen FROM ludo_presence WHERE room_id=? AND seat=?")
+    .bind(player.room_id,player.seat).first<{game_id:string;last_seen:number}>();
+   const wasOnline=Boolean(previous?.game_id===g.game_id&&previous.last_seen>=now-20000);
+   await db.prepare(
+    "INSERT INTO ludo_presence(room_id,seat,game_id,session_id,joined_at,last_seen) VALUES(?,?,?,?,?,?) "+
+    "ON CONFLICT(room_id,seat) DO UPDATE SET game_id=excluded.game_id,session_id=excluded.session_id,"+
+    "joined_at=CASE WHEN ludo_presence.game_id<>excluded.game_id OR ludo_presence.last_seen<? "+
+    "THEN excluded.joined_at ELSE ludo_presence.joined_at END,last_seen=excluded.last_seen"
+   ).bind(player.room_id,player.seat,g.game_id,sessionId,now,now,now-20000).run();
+   const live=await ludoPresence(db,g);
+   if(!wasOnline&&!live[1-player.seat].online){
+    // Notify the partner's device only when they are outside this game.
+    // When both players watch the board, the in-game status updates directly.
+    const push=notifyPartner(ctx.env,player.room_id,player.id,"🎲 "+player.name.slice(0,30)+" a rejoint Ludo Duo",
+     player.name.slice(0,30)+" est dans le jeu. Appuie pour le rejoindre.","ludo",
+     {kind:"ludo-joined",id:g.game_id});
+    if(ctx.waitUntil)ctx.waitUntil(push);else await push;
+   }
+   return reply({ok:true,presence:live,serverNow:Date.now()});
+  }
   if(action==="choose_color"){
    if(g.status!=="playing"||signed?.startedAt||signed?.signed.some(Boolean))return fail("Les couleurs sont fixées après la première signature.",409);
    if(!isLudoColor(data.color))return fail("Couleur Ludo invalide.",400);
