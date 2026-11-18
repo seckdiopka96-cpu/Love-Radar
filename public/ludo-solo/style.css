@@ -758,7 +758,7 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
  transform-style:preserve-3d!important;
  -webkit-transform-style:preserve-3d!important;
  will-change:transform;
- transition:transform .38s cubic-bezier(.14,.87,.24,1);
+ transition:transform .16s cubic-bezier(.14,.87,.24,1);
 }
 .dice-face{
  transform-style:preserve-3d;
@@ -794,7 +794,7 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
 /* The whole physical cube tumbles and rises, then settles on its actual face. */
 .dice-3d.is-rolling{
  transition:none!important;
- animation:dice-tumble-real .85s cubic-bezier(.38,.15,.58,.85) infinite!important;
+ animation:dice-tumble-real .43s cubic-bezier(.38,.15,.58,.85) infinite!important;
 }
 @keyframes dice-tumble-real{
  0%{transform:translate3d(0,0,0) rotateX(-12deg) rotateY(-24deg) rotateZ(0deg) scale(1)}
@@ -814,7 +814,7 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
  text-shadow:0 1px 1px #031a40;
 }
 .dice-holder.is-busy .die-result{opacity:.3}
-.dice-holder.is-result .die-result{animation:die-result-pop .38s cubic-bezier(.18,1.6,.37,1)}
+.dice-holder.is-result .die-result{animation:die-result-pop .20s cubic-bezier(.18,1.6,.37,1)}
 @keyframes die-result-pop{from{transform:scale(.65)}to{transform:scale(1)}}
 /* Make movement observable across a full square before arriving on the next.
  * The animated pawn is never re-rendered mid-step in the Solo engine. */
