@@ -179,18 +179,20 @@ export default function CoupleAvatarDuo({mine,partner,pose="main",mode="hero",an
   (animate?" lr-avatar-animate":"")} role="img" aria-label={POSE_LABEL[pose]+", "+mineName+" et "+partnerName}>
   <span className="lr-avatar-duo-halo" aria-hidden="true"/>
   <span className="lr-avatar-duo-orbit" aria-hidden="true"/>
-  {show3d?<Suspense fallback={<span className="lr-avatar-three-loading">Chargement 3D…</span>}>
+  {show3d?<Suspense fallback={<span className="lr-avatar-three-loading">Chargement de vos avatars 3D…</span>}>
    <Avatar3DScene key={modelVersion} token={token} mine={mine3d} partner={partner3d} pose={pose}
     mineStyle={mine||DEFAULT_AVATAR} partnerStyle={partner||DEFAULT_PARTNER_AVATAR}
     onUnavailable={()=>setRenderFailed(true)}/>
-  </Suspense>:<>
-  <span className="lr-avatar-duo-person lr-avatar-duo-mine" aria-hidden="true">
-   <AvatarCharacter style={mine||DEFAULT_AVATAR} label={mineName} side="left"/>
-  </span>
-  <span className="lr-avatar-duo-person lr-avatar-duo-partner" aria-hidden="true">
-   <AvatarCharacter style={partner||DEFAULT_PARTNER_AVATAR} label={partnerName} side="right"/>
-  </span>
-  </>}
+  </Suspense>:
+   <div className={"lr-avatar-3d-invite"+(mode==="sticker"?" compact":"")} aria-hidden="true">
+    <div className="lr-avatar-3d-constellation">
+     <span className="lr-avatar-3d-orb lr-avatar-3d-orb-left"/>
+     <span className="lr-avatar-3d-orb lr-avatar-3d-orb-right"/>
+     <span className="lr-avatar-3d-link">♥</span>
+    </div>
+    <strong>{mode==="sticker"?POSE_LABEL[pose]:renderFailed?"Aperçu 3D indisponible":"Vos avatars en 3D"}</strong>
+    {mode!=="sticker"?<small>{renderFailed?"Réessaie depuis l’atelier Avaturn.":"Créez chacun votre avatar avec Avaturn."}</small>:null}
+   </div>}
   <svg className="lr-avatar-duo-heart" viewBox="0 0 44 44" aria-hidden="true">
    <path d="M22 37 7 22C-2 12 10 0 22 13 34 0 46 12 37 22Z" fill="#ffb5d1"/>
    <path d="M13 15q3-6 7 0" fill="none" stroke="#fff" strokeOpacity=".55" strokeWidth="2" strokeLinecap="round"/>
