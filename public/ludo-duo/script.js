@@ -75,7 +75,7 @@
   if(dieVisualTimer!==null)clearTimeout(dieVisualTimer);
   // Vary the PHYSICAL animation only. Never generate or alter the dice value:
   // the result always comes from the authenticated server's crypto RNG.
-  lastTossVariant=(lastTossVariant+1+Math.floor(Math.random()*2))%3;
+  lastTossVariant=(lastTossVariant+1)%3;
   dice.dataset.toss=String(lastTossVariant);
   dice.classList.remove("is-rolling");
   // Restart the CSS 3D toss even after a rapid extra turn following a six.
