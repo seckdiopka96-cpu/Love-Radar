@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useRef,useState} from "react";
+import {useEffect,useMemo,useRef,useState,type UIEvent} from "react";
 import {browseGiphy,gifsByIds,GIPHY_PAGE_SIZE,type GifResult,type GiphyKind} from "./gif-provider";
 
 type Group="trending"|"recent"|"favorite";
@@ -123,7 +123,7 @@ export default function GiphyCatalogue({kind,query,storageKey,onSendGif,onClose}
    }
   }
  }
- function onScroll(event:React.UIEvent<HTMLDivElement>){
+ function onScroll(event:UIEvent<HTMLDivElement>){
   const element=event.currentTarget;
   if(element.scrollTop+element.clientHeight>=element.scrollHeight-220)void loadMore();
  }
