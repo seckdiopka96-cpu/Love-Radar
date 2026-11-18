@@ -168,7 +168,7 @@ export default function LoveRadar(){
  const [e2eeDeviceReady,setE2eeDeviceReady]=useState(false);
  const [e2eeVerified,setE2eeVerified]=useState(false);
  const avatars=useProfileAvatars(token,room?.user.id,room?.user.avatarVersion,room?.partnerId,room?.partnerAvatarVersion);
- const {avatars:coupleAvatars,saving:coupleAvatarSaving,saveStyle:saveCoupleAvatarStyle,savePose:saveCoupleAvatarPose}=
+ const {avatars:coupleAvatars,saving:coupleAvatarSaving,saveStyle:saveCoupleAvatarStyle,savePose:saveCoupleAvatarPose,reload:reloadCoupleAvatars}=
   useCoupleAvatars(token,room?.roomId);
  useEffect(()=>{
   let alive=true;
@@ -2033,7 +2033,8 @@ export default function LoveRadar(){
      coupleAvatars={coupleAvatars}/>:null}
     {tab==="avatars"?<CoupleAvatarStudio key={room.roomId+":"+room.user.id}
      data={coupleAvatars} myName={room.user.name} partnerName={room.partner||"Ton amour"} hasPartner={Boolean(room.partner)}
-     saving={coupleAvatarSaving} onSaveStyle={saveCoupleAvatarStyle} onSavePose={saveCoupleAvatarPose}
+     saving={coupleAvatarSaving} token={token} onModelImported={reloadCoupleAvatars}
+     onSaveStyle={saveCoupleAvatarStyle} onSavePose={saveCoupleAvatarPose}
      onSend={pose=>{sendAvatarSticker(pose);navigate("chat")}} onBack={()=>navigate("home")}/>:null}
     {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
     {tab==="care"?<CoupleCare key={room.roomId+":"+room.user.id} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} onOpenChat={()=>navigate("chat")}/>:null}
@@ -2165,6 +2166,7 @@ export default function LoveRadar(){
             <div className="lr-avatar-sticker">
              <CoupleAvatarDuo mine={coupleAvatars.mine} partner={coupleAvatars.partner}
               pose={readAvatarMessage(m.content)!} mode="sticker"
+              token={token} mine3d={Boolean(coupleAvatars.mine3d)} partner3d={Boolean(coupleAvatars.partner3d)}
               mineName={room.user.name} partnerName={partner}/>
              <small>Nos avatars amoureux 🥰</small>
             </div>:readStickerId(m.content)?<StickerArt id={readStickerId(m.content)!}/>:readGifId(m.content)?<GifMessage id={readGifId(m.content)!}/>:<p><AnimatedEmojiText content={m.content||""}/></p>):m.kind==="image"?
