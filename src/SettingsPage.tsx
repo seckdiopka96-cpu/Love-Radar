@@ -80,7 +80,7 @@ name,code,owner,token,avatarSrc,avatarVersion,recoveryMemberId,recoveryPartnerId
   <section className="lr-settings-section" aria-labelledby="lr-plus-settings-title">
    <div className="lr-settings-section-head"><span className="lr-settings-icon" aria-hidden="true">✦</span>
     <div><h2 id="lr-plus-settings-title">Love Radar Plus</h2>
-     <p>{plusActive?"Votre couple dispose des avantages Plus.":"Thèmes exclusifs, défis bonus et livre souvenir · 3,99 $/mois par couple."}</p>
+     <p>{plusActive?"Votre couple dispose des avantages Plus.":"Thèmes exclusifs, défis bonus et livre souvenir · 2,99 $/mois par couple."}</p>
     </div></div>
    <button className="lr-settings-primary" type="button" onClick={onOpenPlus}>
     {plusActive?"Voir mes avantages Plus":"Découvrir Love Radar Plus"}</button>
