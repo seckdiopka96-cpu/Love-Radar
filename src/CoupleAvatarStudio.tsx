@@ -80,7 +80,7 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
    {!hasPartner?<p className="lr-avatar-studio-hint">Invite ton partenaire pour retrouver vos deux avatars.</p>:null}
   </div>
 
-  <section className="lr-avatar-studio-editor" aria-label="Personnaliser mon personnage">
+  <section className="lr-avatar-studio-editor" aria-label="Crée ton avatar et personnalise ton personnage">
    <div className="lr-avatar-studio-section-top">
     <div><span>01 · PERSONNALISATION</span><h2>Ton personnage, ton style</h2></div>
     <small>✨ À TON IMAGE</small>
