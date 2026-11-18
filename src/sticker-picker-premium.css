@@ -134,3 +134,50 @@
  padding:6px 9px!important;min-height:31px;border-radius:11px!important;font-size:10px!important;font-weight:800!important;white-space:nowrap}
 .lr-chat .lr-animation-switch[aria-pressed=false]{background:#374456!important;color:#e4cbd8!important}
 @media(max-width:370px){.lr-chat .lr-animation-switch{padding:5px!important;font-size:9px!important}}
+
+/* GIPHY remote packs: keep built-in stickers and emojis untouched. */
+.lr-chat .lr-giphy-source-switch{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;flex:none;
+ margin:0 0 4px;padding:3px;background:#0c1d2bdd;
+ border:1px solid #ffffff14;border-radius:12px;
+}
+.lr-chat .lr-giphy-source-switch button{
+ min-width:0;min-height:31px!important;padding:4px 7px!important;
+ border:1px solid transparent!important;border-radius:9px!important;
+ background:transparent!important;color:#c1d2de!important;
+ font-size:11px!important;font-weight:750!important;
+}
+.lr-chat .lr-giphy-source-switch button[aria-selected=true]{
+ background:#854a76!important;border-color:#e3a6c6!important;color:#fff!important;
+}
+.lr-chat .lr-giphy-source-switch button:focus-visible,
+.lr-chat .lr-giphy-load-more:focus-visible{
+ outline:2px solid #ffd7e7!important;outline-offset:2px!important;
+}
+.lr-chat .lr-giphy-sticker .lr-gif-send,
+.lr-chat .lr-giphy-emoji .lr-gif-send{
+ background:transparent!important;border:1px solid #ffffff14!important;
+}
+.lr-chat .lr-giphy-sticker .lr-gif-send img,
+.lr-chat .lr-giphy-emoji .lr-gif-send img{object-fit:contain!important}
+.lr-chat .lr-giphy-emoji .lr-gif-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.lr-chat .lr-giphy-emoji .lr-gif-send{
+ min-height:76px!important;height:77px!important;border-radius:14px!important;
+}
+.lr-chat .lr-giphy-page-status,.lr-chat .lr-giphy-help{
+ color:#b8c9d6;font-size:11px;line-height:1.4;
+ text-align:center;padding:7px 8px;margin:2px 0;
+}
+.lr-chat .lr-giphy-load-more,
+.lr-chat .lr-gif-error button{
+ display:block;width:max-content!important;max-width:100%;min-height:32px!important;
+ margin:10px auto 12px;padding:6px 15px!important;
+ border:1px solid #bd8fa9!important;border-radius:999px!important;
+ background:#744663!important;color:#fff!important;
+ font-size:11px!important;font-weight:800!important;cursor:pointer;
+}
+.lr-chat .lr-giphy-load-more:disabled{opacity:.65;cursor:wait}
+@media(max-width:375px){
+ .lr-chat .lr-giphy-emoji .lr-gif-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .lr-chat .lr-giphy-source-switch button{font-size:10px!important}
+}
