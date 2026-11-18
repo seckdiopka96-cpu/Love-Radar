@@ -223,6 +223,8 @@ export default function LoveRadar(){
  const [noticeTarget,setNoticeTarget]=useState<NoticeTarget|null>(()=>parseNotice(window.location.search));
  const lastHandledNotice=useRef<string>("");
  const [pendingNoticeRouteId,setPendingNoticeRouteId]=useState("");
+ // A resumed iPhone can briefly report its old chat URL after a push tap.
+ const activeTappedRoute=useRef<{routeId:string;target:NoticeTarget}|null>(null);
  const [readyLudoNotice,setReadyLudoNotice]=useState("");
  const markLudoNoticeReady=useCallback((challenge:string)=>setReadyLudoNotice(challenge),[]);
  const [noticeTap,setNoticeTap]=useState(0);
@@ -233,6 +235,7 @@ export default function LoveRadar(){
  const [focusMedia,setFocusMedia]=useState("");
  const focusAsset=useRef("");
  function closeNotice(){
+  activeTappedRoute.current=null;
   // Consume a dismissed notification so focus does not reopen it.
   if(pendingNoticeRouteId){
    const routeId=pendingNoticeRouteId;
@@ -719,6 +722,7 @@ export default function LoveRadar(){
        setFocusMessage(null);setFocusError("");
       }
       lastHandledNotice.current=routeId;
+      activeTappedRoute.current={routeId,target:dest};
       setPendingNoticeRouteId(routeId);
      }
      window.history.replaceState(null,"",noticeUrl(dest));
@@ -734,6 +738,15 @@ export default function LoveRadar(){
   };
   const onRoute=()=>{
    const dest=parseNotice(window.location.search);
+   const tapped=activeTappedRoute.current;
+   // Do not let iOS pageshow restore stale messages over a tapped game.
+   if(tapped&&(!dest||dest.tab!==tapped.target.tab||
+     dest.kind!==tapped.target.kind||dest.id!==tapped.target.id)){
+    window.history.replaceState(null,"",noticeUrl(tapped.target));
+    setNoticeTarget(tapped.target);setTab(tapped.target.tab);
+    firstPoll.current=true;
+    return;
+   }
    if(dest){lastMessageJump.current="";setNoticeTap(n=>n+1);setNoticeTarget(dest);setTab(dest.tab);firstPoll.current=true}
   };
   const requestPendingNotification=()=>{
@@ -788,6 +801,7 @@ export default function LoveRadar(){
    (navigator.serviceWorker.controller||reg.active)?.postMessage({
     type:"love-radar-ack-notification",routeId
    });
+   if(activeTappedRoute.current?.routeId===routeId)activeTappedRoute.current=null;
    setPendingNoticeRouteId("");
   }).catch(()=>{});
   return()=>{cancelled=true};

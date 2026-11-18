@@ -118,6 +118,58 @@ test("Ludo invitation is not acknowledged until its real agreement loads",()=>{
  assert.ok(app.includes("focusMessage?.id!==id&&!focusError"),"old messages wait for the precise fetch or an error");
 });
 
+
+test("Ludo notification with stale chat metadata still opens the actual game",()=>{
+ const listeners=new Map<string,(event:any)=>void>();
+ const self={location:{origin:"https://love-radar-acd.pages.dev"},
+  addEventListener:(key:string,handler:(event:any)=>void)=>listeners.set(key,handler)};
+ const route=new Script(worker+"\nnotificationTarget",{filename:"public/sw.js"})
+  .runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request,setTimeout,clearTimeout}) as
+  (input:Record<string,string>,title:string)=>{tab:string;kind:string|null;id:string|null;url:string};
+ const gameId="88888888-8888-4888-8888-888888888888";
+ const messageId="99999999-9999-4999-8999-999999999999";
+ const legacy=route({tab:"chat",kind:"message",id:messageId},"🎲 Défi Ludo Duo ❤️");
+ assert.equal(legacy.tab,"ludo","Ludo invite must never open messages");
+ assert.equal(legacy.kind,null,"old message ID must not be used as Ludo ID");
+ assert.equal(legacy.url,"/?tab=ludo","open current Ludo agreement");
+ const precise=route({tab:"chat",kind:"message",id:messageId,
+  url:"/?tab=ludo&kind=ludo-challenge&id="+gameId},"🎲 Défi Ludo Duo ❤️");
+ assert.equal(precise.tab,"ludo");
+ assert.equal(precise.kind,"ludo-challenge");
+ assert.equal(precise.id,gameId,"legacy link recovers the correct game ID");
+ const normal=route({tab:"chat",kind:"message",id:messageId},"Mbene Ndiaye");
+ assert.equal(normal.tab,"chat","real messages still open the chat");
+ assert.equal(normal.id,messageId);
+ assert.ok(worker.includes('event.notification.title||""'));
+ assert.ok(app.includes("activeTappedRoute.current={routeId,target:dest}"));
+ assert.ok(app.includes('window.history.replaceState(null,"",noticeUrl(tapped.target))'));
+ assert.ok(app.includes("if(activeTappedRoute.current?.routeId===routeId)activeTappedRoute.current=null"));
+});
+
+test("legacy Ludo notification click on cold iPhone launches game, not chat",async()=>{
+ const handlers=new Map<string,(event:any)=>void>();
+ const stored=new Map<string,Response>();
+ let opened="";
+ const caches={open:async()=>({
+  put:async(k:string,r:Response)=>{stored.set(k,r)},
+  match:async(k:string)=>stored.get(k)?.clone(),
+  delete:async(k:string)=>stored.delete(k)
+ })};
+ const self={location:{origin:"https://love-radar-acd.pages.dev"},
+  clients:{matchAll:async()=>[],openWindow:async(url:string)=>{opened=url}},
+  addEventListener:(event:string,fn:(value:any)=>void)=>handlers.set(event,fn)};
+ new Script(worker).runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request,caches,setTimeout,clearTimeout});
+ let pending=Promise.resolve();
+ handlers.get("notificationclick")!({
+  notification:{title:"🎲 Défi Ludo Duo ❤️",close(){},
+   data:{tab:"chat",kind:"message",id:"99999999-9999-4999-8999-999999999999"}},
+  waitUntil(p:Promise<any>){pending=p}
+ });
+ await pending;
+ assert.match(opened,/\?tab=ludo$/);
+ assert.equal(stored.size,1,"retain route during iPhone startup");
+});
+
 test("stalled WebKit focus cannot swallow a clicked Ludo invitation",async()=>{
  const listeners=new Map<string,(event:any)=>void>();
  const stored=new Map<string,Response>(),messages:any[]=[];

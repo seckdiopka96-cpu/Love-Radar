@@ -1,6 +1,6 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
 // Refresh the installed PWA shell after the Cloudflare Pages GIPHY build variable was configured.
-const CACHE="love-radar-static-v138";
+const CACHE="love-radar-static-v139";
 const PRIVATE_AVATAR_CACHE="love-radar-private-notification-avatar-v1";
 const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png","/ludo-mark.svg","/ludo-solo/index.html","/ludo-solo/style.css","/ludo-solo/script.js","/ludo-duo/index.html","/ludo-duo/style.css","/ludo-duo/script.js"];
 self.addEventListener("install",event=>{
@@ -88,14 +88,38 @@ const KIND_TABS={
  "couple-hug":"life","couple-challenge":"life","couple-gift":"life"
 };
 const TARGET_KINDS=new Set(Object.keys(KIND_TABS));
-function notificationTarget(info){
- const kind=typeof info?.kind==="string"&&TARGET_KINDS.has(info.kind)?info.kind:null;
- const id=typeof info?.id==="string"&&(
+function notificationTarget(info,title=""){
+ // A previous iPhone notification may still contain chat metadata.
+ // Respect the actual Ludo invitation visible on the lock screen.
+ const isLudoInvite=typeof title==="string"&&/défi\s+ludo\s+duo/i.test(title);
+ let kind=typeof info?.kind==="string"&&TARGET_KINDS.has(info.kind)?info.kind:null;
+ let id=typeof info?.id==="string"&&(
   /^[0-9a-f-]{36}$/i.test(info.id)||
   (kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(info.id))
  )?info.id:null;
+ let deepTab=null,deepKind=null,deepId=null;
+ if(typeof info?.url==="string"){
+  try{
+   const link=new URL(info.url,self.location.origin);
+   if(link.origin===self.location.origin&&(link.pathname==="/"||link.pathname==="/index.html")){
+    deepTab=SUPPORTED_TABS.has(link.searchParams.get("tab"))?link.searchParams.get("tab"):null;
+    const k=link.searchParams.get("kind"),i=link.searchParams.get("id");
+    if(TARGET_KINDS.has(k)&&typeof i==="string"&&(
+     /^[0-9a-f-]{36}$/i.test(i)||(k==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(i))
+    )){deepKind=k;deepId=i}
+   }
+  }catch{/* Ignore invalid legacy URLs. */}
+ }
+ if(isLudoInvite){
+  // Never mistake an old chat message ID for the Ludo match ID.
+  if(kind!=="ludo-challenge"||!id){
+   kind=deepKind==="ludo-challenge"?deepKind:null;
+   id=deepKind==="ludo-challenge"?deepId:null;
+  }
+ }else if((!kind||!id)&&deepKind&&deepId){kind=deepKind;id=deepId}
  const valid=Boolean(kind&&id);
- const tab=valid?KIND_TABS[kind]:SUPPORTED_TABS.has(info?.tab)?info.tab:"home";
+ const tab=isLudoInvite?"ludo":valid?KIND_TABS[kind]:
+  SUPPORTED_TABS.has(info?.tab)?info.tab:deepTab||"home";
  const query=new URLSearchParams({tab});
  if(valid){query.set("kind",kind);query.set("id",id)}
  return {tab,kind:valid?kind:null,id:valid?id:null,url:"/?"+query.toString()};
@@ -103,8 +127,8 @@ function notificationTarget(info){
 self.addEventListener("push",event=>{
  let payload={};
  try{payload=event.data?event.data.json():{}}catch{payload={}}
- const destination=notificationTarget(payload);
  const title=typeof payload.title==="string"?payload.title.slice(0,100):"Love Radar ❤️";
+ const destination=notificationTarget(payload,title);
  const body=typeof payload.body==="string"?payload.body.slice(0,240):"Ton partenaire t’attend ❤️";
  event.waitUntil((async()=>{
   // Each text message has a distinct ID, so new alerts no longer replace older ones.
@@ -171,7 +195,7 @@ self.addEventListener("message",event=>{
 });
 self.addEventListener("notificationclick",event=>{
  event.notification.close();
- const destination=notificationTarget(event.notification.data||{});
+ const destination=notificationTarget(event.notification.data||{},event.notification.title||"");
  const url=new URL(destination.url,self.location.origin).href;
  event.waitUntil((async()=>{
   // Persist BEFORE focusing the existing PWA: iOS may recreate its page
