@@ -136,7 +136,10 @@ export default function CoupleExperiences({token,myId,myName,partnerName,privacy
  },[refresh]);
  useEffect(()=>{
   setSection(selectedSection(focusKind));
-  if(focusKind==="couple-hug")setHugAnimation(true);
+  if(focusKind!=="couple-hug")return;
+  setHugAnimation(true);
+  const timer=window.setTimeout(()=>setHugAnimation(false),3400);
+  return()=>window.clearTimeout(timer);
  },[focusKind,focusId]);
  useEffect(()=>()=>{if(recorder.current?.state==="recording")recorder.current.stop();stream.current?.getTracks().forEach(t=>t.stop());releaseRecordingAudio()},[]);
  async function act(action:string,fields:Record<string,unknown>={},message="Enregistré pour vous deux. ❤️"){
@@ -306,6 +309,7 @@ export default function CoupleExperiences({token,myId,myName,partnerName,privacy
     <span className="ce-challenge-emoji">{c.emoji}</span><div><h3>{c.title}</h3><small>{challengeDone(c.key,myId)?"✓ Tu l'as fait":"À faire"} · {challengeDone(c.key,life?.completions.find(x=>x.memberId!==myId)?.memberId||"")?"✓ Partenaire":"○ Partenaire"}</small></div>
     <button type="button" disabled={busy||!partnerName} aria-pressed={challengeDone(c.key,myId)} onClick={()=>void act("challenge_toggle",{key:c.key},"Défi enregistré pour cette semaine. 🏆")}>{challengeDone(c.key,myId)?"✓ Fait":"J'ai fait !"}</button>
    </article>)}</div>
+   <button type="button" className="ce-link-action" onClick={onMoment}>💌 Répondre à notre question du jour</button>
   </div>:null}
   {section==="gifts"?<div className="ce-panel">
    <div className="ce-heading"><span className="ce-hero-emoji">🎁</span><div><span className="ce-label">COFFRE SURPRISE</span><h2>Une surprise rien que pour toi.</h2><p>Un message, une photo et un vocal, réunis dans un cadeau privé.</p></div></div>
