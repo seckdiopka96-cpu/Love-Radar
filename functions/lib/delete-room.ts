@@ -21,7 +21,7 @@ export const ROOM_DATA_TABLES=[
  "duo_draw_games","duo_escape_games",
  "couple_watch_presence","couple_watch_sessions",
  "couple_tiktok_presence","couple_tiktok_watch",
- "couple_reconciliations","push_subscriptions","room_revisions","partner_recovery","room_plus","chat_themes","couple_avatar_styles","couple_avatar_rooms"
+ "couple_reconciliations","push_subscriptions","room_revisions","partner_recovery","room_plus","chat_themes","couple_avatar_styles","couple_avatar_rooms","couple_avatar_models"
 ] as const;
 export const MEMBER_DATA_TABLES=["member_recovery","push_test_throttle","care_share_throttle","screenshot_throttle"] as const;
 
@@ -117,7 +117,7 @@ async function purgeReferencedObjects(db:D1Database,storage:R2Bucket|undefined,r
  // Also purge obsolete/replaced pictures whose paths remain in the private
  // bucket but are no longer referenced by current profile/story rows.
  if(storage){
-  for(const prefix of ["profile/"+roomId+"/","couple-story/"+roomId+"/","keepsake-album/"+roomId+"/","couple-gifts/"+roomId+"/"]){
+  for(const prefix of ["profile/"+roomId+"/","couple-story/"+roomId+"/","keepsake-album/"+roomId+"/","couple-gifts/"+roomId+"/","avatars3d/"+roomId+"/"]){
    // Always scan the first page again after deleting it: opaque R2 cursors
    // may skip objects if earlier entries have been removed.
    for(let page=0;page<10000;page++){
