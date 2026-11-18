@@ -117,3 +117,10 @@ test("Picker has GIF, Stickers and Emojis with search, favorites, recents and le
  assert.ok(css.includes("lr-gif-grid"));
  assert.ok(css.includes("height:clamp(275px,53dvh,510px)"));
 });
+
+
+test("GIF provider is the default expression tab only when a GIPHY key is configured",()=>{
+ const picker=readFileSync("src/StickerPicker.tsx","utf8");
+ assert.ok(picker.includes('useState<Mode>(GIPHY_KEY?"gif":"stickers")'));
+ assert.ok(picker.includes('if(mode!=="gif"||!GIPHY_KEY||gifGroup!=="trending")return;'));
+});
