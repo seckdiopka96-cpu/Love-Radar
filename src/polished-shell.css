@@ -70,10 +70,10 @@
  }
  /* The opaque nav scroll gap caused the home to look unfinished. Reserve
     exact dock + safe-area height in the main scroller, never under content. */
- .lr-app.lr-app-locked:not(.lr-chat-mode):not(.lr-watch-mode):not(.lr-puzzle-mode):not(.lr-reconcile-mode):not(.lr-ludo-mode) .lr-shell{
+ .lr-app.lr-app-locked:not(.lr-chat-mode):not(.lr-watch-mode):not(.lr-puzzle-mode):not(.lr-reconcile-mode):not(.lr-ludo-mode):not(.lr-avatar-mode) .lr-shell{
   padding:0 0 calc(94px + env(safe-area-inset-bottom))!important;
  }
- .lr-app.lr-app-locked:not(.lr-chat-mode):not(.lr-watch-mode):not(.lr-puzzle-mode):not(.lr-reconcile-mode):not(.lr-ludo-mode) .lr-main{
+ .lr-app.lr-app-locked:not(.lr-chat-mode):not(.lr-watch-mode):not(.lr-puzzle-mode):not(.lr-reconcile-mode):not(.lr-ludo-mode):not(.lr-avatar-mode) .lr-main{
   padding:13px 13px 26px!important;
   scroll-padding-bottom:25px;
  }

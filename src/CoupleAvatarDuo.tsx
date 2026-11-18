@@ -1,65 +1,156 @@
+import {useId} from "react";
 import {DEFAULT_AVATAR,DEFAULT_PARTNER_AVATAR,HAIR_HEX,OUTFIT_HEX,SKIN_HEX,
  POSE_LABEL,type AvatarStyle,type CouplePose} from "./couple-avatar-model";
 import "./couple-avatars.css";
 
-type CharacterProps={style:AvatarStyle;label:string};
-export function AvatarCharacter({style,label}:CharacterProps){
- const skin=SKIN_HEX[style.skin],hair=HAIR_HEX[style.hairColor],shirt=OUTFIT_HEX[style.outfit];
- const scarf=style.hair==="hijab";
- return <svg className="lr-avatar-character-svg" viewBox="0 0 176 240" xmlns="http://www.w3.org/2000/svg"
-  role="img" aria-label={label}>
-  <ellipse cx="88" cy="228" rx="60" ry="8" fill="#091426" opacity=".24"/>
-  <path d="M65 178 59 218q-4 11 7 11h20l7-49m10-2 8 40q1 10-9 11H89l-5-49"
-   fill="#26364f" stroke="#1e3048" strokeWidth="4" strokeLinejoin="round"/>
-  <path d="M63 220h24v10H57q-7-5 6-10m42 0h20q11 7 0 10H98Z" fill="#f4f0f5" stroke="#cad5ea" strokeWidth="1.5"/>
-  <path d="M56 123q32-15 63 0l19 29-14 50H48l-13-50Z" fill={shirt} stroke="#17253e" strokeWidth="2.5"/>
-  <path d="M70 131q17 14 34 0" fill="none" stroke="#fff" strokeOpacity=".45" strokeWidth="4" strokeLinecap="round"/>
-  <path className="lr-avatar-arm lr-avatar-arm-left" d="M48 134q-18 15-23 41t-1 5q4 8 12 4l31-34"
-   fill={shirt} stroke="#17253e" strokeWidth="3" strokeLinejoin="round"/>
-  <ellipse cx="27" cy="182" rx="9" ry="12" fill={skin} stroke="#352c32" strokeOpacity=".25"/>
-  <path className="lr-avatar-arm lr-avatar-arm-right" d="M125 134q21 8 26 39l1 13q-7 6-14-1l-29-34"
-   fill={shirt} stroke="#17253e" strokeWidth="3" strokeLinejoin="round"/>
-  <ellipse cx="148" cy="181" rx="9" ry="12" fill={skin} stroke="#352c32" strokeOpacity=".25"/>
-  <rect x="76" y="110" width="25" height="24" rx="10" fill={skin}/>
-  {scarf?<path d="M46 77Q44 21 88 18q49 1 44 61l11 65q-40 34-104 0Z" fill={hair} stroke="#171a27" strokeWidth="3"/>:
-   style.hair==="longs"||style.hair==="locks"||style.hair==="tresses"?
-    <path d="M42 64Q37 12 89 20q54-4 47 48l5 90q-18 22-31 5l-6-66H71l-6 66q-22 9-28-6Z"
-     fill={hair} stroke="#1a1721" strokeOpacity=".54" strokeWidth="2"/>:null}
-  <ellipse cx="49" cy="88" rx="10" ry="16" fill={skin} stroke="#2a2230" strokeOpacity=".15"/>
-  <ellipse cx="129" cy="88" rx="10" ry="16" fill={skin} stroke="#2a2230" strokeOpacity=".15"/>
-  <path d="M50 57q11-32 38-31t40 28v37q-3 41-40 45-39-3-40-46Z"
-   fill={skin} stroke="#5b3542" strokeOpacity=".25" strokeWidth="2.5"/>
-  <ellipse cx="61" cy="103" rx="11" ry="6" fill="#e88691" opacity=".26"/>
-  <ellipse cx="115" cy="103" rx="11" ry="6" fill="#e88691" opacity=".26"/>
-  {scarf?<path d="M48 64Q53 24 87 21q40 2 44 45l-11-20Q84 70 54 47Z" fill={hair} stroke="#1a1b29" strokeWidth="2"/>:
-   style.hair==="courts"?<path d="M46 75q-6-51 40-55 49-4 49 52l-17-18q-27 6-53-1Z" fill={hair}/>:
-   style.hair==="boucles"?<g fill={hair} stroke="#1b1b28" strokeWidth="1.5">
-    {[[52,49,22],[69,31,23],[92,27,24],[115,32,23],[128,54,20],[47,73,18]].map(([x,y,r],i)=>
-     <circle key={i} cx={x} cy={y} r={r}/>)}</g>:
-   style.hair==="tresses"?<g fill="none" stroke={hair} strokeWidth="11" strokeLinecap="round">
-    <path d="M51 47Q67 14 95 24t34 33"/><path d="M50 81q-6 40-6 65m86-65q7 36 6 65"/>
-    <path d="M67 39q-16 36-12 100M107 32q15 48 17 105"/></g>:
-   style.hair==="locks"?<g fill="none" stroke={hair} strokeWidth="13" strokeLinecap="round">
-    <path d="M52 40q-10 26-9 78m21-90q-7 43-5 102m16-103q-4 51 2 72m14-75q6 40 4 54m13-51q10 30 14 100m6-83q12 32 9 80"/></g>:
-   style.hair==="longs"?<path d="M49 63Q52 18 90 20q41 4 42 45l-9-7Q97 35 62 58Z" fill={hair}/>:null}
-  <path d="M63 83q8-7 16 0m18 0q9-7 17 0" fill="none" stroke="#422b2a" strokeWidth="3.1" strokeLinecap="round"/>
-  <ellipse cx="72" cy="87" rx="3.7" ry="4.6" fill="#26232a"/>
-  <ellipse cx="105" cy="87" rx="3.7" ry="4.6" fill="#26232a"/>
-  <circle cx="73.1" cy="85.5" r="1.35" fill="#fff"/>
-  <circle cx="106.1" cy="85.5" r="1.35" fill="#fff"/>
-  <path d="M86 89q-5 12 4 11" fill="none" stroke="#6c3b3a" strokeOpacity=".45" strokeWidth="2" strokeLinecap="round"/>
-  <path d="M78 113q10 8 21-1" fill="none" stroke="#a45164" strokeWidth="3.8" strokeLinecap="round"/>
-  {style.accessory==="lunettes"?<g fill="none" stroke="#e8d8ca" strokeWidth="3.5">
-   <rect x="56" y="75" width="27" height="24" rx="8"/><rect x="93" y="75" width="27" height="24" rx="8"/>
-   <path d="M83 82q5-4 10 0M56 83l-10-5M120 83l10-5"/></g>:null}
-  {style.accessory==="fleur"?<g transform="translate(122 49)">
-   <circle cx="-7" cy="0" r="7" fill="#fff0f5"/><circle cx="7" cy="0" r="7" fill="#fff0f5"/>
-   <circle cx="0" cy="-8" r="7" fill="#ffb8d1"/><circle cx="0" cy="8" r="7" fill="#ffb8d1"/>
-   <circle cx="0" cy="0" r="4.5" fill="#ffd36f"/></g>:null}
+type CharacterProps={style:AvatarStyle;label:string;portrait?:boolean};
+/** Original layered 2.5D vector. No external image, tracking or paid service. */
+export function AvatarCharacter({style,label,portrait=false}:CharacterProps){
+ const unique=useId().replace(/:/g,"");
+ const skin=SKIN_HEX[style.skin],hair=HAIR_HEX[style.hairColor],outfit=OUTFIT_HEX[style.outfit];
+ const shade="avatar-shade-"+unique, skinLight="avatar-skin-"+unique;
+ const hairLight="avatar-hair-"+unique,shirtLight="avatar-shirt-"+unique;
+ const hijab=style.hair==="hijab";
+ const longHair=style.hair==="longs"||style.hair==="tresses"||style.hair==="locks";
+ return <svg xmlns="http://www.w3.org/2000/svg" className="lr-avatar-character-svg"
+   viewBox={portrait?"28 17 124 144":"0 0 180 260"} role="img" aria-label={label}>
+  <defs>
+   <linearGradient id={skinLight} x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stopColor={skin}/><stop offset=".52" stopColor={skin}/>
+    <stop offset="1" stopColor="#5b3229" stopOpacity=".72"/>
+   </linearGradient>
+   <linearGradient id={shade} x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stopColor="#ffffff" stopOpacity=".25"/>
+    <stop offset=".48" stopColor="#ffffff" stopOpacity="0"/>
+    <stop offset="1" stopColor="#1c0f24" stopOpacity=".2"/>
+   </linearGradient>
+   <linearGradient id={hairLight} x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stopColor="#fff5ec" stopOpacity=".24"/>
+    <stop offset=".48" stopColor={hair}/>
+    <stop offset="1" stopColor="#101225" stopOpacity=".55"/>
+   </linearGradient>
+   <linearGradient id={shirtLight} x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stopColor="#f8eaf8" stopOpacity=".50"/>
+    <stop offset=".22" stopColor={outfit}/>
+    <stop offset="1" stopColor="#131c3b" stopOpacity=".84"/>
+   </linearGradient>
+  </defs>
+  {/* Legwear and shoes: softly shaped, no thick black cartoon outlines. */}
+  {!portrait?<g>
+   <ellipse cx="91" cy="251" rx="51" ry="4.5" fill="#071328" opacity=".20"/>
+   <path d="M57 215Q87 223 121 215l-3 29-24 2-6-28-7 28-26-2Z"
+    fill="#253b53"/>
+   <path d="M58 241q15-5 25 1l3 7q-9 8-35 3-4-4 7-11ZM100 242q16-6 22 1 15 6 8 10-21 7-34-1Z"
+    fill="#edf0f8"/>
+   <path d="M53 250h32m15 1h30" stroke="#9baec4" strokeWidth="2" strokeLinecap="round"/>
+  </g>:null}
+  {/* Hair behind the head: independent styles, real strands, highlights. */}
+  {longHair||hijab?<g>
+   <path d="M45 73C38 45 54 25 89 25c36 0 49 25 45 50l7 94q-8 14-24 10l-6-61H70l-6 60q-21 4-26-10Z"
+    fill={`url(#${hairLight})`}/>
+   {style.hair==="longs"?<g fill="none" stroke="#fcdfc6" strokeOpacity=".13" strokeWidth="3">
+    <path d="M46 74q-1 46 1 92M133 76q2 50-2 92"/>
+   </g>:null}
+  </g>:null}
+  {/* The silhouette reads as a tailored adult outfit, not a stick figure. */}
+  <g>
+   <path d="M63 151Q49 148 40 169l-17 49q-2 9 8 13 9 3 12-8l17-35Z"
+    fill={`url(#${shirtLight})`}/>
+   <path d="M116 151q14-3 24 18l17 49q2 10-8 13-9 3-12-8l-17-35Z"
+    fill={`url(#${shirtLight})`}/>
+   <path d="M59 154q14-9 31-9 18 0 31 9l14 60q-38 20-89 0Z"
+    fill={`url(#${shirtLight})`}/>
+   <path d="M66 154q4 16 24 22l-10 13-21-29M115 154q-4 16-25 22l12 13 20-29"
+    fill="#fffafc" opacity=".33"/>
+   <path d="M89 175v46" stroke="#f4d7e8" strokeWidth="1.7" strokeOpacity=".48"/>
+   <circle cx="89" cy="189" r="1.8" fill="#fff" opacity=".65"/>
+   <circle cx="89" cy="201" r="1.8" fill="#fff" opacity=".65"/>
+   <path d="M49 210q38 12 81 0" fill="none" stroke="#0e1834" strokeWidth="2" strokeOpacity=".14"/>
+   <ellipse cx="31" cy="226" rx="8.2" ry="10.3" fill={skin}/>
+   <ellipse cx="149" cy="226" rx="8.2" ry="10.3" fill={skin}/>
+  </g>
+  <path d="M79 130v25q10 13 23 0v-25" fill={`url(#${skinLight})`}/>
+  {/* Ears, shaded face, cheeks and grown-up facial details. */}
+  <ellipse cx="45" cy="94" rx="9" ry="14" fill={skin}/>
+  <ellipse cx="135" cy="94" rx="9" ry="14" fill={skin}/>
+  <path d="M44 76C43 47 58 33 90 32c32 0 48 15 46 46l-4 30c-5 23-24 41-42 42-21-1-42-19-45-45Z"
+   fill={`url(#${skinLight})`}/>
+  <path d="M51 66q-10 48 7 64" stroke="#fff" strokeWidth="7" strokeOpacity=".11"
+   fill="none" strokeLinecap="round"/>
+  <path d="M49 76C49 52 63 41 89 42c25 0 39 11 41 34" fill="none"
+   stroke="#fff4e6" strokeWidth="3" strokeOpacity=".1" strokeLinecap="round"/>
+  <ellipse cx="63" cy="110" rx="11.5" ry="6.3" fill="#d96877" opacity=".17"/>
+  <ellipse cx="117" cy="110" rx="11.5" ry="6.3" fill="#d96877" opacity=".17"/>
+  <path d="M59 89q10-7 21 0m20 0q10-7 20 0" fill="none" stroke={hair} strokeWidth="3.6" strokeLinecap="round"/>
+  <path d="M62 99q9-7 17 0m22 0q9-7 17 0" fill="none" stroke="#382b35"
+   strokeWidth="2.1" strokeLinecap="round"/>
+  <ellipse cx="70.5" cy="99" rx="4" ry="5" fill="#312d36"/>
+  <ellipse cx="110.5" cy="99" rx="4" ry="5" fill="#312d36"/>
+  <circle cx="71.8" cy="97.4" r="1.55" fill="#fff"/>
+  <circle cx="111.8" cy="97.4" r="1.55" fill="#fff"/>
+  <path d="M91 99q-5 10 0 13" fill="none" stroke="#6b3d3e" strokeWidth="1.9"
+   strokeOpacity=".5" strokeLinecap="round"/>
+  <path d="M81 124q9 6 19-1" fill="none" stroke="#903c58" strokeWidth="2.8" strokeLinecap="round"/>
+  <path d="M86 126q4 1 9 0" fill="none" stroke="#ffdade" strokeOpacity=".37" strokeWidth="1.4"/>
+  {/* Front hair sits over the forehead with realistic swept, curled, or braided contours. */}
+  {hijab?<g>
+   <path d="M47 76q-7-38 11-53 29-23 62 0 17 18 12 55l-16-23Q91 74 64 53Z"
+    fill={`url(#${hairLight})`}/>
+   <path d="M44 73q-10 47-3 78 12 18 32 10l-18-28q-7-15-5-47" fill={hair} opacity=".91"/>
+   <path d="M133 73q10 43 4 78-11 18-32 10l18-28q8-16 7-47" fill={hair} opacity=".91"/>
+   <path d="M66 145q25 17 49 0" fill="none" stroke="#fff" strokeOpacity=".16" strokeWidth="3"/>
+  </g>:
+   style.hair==="courts"?<g>
+    <path d="M44 83Q34 26 88 24q54-5 52 60l-10-22Q108 69 85 52q-21 20-38 21Z"
+     fill={`url(#${hairLight})`}/>
+    <path d="M55 52q29-26 62-2" fill="none" stroke="#fff" strokeOpacity=".1" strokeWidth="4"/>
+   </g>:
+   style.hair==="boucles"?<g>
+    <path d="M43 81Q26 46 50 31q16-22 39-13 29-8 46 17 17 21 1 50l-7-23Q91 58 64 70L49 87Z"
+     fill={`url(#${hairLight})`}/>
+    {[[51,48,16],[67,32,18],[87,28,19],[111,30,19],[130,48,15],[43,73,13]].map(([x,y,r],i)=>
+     <g key={i}><circle cx={x} cy={y} r={r} fill={hair}/>
+      <path d={`M${x-r/3} ${y-r/4}q${r/2} -${r/2} ${r} 0`}
+       stroke="#faf2ed" strokeOpacity=".13" strokeWidth="2" fill="none"/></g>)}
+   </g>:
+   style.hair==="tresses"?<g>
+    <path d="M44 75q-10-47 29-55 44-8 64 36l-8 18q-21-19-42-28Q62 69 45 82Z"
+     fill={hair}/>
+    {Array.from({length:7},(_,i)=>{const x=55+i*11;
+     return <path key={i} d={`M${x} 35q-7 21-7 33`}
+      fill="none" stroke="#fff0de" strokeOpacity=".22" strokeWidth="1.3" strokeLinecap="round"/>})}
+    <path d="M43 68q-4 39-1 93M136 68q6 42 2 93" fill="none" stroke={hair}
+     strokeWidth="9" strokeLinecap="round"/>
+    <path d="M43 80q-4 40-1 68M136 79q5 39 2 69" fill="none" stroke="#e9ceba"
+     strokeWidth="1.5" strokeOpacity=".18" strokeDasharray="5 7"/>
+   </g>:
+   style.hair==="locks"?<g>
+    <path d="M43 71q-13-47 32-53 44-9 62 35l-7 17Q107 51 90 44 64 62 46 82Z" fill={hair}/>
+    {[44,55,67,79,90,102,115,126,137].map((x,i)=>
+     <path key={x} d={`M${x} 40q${i%2?8:-8} 38 ${i%2?7:-7} ${i%3===0?143:96}`}
+      fill="none" stroke={hair} strokeWidth={i%2?7:8} strokeLinecap="round"/>)}
+   </g>:
+   <g>
+    <path d="M44 77q-7-50 37-55 47-5 56 53l-12-17Q103 46 78 45 61 62 46 81Z"
+     fill={`url(#${hairLight})`}/>
+    <path d="M52 51q23-28 57-13" fill="none" stroke="#faf0e5" strokeOpacity=".12" strokeWidth="3"/>
+   </g>}
+  {style.accessory==="lunettes"?<g stroke="#efe4dc" strokeWidth="2.8" fill="#cceefa" fillOpacity=".1">
+   <rect x="53" y="86" width="30" height="24" rx="10"/>
+   <rect x="97" y="86" width="30" height="24" rx="10"/>
+   <path d="M83 94q7-5 14 0M53 95l-8-4M127 95l8-4" fill="none" strokeLinecap="round"/>
+  </g>:null}
+  {style.accessory==="fleur"?<g transform="translate(124 56)">
+   {[0,72,144,216,288].map(deg=><ellipse key={deg} cx="0" cy="-9" rx="6.2" ry="9"
+    transform={`rotate(${deg})`} fill="#f6c4df"/>)}
+   <circle r="5" fill="#f8d382"/>
+  </g>:null}
   {style.accessory==="bonnet"?<g>
-   <path d="M47 54Q50 6 91 11q38 0 43 43v7H47Z" fill="#ede5fa" stroke="#40314e" strokeWidth="2"/>
-   <path d="M45 50h92v15H45Z" rx="8" fill="#aa84cc" stroke="#40314e" strokeWidth="2"/>
-   <circle cx="91" cy="12" r="11" fill="#edb4dc"/></g>:null}
+   <path d="M48 55Q49 16 89 12q41 0 42 43Z" fill="#d7c6ed"/>
+   <rect x="44" y="47" width="93" height="17" rx="7" fill="#9c7ab9"/>
+   <circle cx="89" cy="14" r="10" fill="#eac5dd"/>
+   <path d="M53 54h75" stroke="#fff" strokeOpacity=".3" strokeWidth="2"/>
+  </g>:null}
  </svg>;
 }
 type DuoProps={mine?:AvatarStyle|null;partner?:AvatarStyle|null;pose?:CouplePose;
@@ -69,15 +160,21 @@ export default function CoupleAvatarDuo({mine,partner,pose="main",mode="hero",an
  return <div className={"lr-avatar-duo lr-avatar-duo-"+mode+" lr-avatar-pose-"+pose+
   (animate?" lr-avatar-animate":"")} role="img" aria-label={POSE_LABEL[pose]+", "+mineName+" et "+partnerName}>
   <span className="lr-avatar-duo-halo" aria-hidden="true"/>
-  <span className="lr-avatar-duo-spark lr-avatar-duo-spark-one" aria-hidden="true">✦</span>
-  <span className="lr-avatar-duo-spark lr-avatar-duo-spark-two" aria-hidden="true">✧</span>
+  <span className="lr-avatar-duo-orbit" aria-hidden="true"/>
   <span className="lr-avatar-duo-person lr-avatar-duo-mine" aria-hidden="true">
    <AvatarCharacter style={mine||DEFAULT_AVATAR} label={mineName}/>
   </span>
   <span className="lr-avatar-duo-person lr-avatar-duo-partner" aria-hidden="true">
    <AvatarCharacter style={partner||DEFAULT_PARTNER_AVATAR} label={partnerName}/>
   </span>
-  <span className="lr-avatar-duo-heart" aria-hidden="true">{pose==="bisou"?"💋":pose==="danse"?"♫":"♥"}</span>
-  {mode!=="sticker"?<span className="lr-avatar-duo-caption">{POSE_LABEL[pose]} <span aria-hidden="true">♥</span></span>:null}
+  <svg className="lr-avatar-duo-heart" viewBox="0 0 44 44" aria-hidden="true">
+   <path d="M22 37 7 22C-2 12 10 0 22 13 34 0 46 12 37 22Z" fill="#ffb5d1"/>
+   <path d="M13 15q3-6 7 0" fill="none" stroke="#fff" strokeOpacity=".55" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+  {pose==="danse"?<svg className="lr-avatar-duo-note" viewBox="0 0 32 40" aria-hidden="true">
+   <path d="M13 25V7l13-4v18M13 25c-10-3-13 10-3 10 5 0 6-3 6-7m10-7c-10-3-12 10-3 10 4 0 6-3 6-7"
+    stroke="#f6dfef" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+  </svg>:null}
+  {mode!=="sticker"?<span className="lr-avatar-duo-caption">{POSE_LABEL[pose]}</span>:null}
  </div>;
 }

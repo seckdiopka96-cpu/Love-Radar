@@ -79,7 +79,7 @@ test("native and PWA animations are motion-aware with no outside media required"
  assert.ok(css.includes("lr-avatar-kiss-right"));
  assert.ok(css.includes("lr-avatar-dance-left"));
  assert.ok(css.includes("@media(prefers-reduced-motion:reduce)"));
- assert.ok(studio.includes("100 % GRATUIT"));
+ assert.ok(studio.includes('aria-label="Gratuit"')&&studio.includes("GRATUIT"),"the studio stays free without a large advertising banner");
  assert.ok(!studio.includes("$"));
  assert.ok(!art.includes("<img"));
  assert.ok(!art.includes("https://"));
@@ -93,4 +93,39 @@ test("room erasure deletes avatar styles and shared pose together with the rest 
  assert.ok(schema.includes("CREATE TABLE IF NOT EXISTS couple_avatar_rooms"));
  assert.ok(read("src/use-couple-avatars.ts").includes("document.addEventListener"));
  assert.ok(existsSync("src/CoupleAvatarStudio.tsx"));
+});
+
+test("premium avatars use full illustrated selectors instead of emoji placeholders",()=>{
+ const studio=read("src/CoupleAvatarStudio.tsx");
+ const vector=read("src/CoupleAvatarDuo.tsx");
+ const css=read("src/couple-avatars.css");
+ assert.ok(studio.includes('AvatarCharacter style={preview}'),"each option previews the actual selected hairstyle, outfit and accessory");
+ assert.ok(studio.includes('portrait={category!=="outfit"}'),"outfits show the whole silhouette");
+ assert.ok(vector.includes("useId()"),"SVG gradients have unique IDs across both partners and all previews");
+ assert.ok(vector.includes("linearGradient"),"characters include lighting and shaded skin, hair and clothes");
+ assert.ok(!studio.includes('option.id==="hijab"?"🧕"'),"no generic emoji masquerades as hair styles");
+ assert.ok(!vector.includes('pose==="bisou"?"💋"'),"no floating lip emoji pasted on the face");
+ assert.ok(css.includes("lr-avatar-duo-mine")&&css.includes("lr-avatar-duo-partner"));
+ assert.ok(css.includes("Reserved head distance is larger than the face diameter"),"two portraits remain individually visible");
+ assert.ok(css.includes("lr-avatar-studio-options"),"responsive gallery exists");
+});
+test("iPhone avatar page gets its own full-screen scroller without an overlaying bottom dock",()=>{
+ const app=read("src/App.tsx");
+ const css=read("src/couple-avatars.css");
+ const dock=read("src/premium-dock.css");
+ const shell=read("src/polished-shell.css");
+ assert.ok(app.includes('tab==="avatars"&&room?"lr-avatar-mode ":""'));
+ assert.ok(css.includes(".lr-app.lr-app-locked.lr-avatar-mode .lr-mobile-nav{display:none!important}"));
+ assert.ok(css.includes(".lr-app.lr-app-locked.lr-avatar-mode > .lr-header{display:none!important}"));
+ assert.ok(css.includes("env(safe-area-inset-top)"));
+ assert.ok(css.includes("env(safe-area-inset-bottom)"));
+ assert.ok(dock.includes(":not(.lr-avatar-mode)"));
+ assert.ok(shell.includes(":not(.lr-avatar-mode)"));
+});
+test("a brand-new partner can save their default avatar and preview remains scoped to their own style",()=>{
+ const studio=read("src/CoupleAvatarStudio.tsx");
+ assert.ok(studio.includes('!data.mine?"Créer mon avatar"'));
+ assert.ok(studio.includes("Boolean(data.mine)"));
+ assert.ok(studio.includes("partner={data.partner||DEFAULT_PARTNER_AVATAR}"));
+ assert.ok(studio.includes("await onSaveStyle(draft)"));
 });
