@@ -143,7 +143,7 @@ test("captured pawns reverse rapidly without speeding ordinary board movement",(
  assert.ok(duoCSS.includes("transition:left .045s"));
  assert.ok(arenaCSS.includes(".ludo-captured-pawn{z-index:35!important;transition:left .045s"));
  assert.ok(senegalCSS.includes(".ludo-senegal .ludo-captured-pawn{transition:left .045s"));
- assert.ok(reactDuo.includes("STEP_MS=moved.from===-1?520:540"));
+ assert.ok(reactDuo.includes("STEP_MS=moved?.from===-1?520:540"),"Duo keeps readable 520/540ms steps aligned with server time");
  assert.ok(reactSolo.includes("stepDuration=move.from===-1?520:540"));
  assert.ok(senegal.includes('STEP_MS=move.from.zone==="base"?520:540'));
 });
@@ -203,7 +203,8 @@ test("React Solo, Duo and Senegal use a single-face die and readable movement",(
  const arenaCSS=readFileSync("src/ludo-arena.css","utf8");
  const senegalCSS=readFileSync("src/ludo-senegal.css","utf8");
  assert.ok(reactSolo.includes('stepDuration=move.from===-1?520:540,initialDelay=250'));
- assert.ok(parent.includes('STEP_MS=moved.from===-1?520:540,START_MS=250'));
+ assert.ok(parent.includes('STEP_MS=moved?.from===-1?520:540,START_MS=250'));
+  assert.ok(parent.includes('serverClockOffset.current-event.at'),"server event clock is the reference");
  assert.ok(senegal.includes('STEP_MS=move.from.zone==="base"?520:540,START_MS=250'));
  assert.ok(senegal.includes('path.forEach((point,i)=>later('));
  assert.ok(senegal.includes('START_MS+i*STEP_MS'));
@@ -236,7 +237,9 @@ test("visible steps are not accelerated away by iOS Reduce Motion, and Senegal c
 
 test("Solo and synchronized Duo do not skip fast between board squares",()=>{
  assert.ok(solo.includes('await sleep(start===HOME?520:540)'));
- assert.ok(parent.includes('const STEP_MS=moved.from===-1?520:540,START_MS=250'));
+ assert.ok(parent.includes('const STEP_MS=moved?.from===-1?520:540,START_MS=250'));
+  assert.ok(parent.includes('const completedSteps=route.filter'),"late phone skips only already completed squares");
+  assert.ok(parent.includes('Math.max(0,finish-elapsed)'),"both devices align the animation finish");
  assert.ok(soloCSS.includes('transition:left .40s cubic-bezier'));
  assert.ok(soloCSS.includes('animation:pawn-hop-hd .40s'));
  assert.ok(duo.includes('if(!movingPawn||movingKey!==id)'));
