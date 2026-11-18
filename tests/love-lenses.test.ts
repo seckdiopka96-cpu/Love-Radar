@@ -42,3 +42,11 @@ test("face tracking is served from the app origin and PWA cache updates",()=>{
  assert.ok(read("src/love-lenses.ts").includes('"/face-mesh/"+file'));
  assert.ok(read("public/_headers").includes("'wasm-unsafe-eval'"));
 });
+
+test("Safari face tracker initializes WASM before use and retries after temporary failure",()=>{
+ const src=read("src/love-lenses.ts");
+ assert.ok(src.includes("await mesh.initialize()"));
+ assert.ok(src.includes("new URL(\"/face-mesh/\"+file,location.origin).href"));
+ assert.ok(src.includes("retryAfter=performance.now()"));
+ assert.ok(src.includes("failureCount=0;detectorFailed=false;retryAfter=0"));
+});
