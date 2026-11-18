@@ -74,7 +74,7 @@ export default function DiscoveryMode({onClose,onCreate,onJoin}:Props){
   {page==="plus"?<section className="lr-discovery-stage" aria-label="Love Radar Plus">
    <span className="lr-discovery-kicker">LOVE RADAR PLUS ✨</span>
    <h2>Encore plus de magie, à deux.</h2>
-   <p className="lr-discovery-price"><strong>3,99 $</strong> / mois par couple</p>
+   <p className="lr-discovery-price"><strong>2,99 $</strong> / mois par couple</p>
    <div className="lr-discovery-perks"><span>✦ Deux thèmes exclusifs</span><span>🎯 Défis bonus pour votre couple</span><span>📖 Créer un livre de souvenirs à imprimer</span></div>
    <p className="lr-discovery-explainer">La messagerie, les appels et les jeux existants restent gratuits. Les achats nécessitent un compte et l'activation de la facturation.</p>
   </section>:null}
