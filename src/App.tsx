@@ -168,7 +168,7 @@ export default function LoveRadar(){
  const [e2eeDeviceReady,setE2eeDeviceReady]=useState(false);
  const [e2eeVerified,setE2eeVerified]=useState(false);
  const avatars=useProfileAvatars(token,room?.user.id,room?.user.avatarVersion,room?.partnerId,room?.partnerAvatarVersion);
- const {avatars:coupleAvatars,saving:coupleAvatarSaving,saveStyle:saveCoupleAvatarStyle,savePose:saveCoupleAvatarPose,reload:reloadCoupleAvatars}=
+ const {avatars:coupleAvatars,saving:coupleAvatarSaving,saveStyle:saveCoupleAvatarStyle,savePose:saveCoupleAvatarPose,saveLook3d:saveCouple3DLook,reload:reloadCoupleAvatars}=
   useCoupleAvatars(token,room?.roomId);
  useEffect(()=>{
   let alive=true;
@@ -2034,7 +2034,7 @@ export default function LoveRadar(){
     {tab==="avatars"?<CoupleAvatarStudio key={room.roomId+":"+room.user.id}
      data={coupleAvatars} myName={room.user.name} partnerName={room.partner||"Ton amour"} hasPartner={Boolean(room.partner)}
      saving={coupleAvatarSaving} token={token} onModelImported={reloadCoupleAvatars}
-     onSaveStyle={saveCoupleAvatarStyle} onSavePose={saveCoupleAvatarPose}
+     onSaveStyle={saveCoupleAvatarStyle} onSavePose={saveCoupleAvatarPose} onSaveLook3d={saveCouple3DLook}
      onSend={pose=>{sendAvatarSticker(pose);navigate("chat")}} onBack={()=>navigate("home")}/>:null}
     {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
     {tab==="care"?<CoupleCare key={room.roomId+":"+room.user.id} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} onOpenChat={()=>navigate("chat")}/>:null}
