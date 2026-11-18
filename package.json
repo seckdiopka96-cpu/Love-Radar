@@ -45,7 +45,9 @@
     "test:security": "tsx --test tests/security-release.test.ts",
     "test:deletion": "tsx --test tests/room-deletion.test.ts",
     "test:load": "node scripts/staging-load.mjs --synthetic",
-    "load:staging": "node scripts/staging-load.mjs"
+    "load:staging": "node scripts/staging-load.mjs",
+    "predev": "node scripts/prepare-face-mesh.mjs",
+    "prebuild": "node scripts/prepare-face-mesh.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -54,7 +56,8 @@
     "@capacitor/core": "^8.6.2",
     "@capacitor/android": "^8.6.2",
     "@capacitor/ios": "^8.6.2",
-    "@capacitor/privacy-screen": "^2.0.1"
+    "@capacitor/privacy-screen": "^2.0.1",
+    "@mediapipe/face_mesh": "0.4.1633559619"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",
