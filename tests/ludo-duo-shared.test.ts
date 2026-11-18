@@ -202,7 +202,7 @@ test("real Duo base pawn sends one move after a playable six",()=>{
  const six=execute(0,6);
  assert.deepEqual(Array.from(six.legal),[0,1,2,3],"every base pawn is legal after a six");
  assert.equal(six.initiallyEnabled,true,"pin can be tapped on the board");
- assert.deepEqual(Array.from(six.clicks,Array.from),[["move",0]],"one server-authoritative move, never double");
+ assert.deepEqual(Array.from(six.clicks,values=>Array.from(values)),[["move",0]],"one server-authoritative move, never double");
  const single=execute(0,5);
  assert.deepEqual(Array.from(single.legal),[],"no base pawn moves without six");
  for(const blocked of [execute(1,6),execute(0,6,true),execute(0,6,false,true),execute(0,6,false,false,true)])
