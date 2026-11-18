@@ -79,7 +79,7 @@ test("native and PWA animations are motion-aware with no outside media required"
  assert.ok(css.includes("lr-avatar-kiss-right"));
  assert.ok(css.includes("lr-avatar-dance-left"));
  assert.ok(css.includes("@media(prefers-reduced-motion:reduce)"));
- assert.ok(studio.includes("100 % GRATUIT"));
+ assert.ok(studio.includes('aria-label="Gratuit"')&&studio.includes("GRATUIT"),"the studio stays free without a large advertising banner");
  assert.ok(!studio.includes("$"));
  assert.ok(!art.includes("<img"));
  assert.ok(!art.includes("https://"));
