@@ -100,12 +100,13 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
    const camera=await navigator.mediaDevices.getUserMedia(cameraSettings(facing));
    if(!alive.current){camera.getTracks().forEach(t=>t.stop());return}
    source.current=camera;
-   await show(camera);
+   // On iOS the preview element does not exist until active=true.
+   // The effect engine can still use its own video element immediately.
+   setActive(true);
    if(lens!=="none"){
     const processed=await createLensProcessor(camera.getVideoTracks()[0],lens,{previewOnly:true});
     processor.current=processed;
    }
-   setActive(true);
   }catch(err){
    cleanup();setActive(false);
    setError(err instanceof Error?err.message:"Caméra indisponible. Autorise la caméra dans les réglages de ton téléphone.");
@@ -264,7 +265,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
      <button type="button" disabled={busy} onClick={()=>void openCamera()}>{busy?"Ouverture…":"Activer ma caméra"}</button></div>}
    <div className={"lr-fun-processed-frame"+(facing==="user"?" mirrored":"")} ref={canvasHost} aria-hidden="true"/>
    {active&&lens!=="none"&&tracking!=="ready"?<div className="lr-fun-face-status" role="status">
-    {tracking==="unavailable"?"Suivi du visage indisponible sur cet appareil.":tracking==="missing"?"Place ton visage dans le cadre.":tracking==="loading"?"Détection du visage…":"Effet fixé sur ton visage ✓"}
+    {tracking==="unavailable"?"Suivi du visage interrompu. Change d’effet pour réessayer.":tracking==="missing"?"Place ton visage dans le cadre.":tracking==="loading"?"Détection du visage…":"Effet fixé sur ton visage ✓"}
    </div>:null}
    {active?<div className="lr-fun-preview-top"><span>{recording?"● "+formatRecording(seconds):""}</span>
     <button type="button" onClick={()=>void flip()} disabled={busy||recording} aria-label="Retourner la caméra">⇄</button>
