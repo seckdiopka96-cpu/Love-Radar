@@ -6,11 +6,11 @@ import "./chat-favorites.css";
 /** A personal search across locally decrypted chat history and remote saved message references. */
 export type ArchiveMessage={
  id:string;sender_id:string;kind:"text"|"audio"|"image";content:string|null;
- created_at:number;object_key?:string|null;mime?:string|null;view_once?:boolean|number;
+ created_at:number;object_key:string|null;mime:string|null;view_once?:boolean|number;
 };
 export type FavoriteMessage=ArchiveMessage&{savedAt?:number;saved_at?:number};
 type Props={
- messages:ArchiveMessage[];favorites:FavoriteMessage[];media:Record<string,string>;
+ initialMode?:"saved"|"search";messages:ArchiveMessage[];favorites:FavoriteMessage[];media:Record<string,string>;
  mineId:string;partner:string;myName:string;privacyEnabled:boolean;
  hasMore:boolean;historyBusy:boolean;historyError:string;favoritesBusy:boolean;favoritesError:string;
  onToggle:(message:ArchiveMessage)=>void;onLoadOlder:()=>void;onLoadMedia:(message:ArchiveMessage)=>void;
@@ -43,9 +43,9 @@ function Entry({item,favorite,media,mineId,partner,myName,privacyEnabled,onOpen,
   </div>
  </article>;
 }
-export default function ChatFavorites({messages,favorites,media,mineId,partner,myName,privacyEnabled,
+export default function ChatFavorites({initialMode="saved",messages,favorites,media,mineId,partner,myName,privacyEnabled,
  hasMore,historyBusy,historyError,favoritesBusy,favoritesError,onToggle,onLoadOlder,onLoadMedia,onOpen,onClose}:Props){
- const [mode,setMode]=useState<"saved"|"search">("saved");
+ const [mode,setMode]=useState<"saved"|"search">(initialMode);
  const [draft,setDraft]=useState(""),[query,setQuery]=useState("");
  const [onlyVocals,setOnlyVocals]=useState(false);
  const favoritesIds=useMemo(()=>new Set(favorites.map(item=>item.id)),[favorites]);
