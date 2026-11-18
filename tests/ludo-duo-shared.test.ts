@@ -20,9 +20,9 @@ test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()
  const boardSlice=s=>(s.slice(s.indexOf(start),s.indexOf(end))).replace(/^\s+|\s+$/g,"");
  assert.ok(duoHTML.includes(start));
  assert.equal(boardSlice(duoHTML),boardSlice(soloHTML));
- assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v14"'));
- assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v14"'));
- assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v14" defer'));
+ assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v15"'));
+ assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v15"'));
+ assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v15" defer'));
  assert.ok(duoHTML.includes('LUDO <span>♥</span> DUO'));
  assert.ok(duoHTML.includes('id="roll-dice"'));
  assert.ok(duoCSS.includes('.duo-side-actions'));
@@ -66,7 +66,7 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
  'function duoFrameAction(','signRules()', 'giftAction(','ludo-agreement-backdrop','ludo-gift-dialog','ludo-modal-backdrop']){
   assert.ok(parent.includes(unchanged),unchanged);
  }
- assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v14"'));
+ assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v15"'));
  assert.ok(bridge.includes('event.source!==frame'));
  assert.ok(bridge.includes('event.origin!==window.location.origin'));
  assert.ok(!bridge.includes("token:"));
@@ -92,7 +92,7 @@ test("Duo iframe works offline and uses only a same-origin parent, never replaci
   assert.ok(sw.includes('"'+path+'"'),path);
  }
  assert.ok(sw.includes('url.pathname.startsWith("/ludo-duo/")'));
- assert.ok(sw.includes("love-radar-static-v141"),"new PWA release must invalidate old shell");
+ assert.ok(sw.includes("love-radar-static-v142"),"new PWA release must invalidate old shell");
 });
 
 
@@ -364,8 +364,12 @@ test("Solo and Duo share a stable stage, and dice respond in under a half-second
   "solo dice animation is fast but still reveals the real RNG value");
  assert.ok(parent.includes("Math.max(0,170-(Date.now()-actionStarted))"),
   "Duo never waits 690ms just to stop the local spinning die");
- assert.ok(duoJS.includes("remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},120)"),
-  "the partner sees the final roll promptly");
+ assert.ok(duoJS.includes("const DIE_TUMBLE_MS=460"),
+  "Duo roll must visibly tumble before landing, even on a very fast server response");
+ assert.ok(duoJS.includes("if(receivedState&&last.seat!==state.mySeat&&!state.rolling)animateRealDieRoll()"),
+  "partner rolls have the same visible physical toss");
+ assert.ok(duoJS.includes("Date.now()<dieVisualUntil"),
+  "the physical animation does not replace the server's actual result");
  assert.ok(soloCSS.includes("animation:dice-tumble-real .43s"),
   "both dice inherit the same short 3D animation");
  assert.ok(soloCSS.includes(".game-screen .board-area{"),
@@ -375,7 +379,7 @@ test("Solo and Duo share a stable stage, and dice respond in under a half-second
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .game-screen{"),
   "Duo does not move or resize the game stage with a different theme");
  assert.ok(soloFrame.includes("ludo-room-20261118-v6"));
- assert.ok(bridge.includes("ludo-room-20261118-v14"));
+ assert.ok(bridge.includes("ludo-room-20261118-v15"));
 });
 
 test("one playable pawn exits its base on tap and die gives clear turn feedback",()=>{
@@ -388,7 +392,7 @@ test("one playable pawn exits its base on tap and die gives clear turn feedback"
  assert.ok(!duoJS.includes('&&!state.animationBusy&&!state.overlayOpen'),"previous motion does not freeze your new turn");
  assert.ok(parent.includes('},1500)'),"autoplay waits long enough for a manual tap");
  assert.ok(parent.includes('STEP_MS=moved?.from===-1?220:240,START_MS=90'),"Duo-only pawn movement is responsive");
- assert.ok(duoCSS.includes('animation-duration:.28s!important'),"Duo die has a quick physical tumble");
+ assert.ok(duoCSS.includes('animation-duration:.46s!important'),"Duo die has a quick physical tumble");
 });
 test("synced Duo never restarts the same animated pawn hop on a clock tick",()=>{
  assert.ok(duoJS.includes("movingPawn.dataset.motionProgress=String(m.from)"));
@@ -403,4 +407,19 @@ test("synced Duo never restarts the same animated pawn hop on a clock tick",()=>
  assert.ok(!duoJS.includes("Math.random()*6"));
  assert.ok(!duoJS.includes("crypto.getRandomValues"));
  assert.ok(backend.includes("function die(){"));
+});
+
+test("Duo draws an active home ring without moving its board",()=>{
+ assert.ok(duoJS.includes('const active=g.status==="playing"&&c===colors[g.turn]'),
+  "the active cage always matches the server-authoritative current seat");
+ assert.ok(duoJS.includes('el.classList.toggle("is-current-turn",active)'));
+ assert.ok(duoJS.includes('el.classList.toggle("is-my-turn",active&&g.turn===state.mySeat)'));
+ assert.ok(duoCSS.includes(".lr-ludo-duo-ui .board .base.is-current-turn::after"),
+  "the active yard has a visible ring");
+ assert.ok(duoCSS.includes("pointer-events:none"),
+  "the ring must never block a player touching a pawn");
+ assert.ok(duoCSS.includes("height:54px!important;min-height:54px!important;max-height:54px!important;"),
+  "turn text cannot shift the board vertically");
+ assert.ok(duoCSS.includes("transform:none!important;transition:none!important;animation:none!important;"),
+  "the board stays rigid while dice and pawns animate");
 });
