@@ -11,16 +11,16 @@
 .lr-app.lr-chat-mode.lr-conv-color-ambre .lr-chat{--lr-conv-mine:#9e5b35;--lr-conv-other:#4b3b35}
 
 /* Preserve normal media and emoji rendering; only text bubbles change color. */
-.lr-app.lr-chat-mode .lr-chat .lr-bubble-row.mine .lr-bubble:not(.lr-bubble-audio):not(.lr-bubble-image):not(.lr-bubble-sticker):not(.lr-bubble-gif):not(.lr-bubble-emoji){
+.lr-app.lr-app-locked.lr-chat-mode .lr-chat .lr-bubble-row.mine .lr-bubble:not(.lr-bubble-audio):not(.lr-bubble-image):not(.lr-bubble-sticker):not(.lr-bubble-gif):not(.lr-bubble-emoji){
  background:var(--lr-conv-mine)!important;color:var(--lr-conv-ink)!important;
 }
-.lr-app.lr-chat-mode .lr-chat .lr-bubble-row.other .lr-bubble:not(.lr-bubble-audio):not(.lr-bubble-image):not(.lr-bubble-sticker):not(.lr-bubble-gif):not(.lr-bubble-emoji){
+.lr-app.lr-app-locked.lr-chat-mode .lr-chat .lr-bubble-row.other .lr-bubble:not(.lr-bubble-audio):not(.lr-bubble-image):not(.lr-bubble-sticker):not(.lr-bubble-gif):not(.lr-bubble-emoji){
  background:var(--lr-conv-other)!important;color:var(--lr-conv-other-ink)!important;
 }
-.lr-app.lr-chat-mode.lr-conv-bubbles-douce .lr-chat .lr-bubble-row .lr-bubble:not(.lr-bubble-audio):not(.lr-bubble-image):not(.lr-bubble-sticker):not(.lr-bubble-gif):not(.lr-bubble-emoji){
+.lr-app.lr-app-locked.lr-chat-mode.lr-conv-bubbles-douce .lr-chat .lr-bubble-row .lr-bubble:not(.lr-bubble-audio):not(.lr-bubble-image):not(.lr-bubble-sticker):not(.lr-bubble-gif):not(.lr-bubble-emoji){
  border-radius:25px!important;padding:12px 17px!important;box-shadow:0 5px 16px rgba(0,0,0,.13)!important;
 }
-.lr-app.lr-chat-mode.lr-conv-bubbles-compacte .lr-chat .lr-bubble-row .lr-bubble:not(.lr-bubble-audio):not(.lr-bubble-image):not(.lr-bubble-sticker):not(.lr-bubble-gif):not(.lr-bubble-emoji){
+.lr-app.lr-app-locked.lr-chat-mode.lr-conv-bubbles-compacte .lr-chat .lr-bubble-row .lr-bubble:not(.lr-bubble-audio):not(.lr-bubble-image):not(.lr-bubble-sticker):not(.lr-bubble-gif):not(.lr-bubble-emoji){
  border-radius:9px!important;padding:8px 11px!important;
 }
 .lr-app.lr-chat-mode.lr-conv-bubbles-compacte .lr-chat .lr-bubble-row{margin-top:10px!important}
