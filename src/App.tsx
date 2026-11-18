@@ -31,6 +31,7 @@ import LudoRoom from "./LudoRoom";
 import RpsDuo from "./RpsDuo";
 import CoupleParty from "./CoupleParty";
 import CoupleStory from "./CoupleStory";
+import SharedKeepsakes from "./SharedKeepsakes";
 import PrivatePhoto from "./PrivatePhoto";
 import ProfilePhotoEditor from "./ProfilePhotoEditor";
 import {useProfileAvatars} from "./use-profile-avatars";
@@ -122,9 +123,9 @@ const HEARTS = ["♡","♥","✦","♡","♥"];
 const CHAT_REACTIONS=["👍","❤️","😂","😮","😢","🙏","👏"];
 const EXTRA_CHAT_REACTIONS=["🥰","😍","😘","💗","🔥","🎉","💯","🤗","😎","💐","🤲","😅"];
 
-type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"rps-challenge"|"daily-question"|"love-signal";
+type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"rps-challenge"|"daily-question"|"love-signal"|"love-letter"|"album-memory";
 type NoticeTarget={tab:Tab;kind:NoticeKind|null;id:string|null};
-const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","rps-challenge","daily-question","love-signal"]);
+const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","rps-challenge","daily-question","love-signal","love-letter","album-memory"]);
 function parseNotice(search:string):NoticeTarget|null{
  const q=new URLSearchParams(search);
  const tab=q.get("tab");
@@ -132,7 +133,7 @@ function parseNotice(search:string):NoticeTarget|null{
  if(tab!=="settings"&&tab!=="home"&&tab!=="care"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="puzzle"&&tab!=="reconcile"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo-room"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="memory"&&tab!=="rps"&&tab!=="rapid"&&tab!=="truth"&&tab!=="memories")return null;
  const kind=q.get("kind"),id=q.get("id");
  if(!kind||!NOTICE_KINDS.has(kind)||!id||!(/^[0-9a-f-]{36}$/i.test(id)||(kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(id))))return {tab,kind:null,id:null};
- return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":kind==="rps-challenge"?"rps":kind==="daily-question"?"moment":kind==="love-signal"?"together":"chat",kind:kind as NoticeKind,id};
+ return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":kind==="rps-challenge"?"rps":kind==="daily-question"?"moment":kind==="love-signal"?"together":kind==="love-letter"||kind==="album-memory"?"memories":"chat",kind:kind as NoticeKind,id};
 }
 function noticeUrl(target:NoticeTarget){
  const q=new URLSearchParams({tab:target.tab});
@@ -2265,7 +2266,7 @@ export default function LoveRadar(){
       </form>}
      </div>
     </section>:null}
-    {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Retrouvez les photos partagées dans votre conversation.</p></div><button type="button" className="lr-story-album-entry" onClick={()=>navigate("story")}><span aria-hidden="true">💑</span><span><strong>Notre histoire</strong><small>Notre photo, nos jours ensemble et nos souvenirs marquants.</small></span><b aria-hidden="true">→</b></button><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>navigate("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt="Souvenir du couple" enabled={privacyEnabled} viewer={room.user.name} variant="album"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
+    {tab==="memories"?<><div className="lr-section-head"><span className="lr-eyebrow">✦ VOTRE ALBUM</span><h1>Nos petits souvenirs <em>♥</em></h1><p>Notre album privé, nos lettres et notre histoire à deux.</p></div><button type="button" className="lr-story-album-entry" onClick={()=>navigate("story")}><span aria-hidden="true">💑</span><span><strong>Notre histoire</strong><small>Notre photo, nos jours ensemble et nos souvenirs marquants.</small></span><b aria-hidden="true">→</b></button><SharedKeepsakes token={token} myId={room.user.id} myName={room.user.name} partnerName={room.partner} privacyEnabled={privacyEnabled} focusKind={noticeTarget?.kind} focusId={noticeTarget?.id}/><div className="lr-section-head"><span className="lr-eyebrow">PHOTOS DE NOS MESSAGES</span><p>Photos conservées dans votre conversation.</p></div><div className="lr-memories-grid">{images.length===0?<div className="lr-memories-empty"><span>📸</span><h3>Votre album commence ici</h3><p>Partage une photo dans les messages pour la retrouver ici.</p><button onClick={()=>navigate("chat")}>Ouvrir la conversation →</button></div>:images.map(m=><div className="lr-memory" key={m.id}>{media[m.id]?<PrivatePhoto key={m.id} src={media[m.id]} alt="Souvenir du couple" enabled={privacyEnabled} viewer={room.user.name} variant="album"/>:<div>Photo en chargement…</div>}<span>{new Date(m.created_at).toLocaleDateString("fr-FR")}</span></div>)}</div></>:null}
    </main>
       {partnerPresenceOpen&&tab==="chat"&&room?.partner&&typeof document!=="undefined"?
        createPortal(<PartnerPresenceDetails partner={partner} lastSeenAt={lastSeen}
