@@ -8,6 +8,74 @@ const worker=readFileSync("public/sw.js","utf8");
 const duo=readFileSync("src/Ludo.tsx","utf8");
 const agreementCSS=readFileSync("src/ludo-duo-color.css","utf8");
 
+test("all real notification kinds open the correct Love Radar content",()=>{
+ const clients=new Map<string,(event:any)=>void>();
+ const self={location:{origin:"https://love-radar.example"},
+  addEventListener:(key:string,handler:(event:any)=>void)=>clients.set(key,handler)};
+ const route=new Script(worker+"\nnotificationTarget",{filename:"public/sw.js"})
+  .runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request}) as
+  (input:{tab:string;kind:string;id:string})=>{tab:string;kind:string|null;id:string|null;url:string};
+ const id="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+ const expected:Record<string,string>={
+  "message":"chat","photo":"chat","audio":"chat","call":"chat",
+  "ludo-challenge":"ludo","memory-challenge":"memory","rps-challenge":"rps",
+  "daily-question":"moment","love-signal":"together",
+  "love-letter":"memories","album-memory":"memories",
+  "couple-date":"life","couple-mood":"life","couple-dream":"life",
+  "couple-hug":"life","couple-challenge":"life","couple-gift":"life"
+ };
+ for(const [kind,tab] of Object.entries(expected)){
+  const result=route({tab:"home",kind,id});
+  assert.equal(result.tab,tab,kind+" screen");
+  assert.equal(result.kind,kind,kind+" kind retained");
+  assert.equal(result.id,id,kind+" item retained");
+  const query=new URL(result.url,"https://love-radar.example").searchParams;
+  assert.equal(query.get("kind"),kind);
+  assert.equal(query.get("id"),id);
+  assert.equal(query.get("tab"),tab);
+ }
+ const question=route({tab:"home",kind:"daily-question",id:"2026-11-18"});
+ assert.equal(question.tab,"moment");
+ assert.equal(question.id,"2026-11-18");
+ const malformed=route({tab:"home",kind:"message",id:"../../private"});
+ assert.equal(malformed.kind,null);
+ assert.equal(malformed.tab,"home");
+});
+
+test("iPhone notification routing is confirmed after restoring the private room",()=>{
+ assert.ok(app.includes("setPendingNoticeRouteId(routeId)"));
+ assert.ok(app.includes("if(!routeId||!token||!room||!noticeTarget||tab!==noticeTarget.tab)return"));
+ assert.ok(app.includes('type:"love-radar-ack-notification",routeId'));
+ const handlerStart=app.indexOf('if(data?.type==="love-radar-open-notification")');
+ const handlerEnd=app.indexOf("const onRoute=()=>",handlerStart);
+ assert.ok(handlerStart>=0&&handlerEnd>handlerStart);
+ assert.ok(!app.slice(handlerStart,handlerEnd).includes("love-radar-ack-notification"),
+  "do not acknowledge during an iPhone splash before route is visible");
+ assert.ok(app.includes('navigator.serviceWorker?.addEventListener("controllerchange",requestPendingNotification)'));
+ assert.ok(app.includes('window.addEventListener("focus",requestPendingNotification)'));
+ assert.ok(app.includes('document.addEventListener("visibilitychange",requestPendingNotification)'));
+ assert.ok(app.includes("lastMessageJump.current=\"\""));
+ assert.ok(app.includes("setNoticeTap(n=>n+1)"));
+ assert.ok(app.includes('focusCallId={noticeTarget?.kind==="call"?noticeTarget.id:null}'));
+ assert.ok(app.includes('id={"lr-chat-call-"+entry.call.id}'));
+ const calls=readFileSync("src/VoiceCall.tsx","utf8");
+ assert.ok(calls.includes("focusCallId&&active?.id===focusCallId"));
+ assert.ok(calls.includes("setMinimized(false)"));
+ assert.ok(app.includes('focusKind={noticeTarget?.kind} focusId={noticeTarget?.id}'));
+ assert.ok(app.includes('tab==="moment"?<DailyMoment'),"Question du jour renders the real page");
+ assert.ok(app.includes('focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}'));
+});
+
+test("foreground notification toast opens its exact clicked message",()=>{
+ assert.ok(worker.includes('tab:destination.tab,kind:destination.kind,id:destination.id'),
+  "service worker must send the real message id to the foreground app");
+ assert.ok(app.includes('setPushToastTarget(dest)'),"banner stores the notification route");
+ assert.ok(app.includes('const target=pushToastTarget'));
+ assert.ok(app.includes('window.history.replaceState(null,"",noticeUrl(target))'));
+ assert.ok(app.includes('setNoticeTarget(target);setTab(target.tab)'));
+ assert.ok(app.includes('setNoticeTap(n=>n+1)'),"repeated taps on the same message must focus again");
+});
+
 test("notification targets survive an iPhone cold start and open their precise screen",()=>{
  assert.ok(worker.includes('PENDING_ROUTE_CACHE="love-radar-notification-route-v1"'));
  assert.ok(worker.includes("rememberNotificationRoute(destination)"));
@@ -16,7 +84,7 @@ test("notification targets survive an iPhone cold start and open their precise s
  assert.ok(worker.includes("deliverPendingRoute(event.source)"));
  assert.ok(worker.includes("await self.clients.openWindow(url)"));
  assert.ok(worker.includes('focused.postMessage({type:"love-radar-open-notification",...destination,routeId})'));
- assert.ok(!worker.includes("await focused.navigate(url)"),"do not reload an existing chat on notification tap");
+ assert.ok(worker.includes('["ludo-challenge","memory-challenge","rps-challenge"].includes(destination.kind)'),"game invitations must force an exact URL navigation on iPhone");
  assert.ok(app.includes('window.addEventListener("pageshow",onPageShow)'));
  assert.ok(app.includes('navigator.serviceWorker?.ready.then(reg=>'));
  assert.ok(app.includes('type:"love-radar-request-pending-notification"'));
@@ -31,7 +99,7 @@ test("message notifications jump to their actual chat bubble",()=>{
  assert.ok(app.includes('if(lastMessageJump.current===id)return'),"do not force-scroll after every new message");
  assert.ok(app.includes('noticeTarget?.id===m.id&&tab==="chat"?" lr-notified-bubble"'));
  assert.ok(app.includes('!room.messages.some(m=>m.id===noticeTarget.id)'),"show fallback only if message is older than loaded chat");
- assert.ok(app.includes('const notified=noticeTarget?.id&&["message","photo","audio"].includes'));
+ assert.ok(app.includes('const notified=noticeTarget?.id&&["message","photo","audio","call"].includes'));
  assert.ok(readFileSync("src/delivery-status-ui.css","utf8").includes(".lr-notified-bubble"));
 });
 
@@ -124,4 +192,40 @@ test("push worker remembers an exact route on cold iPhone launch",async()=>{
   waitUntil(p:Promise<unknown>){job=p as Promise<void>}});
  await job;
  assert.equal(stored.size,0,"clear route only after the app confirms navigation");
+});
+
+test("tap on Ludo invitation navigates the existing iPhone PWA to its exact game",async()=>{
+ const listeners=new Map<string,(ev:any)=>void>();
+ const stored=new Map<string,Response>();
+ const events:any[]=[];
+ let navigated="";
+ const client:any={
+  url:"https://love-radar-acd.pages.dev/?tab=home",
+  visibilityState:"visible",
+  focus:async()=>client,
+  navigate:async(url:string)=>{navigated=url;return client},
+  postMessage:(data:any)=>events.push(data)
+ };
+ const caches={open:async()=>({
+  put:async(k:string,v:Response)=>{stored.set(k,v)},
+  match:async(k:string)=>stored.get(k)?.clone(),
+  delete:async(k:string)=>stored.delete(k)
+ })};
+ const self={
+  location:{origin:"https://love-radar-acd.pages.dev"},
+  clients:{matchAll:async()=>[client],openWindow:async()=>{throw Error("should reuse installed PWA")}},
+  addEventListener:(name:string,fn:(event:any)=>void)=>listeners.set(name,fn)
+ };
+ new Script(worker,{filename:"public/sw.js"}).runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request,caches});
+ let task=Promise.resolve();
+ listeners.get("notificationclick")!({
+  notification:{close(){},data:{tab:"ludo",kind:"ludo-challenge",id:"44444444-4444-4444-8444-444444444444"}},
+  waitUntil(p:Promise<unknown>){task=p as Promise<void>}
+ });
+ await task;
+ assert.match(navigated,/\?tab=ludo&kind=ludo-challenge&id=44444444/);
+ assert.equal(events[0].tab,"ludo");
+ assert.equal(events[0].kind,"ludo-challenge");
+ assert.equal(events[0].id,"44444444-4444-4444-8444-444444444444");
+ assert.equal(stored.size,1,"iOS still has a persistent fallback if navigation fails to mount");
 });

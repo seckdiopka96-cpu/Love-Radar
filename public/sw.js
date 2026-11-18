@@ -1,6 +1,6 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
 // Refresh the installed PWA shell after the Cloudflare Pages GIPHY build variable was configured.
-const CACHE="love-radar-static-v136";
+const CACHE="love-radar-static-v137";
 const PRIVATE_AVATAR_CACHE="love-radar-private-notification-avatar-v1";
 const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png","/ludo-mark.svg","/ludo-solo/index.html","/ludo-solo/style.css","/ludo-solo/script.js","/ludo-duo/index.html","/ludo-duo/style.css","/ludo-duo/script.js"];
 self.addEventListener("install",event=>{
@@ -77,21 +77,28 @@ async function notificationAvatar(memberId){
 }
 
 /* Notifications open their exact content, not just the app's welcome page. */
-const SUPPORTED_TABS=new Set(["home","chat","games","ludo-room","ludo","memory","rps","draw","escape","rapid","truth","memories","moment","together","watch","watch-tiktok","puzzle","reconcile","story","reunion","care"]);
-const TARGET_KINDS=new Set(["message","photo","audio","call","ludo-challenge","memory-challenge","rps-challenge","daily-question","love-signal"]);
+const SUPPORTED_TABS=new Set(["home","settings","chat","games","ludo-room","ludo","memory","rps","draw","escape","rapid","truth","memories","moment","together","life","watch","watch-tiktok","puzzle","reconcile","story","reunion","care"]);
+/* Every kind sent by Cloudflare has an explicit landing page. */
+const KIND_TABS={
+ "message":"chat","photo":"chat","audio":"chat","call":"chat",
+ "ludo-challenge":"ludo","memory-challenge":"memory","rps-challenge":"rps",
+ "daily-question":"moment","love-signal":"together",
+ "love-letter":"memories","album-memory":"memories",
+ "couple-date":"life","couple-mood":"life","couple-dream":"life",
+ "couple-hug":"life","couple-challenge":"life","couple-gift":"life"
+};
+const TARGET_KINDS=new Set(Object.keys(KIND_TABS));
 function notificationTarget(info){
  const kind=typeof info?.kind==="string"&&TARGET_KINDS.has(info.kind)?info.kind:null;
- const id=typeof info?.id==="string"&&(/^[0-9a-f-]{36}$/i.test(info.id)||(kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(info.id)))?info.id:null;
- let tab=SUPPORTED_TABS.has(info?.tab)?info.tab:"home";
- if(kind==="ludo-challenge")tab="ludo";
- if(kind==="memory-challenge")tab="memory";
- if(kind==="rps-challenge")tab="rps";
- if(kind==="daily-question")tab="moment";
- if(kind==="love-signal")tab="together";
- if(kind&&kind!=="ludo-challenge"&&kind!=="memory-challenge"&&kind!=="rps-challenge"&&kind!=="daily-question"&&kind!=="love-signal")tab="chat";
+ const id=typeof info?.id==="string"&&(
+  /^[0-9a-f-]{36}$/i.test(info.id)||
+  (kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(info.id))
+ )?info.id:null;
+ const valid=Boolean(kind&&id);
+ const tab=valid?KIND_TABS[kind]:SUPPORTED_TABS.has(info?.tab)?info.tab:"home";
  const query=new URLSearchParams({tab});
- if(kind&&id){query.set("kind",kind);query.set("id",id)}
- return {tab,kind:kind&&id?kind:null,id:kind&&id?id:null,url:"/?"+query.toString()};
+ if(valid){query.set("kind",kind);query.set("id",id)}
+ return {tab,kind:valid?kind:null,id:valid?id:null,url:"/?"+query.toString()};
 }
 self.addEventListener("push",event=>{
  let payload={};
@@ -110,7 +117,7 @@ self.addEventListener("push",event=>{
   });
   // When the app is open, also signal it to refresh the conversation badge.
   const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
-  for(const client of windows)client.postMessage({type:"love-radar-push-received",tab:destination.tab,kind:destination.kind});
+  for(const client of windows)client.postMessage({type:"love-radar-push-received",tab:destination.tab,kind:destination.kind,id:destination.id});
  })());
 });
 // iOS may reopen an installed PWA at its manifest start_url rather than the
@@ -132,7 +139,7 @@ async function pendingRoute(){
  if(!stored)return null;
  try{
   const record=await stored.json();
-  if(!record||!Number.isFinite(record.at)||Date.now()-record.at>120000||
+  if(!record||!Number.isFinite(record.at)||Date.now()-record.at>600000||
     typeof record.routeId!=="string"){
    await cache.delete(PENDING_ROUTE_URL);
    return null;
@@ -174,9 +181,21 @@ self.addEventListener("notificationclick",event=>{
   const owned=clientsList.filter(client=>{
    try{return new URL(client.url).origin===self.location.origin}catch{return false}
   });
+  // Prefer a visible tab instead of a stale background browser client.
+  owned.sort((a,b)=>Number(b.visibilityState==="visible")-Number(a.visibilityState==="visible"));
   for(const client of owned){
    try{
     const focused=await client.focus();
+    // Game invitations are explicit navigation requests. In iOS standalone
+    // mode a one-shot postMessage can be lost during resume, so navigate the
+    // existing app to its exact game URL. Keep the cache fallback as well.
+    if(["ludo-challenge","memory-challenge","rps-challenge"].includes(destination.kind)){
+     try{
+      const routed=await focused.navigate(url);
+      (routed||focused).postMessage({type:"love-radar-open-notification",...destination,routeId});
+      return;
+     }catch{/* Fallback to messaging the existing PWA below. */}
+    }
     focused.postMessage({type:"love-radar-open-notification",...destination,routeId});
     return;
    }catch{/* A closed page is handled below. */}

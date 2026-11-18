@@ -58,7 +58,7 @@ test("game screen synchronizes both clients, supports replay and is reachable fr
  assert.ok(push.includes('"rps-challenge"'));
  assert.ok(push.includes('"rps"'));
  assert.ok(sw.includes('"rps-challenge"'));
- assert.ok(sw.includes('if(kind==="rps-challenge")tab="rps"'));
+ assert.ok(sw.includes('"rps-challenge":"rps"'),"the push route maps to the exact RPS game");
  assert.ok(sw.includes('"rps"'));
  const css=readFileSync("src/rps-duo.css","utf8");
  assert.ok(css.includes("@media(max-width:450px)"));

@@ -222,6 +222,8 @@ export default function LoveRadar(){
  const chatReturnTab=useRef<Tab>("home");
  const [noticeTarget,setNoticeTarget]=useState<NoticeTarget|null>(()=>parseNotice(window.location.search));
  const lastHandledNotice=useRef<string>("");
+ const [pendingNoticeRouteId,setPendingNoticeRouteId]=useState("");
+ const [noticeTap,setNoticeTap]=useState(0);
  const lastMessageJump=useRef<string>("");
  const [focusMessage,setFocusMessage]=useState<Message|null>(null);
  const [focusLoading,setFocusLoading]=useState(false);
@@ -229,6 +231,16 @@ export default function LoveRadar(){
  const [focusMedia,setFocusMedia]=useState("");
  const focusAsset=useRef("");
  function closeNotice(){
+  // Consume a dismissed notification so focus does not reopen it.
+  if(pendingNoticeRouteId){
+   const routeId=pendingNoticeRouteId;
+   void navigator.serviceWorker?.ready.then(reg=>{
+    (navigator.serviceWorker.controller||reg.active)?.postMessage({
+     type:"love-radar-ack-notification",routeId
+    });
+   }).catch(()=>{});
+   setPendingNoticeRouteId("");
+  }
   lastMessageJump.current="";
   setNoticeTarget(null);
   setFocusMessage(null);
@@ -280,6 +292,7 @@ export default function LoveRadar(){
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
+ const [pushToastTarget,setPushToastTarget]=useState<NoticeTarget|null>(null);
  const [olderMessages,setOlderMessages]=useState<Message[]>([]);
  const [historyBusy,setHistoryBusy]=useState(false);
  const [historyMore,setHistoryMore]=useState(true);
@@ -670,8 +683,11 @@ export default function LoveRadar(){
     firstPoll.current=true;
     if(data.tab==="watch"||data.tab==="watch-tiktok")setWatchInvite(data.tab);
     if(data.tab==="reconcile")setReconcileInvite(true);
-    if(document.visibilityState==="visible"&&["message","photo","audio"].includes(data.kind||""))
+    if(document.visibilityState==="visible"&&["message","photo","audio"].includes(data.kind||"")){
+     const dest=parseNotice(new URL(noticeUrl({tab:data.tab,kind:data.kind,id:data.id}),window.location.origin).search);
+     setPushToastTarget(dest);
      setNotice("lr-partner-push:"+String(data.kind||"message"));
+    }
     return;
    }
    if(data?.type==="love-radar-push-needs-repair"){
@@ -686,13 +702,14 @@ export default function LoveRadar(){
      // retains it until acknowledgment, even if iOS first opens home.
      const routeId=typeof data.routeId==="string"?data.routeId:"";
      if(routeId){
-      (event.source as ServiceWorker|null)?.postMessage({
-       type:"love-radar-ack-notification",routeId
-      });
+      // Do not acknowledge a cold iPhone route until its private page mounts.
       if(lastHandledNotice.current===routeId)return;
       lastHandledNotice.current=routeId;
+      setPendingNoticeRouteId(routeId);
      }
      window.history.replaceState(null,"",noticeUrl(dest));
+     lastMessageJump.current="";
+     setNoticeTap(n=>n+1);
      setNoticeTarget(dest);
      setTab(dest.tab);setWatchInvite(null);setReconcileInvite(false);firstPoll.current=true;
     }
@@ -703,16 +720,23 @@ export default function LoveRadar(){
   };
   const onRoute=()=>{
    const dest=parseNotice(window.location.search);
-   if(dest){setNoticeTarget(dest);setTab(dest.tab);firstPoll.current=true}
+   if(dest){lastMessageJump.current="";setNoticeTap(n=>n+1);setNoticeTarget(dest);setTab(dest.tab);firstPoll.current=true}
   };
   const requestPendingNotification=()=>{
-   navigator.serviceWorker?.controller?.postMessage({type:"love-radar-request-pending-notification"});
+   const worker=navigator.serviceWorker?.controller;
+   if(worker)worker.postMessage({type:"love-radar-request-pending-notification"});
+   else void navigator.serviceWorker?.ready.then(reg=>{
+    reg.active?.postMessage({type:"love-radar-request-pending-notification"});
+   }).catch(()=>{});
   };
   const onPageShow=()=>{
    onRoute();
    requestPendingNotification();
   };
   navigator.serviceWorker?.addEventListener("message",onMessage);
+  navigator.serviceWorker?.addEventListener("controllerchange",requestPendingNotification);
+  window.addEventListener("focus",requestPendingNotification);
+  document.addEventListener("visibilitychange",requestPendingNotification);
   window.addEventListener("popstate",onRoute);
   window.addEventListener("pageshow",onPageShow);
   // On a cold iOS PWA launch the manifest can reopen "/" despite a push deep
@@ -725,10 +749,28 @@ export default function LoveRadar(){
   }).catch(()=>{});
   return()=>{
    navigator.serviceWorker?.removeEventListener("message",onMessage);
+   navigator.serviceWorker?.removeEventListener("controllerchange",requestPendingNotification);
+   window.removeEventListener("focus",requestPendingNotification);
+   document.removeEventListener("visibilitychange",requestPendingNotification);
    window.removeEventListener("popstate",onRoute);
    window.removeEventListener("pageshow",onPageShow);
   };
  },[]);
+
+ // Keep the notification in the service worker until a private room is visible.
+ useEffect(()=>{
+  const routeId=pendingNoticeRouteId;
+  if(!routeId||!token||!room||!noticeTarget||tab!==noticeTarget.tab)return;
+  let cancelled=false;
+  void navigator.serviceWorker?.ready.then(reg=>{
+   if(cancelled)return;
+   (navigator.serviceWorker.controller||reg.active)?.postMessage({
+    type:"love-radar-ack-notification",routeId
+   });
+   setPendingNoticeRouteId("");
+  }).catch(()=>{});
+  return()=>{cancelled=true};
+ },[pendingNoticeRouteId,token,room?.roomId,tab,noticeTarget?.kind,noticeTarget?.id]);
 
  useEffect(()=>{
   const id=noticeTarget?.id,kind=noticeTarget?.kind;
@@ -1328,7 +1370,7 @@ export default function LoveRadar(){
   const list=chatScroller.current;
   if(!list)return;
   const closeToBottom=list.scrollHeight-list.scrollTop-list.clientHeight<155;
-  const notified=noticeTarget?.id&&["message","photo","audio"].includes(noticeTarget.kind||"");
+  const notified=noticeTarget?.id&&["message","photo","audio","call"].includes(noticeTarget.kind||"");
   if(!notified&&(firstPoll.current||chatFocused||closeToBottom))scrollToLatest();
   firstPoll.current=false;
  },[chatMessages.at(-1)?.id,callHistory.at(-1)?.id,callHistory.at(-1)?.status,tab,chatFocused,scrollToLatest,noticeTarget?.id,noticeTarget?.kind]);
@@ -1336,17 +1378,21 @@ export default function LoveRadar(){
  // cover the entire conversation with a separate message popup.
  useEffect(()=>{
   const id=noticeTarget?.id;
-  if(tab!=="chat"||!id||!["message","photo","audio"].includes(noticeTarget?.kind||""))return;
-  if(!room?.messages.some(message=>message.id===id))return;
+  if(tab!=="chat"||!id||!["message","photo","audio","call"].includes(noticeTarget?.kind||""))return;
+  if(noticeTarget?.kind==="call"){
+   if(!callHistory.some(call=>call.id===id))return;
+  }else if(!room?.messages.some(message=>message.id===id))return;
   if(lastMessageJump.current===id)return;
-  const target=document.getElementById("lr-chat-message-"+id);
+  const target=document.getElementById(
+   (noticeTarget?.kind==="call"?"lr-chat-call-":"lr-chat-message-")+id
+  );
   if(!target)return;
   lastMessageJump.current=id;
   const frame=window.requestAnimationFrame(()=>{
    target.scrollIntoView({block:"center",behavior:"auto"});
   });
   return()=>window.cancelAnimationFrame(frame);
- },[tab,noticeTarget?.id,noticeTarget?.kind,room?.messages]);
+ },[tab,noticeTarget?.id,noticeTarget?.kind,noticeTap,room?.messages,callHistory]);
  useEffect(()=>()=>{if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current)},[]);
  // Keyboard changes the visible area: keep recent messages anchored, but
  // don't jump down when a user deliberately reads older messages.
@@ -1362,7 +1408,7 @@ export default function LoveRadar(){
 
  function finishApprovedPartnerRecovery(newToken:string){
   setError("");setToken(newToken);setRecoverMode(false);setRecoverInput("");
-  setTab("chat");
+  setTab(parseNotice(window.location.search)?.tab||"chat");
   void refresh(newToken).then(()=>{
    setNotice("Compte retrouvé ! Tes anciens messages disponibles sur le serveur sont de nouveau accessibles.");
   });
@@ -1394,7 +1440,7 @@ export default function LoveRadar(){
    persistSessionToken(data.token);
    setToken(data.token);
    await refresh(data.token);
-   setRecoverInput("");setRecoverMode(false);setTab("home");
+   setRecoverInput("");setRecoverMode(false);setTab(parseNotice(window.location.search)?.tab||"home");
    setRecoveryCode(data.recoveryCode);
    setNotice("Compte retrouvé ! Ton ancien appareil est déconnecté.");
   }catch(e){setError(e instanceof Error?e.message:"Récupération impossible.")}
@@ -1914,7 +1960,17 @@ export default function LoveRadar(){
    <button type="button" className="lr-watch-invite-dismiss" onClick={()=>setReconcileInvite(false)} aria-label="Ignorer l'invitation">×</button>
   </div>:null}
   {notice?<div className={"lr-toast"+(notice.startsWith("lr-partner-push:")?" lr-push-avatar-toast":"")}
-   role="status" onClick={()=>{if(notice.startsWith("lr-partner-push:"))navigate("chat");setNotice("")}}>
+   role="status" onClick={()=>{
+    if(notice.startsWith("lr-partner-push:")){
+     const target=pushToastTarget;
+     if(target){
+      window.history.replaceState(null,"",noticeUrl(target));
+      lastMessageJump.current="";setNoticeTap(n=>n+1);
+      setNoticeTarget(target);setTab(target.tab);firstPoll.current=true;
+     }else navigate("chat");
+    }
+    setNotice("");setPushToastTarget(null);
+   }}>
    {notice.startsWith("lr-partner-push:")?<><span className="lr-push-avatar-thumb" aria-hidden="true">
     {avatars.partner?<img src={avatars.partner} alt=""/>:(room?.partner||"♡").slice(0,1).toUpperCase()}
    </span><span className="lr-push-avatar-copy"><strong>{room?.partner||"Ton partenaire"}</strong>
@@ -2014,6 +2070,8 @@ export default function LoveRadar(){
      mineAvatar={avatars.mine} partnerAvatar={avatars.partner}
      onEditProfile={()=>profilePicker.current?.click()} onInvite={()=>void shareCode()} onNavigate={navigate}
 />:null}
+    {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")}
+      focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
     {tab==="care"?<CoupleCare key={room.roomId+":"+room.user.id} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenWatch={()=>navigate("watch")} onOpenPuzzle={()=>navigate("puzzle")} onOpenReconcile={()=>navigate("reconcile")} onOpenCare={()=>navigate("care")} onOpenLife={()=>navigate("life")} onOpenCamera={()=>navigate("camera")} focusKind={noticeTarget?.kind==="love-signal"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"?noticeTarget.id:null}/>:null}
     {tab==="camera"?<FunCamera key={room.roomId+":"+room.user.id} partner={room.partner} onBack={()=>navigate("together")}
@@ -2073,8 +2131,10 @@ export default function LoveRadar(){
         const callDate=new Date(entry.call.createdAt).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"long"});
         return <Fragment key={"call-"+entry.call.id}>
          {showCallDay?<div className="lr-chat-day">{callDate}</div>:null}
-         <CallHistoryBubble call={entry.call} mine={entry.call.callerId===room.user.id}
-          partner={partner} serverOffset={callClockOffset}/>
+         <div id={"lr-chat-call-"+entry.call.id} className={noticeTarget?.kind==="call"&&noticeTarget.id===entry.call.id?"lr-notified-bubble":undefined}>
+          <CallHistoryBubble call={entry.call} mine={entry.call.callerId===room.user.id}
+           partner={partner} serverOffset={callClockOffset}/>
+         </div>
         </Fragment>;
        }
        if(entry.type==="screenshot"){
@@ -2299,7 +2359,7 @@ export default function LoveRadar(){
       {partnerPhotoOpen&&token&&room?.partner?<PartnerProfileViewer
        name={partner} src={avatars.partner} onClose={()=>setPartnerPhotoOpen(false)}/>:null}
       {profileFile?<ProfilePhotoEditor key={profileFile.name+":"+profileFile.lastModified+":"+profileFile.size} file={profileFile} onCancel={()=>{if(!profileBusy){setProfileFile(null);setProfileError("")}}} onSave={saveProfilePhoto}/>:null}
-   {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} avatarSrc={avatars.partner} hasPartner={Boolean(room.partner)} showButton={tab==="life"||tab==="chat"||tab==="watch"||tab==="watch-tiktok"||tab==="reconcile"} onOpenChat={()=>navigate("chat")}/>:null}
+   {token&&room?<VoiceCall key={room.roomId+room.user.id} token={token} partner={partner} avatarSrc={avatars.partner} hasPartner={Boolean(room.partner)} showButton={tab==="life"||tab==="chat"||tab==="watch"||tab==="watch-tiktok"||tab==="reconcile"} onOpenChat={()=>navigate("chat")} focusCallId={noticeTarget?.kind==="call"?noticeTarget.id:null}/>:null}
    {room&&token&&tab==="chat"&&noticeTarget?.id&&!room.messages.some(m=>m.id===noticeTarget.id)&&["message","photo","audio"].includes(noticeTarget.kind||"")?<div className="lr-push-focus-backdrop" role="dialog" aria-modal="true" aria-label="Contenu de la notification">
     <div className="lr-push-focus-card">
      <div className="lr-push-focus-header"><strong>{noticeTarget.kind==="photo"?"📸 Photo reçue":noticeTarget.kind==="audio"?"🎙️ Message vocal reçu":"💌 Message reçu"}</strong><button type="button" onClick={closeNotice} aria-label="Fermer le contenu">×</button></div>
