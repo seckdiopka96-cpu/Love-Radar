@@ -72,7 +72,7 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
     <div><small>TON STYLE · AVATURN</small>
      <h2>{data.mine3d?"Ton personnage est prêt":"Crée ton véritable avatar 3D"}</h2>
      <p>Choisis ton visage, ta coiffure, tes vêtements et tes accessoires dans Avaturn.
-      Aucun des anciens personnages dessinés n’est affiché.</p>
+      Retrouve ensuite ton personnage en 3D dans votre espace à deux.</p>
     </div>
    </div>
    <button type="button" className="lr-avaturn-launch" onClick={()=>setOpenAvaturn(true)}>
