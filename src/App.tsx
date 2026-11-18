@@ -26,7 +26,8 @@ import SharedPuzzle from "./SharedPuzzle";
 import Reconcile from "./Reconcile";
 import HomeDashboard from "./HomeDashboard";
 import DiscoveryMode from "./DiscoveryMode";
-import LoveRadarPlus,{type PlusTheme} from "./LoveRadarPlus";
+import ChatThemePicker from "./ChatThemePicker";
+import {DEFAULT_CHAT_THEME,type ChatTheme} from "./chat-themes";
 import SettingsPage from "./SettingsPage";
 import RecoveryCodeDialog from "./RecoveryCodeDialog";
 import GamesHub from "./GamesHub";
@@ -86,9 +87,10 @@ import "./call-history.css";
 import "./message-context-premium.css";
 import "./clean-home-chat.css";
 import "./delivery-status-ui.css";
+import "./chat-themes.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
-type Tab = "plus" | "home" | "together" | "camera" | "life" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "ludo-room" | "rps" | "draw" | "escape" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
+type Tab = "home" | "together" | "camera" | "life" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "ludo-room" | "rps" | "draw" | "escape" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
 type EncryptionState={mine:string|null;partner:string|null;required:boolean};
 type ScreenshotEvent={id:string;member_id:string;created_at:number};
 type ChatTimelineItem = {type:"message";message:Message;index:number;createdAt:number}|{type:"call";call:CallHistoryEvent;createdAt:number}|{type:"screenshot";event:ScreenshotEvent;createdAt:number};
@@ -121,7 +123,6 @@ function NavGlyph({tab}:{tab:Tab}){
 function selectedNav(tab:Tab):Tab {
  if(tab==="camera"||tab==="life"||tab==="care"||tab==="moment"||tab==="puzzle"||tab==="reconcile"||tab==="reunion"||tab==="watch"||tab==="watch-tiktok")return "together";
  if(tab==="story")return "memories";
- if(tab==="plus")return "home";
  if(tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo"||tab==="memory"||tab==="rps"||tab==="draw"||tab==="escape"||tab==="rapid"||tab==="truth")return "games";
  return tab;
 }
@@ -136,7 +137,7 @@ function parseNotice(search:string):NoticeTarget|null{
  const q=new URLSearchParams(search);
  const tab=q.get("tab");
  if(tab==="location")return {tab:"together",kind:null,id:null};
- if(tab!=="plus"&&tab!=="settings"&&tab!=="home"&&tab!=="life"&&tab!=="care"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="puzzle"&&tab!=="reconcile"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo-room"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="memory"&&tab!=="rps"&&tab!=="draw"&&tab!=="escape"&&tab!=="rapid"&&tab!=="truth"&&tab!=="memories")return null;
+ if(tab!=="settings"&&tab!=="home"&&tab!=="life"&&tab!=="care"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="puzzle"&&tab!=="reconcile"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo-room"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="memory"&&tab!=="rps"&&tab!=="draw"&&tab!=="escape"&&tab!=="rapid"&&tab!=="truth"&&tab!=="memories")return null;
  const kind=q.get("kind"),id=q.get("id");
  if(!kind||!NOTICE_KINDS.has(kind)||!id||!(/^[0-9a-f-]{36}$/i.test(id)||(kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(id))))return {tab,kind:null,id:null};
  return {tab:kind==="ludo-challenge"?"ludo":kind==="memory-challenge"?"memory":kind==="rps-challenge"?"rps":kind==="daily-question"?"moment":kind==="love-signal"?"together":kind==="love-letter"||kind==="album-memory"?"memories":kind.startsWith("couple-")?"life":"chat",kind:kind as NoticeKind,id};
@@ -154,29 +155,7 @@ export default function LoveRadar(){
  const [token,setToken]=useState("");
  const [room,setRoom]=useState<Room|null>(null);
  const [demoOpen,setDemoOpen]=useState(false);
- const [plusActive,setPlusActive]=useState(false);
- const [plusTheme,setPlusTheme]=useState<PlusTheme>("classic");
- useEffect(()=>{
-  let alive=true;
-  setPlusActive(false);setPlusTheme("classic");
-  if(!token||!room?.roomId)return;
-  const currentRoom=room.roomId;
-  try{
-   const stored=localStorage.getItem("lr-plus-theme-v1:"+currentRoom);
-   if(stored==="starlight"||stored==="rose")setPlusTheme(stored);
-  }catch{/* Private mode */}
-  void apiFetch("/api/plus",{headers:{Authorization:"Bearer "+token},cache:"no-store"})
-   .then(async response=>{
-    const body=await response.json() as {ok?:boolean;active?:boolean};
-    if(alive&&response.ok&&body.ok)setPlusActive(body.active===true);
-   }).catch(()=>{if(alive)setPlusActive(false)});
-  return()=>{alive=false};
- },[token,room?.roomId]);
- function changePlusTheme(theme:PlusTheme){
-  if(!plusActive||!room)return;
-  setPlusTheme(theme);
-  try{localStorage.setItem("lr-plus-theme-v1:"+room.roomId,theme)}catch{}
- }
+ const [chatTheme,setChatTheme]=useState<ChatTheme>(DEFAULT_CHAT_THEME);
  const [e2eeBusy,setE2eeBusy]=useState(false);
  const [e2eeBackup,setE2eeBackup]=useState("");
  const [e2eeOwnCode,setE2eeOwnCode]=useState("");
@@ -1904,7 +1883,7 @@ export default function LoveRadar(){
  // Each outgoing message displays its own receipt, not just the most recent one.
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
- return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(demoOpen&&!room&&!token?"lr-discovery-mode ":"")+(plusActive&&room&&plusTheme!=="classic"?"lr-plus-theme-"+plusTheme+" ":"")+(room?"lr-app-locked ":"")+(tab==="home"&&room?"lr-home-mode ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+((tab==="together"||tab==="life"||tab==="camera")&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
+ return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(demoOpen&&!room&&!token?"lr-discovery-mode ":"")+(room&&tab==="chat"?"lr-conv-wallpaper-"+chatTheme.wallpaper+" lr-conv-color-"+chatTheme.color+" lr-conv-bubbles-"+chatTheme.bubble+" "+(chatTheme.animated?"lr-conv-animated ":""):"")+(room?"lr-app-locked ":"")+(tab==="home"&&room?"lr-home-mode ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+((tab==="together"||tab==="life"||tab==="camera")&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
   {recoveryCode?<RecoveryCodeDialog code={recoveryCode} onClose={()=>setRecoveryCode("")}/>:null}
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-header-context" aria-label="Espace privé"><span>ESPACE PRIVÉ</span><strong>{tab==="settings"?"Paramètres":room?.partner?"Notre univers":"Bienvenue"}</strong></div>
@@ -2021,17 +2000,14 @@ export default function LoveRadar(){
      e2eeDeviceReady={e2eeDeviceReady} e2eeVerified={e2eeVerified}
      onEnableE2EE={phrase=>void enableE2EE(phrase)} onFinishE2EE={()=>void completeE2EE()}
      onRestoreE2EE={(file,phrase)=>void restoreE2EE(file,phrase)} onVerifyPartnerKey={()=>void approvePartnerKey()}
-     nativeApp={isNativeApp} plusActive={plusActive} onOpenPlus={()=>navigate("plus")} onBack={()=>navigate("home")}
+     nativeApp={isNativeApp} onBack={()=>navigate("home")}
      onChoosePhoto={()=>profilePicker.current?.click()}
      onAdjustPhoto={()=>void adjustProfilePhoto()} onRemovePhoto={()=>void removeProfilePhoto()}
      onPrivacyChange={updatePrivacy}
      onEnableNotifications={()=>void enableNotifications(notificationsOn)}
      onTestNotifications={()=>void testNotifications()} onDisableNotifications={()=>void disableNotifications()}
      onShareInvite={()=>void shareCode()} onLogout={logout} onDeleteRoom={()=>void deleteRoom()}/>:null}
-    {tab==="plus"?<LoveRadarPlus token={token} roomId={room.roomId} partnerName={room.partner}
-     nativeApp={isNativeApp} theme={plusTheme} onThemeChange={changePlusTheme}
-     onEntitlementChange={setPlusActive} onBack={()=>navigate("home")}/>:null}
-    {tab==="home"?<HomeDashboard plusActive={plusActive} room={room} token={token} media={media} privacyEnabled={privacyEnabled} mineAvatar={avatars.mine} partnerAvatar={avatars.partner} onEditProfile={()=>profilePicker.current?.click()} onInvite={()=>void shareCode()} onNavigate={navigate}/>:null}
+    {tab==="home"?<HomeDashboard room={room} token={token} media={media} privacyEnabled={privacyEnabled} mineAvatar={avatars.mine} partnerAvatar={avatars.partner} onEditProfile={()=>profilePicker.current?.click()} onInvite={()=>void shareCode()} onNavigate={navigate}/>:null}
     {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
     {tab==="care"?<CoupleCare key={room.roomId+":"+room.user.id} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenWatch={()=>navigate("watch")} onOpenPuzzle={()=>navigate("puzzle")} onOpenReconcile={()=>navigate("reconcile")} onOpenCare={()=>navigate("care")} onOpenLife={()=>navigate("life")} onOpenCamera={()=>navigate("camera")} focusKind={noticeTarget?.kind==="love-signal"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"?noticeTarget.id:null}/>:null}
@@ -2074,6 +2050,7 @@ export default function LoveRadar(){
           <span className={"lr-chat-status "+(partnerOnline?"online":"offline")}>{partnerStatusText}</span>
          </button></div>
       </div>
+      <ChatThemePicker key={room.roomId} token={token} roomId={room.roomId} theme={chatTheme} onChange={setChatTheme}/>
       <div id="lr-voice-button-slot"/>
      </div>
      <div className="lr-chat-messages" ref={chatScroller} onScroll={e=>{const list=e.currentTarget;const near=list.scrollHeight-list.scrollTop-list.clientHeight<120;chatAtBottomRef.current=near;setChatAtBottom(prev=>prev===near?prev:near)}} role="log" aria-label="Messages" aria-live="off">
