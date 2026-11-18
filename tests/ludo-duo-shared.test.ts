@@ -388,7 +388,11 @@ test("one playable pawn exits its base on tap and die gives clear turn feedback"
  assert.ok(duoJS.includes('if(selectable)b.addEventListener("click"'),"real home pawn handles tap");
  assert.ok(duoJS.includes('b.disabled=true;b.classList.remove("piece--selectable")'),"rapid repeated taps are guarded");
  assert.ok(duoJS.includes("6 ! Touche un pion de ta base"),"show what to do after a six");
- assert.ok(duoJS.includes("C'est le tour de ton partenaire"),"other player's six cannot control your pin");
+ assert.ok(!duoJS.includes("C'est le tour de ton partenaire"),"no verbose partner-turn banner");
+ assert.ok(!duoJS.includes("Au tour de ton partenaire. Patiente"),"turn is shown in the active house");
+ assert.ok(duoJS.includes("En attente du lancer"),"the waiting banner stays short");
+ assert.ok(duoCSS.includes('content:"À SON TOUR"'),"partner house shows whose turn it is");
+ assert.ok(duoCSS.includes('content:"À TOI"'),"own house shows whose turn it is");
  assert.ok(!duoJS.includes('&&!state.animationBusy&&!state.overlayOpen'),"previous motion does not freeze your new turn");
  assert.ok(parent.includes('},1500)'),"autoplay waits long enough for a manual tap");
  assert.ok(parent.includes('STEP_MS=moved?.from===-1?220:240,START_MS=90'),"Duo-only pawn movement is responsive");
