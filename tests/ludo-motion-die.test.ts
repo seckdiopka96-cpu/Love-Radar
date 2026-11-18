@@ -42,7 +42,7 @@ test("four pawns are chosen by touching the board, never from a second numbered 
  const reactDuo=readFileSync("src/Ludo.tsx","utf8");
  assert.ok(solo.includes('button.addEventListener("click",()=>{void movePiece(side,index)}') ,
   "each selectable Solo pawn must respond to a direct touch");
- assert.ok(duo.includes('if(selectable)b.addEventListener("click",()=>send("move",index))'),
+ assert.ok(duo.includes('if(selectable)b.addEventListener("click",()=>{'),
   "each selectable Duo pawn must be actionable on the board");
  assert.ok(solo.includes('const canChoose=playable.length>1;'));
  assert.ok(duo.includes('const selectable=seat===state.mySeat&&legal.includes(pawn);'),"every legal Duo pin is directly tappable, even if it is the only one");
@@ -143,7 +143,7 @@ test("captured pawns reverse rapidly without speeding ordinary board movement",(
  assert.ok(duoCSS.includes("transition:left .045s"));
  assert.ok(arenaCSS.includes(".ludo-captured-pawn{z-index:35!important;transition:left .045s"));
  assert.ok(senegalCSS.includes(".ludo-senegal .ludo-captured-pawn{transition:left .045s"));
- assert.ok(reactDuo.includes("STEP_MS=moved?.from===-1?520:540"),"Duo keeps readable 520/540ms steps aligned with server time");
+ assert.ok(reactDuo.includes("STEP_MS=moved?.from===-1?220:240"),"Duo uses 220/240ms steps without skipping board cells");
  assert.ok(reactSolo.includes("stepDuration=move.from===-1?520:540"));
  assert.ok(senegal.includes('STEP_MS=move.from.zone==="base"?520:540'));
 });

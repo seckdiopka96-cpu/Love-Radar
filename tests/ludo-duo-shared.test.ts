@@ -132,8 +132,10 @@ test("Duo iPhone frame keeps event subscription stable as snapshots tick",()=>{
  assert.ok(bridge.includes("readyRef.current?.()"),"frame confirms real render readiness");
  assert.ok(parent.includes("frameReady&&!loading"),"Ludo tap waits for frame handshake");
  assert.ok(bridge.includes('if(data.type!=="action")return'));
- assert.ok(duoJS.includes("state.animationBusy||state.overlayOpen"),
-  "never allow a roll or pawn move behind agreement or pause modal");
+ assert.ok(duoJS.includes("state.overlayOpen"),"the game still protects the agreement and modal");
+ assert.ok(duoJS.includes("state.busy||state.rolling||state.overlayOpen"),"no moves behind a modal");
+ assert.ok(!duoJS.includes("state.busy||state.rolling||state.animationBusy||state.overlayOpen"),
+  "an animated pawn must not freeze the next turn");
 });
 
 test("Ludo invitations appear in app without push; pawn motion follows server time",()=>{
