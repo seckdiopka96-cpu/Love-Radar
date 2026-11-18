@@ -383,7 +383,9 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
   finally{setReactionBusy(false)}
  }
 
- function duoFrameAction(action:"roll"|"move"|"restart"|"exit"|"gift"|"menu",pawn?:number){
+ function duoFrameAction(action:"roll"|"move"|"restart"|"exit"|"leave"|"gift"|"menu",pawn?:number){
+  // Leaving after the match has ended must never require a second dialog.
+  if(action==="leave"){if(game?.status==="won")onExit();else setMenu(true);return}
   if(action==="exit"||action==="menu"){setMenu(true);return}
   if(action==="gift"){setGiftOpen(true);return}
   if(action==="roll"||action==="move"||action==="restart")void act(action,pawn);
@@ -569,7 +571,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    <LudoDuoFrame game={game} palette={palette} lastRoll={lastRoll} mySeat={mySeat} myName={myName} partnerName={partnerName} myAvatar={myAvatar} partnerAvatar={partnerAvatar}
     remaining={remaining} rolling={rolling} rollingFace={rollingFace}
     busy={busy} animationBusy={animationBusy} motion={motion} capturedMotions={capturedMotions}
-    error={error} onAction={duoFrameAction}/>:null}
+    error={error} overlayOpen={menu||giftOpen||rules||mustSign} onAction={duoFrameAction}/>:null}
   {tutorialOpen&&Boolean(agreement?.startedAt)&&game?.status==="playing"&&!mustSign&&!giftOpen&&!rules?<LudoTutorial mode="duo" onClose={()=>setTutorialOpen(false)}/>:null}
   {mustSign?<div className="ludo-agreement-backdrop">
    <div className="ludo-agreement-dialog ludo-ready-dialog" role="dialog" aria-modal="true" aria-label="Accord pour jouer au Ludo Duo">
