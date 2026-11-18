@@ -1,9 +1,10 @@
 import type { D1Database } from "@cloudflare/workers-types";
 import {notifyPartner, type PushEnv} from "../lib/push";
 import {registerAutoTurn,type AutoTurnCounts} from "../lib/ludo-timeout";
+import {DUO_FINISH,canAdvanceDuo,advanceDuo,isDuoFinished} from "../../src/ludo-duo-finish";
 
 // Server-authoritative, private two-player Ludo. Each couple has one live game.
-// Progress -1 = base, 0..50 = outer track, 51..56 = home lane, 57 = finished.
+// Progress -1 = base, 0..50 = outer track, 51..55 = five home squares, 56 = centre (57 = legacy completed pawn).
 type Env=PushEnv;
 type Ctx={request:Request;env:Env;waitUntil?:(task:Promise<unknown>)=>void};
 type Member={id:string;room_id:string;seat:number;name:string};
@@ -99,7 +100,7 @@ async function createIfMissing(db:D1Database,room:string){
  await db.prepare("INSERT OR IGNORE INTO ludo_games(room_id,game_id,version,turn,dice,positions,status,winner,streak,last_action,updated_at) VALUES(?,?,1,0,NULL,?,'playing',NULL,0,?,?)")
   .bind(room,crypto.randomUUID(),JSON.stringify(initial()),"La partie est prête !",Date.now()).run();
 }
-const movable=(progress:number,dice:number)=>progress===-1?dice===6:progress>=0&&progress<57&&progress+dice<=57;
+const movable=canAdvanceDuo;
 async function rememberLastRoll(db:D1Database,g:Game,seat:number,face:number){
  await db.prepare("INSERT INTO ludo_last_rolls(room_id,game_id,seat,face,updated_at) VALUES(?,?,?,?,?) "+
  "ON CONFLICT(room_id) DO UPDATE SET game_id=excluded.game_id,seat=excluded.seat,face=excluded.face,updated_at=excluded.updated_at")
@@ -210,8 +211,8 @@ function botChoose(g:Game,seat:number,rolled:number){
  const available=g.positions[seat].map((progress,pawn)=>({progress,pawn})).filter(x=>movable(x.progress,rolled));
  if(!available.length)return null;
  const score=({progress}:typeof available[number])=>{
-  const next=progress===-1?0:progress+rolled;
-  let points=next===57?250:next>=51?90+next:progress===-1?85:next;
+  const next=advanceDuo(progress,rolled)!;
+  let points=next===DUO_FINISH?250:next>=51?90+next:progress===-1?85:next;
   if(next<=50){
    const land=(seat*26+next)%52;
    if(!SAFE.has(land)&&g.positions[1-seat].some(other=>other>=0&&other<=50&&((1-seat)*26+other)%52===land))points+=200;
@@ -243,7 +244,7 @@ function botTurn(g:Game,name:string):number|null{
   const pawn=botChoose(g,seat,rolled);
   if(pawn===null){g.dice=null;g.turn=1-seat;g.streak=0;break}
   const old=g.positions[seat][pawn];
-  const next=old===-1?0:old+rolled;
+  const next=advanceDuo(old,rolled)!;
   g.positions[seat][pawn]=next;
   let captured=0;
   if(next<=50){
@@ -257,11 +258,11 @@ function botTurn(g:Game,name:string):number|null{
   }
   last="Pion "+(pawn+1)+" avancé"+(captured?", capture !":"")+".";
   g.dice=null;
-  if(g.positions[seat].every(p=>p===57)){
+  if(g.positions[seat].every(isDuoFinished)){
    g.status="won";g.winner=seat;last="Le joueur gagne la partie !";break;
   }
   if(rolled!==6)g.streak=0;
-  if(!(rolled===6||captured>0||next===57))g.turn=1-seat;
+  if(!(rolled===6||captured>0||next===DUO_FINISH))g.turn=1-seat;
  }
  if(g.status==="playing"&&g.turn===seat){g.turn=1-seat;g.dice=null;g.streak=0}
  g.last_action="🤖 Après 15 s sans action, l'ordinateur a joué pour "+name+". "+last;
@@ -531,7 +532,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
     const current=g.positions[player.seat][pawn];
     const roll=g.dice;
     if(!movable(current,roll))return fail("Ce pion ne peut pas avancer de ce nombre de cases.",409);
-    const next=current===-1?0:current+roll;
+    const next=advanceDuo(current,roll)!;
     g.positions[player.seat][pawn]=next;
     let captures=0;
     const capturedPawns:CapturedPawn[]=[];
@@ -549,16 +550,16 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
      }
     }
     completedMove={gameId:g.game_id,version:g.version+1,seat:player.seat,pawn,from:current,to:next,captures:capturedPawns,at:Date.now()};
-    const won=g.positions[player.seat].every(p=>p===57);
+    const won=g.positions[player.seat].every(isDuoFinished);
     g.dice=null;
     if(won){
      g.status="won";g.winner=player.seat;
      g.last_action=name+" a gagné la partie ! 🏆";
     }else{
-     const bonus=roll===6||captures>0||next===57;
+     const bonus=roll===6||captures>0||next===DUO_FINISH;
      g.turn=bonus?player.seat:1-player.seat;
      if(roll!==6)g.streak=0;
-     g.last_action=name+" a avancé un pion"+(captures?" et capturé "+captures+" pion"+(captures>1?"s":"")+" !":"")+(next===57?" 🏠":"")+".";
+     g.last_action=name+" a avancé un pion"+(captures?" et capturé "+captures+" pion"+(captures>1?"s":"")+" !":"")+(next===DUO_FINISH?" 🏠":"")+".";
     }
    }else return fail("Action inconnue.",404);
   }
