@@ -54,7 +54,7 @@ test("video call effects are sent through replaceTrack while audio, camera flip 
  assert.ok(call.includes('import LensPicker from "./LensPicker"'));
  assert.ok(call.includes("async function chooseCallLens("));
  assert.ok(call.includes("await sender.replaceTrack(processed.track)"));
- assert.ok(call.includes("lensProcessor.current?.track||track"));
+ assert.ok(call.includes("lensProcessor.current?.isTransmittable?lensProcessor.current.track:track"),"Only send the processed track when the phone supports it.");
  assert.ok(call.includes("lensProcessor.current.track.enabled=!next"));
  assert.ok(call.includes("await lensProcessor.current.setSource(track)"));
  assert.ok(call.includes("lensProcessor.current?.stop()"));
@@ -69,7 +69,7 @@ test("fun studio works outside calls and can send photos through existing encryp
  const app=read("src/App.tsx"),together=read("src/Together.tsx"),fun=read("src/FunCamera.tsx");
  assert.ok(app.includes('tab==="camera"?<FunCamera'));
  assert.ok(app.includes('onSendPhoto={async file=>upload(file,"image")}'));
- assert.ok(app.includes('onClick={()=>navigate("camera")}'));
+ assert.ok(app.includes('onOpenCamera={()=>navigate("camera")}'),"Studio stays accessible in Nous deux, not the chat header");
  assert.ok(together.includes('className="lr-together-fun-feature"'));
  assert.ok(fun.includes("navigator.mediaDevices.getUserMedia"));
  assert.ok(fun.includes('createLensProcessor('));
