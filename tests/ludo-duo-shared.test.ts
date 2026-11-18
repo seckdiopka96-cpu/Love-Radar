@@ -436,7 +436,7 @@ test("Ludo Duo board never follows iOS toolbar, scroll or turn-message changes",
  assert.ok(duoJS.includes("function pinBoardSize()"),"size is measured outside of per-turn rerenders");
  assert.ok(duoJS.includes("Math.abs(size-pinnedBoardSize)<26"),"small toolbar resizes do not jitter the board");
  assert.ok(duoCSS.includes("animation:none!important;opacity:1!important;pointer-events:none!important"),"the active-cage highlight stays fixed and touch-safe");
- assert.ok(duoJS.includes("lastTossVariant=(lastTossVariant+1+Math.floor(Math.random()*2))%3"),"only the visual throw path varies");
+ assert.ok(duoJS.includes("lastTossVariant=(lastTossVariant+1)%3"),"only the visual throw path varies");
  assert.ok(duoJS.includes("dice.dataset.toss=String(lastTossVariant)"),"each throw selects a new physical motion");
  assert.ok(duoJS.includes("const diceValue=g.dice??last?.face??"),"every final value comes from the backend");
  assert.ok(!duoJS.includes("Math.random()*6"),"the renderer never chooses the actual dice result");
