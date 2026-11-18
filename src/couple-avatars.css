@@ -656,3 +656,10 @@
 .lr-avatar-duo-home .lr-avatar-3d-link{font-size:22px}
 .lr-avatar-duo-home .lr-avatar-3d-invite strong{font-size:12px}
 .lr-avatar-duo-home .lr-avatar-3d-invite small{font-size:9px;line-height:1.35;max-width:230px}
+
+/* One real avatar is a solo preview, not a romantic action with a fake sphere. */
+.lr-avatar-real-solo .lr-avatar-duo-heart{display:none}
+.lr-avatar-real-solo .lr-avatar-duo-caption{bottom:8px;max-width:94%;left:3%;right:3%;
+ font-size:12px;line-height:1.35;letter-spacing:.1px}
+.lr-avatar-real-solo .lr-avatar-duo-note{top:15%;right:23%;opacity:.8}
+.lr-avatar-studio-hint{line-height:1.55}

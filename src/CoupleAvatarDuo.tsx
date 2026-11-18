@@ -175,8 +175,13 @@ export default function CoupleAvatarDuo({mine,partner,pose="main",mode="hero",an
  const [renderFailed,setRenderFailed]=useState(false);
  useEffect(()=>setRenderFailed(false),[token,mine3d,partner3d,modelVersion]);
  const show3d=Boolean(token&&(mine3d||partner3d)&&mode!=="sticker"&&!renderFailed);
+ const onlyOne3d=show3d&&(mine3d!==partner3d);
+ const displayedCaption=onlyOne3d?
+  (pose==="danse"?"Danse en solo":pose==="main"?"Ton avatar 3D":"À deux quand vos avatars seront prêts"):
+  POSE_LABEL[pose];
  return <div className={"lr-avatar-duo lr-avatar-duo-"+mode+" lr-avatar-pose-"+pose+
-  (animate?" lr-avatar-animate":"")} role="img" aria-label={POSE_LABEL[pose]+", "+mineName+" et "+partnerName}>
+  (animate?" lr-avatar-animate":"")+(onlyOne3d?" lr-avatar-real-solo":"")} role="img"
+  aria-label={onlyOne3d?"Avatar 3D de "+(mine3d?mineName:partnerName):POSE_LABEL[pose]+", "+mineName+" et "+partnerName}>
   <span className="lr-avatar-duo-halo" aria-hidden="true"/>
   <span className="lr-avatar-duo-orbit" aria-hidden="true"/>
   {show3d?<Suspense fallback={<span className="lr-avatar-three-loading">Chargement de vos avatars 3D…</span>}>
@@ -201,6 +206,6 @@ export default function CoupleAvatarDuo({mine,partner,pose="main",mode="hero",an
    <path d="M13 25V7l13-4v18M13 25c-10-3-13 10-3 10 5 0 6-3 6-7m10-7c-10-3-12 10-3 10 4 0 6-3 6-7"
     stroke="#f6dfef" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
   </svg>:null}
-  {mode!=="sticker"?<span className="lr-avatar-duo-caption">{POSE_LABEL[pose]}</span>:null}
+  {mode!=="sticker"?<span className="lr-avatar-duo-caption">{displayedCaption}</span>:null}
  </div>;
 }

@@ -28,19 +28,23 @@ function identify(value:string){
  }
  return "";
 }
+/** Animate the real Avaturn skeleton. A solo avatar must never hug/kiss an
+ * invented stand-in; duo choreography starts only when both GLBs exist. */
 function animateFigure(T:Imported,figure:Figure,pose:CouplePose,t:number,duoReady:boolean){
+ const active:CouplePose=duoReady?pose:(pose==="danse"?"danse":"main");
  const wave=Math.sin(t*2.4),bounce=Math.sin(t*3.5);
- const closeness=pose==="calin"?.35+.08*Math.sin(t*1.3):
-  pose==="bisou"?.37+.05*Math.sin(t*1.5):pose==="main"?.10:0;
- // Mirror -1 (me) is the LEFT side, +1 (partner) the RIGHT.
- figure.root.position.x=figure.mirror*(.82-closeness);
- figure.root.position.y=pose==="danse"?.09*Math.abs(bounce):
-  pose==="calin"?.02*Math.sin(t*1.6):.012*Math.sin(t*1.3);
- figure.root.rotation.y=figure.mirror*(pose==="danse"?.15*wave:
-  pose==="bisou"?.13:pose==="calin"?.1:.012*wave);
- figure.root.rotation.z=figure.mirror*(pose==="danse"?.09*bounce:
-  pose==="calin"?.055*Math.sin(t*1.3):pose==="bisou"?.12:.012*Math.sin(t*1.3));
- // Rotate in WORLD axes, preserving each model's local bind pose and parent axes.
+ const closeness=active==="calin"?.35+.08*Math.sin(t*1.3):
+  active==="bisou"?.37+.05*Math.sin(t*1.5):active==="main"?.10:0;
+ figure.root.position.x=duoReady?figure.mirror*(.82-closeness):
+  (active==="danse"?.08*Math.sin(t*1.75):0);
+ figure.root.position.y=active==="danse"?.07*Math.abs(bounce):
+  .012*Math.sin(t*1.3);
+ figure.root.rotation.y=duoReady?figure.mirror*(active==="danse"?.15*wave:
+  active==="bisou"?.13:active==="calin"?.1:.012*wave):
+  .065*Math.sin(t*1.35);
+ figure.root.rotation.z=duoReady?figure.mirror*(active==="danse"?.07*bounce:
+  active==="calin"?.045*Math.sin(t*1.3):active==="bisou"?.09:.01*Math.sin(t*1.3)):
+  (active==="danse"?.055*bounce:.008*Math.sin(t*1.15));
  function move(name:string,amount:number,axis:import("three").Vector3){
   const entry=figure.bone[name];if(!entry)return;
   const parentQuat=new T.Quaternion();
@@ -56,43 +60,27 @@ function animateFigure(T:Imported,figure:Figure,pose:CouplePose,t:number,duoRead
   const joint=figure.bone[armName];if(!joint)continue;
   const side=joint.side||(armName==="leftArm"?-1:1);
   const near=side===nearSide;
-  // Avaturn's bind pose has arms horizontally extended. Rotating with the
-  // OPPOSITE world-side sign lowers them instead of raising them above the head.
-  const angle=(!duoReady&&pose==="main")?-side*1.32:pose==="danse"?
-    -side*(.83+.50*wave*(near?1:-1)):
-    pose==="calin"?
-    -side*(near?.18+.07*Math.sin(t*1.5):1.03):
-    pose==="bisou"?
-    -side*(.88+.04*wave):
-    -side*(near?.67+.03*wave:1.20+.03*wave);
+  // The imported bind pose is a horizontal T. A ~1.3 radian rotation
+  // brings both arms close to the hips; solo is a relaxed idle, never a hug.
+  const angle=active==="danse"?
+   -side*(.98+.32*Math.sin(t*2.65+(side>0?Math.PI:0))):
+   active==="calin"?
+   -side*(near?.20+.07*Math.sin(t*1.5):1.03):
+   active==="bisou"?
+   -side*(.88+.04*wave):
+   !duoReady?-side*(1.30+.015*Math.sin(t*1.3)):
+   -side*(near?.67+.03*wave:1.20+.03*wave);
   move(armName,angle,z);
  }
- move("leftForearm",pose==="danse"?.37*wave:pose==="calin"?.30:0,z);
- move("rightForearm",pose==="danse"?-.37*wave:pose==="calin"?-.30:0,z);
- move("head",figure.mirror*(pose==="bisou"?.20+.07*Math.sin(t*1.8):
-  pose==="calin"?.11+.03*Math.sin(t*1.6):.02*wave),z);
- move("leftLeg",pose==="danse"?.22*wave:0,x);
- move("rightLeg",pose==="danse"?-.22*wave:0,x);
-}
-/** A neutral 3D presence marker, not a fake low-poly humanoid avatar.
- * The partner's real Avaturn GLB replaces this automatically when uploaded. */
-function makePlaceholder(T:Imported,style:AvatarStyle){
- const root=new T.Group();
- const tint={rose:"#e77fa2",bleu:"#86b2e9",lilas:"#be9ae6",vert:"#87d6c6",soleil:"#f1c787"}[style.outfit];
- const orb=new T.Mesh(new T.IcosahedronGeometry(.40,3),
-  new T.MeshPhysicalMaterial({color:tint,roughness:.16,metalness:.2,clearcoat:1,
-   clearcoatRoughness:.09,transparent:true,opacity:.82}));
- orb.position.y=1.53;root.add(orb);
- const ringMat=new T.MeshBasicMaterial({color:"#eecce9",transparent:true,opacity:.52,
-  side:T.DoubleSide});
- const ring=new T.Mesh(new T.TorusGeometry(.60,.015,9,64),ringMat);
- ring.position.y=1.53;ring.rotation.y=.32;root.add(ring);
- const ring2=new T.Mesh(new T.TorusGeometry(.55,.012,9,64),ringMat.clone());
- ring2.position.y=1.53;ring2.rotation.x=.42;root.add(ring2);
- const base=new T.Mesh(new T.CircleGeometry(.42,40),
-  new T.MeshBasicMaterial({color:tint,transparent:true,opacity:.18}));
- base.rotation.x=-Math.PI/2;base.position.y=.015;root.add(base);
- return root;
+ move("leftForearm",active==="danse"?.20*Math.sin(t*2.5):
+  active==="calin"?.25:0,z);
+ move("rightForearm",active==="danse"?-.20*Math.sin(t*2.5):
+  active==="calin"?-.25:0,z);
+ move("head",duoReady?figure.mirror*(active==="bisou"?.16+.05*Math.sin(t*1.8):
+  active==="calin"?.09+.02*Math.sin(t*1.6):.016*wave):
+  .024*Math.sin(t*1.25),z);
+ move("leftLeg",active==="danse"?.17*Math.sin(t*2.5):0,x);
+ move("rightLeg",active==="danse"?-.17*Math.sin(t*2.5):0,x);
 }
 export default function Avatar3DScene({token,mine,partner,pose,mineStyle,partnerStyle,onUnavailable}:Props){
  const canvas=useRef<HTMLCanvasElement>(null);
@@ -120,21 +108,23 @@ export default function Avatar3DScene({token,mine,partner,pose,mineStyle,partner
     renderer.setClearColor(0x0b1627,0);
     renderer.outputColorSpace=T.SRGBColorSpace;
     renderer.toneMapping=T.NeutralToneMapping;
-    renderer.toneMappingExposure=1.0;
+    renderer.toneMappingExposure=1.18;
     const scene=new T.Scene();
     const camera=new T.PerspectiveCamera(32,1,.1,100);
-    camera.position.set(0,1.5,7.1);
+    camera.position.set(0,1.5,mine&&partner?7.1:6.15);
     camera.lookAt(0,1.4,0);
-    scene.add(new T.HemisphereLight(0xe9edff,0x28304e,1.35));
-    const front=new T.DirectionalLight(0xffffff,2.0);front.position.set(-3,5,5);scene.add(front);
-    const rim=new T.DirectionalLight(0xf7a8da,0.85);rim.position.set(3,3,-4);scene.add(rim);
+    scene.add(new T.HemisphereLight(0xffffff,0x797895,1.9));
+    scene.add(new T.AmbientLight(0xffffff,.65));
+    const front=new T.DirectionalLight(0xffffff,2.35);front.position.set(-3,5,5);scene.add(front);
+    const fill=new T.DirectionalLight(0xeaf3ff,1.20);fill.position.set(4,3,4);scene.add(fill);
+    const rim=new T.DirectionalLight(0xf7a8da,.55);rim.position.set(3,3,-4);scene.add(rim);
     const floor=new T.Mesh(new T.CircleGeometry(2.7,40),
      new T.MeshBasicMaterial({color:0x8b6f9a,transparent:true,opacity:.1}));
     floor.rotation.x=-Math.PI/2;floor.position.y=-.02;scene.add(floor);
     const fetchFigure=async(which:"mine"|"partner",available:boolean,
       style:AvatarStyle,mirror:number):Promise<Figure>=>{
       const root=new T.Group();
-      root.position.x=mirror*-.82;scene.add(root);created.push(root);
+      root.position.x=mine&&partner?mirror*.82:0;scene.add(root);created.push(root);
       const bone:Record<string,BonePose|undefined>={};
       if(available){
        const response=await apiFetch("/api/couple-avatar-model?owner="+which,{
@@ -181,7 +171,10 @@ export default function Avatar3DScene({token,mine,partner,pose,mineStyle,partner
         }
        });
        root.add(model);
-      }else root.add(makePlaceholder(T,style));
+      }else{
+       // No fake humanoid or giant sphere: the solo avatar gets center stage.
+       void style;
+      }
       return {root,bone,mirror};
     };
     const figures=await Promise.all([
