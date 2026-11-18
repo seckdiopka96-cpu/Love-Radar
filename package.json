@@ -10,7 +10,7 @@
     "mobile:sync": "npm run build && npx cap sync",
     "mobile:android": "npm run build && npx cap sync android && npx cap open android",
     "mobile:ios": "npm run build && npx cap sync ios && node scripts/configure-native.mjs ios && npx cap open ios",
-    "test:ludo": "tsx --test tests/ludo-visuals.test.ts tests/ludo-arena.test.ts tests/ludo-solo.test.ts tests/ludo-embedded.test.ts tests/ludo-duo-shared.test.ts tests/ludo-motion-die.test.ts tests/ludo-senegal.test.ts tests/ludo-room.test.ts tests/rps.test.ts tests/couple-party.test.ts tests/notification-routing.test.ts",
+    "test:ludo": "tsx --test tests/ludo-visuals.test.ts tests/ludo-arena.test.ts tests/ludo-solo.test.ts tests/ludo-embedded.test.ts tests/ludo-duo-shared.test.ts tests/ludo-motion-die.test.ts tests/ludo-duo-finish.test.ts tests/ludo-senegal.test.ts tests/ludo-room.test.ts tests/rps.test.ts tests/couple-party.test.ts tests/notification-routing.test.ts",
     "test:rps": "tsx --test tests/rps.test.ts tests/couple-party.test.ts",
     "test:watch": "tsx --test tests/watch-together.test.ts tests/watch-notify.test.ts",
     "test:privacy": "tsx --test tests/privacy-overlay.test.ts tests/screenshot-alert.test.ts",
