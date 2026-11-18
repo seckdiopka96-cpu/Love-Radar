@@ -8,6 +8,62 @@ const worker=readFileSync("public/sw.js","utf8");
 const duo=readFileSync("src/Ludo.tsx","utf8");
 const agreementCSS=readFileSync("src/ludo-duo-color.css","utf8");
 
+test("all real notification kinds open the correct Love Radar content",()=>{
+ const clients=new Map<string,(event:any)=>void>();
+ const self={location:{origin:"https://love-radar.example"},
+  addEventListener:(key:string,handler:(event:any)=>void)=>clients.set(key,handler)};
+ const route=new Script(worker+"\nnotificationTarget",{filename:"public/sw.js"})
+  .runInNewContext({self,URL,URLSearchParams,Date,Promise,Response,Request}) as
+  (input:{tab:string;kind:string;id:string})=>{tab:string;kind:string|null;id:string|null;url:string};
+ const id="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+ const expected:Record<string,string>={
+  "message":"chat","photo":"chat","audio":"chat","call":"chat",
+  "ludo-challenge":"ludo","memory-challenge":"memory","rps-challenge":"rps",
+  "daily-question":"moment","love-signal":"together",
+  "love-letter":"memories","album-memory":"memories",
+  "couple-date":"life","couple-mood":"life","couple-dream":"life",
+  "couple-hug":"life","couple-challenge":"life","couple-gift":"life"
+ };
+ for(const [kind,tab] of Object.entries(expected)){
+  const result=route({tab:"home",kind,id});
+  assert.equal(result.tab,tab,kind+" screen");
+  assert.equal(result.kind,kind,kind+" kind retained");
+  assert.equal(result.id,id,kind+" item retained");
+  const query=new URL(result.url,"https://love-radar.example").searchParams;
+  assert.equal(query.get("kind"),kind);
+  assert.equal(query.get("id"),id);
+  assert.equal(query.get("tab"),tab);
+ }
+ const question=route({tab:"home",kind:"daily-question",id:"2026-11-18"});
+ assert.equal(question.tab,"moment");
+ assert.equal(question.id,"2026-11-18");
+ const malformed=route({tab:"home",kind:"message",id:"../../private"});
+ assert.equal(malformed.kind,null);
+ assert.equal(malformed.tab,"home");
+});
+
+test("iPhone notification routing is confirmed after restoring the private room",()=>{
+ assert.ok(app.includes("setPendingNoticeRouteId(routeId)"));
+ assert.ok(app.includes("if(!routeId||!token||!room||!noticeTarget||tab!==noticeTarget.tab)return"));
+ assert.ok(app.includes('type:"love-radar-ack-notification",routeId'));
+ const handlerStart=app.indexOf('if(data?.type==="love-radar-open-notification")');
+ const handlerEnd=app.indexOf("const onRoute=()=>",handlerStart);
+ assert.ok(handlerStart>=0&&handlerEnd>handlerStart);
+ assert.ok(!app.slice(handlerStart,handlerEnd).includes("love-radar-ack-notification"),
+  "do not acknowledge during an iPhone splash before route is visible");
+ assert.ok(app.includes('navigator.serviceWorker?.addEventListener("controllerchange",requestPendingNotification)'));
+ assert.ok(app.includes('window.addEventListener("focus",requestPendingNotification)'));
+ assert.ok(app.includes('document.addEventListener("visibilitychange",requestPendingNotification)'));
+ assert.ok(app.includes("lastMessageJump.current=\"\""));
+ assert.ok(app.includes("setNoticeTap(n=>n+1)"));
+ assert.ok(app.includes('focusCallId={noticeTarget?.kind==="call"?noticeTarget.id:null}'));
+ assert.ok(app.includes('id={"lr-chat-call-"+entry.call.id}'));
+ const calls=readFileSync("src/VoiceCall.tsx","utf8");
+ assert.ok(calls.includes("focusCallId&&active?.id===focusCallId"));
+ assert.ok(calls.includes("setMinimized(false)"));
+ assert.ok(app.includes('focusKind={noticeTarget?.kind} focusId={noticeTarget?.id}'));
+});
+
 test("notification targets survive an iPhone cold start and open their precise screen",()=>{
  assert.ok(worker.includes('PENDING_ROUTE_CACHE="love-radar-notification-route-v1"'));
  assert.ok(worker.includes("rememberNotificationRoute(destination)"));
