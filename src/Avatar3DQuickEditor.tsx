@@ -36,7 +36,7 @@ export default function Avatar3DQuickEditor({look,disabled,onPreview,onSave,onCa
      className={"lr-3d-swatch"+(look[group.key]===value?" selected":"")}
      onClick={()=>select(group.key,value)}>
      <span className={"lr-3d-swatch-dot"+(value==="original"?" original":"")}
-      style={value==="original"?undefined:{background:group.colors[value]||undefined}}
+      style={value==="original"?undefined:{background:(group.colors as Record<string,string|null>)[value]||undefined}}
       aria-hidden="true">{value==="original"?"↺":null}</span>
      <small>{LABELS[value]||value}</small>
     </button>)}
