@@ -55,7 +55,7 @@ export async function onRequestPost({request,env}:Context):Promise<Response>{
   const price=await stripeFetch(env,"GET","prices/"+encodeURIComponent(env.STRIPE_PRICE_ID));
   if(price.active!==true||price.currency!==PLUS_CURRENCY||
      price.unit_amount!==PLUS_CENTS||price.recurring?.interval!=="month")
-   return fail("Le tarif Stripe ne correspond pas à 3,99 $ par mois. Aucun paiement effectué.",503);
+   return fail("Le tarif Stripe ne correspond pas à 2,99 $ par mois. Aucun paiement effectué.",503);
 
   const form=new URLSearchParams({
    mode:"subscription",

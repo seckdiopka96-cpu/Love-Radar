@@ -19,12 +19,12 @@ test("Discovery has a real guest tour, no room/session creation and playable sol
  assert.ok(!discovery.includes("setToken("),"guest demo must never create an authenticated session");
 });
 
-test("Plus costs 3.99 USD monthly per room and does not replace the free core",()=>{
+test("Plus costs 2.99 USD monthly per room and does not replace the free core",()=>{
  const app=readFileSync("src/App.tsx","utf8");
  const plus=readFileSync("src/LoveRadarPlus.tsx","utf8");
  const home=readFileSync("src/HomeDashboard.tsx","utf8");
  const settings=readFileSync("src/SettingsPage.tsx","utf8");
- assert.equal(PLUS_CENTS,399);
+ assert.equal(PLUS_CENTS,299);
  assert.equal(PLUS_CURRENCY,"usd");
  assert.ok(home.includes('onNavigate("plus")'));
  assert.ok(settings.includes("onOpenPlus"));
@@ -92,4 +92,18 @@ test("Stripe webhook signatures are authenticated and time bounded",async()=>{
  assert.equal(await verifyStripeSignature(payload,header,secret,timestamp+301),false);
  assert.equal(await verifyStripeSignature(payload,header,"incorrect",timestamp),false);
  assert.equal(await verifyStripeSignature(payload,null,secret,timestamp),false);
+});
+
+test("Every Plus entry point shows 2.99 USD, not the former 3.99 price",()=>{
+ const files=["src/LoveRadarPlus.tsx","src/DiscoveryMode.tsx","src/HomeDashboard.tsx",
+  "src/SettingsPage.tsx","functions/api/plus.ts","PLUS-SETUP.md"];
+ for(const path of files){
+  const source=readFileSync(path,"utf8");
+  assert.ok(source.includes("2,99")||source.includes("2.99"),path+" must show the current rate");
+  assert.ok(!source.includes("3,99")&&!source.includes("3.99"),path+" must not show the old rate");
+ }
+ const plus=readFileSync("src/LoveRadarPlus.tsx","utf8");
+ assert.ok(plus.includes("monthlyCents:299"),"initial subscription display matches the server");
+ const api=readFileSync("functions/api/plus.ts","utf8");
+ assert.ok(api.includes("price.unit_amount!==PLUS_CENTS"),"checkout rejects any mismatched Stripe price");
 });

@@ -23,7 +23,7 @@ const CHALLENGES=[
  "Compose un message tendre sans utiliser le mot « amour »."
 ];
 const DEFAULT_STATUS:PlusStatus={active:false,available:false,status:"free",periodEnd:0,
- cancelAtPeriodEnd:false,monthlyCents:399,currency:"usd"};
+ cancelAtPeriodEnd:false,monthlyCents:299,currency:"usd"};
 const EMPTY_IMAGES:{url:string;name:string}[]=[];
 function stripeDestination(url:unknown){
  if(typeof url!=="string")return false;
@@ -107,13 +107,13 @@ export default function LoveRadarPlus({token,roomId,partnerName,nativeApp,theme,
   {returnStatus==="cancel"?<p className="lr-plus-info">Achat abandonné. Aucun accès premium n'a été activé.</p>:null}
   <div className="lr-plus-hero">
    <span>{isActive?"✦ VOTRE COUPLE EST PLUS":"✦ UN ABONNEMENT POUR DEUX"}</span>
-   <div className="lr-plus-pricing"><strong>3,99 $</strong><small>/ mois / couple</small></div>
+   <div className="lr-plus-pricing"><strong>2,99 $</strong><small>/ mois / couple</small></div>
    <p>Les deux partenaires profitent du même abonnement. La messagerie, les appels et vos jeux actuels restent gratuits.</p>
    <div className="lr-plus-status">{loading?"Vérification de l'abonnement…":isActive?"✓ Plus actif pour votre couple":
     status.available?"Plus est disponible":"Abonnement en préparation"}</div>
    {isActive&&status.periodEnd>0?<small>{status.cancelAtPeriodEnd?"Accès jusqu'au":"Période actuelle jusqu'au"} {new Date(status.periodEnd*1000).toLocaleDateString("fr-FR")}</small>:null}
    {!isActive&&status.available&&!nativeApp?<button className="lr-plus-primary" type="button" disabled={busy||loading}
-    onClick={()=>void billing("checkout")}>{busy?"Ouverture du paiement…":"Activer Plus pour 3,99 $ / mois"}</button>:null}
+    onClick={()=>void billing("checkout")}>{busy?"Ouverture du paiement…":"Activer Plus pour 2,99 $ / mois"}</button>:null}
    {nativeApp&&!isActive?<p className="lr-plus-help">L'achat dans l'application native nécessite une configuration Apple/Google. Aucun paiement n'est lancé ici.</p>:null}
    {!status.available&&!loading?<p className="lr-plus-help">Le paiement sera proposé dès la configuration de Stripe. Aucun débit n'est possible actuellement.</p>:null}
    {status.status!=="free"&&status.status!=="canceled"&&status.status!=="incomplete_expired"&&status.available&&!nativeApp?
