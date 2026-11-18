@@ -455,3 +455,9 @@
   transition:none!important;transform:none!important;
  }
 }
+
+/* Keep successive voice notes distinct, including when they alternate senders.
+   Only voice-to-voice messages get this breathing room; text, photos and days keep their spacing. */
+.lr-app.lr-chat-mode .lr-chat .lr-bubble-row.lr-voice-after-voice{
+ margin-top:16px!important;
+}
