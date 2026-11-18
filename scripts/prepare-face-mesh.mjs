@@ -13,6 +13,7 @@ const required=[
  "face_mesh_solution_packed_assets_loader.js",
  "face_mesh_solution_simd_wasm_bin.js",
  "face_mesh_solution_simd_wasm_bin.wasm",
+ "face_mesh_solution_simd_wasm_bin.data",
  "face_mesh_solution_wasm_bin.js",
  "face_mesh_solution_wasm_bin.wasm"
 ];
