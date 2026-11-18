@@ -6,7 +6,7 @@ import type {D1Database,R2Bucket,D1PreparedStatement} from "@cloudflare/workers-
  * D1 databases created before some features existed won't have every table.
  */
 export const ROOM_DATA_TABLES=[
- "message_replies","message_reactions","message_edits","message_favorites","message_hidden",
+ "message_replies","message_reactions","message_edits","message_hidden",
  "message_one_time","messages","e2ee_keys","chat_presence","voice_signals","voice_calls","voice_call_history","voice_call_modes","native_voip_devices","native_android_devices",
  "profile_photos","couple_story_events","couple_stories","keepsake_album","keepsake_letters",
  "couple_moods","couple_dreams","couple_hugs","couple_weekly_challenges","couple_date_nights","couple_surprises",
