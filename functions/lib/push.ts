@@ -22,7 +22,7 @@ export function validPushEndpoint(raw:string):boolean{
 }
 
 type StoredSub={endpoint:string;p256dh:string;auth:string};
-export type PushTarget={kind:"message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"rps-challenge"|"daily-question"|"love-signal";id:string};
+export type PushTarget={kind:"message"|"photo"|"audio"|"call"|"ludo-challenge"|"memory-challenge"|"rps-challenge"|"daily-question"|"love-signal"|"love-letter"|"album-memory";id:string};
 type Tab="chat"|"home"|"ludo"|"memory"|"rps"|"rapid"|"truth"|"memories"|"moment"|"together"|"puzzle"|"watch"|"watch-tiktok"|"reconcile"|"care";
 function notificationRoute(tab:Tab,target?:PushTarget){
  const route=new URLSearchParams({tab});
