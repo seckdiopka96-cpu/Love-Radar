@@ -69,12 +69,12 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const localVideo=useRef<HTMLVideoElement|null>(null);
  const cameraSwitching=useRef(false);
  const lensProcessor=useRef<LensProcessor|null>(null);
+ const lensCanvasHost=useRef<HTMLDivElement|null>(null);
  const lensRequest=useRef(0);
  const cancelPendingStart=useRef(false);
  const playLocalPreview=useCallback(async()=>{
   const element=localVideo.current;
-  const track=lensProcessor.current?.track?.readyState==="live"?lensProcessor.current.track:
-   local.current?.getVideoTracks().find(video=>video.readyState==="live");
+  const track=local.current?.getVideoTracks().find(video=>video.readyState==="live");
   if(!element)return;
   if(!track){
    element.srcObject=null;
@@ -114,6 +114,16 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   localVideo.current=element;
   if(element){setLocalPreviewReady(false);void playLocalPreview()}
  },[playLocalPreview]);
+ const attachLensCanvas=useCallback((element:HTMLDivElement|null)=>{
+  lensCanvasHost.current=element;
+  if(element&&lensProcessor.current?.canvas)element.replaceChildren(lensProcessor.current.canvas);
+ },[]);
+ const refreshLensCanvas=()=>{
+  const host=lensCanvasHost.current;
+  if(!host)return;
+  if(lensProcessor.current?.canvas)host.replaceChildren(lensProcessor.current.canvas);
+  else host.replaceChildren();
+ };
  const signalAfter=useRef(0);
  const isPolling=useRef(false);
  const starting=useRef(false);
@@ -287,6 +297,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(p){p.ontrack=null;p.onicecandidate=null;p.onconnectionstatechange=null;p.oniceconnectionstatechange=null;p.close()}
   lensRequest.current++;
   lensProcessor.current?.stop();lensProcessor.current=null;
+  lensCanvasHost.current?.replaceChildren();
   if(local.current){local.current.getTracks().forEach(track=>track.stop());local.current=null}
   if(remote.current){remote.current.pause();remote.current.srcObject=null}
   if(remoteVideo.current){remoteVideo.current.pause();remoteVideo.current.srcObject=null}
@@ -334,7 +345,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   for(const track of local.current.getAudioTracks())peer.addTrack(track,local.current);
   if(current.current?.mode==="video"){
    const videos=local.current.getVideoTracks();
-   if(videos.length)for(const track of videos)peer.addTrack(lensProcessor.current?.track||track,lensProcessor.current?.stream||local.current);
+   if(videos.length)for(const track of videos)peer.addTrack(lensProcessor.current?.isTransmittable?lensProcessor.current.track:track,lensProcessor.current?.isTransmittable?lensProcessor.current.stream:local.current);
    else peer.addTransceiver("video",{direction:"recvonly"});
   }
   peer.ontrack=event=>{
