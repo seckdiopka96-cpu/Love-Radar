@@ -84,6 +84,7 @@ export async function createLensProcessor(initial:MediaStreamTrack,lens:LoveLens
  if(!track)throw Error("Cet appareil ne permet pas la création d'effets vidéo.");
  let stopped=false,lensId=lens,frame=0,points:FacePoint[]|null=null;
  let trackingPending=false,detectorReady=false,detectorFailed=false,detecting=false,lastDetection=0,detectorSeen=0;
+ let failureCount=0,retryAfter=0,detectorError="";
  let closeDetector:(()=>void)|null=null;
  let sendFrame:((image:HTMLVideoElement)=>Promise<void>)|null=null;
  function setDimensions(){
@@ -93,12 +94,12 @@ export async function createLensProcessor(initial:MediaStreamTrack,lens:LoveLens
   if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
  }
  async function startDetector(){
-  if(stopped||trackingPending||detectorReady||detectorFailed)return;
+  if(stopped||trackingPending||detectorReady||performance.now()<retryAfter)return;
   trackingPending=true;
   try{
    const {FaceMesh}=await import("@mediapipe/face_mesh");
    if(stopped)return;
-   const mesh=new FaceMesh({locateFile:file=>"/face-mesh/"+file});
+   const mesh=new FaceMesh({locateFile:file=>new URL("/face-mesh/"+file,location.origin).href});
    mesh.setOptions({maxNumFaces:1,refineLandmarks:false,minDetectionConfidence:.5,minTrackingConfidence:.52});
    mesh.onResults(results=>{
     if(stopped)return;
@@ -106,11 +107,19 @@ export async function createLensProcessor(initial:MediaStreamTrack,lens:LoveLens
     points=current?.map(pt=>({x:pt.x,y:pt.y,z:pt.z}))||null;
     detectorSeen=performance.now();
    });
+   // Wait for the WASM/model to load before claiming tracking works.
+   await mesh.initialize();
+   if(stopped){void mesh.close();return}
    closeDetector=()=>{void Promise.resolve(mesh.close()).catch(()=>{})};
    sendFrame=async image=>{await mesh.send({image})};
-   detectorReady=true;
-  }catch{
-   detectorFailed=true;points=null;
+   detectorReady=true;detectorFailed=false;failureCount=0;detectorError="";
+  }catch(error){
+   detectorError=error instanceof Error?error.message:String(error);
+   detectorReady=false;points=null;sendFrame=null;
+   // Safari can temporarily lose WebGL while changing cameras/backgrounding.
+   // Retry initialization, instead of permanently disabling face effects.
+   failureCount+=1;retryAfter=performance.now()+Math.min(10000,1500*failureCount);
+   detectorFailed=failureCount>=4;
   }finally{trackingPending=false}
  }
  function tick(now:number){
@@ -120,11 +129,16 @@ export async function createLensProcessor(initial:MediaStreamTrack,lens:LoveLens
    const current=points&&now-detectorSeen<1100?points:null;
    try{drawLoveLens(ctx!,video,canvas,lensId,current,now)}catch{/* A frame cannot break a call. */}
    if(isFaceLens(lensId)){
-    if(!detectorReady&&!trackingPending&&!detectorFailed)void startDetector();
+    if(!detectorReady&&!trackingPending&&(!detectorFailed||performance.now()>retryAfter))void startDetector();
     if(detectorReady&&sendFrame&&!detecting&&now-lastDetection>145){
      detecting=true;lastDetection=now;
-     void sendFrame(video).catch(()=>{detectorFailed=true;detectorReady=false;points=null})
-      .finally(()=>{detecting=false});
+     void sendFrame(video).catch(error=>{
+      detectorError=error instanceof Error?error.message:String(error);
+      detectorReady=false;points=null;sendFrame=null;
+      closeDetector?.();closeDetector=null;
+      failureCount+=1;retryAfter=performance.now()+Math.min(10000,1500*failureCount);
+      detectorFailed=failureCount>=4;
+     }).finally(()=>{detecting=false});
     }
    }
   }
@@ -141,11 +155,12 @@ export async function createLensProcessor(initial:MediaStreamTrack,lens:LoveLens
  return {
   track,stream,canvas,isTransmittable:!previewOnly,
   trackingStatus(){return detectorFailed?"unavailable":!detectorReady?"loading":points?"ready":"missing"},
-  setLens(value){lensId=value;if(isFaceLens(value)&&!detectorReady)void startDetector()},
+  setLens(value){lensId=value;if(isFaceLens(value)&&!detectorReady){failureCount=0;detectorFailed=false;retryAfter=0;void startDetector()}},
   async setSource(source){
    if(stopped)throw Error("Effets fermés.");
    if(source.readyState!=="live")throw Error("Caméra indisponible.");
    video.pause();video.srcObject=new MediaStream([source]);points=null;
+   if(detectorFailed){failureCount=0;detectorFailed=false;retryAfter=0}
    await video.play();
   },
   stop(){
