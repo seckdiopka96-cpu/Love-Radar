@@ -186,6 +186,16 @@ self.addEventListener("notificationclick",event=>{
   for(const client of owned){
    try{
     const focused=await client.focus();
+    // Game invitations are explicit navigation requests. In iOS standalone
+    // mode a one-shot postMessage can be lost during resume, so navigate the
+    // existing app to its exact game URL. Keep the cache fallback as well.
+    if(["ludo-challenge","memory-challenge","rps-challenge"].includes(destination.kind)){
+     try{
+      const routed=await focused.navigate(url);
+      (routed||focused).postMessage({type:"love-radar-open-notification",...destination,routeId});
+      return;
+     }catch{/* Fallback to messaging the existing PWA below. */}
+    }
     focused.postMessage({type:"love-radar-open-notification",...destination,routeId});
     return;
    }catch{/* A closed page is handled below. */}
