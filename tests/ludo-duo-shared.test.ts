@@ -20,9 +20,9 @@ test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()
  const boardSlice=s=>(s.slice(s.indexOf(start),s.indexOf(end))).replace(/^\s+|\s+$/g,"");
  assert.ok(duoHTML.includes(start));
  assert.equal(boardSlice(duoHTML),boardSlice(soloHTML));
- assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v13"'));
- assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v13"'));
- assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v13" defer'));
+ assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v14"'));
+ assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v14"'));
+ assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v14" defer'));
  assert.ok(duoHTML.includes('LUDO <span>♥</span> DUO'));
  assert.ok(duoHTML.includes('id="roll-dice"'));
  assert.ok(duoCSS.includes('.duo-side-actions'));
@@ -66,7 +66,7 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
  'function duoFrameAction(','signRules()', 'giftAction(','ludo-agreement-backdrop','ludo-gift-dialog','ludo-modal-backdrop']){
   assert.ok(parent.includes(unchanged),unchanged);
  }
- assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v13"'));
+ assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v14"'));
  assert.ok(bridge.includes('event.source!==frame'));
  assert.ok(bridge.includes('event.origin!==window.location.origin'));
  assert.ok(!bridge.includes("token:"));
@@ -149,6 +149,64 @@ test("Ludo invitations appear in app without push; pawn motion follows server ti
  assert.ok(parent.includes('serverClockOffset.current-event.at'),"server timeline aligns both phones");
  assert.ok(parent.includes('const completedSteps=route.filter'),"slow devices skip old hop steps");
  assert.ok(parent.includes('Math.max(0,finish-elapsed)'),"pawn reaches square at aligned time");
+});
+
+test("two signed partners converge to the same started game even on slow iPhones",()=>{
+ assert.ok(backend.includes("r?.signed_0_at!=null&&r.signed_1_at!=null&&r.started_at==null"),
+  "server heals missed concurrent two-signature transition");
+ assert.ok(backend.includes("AND signed_0_at IS NOT NULL AND signed_1_at IS NOT NULL"),
+  "server may only start a match with both signatures");
+ assert.ok(backend.includes('data.gameId!==g.game_id'),
+  "a delayed phone may not sign the wrong match");
+ assert.ok(parent.includes('gameId:game.id,acceptRules:true'),
+  "signature is tied to the currently visible game");
+ assert.ok(parent.includes('const agreementEpoch=useRef(0)'),
+  "signatures invalidate in-flight old responses");
+ assert.ok(parent.includes('epoch!==agreementEpoch.current||requestId<syncApplied.current'),
+  "older polls cannot reopen the waiting screen");
+ assert.ok(parent.includes('activeDuoGame.current=Boolean(data.agreement.startedAt)'),
+  "signing immediately updates the local game phase");
+ assert.ok(parent.includes('void load(true)'),"signing forces authoritative refresh");
+ assert.ok(parent.includes('window.addEventListener("focus",visible)'),"iOS resume reloads agreements");
+ assert.ok(parent.includes('↻ Vérifier maintenant'),"a visible recovery action exists if the network stalls");
+});
+test("real Duo base pawn sends one move after a playable six",()=>{
+ const begin=duoJS.indexOf(" function legalPawns(){");
+ const end=duoJS.indexOf(" /** Keep captured pins",begin);
+ assert.ok(begin>=0&&end>begin,"extract actual runtime legalPawns and createPawn");
+ const logic=duoJS.slice(begin,end);
+ const execute=(turn:number,dice:number|null,overlayOpen=false,busy=false,rolling=false)=>{
+  const setup=`
+   const clicks=[];
+   const fakeNode=()=>({
+    dataset:{},disabled:false,className:"",title:"",
+    handlers:{},classList:{remove(){}},
+    setAttribute(){},append(){},
+    addEventListener(type,handler){this.handlers[type]=handler},
+    click(){this.handlers.click?.()}
+   });
+   const document={createElement:()=>fakeNode(),createElementNS:()=>fakeNode()};
+   const label=()=> "Toi";
+   const send=(action,pawn)=>clicks.push([action,pawn]);
+   const state={mySeat:0,game:{status:"playing",turn:${turn},dice:${dice===null?"null":dice},
+    positions:[[-1,-1,-1,-1],[-1,-1,-1,-1]]},busy:${busy},rolling:${rolling},overlayOpen:${overlayOpen}};
+   ${logic}
+   const legal=legalPawns();
+   const pawn=createPawn("red",0,0,legal.includes(0));
+   const initiallyEnabled=!pawn.disabled;
+   pawn.click();pawn.click();
+   ({legal,initiallyEnabled,clicks});
+  `;
+  return new Script(setup).runInNewContext();
+ };
+ const six=execute(0,6);
+ assert.deepEqual(Array.from(six.legal),[0,1,2,3],"every base pawn is legal after a six");
+ assert.equal(six.initiallyEnabled,true,"pin can be tapped on the board");
+ assert.deepEqual(Array.from(six.clicks,Array.from),[["move",0]],"one server-authoritative move, never double");
+ const single=execute(0,5);
+ assert.deepEqual(Array.from(single.legal),[],"no base pawn moves without six");
+ for(const blocked of [execute(1,6),execute(0,6,true),execute(0,6,false,true),execute(0,6,false,false,true)])
+  assert.equal(blocked.initiallyEnabled,false,"opponent turn or modal/pending roll must not allow a move");
 });
 test("live Duo synchronizes promptly with conditional server reads",()=>{
  assert.ok(parent.includes('activeDuoGame=useRef(false)'),"avoid fast path until both signed");
@@ -314,7 +372,7 @@ test("Solo and Duo share a stable stage, and dice respond in under a half-second
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .game-screen{"),
   "Duo does not move or resize the game stage with a different theme");
  assert.ok(soloFrame.includes("ludo-room-20261118-v6"));
- assert.ok(bridge.includes("ludo-room-20261118-v13"));
+ assert.ok(bridge.includes("ludo-room-20261118-v14"));
 });
 
 test("one playable pawn exits its base on tap and die gives clear turn feedback",()=>{

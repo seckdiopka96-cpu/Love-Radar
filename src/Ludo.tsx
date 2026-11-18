@@ -53,6 +53,11 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  // Conditional refreshes only apply after both players have signed.
  const activeDuoGame=useRef(false);
  const lastFullRefresh=useRef(0);
+ // Ignore delayed polls started before a signed agreement or a newer snapshot.
+ // Otherwise a slow iPhone response can reopen "Prêts à jouer ?" after signing.
+ const agreementEpoch=useRef(0);
+ const syncRequested=useRef(0);
+ const syncApplied=useRef(0);
  
  const [presence,setPresence]=useState<Presence>([{online:false,joinedAt:null},{online:false,joinedAt:null}]);
  const [partnerJustJoined,setPartnerJustJoined]=useState(false);
@@ -198,17 +203,20 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
   setGame(latest);
  },[clearMotionTimers,playSound]);
 
- const load=useCallback(async()=>{
+ const load=useCallback(async(forceFull=false)=>{
+  const epoch=agreementEpoch.current;
+  const requestId=++syncRequested.current;
   try{
    const previous=prior.current;
    // Version-only checks can miss a partner joining or leaving.
-   const quick=Boolean(previous&&activeDuoGame.current&&previous.status==="playing"&&
+   const quick=Boolean(!forceFull&&previous&&activeDuoGame.current&&previous.status==="playing"&&
     Date.now()-lastFullRefresh.current<3200);
    const endpoint=quick&&previous?"/api/ludo?since="+previous.version+"&game="+encodeURIComponent(previous.id):"/api/ludo";
    const res=await apiFetch(endpoint,{headers:{Authorization:"Bearer "+token},cache:"no-store"});
    const data=await res.json() as ResponseData;
    if(!res.ok||!data.ok)throw Error(data.error||"Connexion au jeu impossible.");
-   if(!isActive.current)return;
+   if(!isActive.current||epoch!==agreementEpoch.current||requestId<syncApplied.current)return;
+   syncApplied.current=requestId;
    if(!quick)lastFullRefresh.current=Date.now();
    if(data.presence)setPresence(data.presence);
    if(typeof data.serverNow==="number")serverClockOffset.current=data.serverNow-Date.now();
@@ -258,16 +266,20 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    }
   };
   const visible=()=>{
+   // Resuming on iPhone must fetch agreement metadata, not just move version.
+   lastFullRefresh.current=0;
    if(timer!==null){window.clearTimeout(timer);timer=null}
    if(document.visibilityState==="visible"&&!inFlight)void poll();
   };
   void poll();
   document.addEventListener("visibilitychange",visible);
+  window.addEventListener("focus",visible);
   return()=>{
    stopped=true;
    isActive.current=false;
    if(timer!==null)window.clearTimeout(timer);
    document.removeEventListener("visibilitychange",visible);
+   window.removeEventListener("focus",visible);
    if(effectTimeout.current!==null)window.clearTimeout(effectTimeout.current);
    clearMotionTimers();
   };
@@ -421,21 +433,33 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
 
  async function signRules(){
   if(signBusy||!game||agreement?.startedAt||agreement?.signed[mySeat])return;
+  // Invalidate the pending poll before sending the signature.
+  agreementEpoch.current++;
   setSignBusy(true);setError("");
   try{
    const response=await apiFetch("/api/ludo",{method:"POST",
     headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
-    body:JSON.stringify({action:"sign_rules",acceptRules:true,signed:true,giftConsent:giftOptIn})
+    body:JSON.stringify({action:"sign_rules",gameId:game.id,acceptRules:true,signed:true,giftConsent:giftOptIn})
    });
    const data=await response.json() as ResponseData;
    if(!response.ok||!data.ok)throw Error(data.error||"Impossible d’enregistrer la signature.");
-   if(data.agreement)setAgreement(data.agreement);
+   agreementEpoch.current++;
+   if(data.agreement){
+    setAgreement(data.agreement);
+    activeDuoGame.current=Boolean(data.agreement.startedAt);
+   }
    if(data.gift)setGift(data.gift);
    if(data.palette)setPalette(data.palette);
    if(typeof data.serverNow==="number")serverClockOffset.current=data.serverNow-Date.now();
    if(data.game)onGame(data.game,data.moveEvent);
    if(typeof data.serverNow==="number")setClockOffset(data.serverNow-Date.now());
-  }catch(e){setError(e instanceof Error?e.message:"Signature non enregistrée.")}
+   // Read the same authoritative agreement immediately on the signer's device.
+   void load(true);
+  }catch(e){
+   agreementEpoch.current++;
+   setError(e instanceof Error?e.message:"Signature non enregistrée.");
+   void load(true);
+  }
   finally{setSignBusy(false)}
  }
 
@@ -450,7 +474,8 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
    const data=await res.json() as ResponseData;
    if(!res.ok||!data.ok)throw Error(data.error||"Cette couleur n’est pas disponible.");
    if(data.palette)setPalette(data.palette);
-  }catch(e){setError(e instanceof Error?e.message:"Impossible de sélectionner cette couleur.");void load()}
+   void load(true);
+  }catch(e){setError(e instanceof Error?e.message:"Impossible de sélectionner cette couleur.");void load(true)}
   finally{setColorBusy(false)}
  }
  async function sendReaction(emoji:string){
@@ -673,7 +698,9 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
     {challengeId&&game?.id!==challengeId?<div className="ludo-challenge-alert" role="status">⏳ L’ancien défi est terminé. Voici votre partie actuelle.</div>:null}
     {challenge&&challenge.gameId===game?.id&&challenge.fromSeat!==mySeat?<div className="ludo-challenge-alert" role="status">🎲 {challenge.fromName} t’invite à jouer !</div>:null}
     <div className="ludo-presence-status" role="status" aria-live="polite">
-     {presence[1-mySeat]?.online?"🟢 "+displayName(1-mySeat)+" a rejoint la partie":"⚪ En attente de "+displayName(1-mySeat)+"…"}
+     {otherSigned?"✅ "+displayName(1-mySeat)+" est prêt·e à jouer":
+      presence[1-mySeat]?.online?"🟢 "+displayName(1-mySeat)+" est connecté·e · accord à confirmer":
+      "⚪ "+displayName(1-mySeat)+" n'a pas encore rejoint le jeu"}
     </div>
     <div className="ludo-agreement-status" aria-label="Accord des deux joueurs">
      {[0,1].map(seat=><div key={seat} className={"ludo-agreement-player"+(agreement?.signed[seat]?" is-signed":"")}>
@@ -716,10 +743,16 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
      <div className="ludo-agreement-wait" role="status">
       <span className="ludo-agreement-bigcheck" aria-hidden="true">✓</span>
       <h3>Tu es prêt·e !</h3>
-      <p>{otherSigned?"Vous êtes prêts tous les deux. La partie commence !":"En attente de "+displayName(1-mySeat)+"…"}</p>
+      <p>{otherSigned?"Vous êtes prêts tous les deux. Synchronisation de la partie…":
+        presence[1-mySeat]?.online?displayName(1-mySeat)+" doit encore confirmer l'accord…":
+        "En attente de "+displayName(1-mySeat)+"…"}</p>
       <small>{agreement?.giftChoices[mySeat]?"Défi cadeau accepté":"Partie sans cadeau de ton côté"}</small>
      </div>
     </>}
+    {mySigned?<button type="button" className="ludo-challenge-refresh"
+      onClick={()=>void load(true)} aria-label="Actualiser l'accord des deux joueurs">
+      ↻ Vérifier maintenant
+     </button>:null}
     {!otherSigned?<button type="button" className="ludo-challenge-send" disabled={challengeBusy} onClick={()=>void sendChallenge()}>
      {challengeBusy?"Envoi…":"↗ Inviter mon partenaire"}
     </button>:null}

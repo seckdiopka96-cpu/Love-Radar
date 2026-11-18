@@ -179,8 +179,19 @@ async function challenge(db:D1Database,g:Game):Promise<Challenge|null>{
 }
 
 async function agreement(db:D1Database,g:Game):Promise<Agreement>{
- const r=await db.prepare("SELECT * FROM ludo_agreements WHERE room_id=? AND game_id=?")
+ let r=await db.prepare("SELECT * FROM ludo_agreements WHERE room_id=? AND game_id=?")
  .bind(g.room_id,g.game_id).first<AgreementRow>();
+ // Heal a concurrent double-signature whose start transition was missed.
+ // This is idempotent and remains scoped to the authenticated current game.
+ if(r?.signed_0_at!=null&&r.signed_1_at!=null&&r.started_at==null){
+  await db.prepare(
+   "UPDATE ludo_agreements SET started_at=?,updated_at=? "+
+   "WHERE room_id=? AND game_id=? AND started_at IS NULL "+
+   "AND signed_0_at IS NOT NULL AND signed_1_at IS NOT NULL"
+  ).bind(Math.max(r.signed_0_at,r.signed_1_at),Date.now(),g.room_id,g.game_id).run();
+  r=await db.prepare("SELECT * FROM ludo_agreements WHERE room_id=? AND game_id=?")
+   .bind(g.room_id,g.game_id).first<AgreementRow>();
+ }
  return {signed:[Boolean(r?.signed_0_at),Boolean(r?.signed_1_at)],
   names:[r?.signed_0_name??null,r?.signed_1_name??null],
   signedAt:[r?.signed_0_at??null,r?.signed_1_at??null],
@@ -431,6 +442,8 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    return reply({ok:true,challenge:await challenge(db,g),notificationRequested:true});
   }
   if(action==="sign_rules"){
+   if(typeof data.gameId!=="string"||data.gameId!==g.game_id)
+    return fail("La manche a changé. Recharge l'accord avant de signer.",409);
    if(g.status!=="playing")return fail("Cette manche est déjà terminée.",409);
    if(signed?.startedAt)return fail("La partie a déjà commencé. Un nouvel accord sera proposé à la prochaine manche.",409);
    if(data.acceptRules!==true||data.signed!==true)return fail("Lis les règles et coche la case de signature pour valider.",400);

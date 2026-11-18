@@ -155,6 +155,7 @@
   const use=document.createElementNS("http://www.w3.org/2000/svg","use");use.setAttribute("href","#pin-shape");
   svg.append(use);b.append(svg);
   if(selectable)b.addEventListener("click",()=>{
+   if(b.disabled)return;
    // Freeze this button immediately: the React parent guards concurrent writes.
    b.disabled=true;b.classList.remove("piece--selectable");
    send("move",index);

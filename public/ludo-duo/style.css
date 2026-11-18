@@ -155,3 +155,9 @@
 .lr-ludo-duo-ui .dice-3d.is-rolling{
  animation-duration:.28s!important;
 }
+.ludo-experience .ludo-challenge-refresh{
+ display:block;width:100%;margin:9px auto 0;padding:10px 14px;
+ border:1px solid #8bb7c6;border-radius:13px;
+ background:#1a3c5b;color:#d8f2ff;font-weight:750;
+ cursor:pointer;touch-action:manipulation;
+}
