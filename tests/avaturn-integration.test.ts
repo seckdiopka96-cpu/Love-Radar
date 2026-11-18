@@ -138,8 +138,8 @@ test("GLB diagnostics distinguish grayscale files from textured rigged models wi
   "my character starts on left, partner on right");
  assert.ok(viewer.includes("const correction=parentQuat.clone().invert()"),
   "skeleton posing uses world axes instead of guessing bone axes");
- assert.ok(viewer.includes("side*(1.12+.19*wave)"),
-  "dance visibly raises arms on supported rigs");
+ assert.ok(viewer.includes("-side*(.83+.50*wave*(near?1:-1))"),
+  "dance bends horizontally extended Avaturn arms naturally");
  assert.ok(read("src/avaturn-3d.css").includes(".lr-avatar-three-warning"));
 });
 
