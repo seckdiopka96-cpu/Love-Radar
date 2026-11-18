@@ -275,3 +275,12 @@ CREATE TABLE IF NOT EXISTS couple_surprises(
  image_key TEXT,image_mime TEXT,audio_key TEXT,audio_mime TEXT,opened_at INTEGER,created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_surprises_room ON couple_surprises(room_id,created_at DESC);
+
+-- One paid subscription per room. Both partners inherit the same Plus entitlement.
+CREATE TABLE IF NOT EXISTS room_plus(
+ room_id TEXT PRIMARY KEY,customer_id TEXT,subscription_id TEXT,
+ status TEXT NOT NULL DEFAULT 'inactive',
+ period_end INTEGER NOT NULL DEFAULT 0,
+ cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
+ event_created INTEGER NOT NULL DEFAULT 0
+);
