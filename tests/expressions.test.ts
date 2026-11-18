@@ -124,3 +124,22 @@ test("GIF provider is the default expression tab only when a GIPHY key is config
  assert.ok(picker.includes('useState<Mode>(GIPHY_KEY?"gif":"stickers")'));
  assert.ok(picker.includes('if(mode!=="gif"||!GIPHY_KEY||gifGroup!=="trending")return;'));
 });
+
+test("Pages CSP allows GIPHY API requests and animated media without opening other origins",()=>{
+ const headers=readFileSync("public/_headers","utf8");
+ const csp=headers.match(/^\s*Content-Security-Policy:\s*(.+)$/m)?.[1]||"";
+ assert.ok(csp,"Cloudflare Pages must publish a CSP");
+ const rules=Object.fromEntries(csp.split(";").map(part=>part.trim().split(/\s+/))
+  .filter(parts=>parts.length>1).map(([directive,...sources])=>[directive,sources]));
+ const connections=rules["connect-src"]||[];
+ const images=rules["img-src"]||[];
+ assert.ok(connections.includes("https://api.giphy.com"),"Safari fetch must be permitted by connect-src");
+ assert.ok(images.includes("https://*.giphy.com"),"GIF thumbnails from media0..N.giphy.com must be permitted");
+ assert.ok(!connections.includes("*")&&!images.includes("*"),"CSP must stay narrowly scoped");
+ assert.ok((rules["default-src"]||[]).includes("'self'"));
+ const provider=readFileSync("src/gif-provider.ts","utf8");
+ assert.ok(provider.includes('new URL("https://api.giphy.com/v1/gifs"+path)'),"CSP matches direct provider requests");
+ assert.ok(provider.includes('response.status===429'),"explain rate-limit problems");
+ assert.ok(provider.includes('response.status===401||response.status===403'),"explain invalid API key");
+ assert.ok(provider.includes('Connexion à GIPHY impossible.'),"avoid raw WebKit Load failed errors");
+});
