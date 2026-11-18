@@ -95,7 +95,7 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
    <div className="lr-avatar-studio-stage-heading"><span>✧</span> VOTRE DUO <span>✧</span></div>
    <CoupleAvatarDuo mine={draft} partner={data.partner||DEFAULT_PARTNER_AVATAR}
     pose={posePreview} mode="hero" mineName={myName} partnerName={partnerName}
-    token={token} mine3d={Boolean(data.mine3d)} partner3d={Boolean(data.partner3d)}/>
+    token={token} mine3d={Boolean(data.mine3d)} partner3d={Boolean(data.partner3d)} modelVersion={data.version}/>
    <div className="lr-avatar-studio-names"><span><i/> {myName}</span><span><i/> {partnerName}</span></div>
    {!data.partner&&hasPartner?<p className="lr-avatar-studio-hint">Ton partenaire personnalisera son personnage de son côté.</p>:null}
    {!hasPartner?<p className="lr-avatar-studio-hint">Invite ton partenaire pour retrouver vos deux avatars.</p>:null}
