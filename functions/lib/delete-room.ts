@@ -18,6 +18,7 @@ export const ROOM_DATA_TABLES=[
  "ludo_reaction_events","ludo_move_events","ludo_games",
  "ludo_senegal_reactions","ludo_senegal_moves","ludo_senegal_games",
  "rps_games","couple_party_games","couple_puzzles","couple_puzzle_presence",
+ "duo_draw_games","duo_escape_games",
  "couple_watch_presence","couple_watch_sessions",
  "couple_tiktok_presence","couple_tiktok_watch",
  "couple_reconciliations","push_subscriptions","room_revisions","partner_recovery"

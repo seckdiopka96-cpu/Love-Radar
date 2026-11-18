@@ -184,7 +184,7 @@ test("both new games are accessible, authenticated, and erased with room deletio
  assert.ok(api.includes('deadline_at>? AND "+col+" IS NULL'),"a player can only submit once before the deadline");
  assert.ok(!api.includes("correct:q.answer"));
  assert.ok(push.includes('"rapid"|"truth"'));
- assert.ok(sw.includes('"rps","rapid","truth"'));
+ assert.ok(sw.includes('"rps","draw","escape","rapid","truth"'));
  assert.ok(deletion.includes('"couple_party_games"'));
  assert.ok(schema.includes("CREATE TABLE IF NOT EXISTS couple_party_games"));
  assert.ok(ui.includes('window.setInterval(()=>void refresh(true),900)'));

@@ -116,6 +116,8 @@ test("scheduled daily prayer notification is once per member/day/prayer and neve
  const h=harness();
  const now=Date.now(),clock=localClock(now,"Africa/Dakar");
  const clockTime=clock.time;
+ const futureTime=(add:number)=>{const [hour,minute]=clockTime.split(":").map(Number);
+  const total=(hour*60+minute+add)%1440;return String(Math.floor(total/60)).padStart(2,"0")+":"+String(total%60).padStart(2,"0");};
  await h.request("a"); // Initialize schema.
  const stamp=Date.now();
  h.sqlite.prepare("INSERT INTO care_prayer_settings VALUES(?,?,?,?,?,?,?,?)")
@@ -123,7 +125,7 @@ test("scheduled daily prayer notification is once per member/day/prayer and neve
  const prior=globalThis.fetch;
  globalThis.fetch=async()=>new Response(JSON.stringify({code:200,data:{
   meta:{timezone:"Africa/Dakar"},
-  timings:{Fajr:clockTime,Dhuhr:"11:11",Asr:"14:14",Maghrib:"19:19",Isha:"21:21"}
+  timings:{Fajr:clockTime,Dhuhr:futureTime(10),Asr:futureTime(20),Maghrib:futureTime(30),Isha:futureTime(40)}
  }}),{status:200,headers:{"Content-Type":"application/json"}});
  try{
   assert.equal(await deliverPrayerReminders(h.DB,h.env,now),1);
