@@ -1,6 +1,6 @@
 import "./games-hub.css";
 
-type Game="rapid"|"truth"|"rps"|"ludo-room"|"ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo"|"memory";
+type Game="rapid"|"truth"|"rps"|"ludo-room"|"ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo"|"memory"|"draw"|"escape";
 type Props={onOpenGame:(game:Game)=>void;partnerName:string|null};
 
 /** Original, consistent vector artwork — no robot or emoji graphics. */
@@ -9,6 +9,8 @@ function GameArtwork({game}:{game:Game}){
  const solo=game==="ludo-solo"||game==="ludo-senegal-solo";
  const memory=game==="memory";
  const rps=game==="rps";
+ const draw=game==="draw";
+ const escape=game==="escape";
  const rapid=game==="rapid";
  const truth=game==="truth";
  return <span className={"lr-games-symbol lr-games-art lr-games-art-"+game} aria-hidden="true">
@@ -28,6 +30,17 @@ function GameArtwork({game}:{game:Game}){
     <text x="21" y="32" textAnchor="middle" fontSize="26">✊</text>
     <text x="51" y="52" textAnchor="middle" fontSize="27">✌</text>
     <path d="M34 17 39 19 36 23 43 26" stroke="#FFCB91" strokeWidth="3" strokeLinecap="round"/>
+   </g>:draw?<g>
+    <rect x="11" y="9" width="50" height="54" rx="11" fill="#284c65" stroke="#a5e5ec" strokeWidth="2"/>
+    <path d="M22 44 38 23l8 7-16 22-10 3 2-11Z" fill="#f4a9ce" stroke="#ffe0f0" strokeWidth="2.2" strokeLinejoin="round"/>
+    <path d="m38 23 4-5a5 5 0 0 1 8 6l-4 6Z" fill="#ffdfab"/>
+    <path d="M19 20c4-7 11-7 15-3M43 49c6-2 12 0 14 5" stroke="#a9ecda" strokeWidth="2.5" strokeLinecap="round"/>
+   </g>:escape?<g>
+    <rect x="13" y="9" width="46" height="55" rx="9" fill="#394264" stroke="#eabbe2" strokeWidth="2.4"/>
+    <path d="M28 27v-7a8 8 0 0 1 16 0v7" stroke="#ffdda7" strokeWidth="4" strokeLinecap="round"/>
+    <rect x="24" y="26" width="24" height="23" rx="5" fill="#e7a7ce" stroke="#fff1ed" strokeWidth="1.5"/>
+    <circle cx="36" cy="36" r="3.2" fill="#513d62"/><path d="M36 39v5" stroke="#513d62" strokeWidth="2.6"/>
+    <path d="M18 54h36M20 58h31" stroke="#9bc4d1" strokeWidth="2" strokeLinecap="round"/>
    </g>:memory?<>
     <rect x="12" y="10" width="35" height="47" rx="7" transform="rotate(-10 12 10)" fill="#284D5B" stroke="#9FC7C8" strokeWidth="2"/>
     <rect x="28" y="16" width="35" height="47" rx="7" fill="#345564" stroke="#C5DDDA" strokeWidth="2.2"/>
@@ -58,7 +71,7 @@ function GameArtwork({game}:{game:Game}){
     </g>}
    </>}
   </svg>
-  <span className="lr-games-art-label">{rapid?"QUIZ":truth?"À DEUX":solo?"SOLO":memory?"MEMORY":rps?"LIVE":"DUO"}</span>
+  <span className="lr-games-art-label">{rapid?"QUIZ":truth?"À DEUX":draw?"DESSIN":escape?"ÉVASION":solo?"SOLO":memory?"MEMORY":rps?"LIVE":"DUO"}</span>
  </span>;
 }
 
@@ -82,6 +95,14 @@ export default function GamesHub({onOpenGame,partnerName}:Props){
     <GameArtwork game="rps"/>
     <span className="lr-games-copy"><small>EN DIRECT · À DEUX</small><strong>Pierre · Papier · Ciseaux</strong><span>Choix secrets, révélation simultanée, points et revanche en temps réel.</span><b>Défier mon partenaire →</b></span>
    </button>
+   <button type="button" className="lr-games-choice lr-games-draw" onClick={()=>onOpenGame("draw")}>
+    <GameArtwork game="draw"/>
+    <span className="lr-games-copy"><small>CRAYON & DEVINETTES · À DEUX</small><strong>Devine mon dessin</strong><span>Un mot secret, un dessin en direct et 75 secondes pour le trouver. Les rôles s'inversent !</span><b>Prendre le crayon →</b></span>
+   </button>
+   <button type="button" className="lr-games-choice lr-games-escape" onClick={()=>onOpenGame("escape")}>
+    <GameArtwork game="escape"/>
+    <span className="lr-games-copy"><small>ÉNIGMES COOPÉRATIVES · À DEUX</small><strong>Escape Room Duo</strong><span>Trois salles mystérieuses, des indices différents et un compte à rebours pour s'échapper.</span><b>Entrer dans la salle →</b></span>
+   </button>
    <button type="button" className="lr-games-choice lr-games-ludo lr-games-ludo-room-card" onClick={()=>onOpenGame("ludo-room")}>
     <GameArtwork game="ludo"/>
     <span className="lr-games-copy"><small>🎲 UNE SEULE SALLE · 4 MODES</small><strong>La salle Ludo</strong><span>Classique ou Sénégal, en Solo ou Duo : choisis ton plateau dans notre salle Ludo.</span><b>Découvrir les quatre jeux ›</b></span>
@@ -91,6 +112,6 @@ export default function GamesHub({onOpenGame,partnerName}:Props){
     <span className="lr-games-copy"><small>JEU DE MÉMOIRE</small><strong>Memory Love</strong><span>Retrouvez les paires et relevez le défi.</span><b>Jouer à Memory →</b></span>
    </button>
   </div>
-  <p className="lr-games-note">Questions rapides, Action ou vérité, Pierre · Papier · Ciseaux, Ludo et Memory : jouez ensemble, même à distance.</p>
+  <p className="lr-games-note">Quiz, Dessin Duo, Escape Room, Pierre · Papier · Ciseaux, Ludo et Memory : jouez ensemble, même à distance.</p>
  </section>;
 }
