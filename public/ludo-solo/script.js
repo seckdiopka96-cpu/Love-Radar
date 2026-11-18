@@ -555,7 +555,7 @@
     busy=true;game.phase="rolling";
     game.message=(side==="human"?"Tu lances":"L’ordinateur lance")+" le dé…";
     render();
-    await sleep(reducedMotion?170:690);
+    await sleep(reducedMotion?120:330);
     if (!isCurrent(tokenGeneration)) return;
     const value=getRoll();
     lastRoll=value;
@@ -571,7 +571,7 @@
         if (!isCurrent(tokenGeneration)) return;
         actionTimer=null;
         endTurnWithoutMove(side,game.message);
-      },reducedMotion?260:850);
+      },reducedMotion?220:450);
       return;
     }
     const legal=validMoves(side,value);
@@ -584,7 +584,7 @@
         if (!isCurrent(tokenGeneration)) return;
         actionTimer=null;
         endTurnWithoutMove(side,game.message);
-      },reducedMotion?260:850);
+      },reducedMotion?220:450);
       return;
     }
     game.phase="choose";
@@ -617,7 +617,7 @@
     computerTimer=setTimeout(()=>{
       computerTimer=null;
       if (isCurrent(tokenGeneration)&&game.turn==="cpu"&&game.phase==="roll") void rollDie("cpu");
-    },reducedMotion?260:820);
+    },reducedMotion?220:480);
   }
 
   function showVictory() {

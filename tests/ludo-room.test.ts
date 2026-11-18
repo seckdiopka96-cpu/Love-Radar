@@ -34,16 +34,16 @@ test("one visible Ludo entrance opens the room with all four games",()=>{
 });
 
 test("classic Duo loads the newest shared board, never a cached legacy iframe",()=>{
- const duoVersion="ludo-room-20261118-v10";
- const soloVersion="ludo-room-20261117-v5";
+ const duoVersion="ludo-room-20261118-v11";
+ const soloVersion="ludo-room-20261118-v6";
  assert.ok(duoFrame.includes('/ludo-duo/index.html?v='+duoVersion));
  assert.ok(soloFrame.includes('&v='+soloVersion));
  assert.ok(duoHTML.includes('../ludo-solo/style.css?v='+duoVersion));
  assert.ok(duoHTML.includes('./script.js?v='+duoVersion));
  assert.ok(soloHTML.includes('./style.css?v='+soloVersion));
- assert.ok(duoCSS.includes(".lr-ludo-duo-ui .app"));
- assert.ok(duoCSS.includes(".lr-ludo-duo-ui .board-frame"));
- assert.ok(read("public/sw.js").includes('love-radar-static-v135'));
+ assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .app{"),"Duo must not replace the stable Solo stage with a purple skin");
+ assert.ok(duoCSS.includes("Same blue background, board border"),"Duo inherits Solo board/frame and rail styles");
+ assert.ok(read("public/sw.js").includes('love-radar-static-v136'));
 });
 
 test("the eight classic safe cells each have a visible star on both boards",()=>{
@@ -71,5 +71,5 @@ test("all modes have a prominent shared Ludo logo, stronger shadows, and distinc
  assert.ok(visual.includes(".ludo-experience .ludo-head-logo"));
  assert.ok(senegalCSS.includes(".ludo-experience.ludo-senegal-solo"));
  assert.ok(senegalCSS.includes(".ludo-experience.ludo-senegal-duo"));
- assert.ok(duoCSS.includes(".lr-ludo-duo-ui .game-screen"));
+ assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .game-screen{"),"Duo keeps the Solo fixed stage layout");
 });

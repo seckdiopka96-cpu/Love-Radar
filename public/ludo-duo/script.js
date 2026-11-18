@@ -100,15 +100,19 @@
    movingPawn.append(progress);
    const from=getPosition(c,m.from,m.pawn);
    movingPawn.style.left=from.x+"%";movingPawn.style.top=from.y+"%";
+   movingPawn.dataset.motionProgress=String(m.from);
    movementLayer.replaceChildren(movingPawn);
   }
-  const to=getPosition(c,m.progress,m.pawn);
   const progress=movingPawn.querySelector(".piece-step-counter");
   if(progress)progress.textContent=Math.max(0,m.progress-m.from)+" / "+Math.max(1,m.to-m.from);
-  if(m.progress!==m.from){
+  // Countdown and polling can send the same pawn location more than once.
+  // Replaying that CSS transition causes a jitter that Solo never has.
+  if(m.progress!==m.from&&movingPawn.dataset.motionProgress!==String(m.progress)){
    const pawn=movingPawn;
+   pawn.dataset.motionProgress=String(m.progress);
+   const to=getPosition(c,m.progress,m.pawn);
    requestAnimationFrame(()=>{
-    if(pawn!==movingPawn)return;
+    if(pawn!==movingPawn||pawn.dataset.motionProgress!==String(m.progress))return;
     pawn.classList.remove("is-hopping");
     void pawn.offsetWidth;
     pawn.classList.add("is-hopping");
@@ -340,7 +344,7 @@
    // Recreate a short dice roll for the partner, once per server roll.
    if(receivedState&&last.seat!==state.mySeat&&!state.rolling){
     if(remoteDieTimer!==null)clearTimeout(remoteDieTimer);
-    remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},650);
+    remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},250);
    }
   }
   const rollingNow=Boolean(state.rolling)||remoteDieTimer!==null;
@@ -396,7 +400,14 @@
   state=p;
   render();
  });
- roll.addEventListener("click",()=>{if(!roll.disabled)send("roll")});
+ roll.addEventListener("click",()=>{
+  if(roll.disabled)return;
+  // Show a response on tap; the authoritative dice result still comes from D1.
+  roll.disabled=true;
+  dice.classList.add("is-rolling");
+  status.textContent="🎲 Le dé roule…";
+  send("roll");
+ });
  document.getElementById("choose-again").addEventListener("click",()=>send("exit"));
  matchButton.addEventListener("click",()=>{if(state?.game?.status==="won")send("restart")});
  document.getElementById("show-rules").addEventListener("click",()=>{
