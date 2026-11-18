@@ -9,11 +9,11 @@ type DailyOverview={ok:boolean;question:string;mine:{text:string}|null;partnerAn
 type Reaction={message_id:string;member_id:string;emoji:string;updated_at:number;kind:"text"|"image"|"audio";content:string|null};
 type Room={user:{id:string;name:string;seat:number};partner:string|null;code:string;partnerLastSeenAt?:number;messages:Message[];recentReaction?:Reaction|null;unreadCount?:number};
 type Props={
- room:Room;token:string;media:Record<string,string>;privacyEnabled:boolean;
+ room:Room;token:string;media:Record<string,string>;privacyEnabled:boolean;plusActive:boolean;
  mineAvatar?:string;partnerAvatar?:string;onEditProfile:()=>void;onInvite:()=>void;
- onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"watch"|"reconcile"|"puzzle"|"story"|"reunion"|"games")=>void;
+ onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"watch"|"reconcile"|"puzzle"|"story"|"reunion"|"games"|"plus")=>void;
 };
-export default function HomeDashboard({room,token,mineAvatar,partnerAvatar,onEditProfile,onInvite,onNavigate}:Props){
+export default function HomeDashboard({room,token,mineAvatar,partnerAvatar,onEditProfile,onInvite,onNavigate,plusActive}:Props){
  const [daily,setDaily]=useState<DailyOverview|null>(null);
  const [game,setGame]=useState<Game|null>(null);
  useEffect(()=>{
@@ -81,6 +81,11 @@ export default function HomeDashboard({room,token,mineAvatar,partnerAvatar,onEdi
    <button type="button" onClick={()=>onNavigate("watch")}><span className="lr-home-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="m10 8 6 4-6 4Z" fill="currentColor" stroke="none"/></svg></span><span><strong>Regarder</strong><small>À deux</small></span><b>↗</b></button>
    <button type="button" onClick={()=>onNavigate("reconcile")}><span className="lr-home-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v4a5 5 0 0 0 10 0v-4"/><path d="M5 10V9a7 7 0 0 1 14 0v1M5 10H3v5h4v-5Zm14 0h2v5h-4v-5Z"/><path d="M15 20h-2"/></svg></span><span><strong>S’écouter</strong><small>Se comprendre</small></span><b>↗</b></button>
   </div>
+  <section className="lr-plus-invite" aria-label="Love Radar Plus">
+   <div><strong>{plusActive?"✦ Vos avantages Love Radar Plus":"✦ Découvrez Love Radar Plus"}</strong>
+    <small>{plusActive?"Thèmes, défis et livre souvenir disponibles.":"3,99 $/mois par couple · votre messagerie reste gratuite."}</small></div>
+   <button type="button" onClick={()=>onNavigate("plus")}>{plusActive?"Mes avantages":"Découvrir Plus"}</button>
+  </section>
   {!room.partner?<section className="lr-home-invite"><div><strong>Invite ton amour 💌</strong><p>Partage ton code pour vous retrouver.</p></div><button type="button" onClick={onInvite}>Partager l’invitation</button></section>:null}
   <div className="lr-home-section-heading"><span>À NE PAS MANQUER</span><small>Vos dernières activités</small></div>
   <div className="lr-home-essentials">
