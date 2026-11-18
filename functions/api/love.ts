@@ -367,8 +367,9 @@ async function snapshot(db:D1Database,u:Member){
      await db.prepare("UPDATE chat_presence SET typing_until=0 WHERE room_id=? AND member_id=?").bind(u.room_id,u.id).run();
      const isStickerToken=/^\[sticker:v1:[a-z0-9-]{1,36}\]$/.test(message);
      const isGifToken=/^\[gif:v1:[A-Za-z0-9]{3,60}\]$/.test(message);
+     const isAvatarToken=message.startsWith("[couple-avatar:v1:");
      waitUntil(notifyPartner(env,u.room_id,u.id,"Nouveau message 💌",
-      u.name+(isStickerToken?" t’a envoyé un sticker.":isGifToken?" t’a envoyé un GIF.":" t’a envoyé un message."),
+      u.name+(isAvatarToken?" t’a envoyé vos avatars amoureux.":isStickerToken?" t’a envoyé un sticker.":isGifToken?" t’a envoyé un GIF.":" t’a envoyé un message."),
       "chat",{kind:"message",id:messageId}));
      return ok({sent:true,id:messageId});
     }
