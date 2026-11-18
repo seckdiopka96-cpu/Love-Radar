@@ -20,7 +20,7 @@ test("without a real face the app never invents a mask in the center",()=>{
 test("camera frame is fixed and tells user when face tracking is unavailable",()=>{
  const fun=read("src/FunCamera.tsx"),css=read("src/fun-camera.css");
  assert.ok(css.includes("aspect-ratio:3/4"));
- assert.ok(fun.includes("Suivi du visage indisponible sur cet appareil."));
+ assert.ok(fun.includes("Suivi du visage interrompu. Change d’effet pour réessayer."));
  assert.ok(fun.includes("Place ton visage dans le cadre."));
  assert.ok(fun.includes("Effet fixé sur ton visage"));
  assert.ok(fun.includes("createLensProcessor(source.current.getVideoTracks()[0],value,{previewOnly:true})"));
@@ -44,4 +44,12 @@ test("Snap-style camera takes over viewport and hides app navigation via body po
  assert.ok(css.includes("bottom:calc(env(safe-area-inset-bottom) + 126px)"));
  assert.ok(!fun.includes("10 looks · en direct"));
  assert.ok(!fun.includes("lr-fun-privacy"));
+});
+
+test("Safari face tracker initializes WASM before use and retries after temporary failure",()=>{
+ const src=read("src/love-lenses.ts");
+ assert.ok(src.includes("await mesh.initialize()"));
+ assert.ok(src.includes("new URL(\"/face-mesh/\"+file,location.origin).href"));
+ assert.ok(src.includes("retryAfter=performance.now()"));
+ assert.ok(src.includes("failureCount=0;detectorFailed=false;retryAfter=0"));
 });
