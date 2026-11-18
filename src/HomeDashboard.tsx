@@ -80,10 +80,10 @@ export default function HomeDashboard({room,token,mineAvatar,partnerAvatar,onEdi
   </section>
   <button className="lr-avatar-home-entry" type="button" aria-label="Créer et animer nos avatars amoureux"
    onClick={()=>onNavigate("avatars")}>
-   <span className="lr-avatar-home-entry-heading"><strong>🥰 Nos avatars amoureux</strong><small>100 % gratuit ✦</small></span>
+   <span className="lr-avatar-home-entry-heading"><strong>Nos avatars amoureux</strong><small>NOTRE DUO ✦</small></span>
    <CoupleAvatarDuo mine={coupleAvatars.mine} partner={coupleAvatars.partner}
     pose={coupleAvatars.pose} mode="home" mineName={room.user.name} partnerName={room.partner||"Ton amour"}/>
-   <span className="lr-avatar-home-entry-footer"><span>Créez vos personnages et animez votre couple</span><b>Découvrir ›</b></span>
+   <span className="lr-avatar-home-entry-footer"><span>Deux personnages, une histoire.</span><b>Personnaliser ›</b></span>
   </button>
     <div className="lr-home-quick" aria-label="Accès rapides">
    <button type="button" onClick={()=>onNavigate("chat")}><span className="lr-home-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></span><span><strong>Écrire</strong><small>Un petit mot</small></span><b>↗</b></button>
