@@ -1,3 +1,4 @@
+import type {Avatar3DLook} from "./avatar-3d-look";
 import {useEffect,lazy,Suspense,useId,useState} from "react";
 import {DEFAULT_AVATAR,DEFAULT_PARTNER_AVATAR,HAIR_HEX,OUTFIT_HEX,SKIN_HEX,
  POSE_LABEL,type AvatarStyle,type CouplePose} from "./couple-avatar-model";
@@ -167,11 +168,12 @@ export function AvatarCharacter({style,label,portrait=false,side="left"}:Charact
   </g>
  </svg>;
 }
-type DuoProps={mine?:AvatarStyle|null;partner?:AvatarStyle|null;pose?:CouplePose;
+type DuoProps={mineLook3d?:Avatar3DLook|null;partnerLook3d?:Avatar3DLook|null;mine?:AvatarStyle|null;partner?:AvatarStyle|null;pose?:CouplePose;
  mode?:"hero"|"home"|"sticker";animate?:boolean;mineName?:string;partnerName?:string;
  token?:string;mine3d?:boolean;partner3d?:boolean;modelVersion?:number};
 export default function CoupleAvatarDuo({mine,partner,pose="main",mode="hero",animate=true,
- mineName="Toi",partnerName="Ton amour",token="",mine3d=false,partner3d=false,modelVersion=0}:DuoProps){
+ mineName="Toi",partnerName="Ton amour",token="",mine3d=false,partner3d=false,modelVersion=0,
+ mineLook3d,partnerLook3d}:DuoProps){
  const [renderFailed,setRenderFailed]=useState(false);
  useEffect(()=>setRenderFailed(false),[token,mine3d,partner3d,modelVersion]);
  const show3d=Boolean(token&&(mine3d||partner3d)&&mode!=="sticker"&&!renderFailed);
@@ -187,6 +189,7 @@ export default function CoupleAvatarDuo({mine,partner,pose="main",mode="hero",an
   {show3d?<Suspense fallback={<span className="lr-avatar-three-loading">Chargement de vos avatars 3D…</span>}>
    <Avatar3DScene key={modelVersion} token={token} mine={mine3d} partner={partner3d} pose={pose}
     mineStyle={mine||DEFAULT_AVATAR} partnerStyle={partner||DEFAULT_PARTNER_AVATAR}
+    mineLook3d={mineLook3d} partnerLook3d={partnerLook3d}
     onUnavailable={()=>setRenderFailed(true)}/>
   </Suspense>:
    <div className={"lr-avatar-3d-invite"+(mode==="sticker"?" compact":"")} aria-hidden="true">
