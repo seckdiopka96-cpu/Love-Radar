@@ -66,12 +66,20 @@
  let lastBoardKey="";
  let lastAnimatedRoll="",receivedState=false;
  let dieVisualTimer=null,dieVisualUntil=0;
- const DIE_TUMBLE_MS=460;
+ let lastTossVariant=-1;
+ const DIE_TUMBLE_MS=520;
  // The backend alone decides the result. Show a physical 3D tumble even when
  // it answers in less than 170 ms, without holding back legal pawn moves.
  function animateRealDieRoll(){
   dieVisualUntil=Date.now()+DIE_TUMBLE_MS;
   if(dieVisualTimer!==null)clearTimeout(dieVisualTimer);
+  // Vary the PHYSICAL animation only. Never generate or alter the dice value:
+  // the result always comes from the authenticated server's crypto RNG.
+  lastTossVariant=(lastTossVariant+1+Math.floor(Math.random()*2))%3;
+  dice.dataset.toss=String(lastTossVariant);
+  dice.classList.remove("is-rolling");
+  // Restart the CSS 3D toss even after a rapid extra turn following a six.
+  void dice.offsetWidth;
   dice.classList.add("is-rolling");
   dieVisualTimer=setTimeout(()=>{
    dieVisualTimer=null;
@@ -90,6 +98,26 @@
  board.append(captureLayer);
  const capturePins=new Map();
  let movingPawn=null,movingKey="";
+ const boardArea=board.closest(".board-area");
+ let pinnedBoardSize=0,pinnedViewportWidth=0;
+ // iOS can change the visible viewport by a few pixels while focus, toolbar
+ // or the timer updates. Measure the reserved arena, not the changing HUD.
+ // Only change the board's square dimensions on a real window/orientation resize.
+ function pinBoardSize(){
+  if(!boardArea)return;
+  const width=boardArea.clientWidth,height=boardArea.clientHeight;
+  if(width<=0||height<=0)return;
+  const size=Math.floor(Math.min(width-8,height-8,660));
+  if(size<140)return;
+  if(pinnedBoardSize&&Math.abs(size-pinnedBoardSize)<26&&
+     Math.abs(width-pinnedViewportWidth)<26)return;
+  pinnedBoardSize=size;pinnedViewportWidth=width;
+  boardArea.style.setProperty("--lr-duo-board-size",size+"px");
+ }
+ if(boardArea&&typeof ResizeObserver!=="undefined"){
+  const arenaObserver=new ResizeObserver(pinBoardSize);
+  arenaObserver.observe(boardArea);
+ }
  function getPosition(color,progress,pawn){
   const pt=pointFor(color,progress);
   if(pt)return {x:(pt[1]+.5)/15*100,y:(pt[0]+.5)/15*100};
@@ -453,6 +481,8 @@
  makeDice();
  screen.classList.add("is-active");screen.setAttribute("aria-hidden","false");
  selection.classList.add("is-hidden");selection.setAttribute("aria-hidden","true");
+ requestAnimationFrame(pinBoardSize);
+ window.addEventListener("resize",pinBoardSize,{passive:true});
  // The app doesn't send a bearer token into a frame; server writes are always
  // mediated by the already-authenticated parent component.
  window.parent.postMessage({source:"love-radar-ludo-duo",type:"ready"},location.origin);
