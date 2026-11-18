@@ -97,6 +97,7 @@ export async function applyAvatar3DLook(T:typeof import("three"),root:THREE.Obje
  for(const job of jobs){
   if(isCancelled())return;
   const source=job.material.map;
+  if(!source)continue;
   const img=source.image as {data?:Uint8Array;width:number;height:number}|null;
   if(!img)continue;
   const width=img.width,height=img.height;
