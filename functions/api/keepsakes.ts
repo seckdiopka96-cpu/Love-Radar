@@ -64,7 +64,7 @@ async function handler(ctx:Context,method:"GET"|"POST"|"DELETE"):Promise<Respons
     if(!row)return error("Souvenir introuvable.",404);
     const obj=await ctx.env.STORAGE?.get(row.object_key);
     if(!obj)return error("Ce souvenir n'est plus disponible.",404);
-    return new Response(obj.body,{headers:{"Content-Type":row.mime,"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Content-Security-Policy":"default-src 'none'; sandbox","Accept-Ranges":"none"}});
+    return new Response(await obj.arrayBuffer(),{headers:{"Content-Type":row.mime,"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Content-Security-Policy":"default-src 'none'; sandbox","Accept-Ranges":"none"}});
    }
    return list(db,user,type);
   }
