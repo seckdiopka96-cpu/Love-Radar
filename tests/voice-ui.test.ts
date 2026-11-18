@@ -124,23 +124,24 @@ test("decorative voice waveform is legible and naturally varied without changing
  assert.ok(player.includes('onChange={event=>seek(Number(event.target.value))}'),"seeking remains functional");
 });
 
-test("received voice bubbles are charcoal black while outgoing voices stay pink",()=>{
+test("received voice bubbles use their original grey while outgoing voices stay pink",()=>{
  const css=readFileSync("src/voice-message.css","utf8");
- assert.match(css,/\.lr-app\.lr-chat-mode \.lr-chat \.lr-bubble-row\.other \.lr-bubble\.lr-bubble-audio\s*\{\s*background:#000000!important;/);
+ assert.match(css,/\.lr-app\.lr-chat-mode \.lr-chat \.lr-bubble-row\.other \.lr-bubble\.lr-bubble-audio\s*\{\s*background:#242729!important;/);
  assert.match(css,/\.lr-app\.lr-chat-mode \.lr-chat \.lr-bubble-row\.other \.lr-voice-note-wave>span\s*\{\s*background:#c9d8e2!important;/);
  assert.match(css,/\.lr-app\.lr-chat-mode \.lr-chat \.lr-bubble-row\.other \.lr-voice-note-time\s*\{\s*color:#cfd8df!important;/);
  assert.ok(css.includes(".lr-chat .lr-bubble-row.mine .lr-bubble.lr-bubble-audio"));
  assert.ok(css.includes("background:#bd2763!important"),"sent voice bubbles retain the pink design");
 });
 
- test("received voice pure black survives final stylesheet and cache refresh",()=>{
+ test("received voice grey survives final stylesheet and cache refresh",()=>{
   const finalCss=readFileSync("src/delivery-status-ui.css","utf8");
   const voiceCss=readFileSync("src/voice-message.css","utf8");
   const app=readFileSync("src/App.tsx","utf8");
   const sw=readFileSync("public/sw.js","utf8");
   assert.ok(app.indexOf('import "./delivery-status-ui.css"')>app.indexOf('import "./voice-message.css"'));
-  assert.match(finalCss,/\.lr-app\.lr-chat-mode \.lr-chat \.lr-chat-messages \.lr-bubble-row\.other \.lr-bubble\.lr-bubble-audio\s*\{\s*background:#000000!important;/);
+  assert.match(finalCss,/\.lr-app\.lr-chat-mode \.lr-chat \.lr-chat-messages \.lr-bubble-row\.other \.lr-bubble\.lr-bubble-audio\s*\{\s*background:#242729!important;/);
   assert.ok(finalCss.includes("background-image:none!important"));
+  assert.ok(finalCss.includes("border-color:#33393b!important"));
   assert.ok(voiceCss.includes("background:#bd2763!important"),"pink outgoing voices unchanged");
-  assert.ok(sw.includes('love-radar-static-v116'),"refresh older PWA cache");
+  assert.ok(sw.includes('love-radar-static-v117'),"refresh older PWA cache");
  });
