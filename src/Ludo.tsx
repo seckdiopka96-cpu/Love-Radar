@@ -57,6 +57,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  const [presence,setPresence]=useState<Presence>([{online:false,joinedAt:null},{online:false,joinedAt:null}]);
  const [partnerJustJoined,setPartnerJustJoined]=useState(false);
  const previousPartnerOnline=useRef<boolean|null>(null);
+ const previousPartnerJoin=useRef<number|null>(null);
  const [challenge,setChallenge]=useState<Challenge|null>(null);
  const [challengeBusy,setChallengeBusy]=useState(false);
  const [challengeHint,setChallengeHint]=useState("");
@@ -315,9 +316,15 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
   };
  },[token,game?.id,members]);
  useEffect(()=>{
-  const online=Boolean(presence[1-mySeat]?.online);
-  if(previousPartnerOnline.current===false&&online)setPartnerJustJoined(true);
+  const partner=presence[1-mySeat];
+  const online=Boolean(partner?.online);
+  const joinedAt=partner?.joinedAt??null;
+  // A short leave-and-rejoin also counts, even before the online lease expires.
+  if((previousPartnerOnline.current===false&&online)||
+   (online&&previousPartnerJoin.current!==null&&joinedAt!==previousPartnerJoin.current))
+   setPartnerJustJoined(true);
   previousPartnerOnline.current=online;
+  previousPartnerJoin.current=online?joinedAt:null;
  },[presence,mySeat]);
  useEffect(()=>{
   if(!partnerJustJoined)return;

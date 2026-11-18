@@ -108,6 +108,9 @@ test("Ludo Duo joins are announced, stay live and resync from D1",()=>{
  assert.ok(backend.includes("!live[1-player.seat].online"),"avoid unnecessary push while partner is watching");
  assert.ok(backend.includes("presence:presenceValue"),"full snapshots include both players' statuses");
  assert.ok(backend.includes("last_seen>=recent"),"stale presence expires");
+ assert.ok(backend.includes("previous.session_id===sessionId"),"rejoining through a new iPhone session is a new arrival");
+ assert.ok(backend.includes("ludo_presence.session_id<>excluded.session_id"),"new join refreshes the join timestamp");
+ assert.ok(parent.includes("previousPartnerJoin.current"),"in-game partner receives a fresh join indicator");
  assert.ok(parent.includes('body:JSON.stringify({action:"presence",mode,gameId,sessionId})'));
  assert.ok(parent.includes("window.setInterval(ping,7000)"),"heartbeat survives live play");
  assert.ok(parent.includes('void send("leave")'),"exit clears presence without forfeiting");

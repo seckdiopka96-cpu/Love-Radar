@@ -374,13 +374,13 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    }
    if(mode!=="join")return fail("État de présence invalide.",400);
    const now=Date.now();
-   const previous=await db.prepare("SELECT game_id,last_seen FROM ludo_presence WHERE room_id=? AND seat=?")
-    .bind(player.room_id,player.seat).first<{game_id:string;last_seen:number}>();
-   const wasOnline=Boolean(previous?.game_id===g.game_id&&previous.last_seen>=now-20000);
+   const previous=await db.prepare("SELECT game_id,session_id,last_seen FROM ludo_presence WHERE room_id=? AND seat=?")
+    .bind(player.room_id,player.seat).first<{game_id:string;session_id:string;last_seen:number}>();
+   const wasOnline=Boolean(previous?.game_id===g.game_id&&previous.session_id===sessionId&&previous.last_seen>=now-20000);
    await db.prepare(
     "INSERT INTO ludo_presence(room_id,seat,game_id,session_id,joined_at,last_seen) VALUES(?,?,?,?,?,?) "+
     "ON CONFLICT(room_id,seat) DO UPDATE SET game_id=excluded.game_id,session_id=excluded.session_id,"+
-    "joined_at=CASE WHEN ludo_presence.game_id<>excluded.game_id OR ludo_presence.last_seen<? "+
+    "joined_at=CASE WHEN ludo_presence.game_id<>excluded.game_id OR ludo_presence.session_id<>excluded.session_id OR ludo_presence.last_seen<? "+
     "THEN excluded.joined_at ELSE ludo_presence.joined_at END,last_seen=excluded.last_seen"
    ).bind(player.room_id,player.seat,g.game_id,sessionId,now,now,now-20000).run();
    const live=await ludoPresence(db,g);
