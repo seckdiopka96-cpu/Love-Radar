@@ -141,6 +141,15 @@ export default function CoupleExperiences({token,myId,myName,partnerName,privacy
   const timer=window.setTimeout(()=>setHugAnimation(false),3400);
   return()=>window.clearTimeout(timer);
  },[focusKind,focusId]);
+ // The notification must scroll to the actual dream, hug or surprise after
+ // its private data has loaded, not only switch to the right section.
+ useEffect(()=>{
+  if(!focusId||!focusKind?.startsWith("couple-"))return;
+  const timer=window.setTimeout(()=>{
+   document.getElementById("ce-"+focusId)?.scrollIntoView({block:"center",behavior:"smooth"});
+  },180);
+  return()=>window.clearTimeout(timer);
+ },[focusId,focusKind,section,life,gifts]);
  useEffect(()=>()=>{if(recorder.current?.state==="recording")recorder.current.stop();stream.current?.getTracks().forEach(t=>t.stop());releaseRecordingAudio()},[]);
  async function act(action:string,fields:Record<string,unknown>={},message="Enregistré pour vous deux. ❤️"){
   if(busy)return;
@@ -283,7 +292,7 @@ export default function CoupleExperiences({token,myId,myName,partnerName,privacy
     <button className="ce-primary" type="submit" disabled={busy||!dreamTitle.trim()||!partnerName}>+ Ajouter notre rêve</button>
    </form>
    <div className="ce-dream-progress"><strong>{life?.dreams.filter(d=>d.doneAt).length||0} / {life?.dreams.length||0}</strong> rêves accomplis</div>
-   <div className="ce-list">{life?.dreams.length?life.dreams.map(d=><article className={"ce-dream"+(d.doneAt?" done":"")} key={d.id} id={"ce-"+d.id}>
+   <div className="ce-list">{life?.dreams.length?life.dreams.map(d=><article className={"ce-dream"+(d.doneAt?" done":"")+(focusKind==="couple-dream"&&focusId===d.id?" ce-notified":"")} key={d.id} id={"ce-"+d.id}>
     <button type="button" disabled={busy} className="ce-dream-check" aria-label={d.doneAt?"Marquer à refaire":"Marquer accompli"} onClick={()=>void act("dream_toggle",{id:d.id},"Votre liste de rêves est actualisée.")}>{d.doneAt?"✓":"♡"}</button>
     <div><h3>{d.title}</h3>{d.detail?<p>{d.detail}</p>:null}<small>{d.doneAt?"✨ Accompli le "+new Date(d.doneAt).toLocaleDateString("fr-FR"):"Ajouté par "+(d.authorId===myId?"toi":partner)}</small></div>
     <button type="button" disabled={busy} className="ce-remove" aria-label={"Supprimer "+d.title} onClick={()=>{if(window.confirm("Supprimer ce rêve partagé ?"))void act("dream_delete",{id:d.id},"Rêve supprimé.")}}>×</button>
@@ -300,7 +309,7 @@ export default function CoupleExperiences({token,myId,myName,partnerName,privacy
     {newHug&&!replied?<button type="button" disabled={busy} onClick={()=>void act("hug_reply",{id:newHug.id},"Un câlin retourné avec amour 💗")}>💞 Répondre à son câlin</button>:null}
    </div>
    <h3 className="ce-subtitle">Vos derniers câlins</h3>
-   {life?.hugs.length?<div className="ce-hug-feed">{life.hugs.slice(0,12).map(h=><div key={h.id} id={"ce-"+h.id}><span>{h.replyTo?"💞":"🫂"}</span><p><strong>{h.senderId===myId?"Toi":partner}</strong> {h.replyTo?"a rendu un câlin":"a envoyé un câlin"}<small>{formatDate(h.createdAt)}</small></p></div>)}</div>:<p className="ce-placeholder">Envoyez-vous votre premier câlin. 💕</p>}
+   {life?.hugs.length?<div className="ce-hug-feed">{life.hugs.slice(0,12).map(h=><div key={h.id} id={"ce-"+h.id} className={focusKind==="couple-hug"&&focusId===h.id?"ce-notified":undefined}><span>{h.replyTo?"💞":"🫂"}</span><p><strong>{h.senderId===myId?"Toi":partner}</strong> {h.replyTo?"a rendu un câlin":"a envoyé un câlin"}<small>{formatDate(h.createdAt)}</small></p></div>)}</div>:<p className="ce-placeholder">Envoyez-vous votre premier câlin. 💕</p>}
   </div>:null}
   {section==="challenges"?<div className="ce-panel">
    <div className="ce-heading"><span className="ce-hero-emoji">🏆</span><div><span className="ce-label">DÉFIS DE COUPLE</span><h2>Une petite victoire chaque jour.</h2><p>Les défis se renouvellent chaque lundi. Validez ceux que vous réalisez.</p></div></div>
@@ -326,7 +335,7 @@ export default function CoupleExperiences({token,myId,myName,partnerName,privacy
    <h3 className="ce-subtitle">Vos coffres</h3>
    <div className="ce-list">{gifts.length?gifts.map(g=>{
     const sender=g.senderId===myId,opened=Boolean(g.openedAt);
-    return <article className={"ce-gift"+(!opened&&!sender?" ce-closed":"")} key={g.id} id={"ce-"+g.id}>
+    return <article className={"ce-gift"+(!opened&&!sender?" ce-closed":"")+(focusKind==="couple-gift"&&focusId===g.id?" ce-notified":"")} key={g.id} id={"ce-"+g.id}>
      <div className="ce-gift-symbol">{opened?"💝":"🎁"}</div>
      <div className="ce-gift-content"><small>{sender?"De toi, pour "+partner:"De "+partner+", pour toi"} · {formatDate(g.createdAt)}</small>
       <h3>{g.title}</h3>
