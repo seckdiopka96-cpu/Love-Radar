@@ -2046,6 +2046,8 @@ export default function LoveRadar(){
      mineAvatar={avatars.mine} partnerAvatar={avatars.partner}
      onEditProfile={()=>profilePicker.current?.click()} onInvite={()=>void shareCode()} onNavigate={navigate}
 />:null}
+    {tab==="moment"?<DailyMoment token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")}
+      focusDay={noticeTarget?.kind==="daily-question"?noticeTarget.id:null}/>:null}
     {tab==="care"?<CoupleCare key={room.roomId+":"+room.user.id} token={token} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("together")} onOpenChat={()=>navigate("chat")}/>:null}
     {tab==="together"?<Together token={token} myName={room.user.name} partnerName={room.partner} mySeat={room.user.seat} onExit={()=>navigate("home")} onOpenMoment={()=>navigate("moment")} onOpenReunion={()=>navigate("reunion")} onOpenWatch={()=>navigate("watch")} onOpenPuzzle={()=>navigate("puzzle")} onOpenReconcile={()=>navigate("reconcile")} onOpenCare={()=>navigate("care")} onOpenLife={()=>navigate("life")} onOpenCamera={()=>navigate("camera")} focusKind={noticeTarget?.kind==="love-signal"?noticeTarget.kind:null} focusId={noticeTarget?.kind==="love-signal"?noticeTarget.id:null}/>:null}
     {tab==="camera"?<FunCamera key={room.roomId+":"+room.user.id} partner={room.partner} onBack={()=>navigate("together")}
