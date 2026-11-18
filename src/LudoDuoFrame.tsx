@@ -30,6 +30,8 @@ export default function LudoDuoFrame(props:Props){
  const [ready,setReady]=useState(false);
  const [failed,setFailed]=useState(false);
  const [retry,setRetry]=useState(0);
+ const actionRef=useRef(props.onAction);
+ actionRef.current=props.onAction;
  useEffect(()=>{
   if(ready){setFailed(false);return}
   const id=window.setTimeout(()=>setFailed(true),8000);
@@ -51,6 +53,8 @@ export default function LudoDuoFrame(props:Props){
  },[props.game,props.palette,props.lastRoll,props.mySeat,props.myName,props.partnerName,props.myAvatar,props.partnerAvatar,
     props.remaining,props.rolling,props.rollingFace,props.busy,props.animationBusy,
     props.motion,props.capturedMotions,props.error,props.overlayOpen]);
+ const sendRef=useRef(send);
+ sendRef.current=send;
  useEffect(()=>{if(ready)send()},[ready,send]);
  // Keep the handshake reliable even when a locally cached iframe executes
  // before React's message listener is installed (common on iOS WebKit).
@@ -69,20 +73,20 @@ export default function LudoDuoFrame(props:Props){
    if(!frame||event.source!==frame||event.origin!==window.location.origin)return;
    const data=event.data;
    if(!data||data.source!=="love-radar-ludo-duo")return;
-   if(data.type==="ready"){setReady(true);setFailed(false);send();return}
+   if(data.type==="ready"){setReady(true);setFailed(false);sendRef.current();return}
    if(data.type!=="action")return;
    switch(data.action){
     case "roll":case "restart":case "exit":case "leave":case "gift":case "menu":
-     props.onAction(data.action);break;
+     actionRef.current(data.action);break;
     case "move":
-     if(Number.isInteger(data.pawn)&&data.pawn>=0&&data.pawn<4)props.onAction("move",data.pawn);
+     if(Number.isInteger(data.pawn)&&data.pawn>=0&&data.pawn<4)actionRef.current("move",data.pawn);
      break;
 
    }
   };
   window.addEventListener("message",message);
   return()=>window.removeEventListener("message",message);
- },[props.onAction,send]);
+ },[]);
  return <section className="ludo-duo-shared-frame" aria-label="Plateau Ludo Duo identique au Ludo Solo">
   <iframe key={retry} ref={ref} className="ludo-duo-shared-iframe"
    src="/ludo-duo/index.html?v=ludo-room-20261118-v11" title="Ludo Duo : plateau et dé synchronisés avec ton partenaire"
