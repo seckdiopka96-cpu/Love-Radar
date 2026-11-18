@@ -70,7 +70,7 @@ test("iPhone redesign preserves fixed shell, no-scroll players and call keyboard
  assert.ok(feature.includes(".lr-app.lr-puzzle-mode.lr-app-locked .lr-shell"));
  assert.ok(watch.includes(".wt-body{display:flex!important;"));
  assert.ok(tiktok.includes("overflow:hidden!important;overscroll-behavior:none!important;"));
- assert.ok(app.includes('showButton={tab==="chat"||tab==="watch"||tab==="watch-tiktok"||tab==="reconcile"}'));
+ assert.ok(app.includes('showButton={tab==="life"||tab==="chat"||tab==="watch"||tab==="watch-tiktok"||tab==="reconcile"}'));
 });
 
 test("minimal header removes the unnecessary heart and relocates notification controls to settings",()=>{
