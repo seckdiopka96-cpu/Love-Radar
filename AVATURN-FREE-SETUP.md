@@ -1,7 +1,8 @@
 # Avaturn 3D dans Love Radar — intégration gratuite
 
-Love Radar reste **100 % gratuit pour les couples**. Le mode 3D est optionnel et respecte
-les avatars 2D existants. Les anciennes données, conversations, appels et jeux ne sont pas modifiés.
+Love Radar reste **100 % gratuit pour les couples**. Le studio présente désormais exclusivement des avatars 3D. Les anciennes données 2D restent conservées
+pour la compatibilité, mais les anciens personnages dessinés ne sont plus affichés.
+Les conversations, appels et jeux ne sont pas modifiés.
 
 ## Créer le projet Avaturn gratuit
 
@@ -41,10 +42,11 @@ et téléchargé manuellement, sans abonnement à l'API.
   décide d'en prendre : Love Radar ne reçoit que le fichier 3D exporté. Les
   utilisateurs doivent lire les conditions et la politique de confidentialité
   d'Avaturn.
-- Les stickers de conversation existants restent illustrés en SVG pour ne pas
-  ouvrir des dizaines de contextes WebGL dans le chat. Les avatars 3D sont
-  visibles et animés dans le studio et sur l'accueil. Si WebGL ou le modèle
-  échoue, la version illustrée reste utilisable.
+- Les stickers de conversation utilisent des compositions légères et animées
+  afin de ne pas ouvrir des dizaines de contextes WebGL dans le chat.
+  Les vrais avatars 3D sont visibles et animés dans le studio et sur l'accueil.
+  Si WebGL échoue ou qu'aucun modèle n'est encore créé, un élégant écran d'attente
+  apparaît à la place des anciens personnages.
 
 ## Animations
 
