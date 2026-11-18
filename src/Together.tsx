@@ -7,7 +7,7 @@ type Signal={id:string;sender_id:string;seat:number;kind:string;reply_to:string|
 type Reply={ok:boolean;error?:string;signals?:Signal[];focus?:Signal|null};
 type Props={
  token:string;myName:string;partnerName:string|null;mySeat:number;onExit:()=>void;
- onOpenMoment:()=>void;onOpenReunion:()=>void;onOpenWatch:()=>void;onOpenPuzzle:()=>void;onOpenReconcile:()=>void;onOpenCare:()=>void;
+ onOpenMoment:()=>void;onOpenReunion:()=>void;onOpenWatch:()=>void;onOpenPuzzle:()=>void;onOpenReconcile:()=>void;onOpenCare:()=>void;onOpenLife:()=>void;
  focusKind?:"love-signal"|null;focusId?:string|null
 };
 const RESPONSE_OPTIONS=[
@@ -21,7 +21,7 @@ function messageOf(signal:Signal){
  if(signal.kind==="love")return "Je t’aime 💖";
  return "Tu me manques aussi ❤️";
 }
-export default function Together({token,myName,partnerName,mySeat,onExit,onOpenMoment,onOpenReunion,onOpenWatch,onOpenPuzzle,onOpenReconcile,onOpenCare,focusKind,focusId}:Props){
+export default function Together({token,myName,partnerName,mySeat,onExit,onOpenMoment,onOpenReunion,onOpenWatch,onOpenPuzzle,onOpenReconcile,onOpenCare,onOpenLife,focusKind,focusId}:Props){
  const [signals,setSignals]=useState<Signal[]>([]);
  const [focused,setFocused]=useState<Signal|null>(null);
  const [onlyFocused,setOnlyFocused]=useState(Boolean(focusKind==="love-signal"&&focusId));
@@ -92,6 +92,11 @@ export default function Together({token,myName,partnerName,mySeat,onExit,onOpenM
     <span className="tg-watch-symbol" aria-hidden="true">▶</span>
     <span className="tg-watch-copy"><small>NOTRE CINÉMA</small><strong>Regarder ensemble</strong><span>YouTube et TikTok, au même moment</span></span>
     <span className="tg-watch-arrow" aria-hidden="true">›</span>
+   </button>
+   <button type="button" className="tg-life-feature" onClick={onOpenLife} aria-label="Découvrir les six activités du quotidien">
+    <span className="tg-life-emblem" aria-hidden="true">💞</span>
+    <span className="tg-life-content"><small>6 EXPÉRIENCES À DEUX</small><strong>Notre quotidien</strong><span>Soirées · Humeurs · Rêves · Câlins · Défis · Surprises</span></span>
+    <span className="tg-life-arrow" aria-hidden="true">›</span>
    </button>
    <div className="tg-shortcuts" aria-label="Nos activités à deux">
     <button type="button" className="tg-moment-link" onClick={onOpenMoment}>
