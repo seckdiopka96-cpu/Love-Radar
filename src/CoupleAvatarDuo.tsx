@@ -169,18 +169,18 @@ export function AvatarCharacter({style,label,portrait=false,side="left"}:Charact
 }
 type DuoProps={mine?:AvatarStyle|null;partner?:AvatarStyle|null;pose?:CouplePose;
  mode?:"hero"|"home"|"sticker";animate?:boolean;mineName?:string;partnerName?:string;
- token?:string;mine3d?:boolean;partner3d?:boolean};
+ token?:string;mine3d?:boolean;partner3d?:boolean;modelVersion?:number};
 export default function CoupleAvatarDuo({mine,partner,pose="main",mode="hero",animate=true,
- mineName="Toi",partnerName="Ton amour",token="",mine3d=false,partner3d=false}:DuoProps){
+ mineName="Toi",partnerName="Ton amour",token="",mine3d=false,partner3d=false,modelVersion=0}:DuoProps){
  const [renderFailed,setRenderFailed]=useState(false);
- useEffect(()=>setRenderFailed(false),[token,mine3d,partner3d]);
+ useEffect(()=>setRenderFailed(false),[token,mine3d,partner3d,modelVersion]);
  const show3d=Boolean(token&&(mine3d||partner3d)&&mode!=="sticker"&&!renderFailed);
  return <div className={"lr-avatar-duo lr-avatar-duo-"+mode+" lr-avatar-pose-"+pose+
   (animate?" lr-avatar-animate":"")} role="img" aria-label={POSE_LABEL[pose]+", "+mineName+" et "+partnerName}>
   <span className="lr-avatar-duo-halo" aria-hidden="true"/>
   <span className="lr-avatar-duo-orbit" aria-hidden="true"/>
   {show3d?<Suspense fallback={<span className="lr-avatar-three-loading">Chargement 3D…</span>}>
-   <Avatar3DScene token={token} mine={mine3d} partner={partner3d} pose={pose}
+   <Avatar3DScene key={modelVersion} token={token} mine={mine3d} partner={partner3d} pose={pose}
     mineStyle={mine||DEFAULT_AVATAR} partnerStyle={partner||DEFAULT_PARTNER_AVATAR}
     onUnavailable={()=>setRenderFailed(true)}/>
   </Suspense>:<>
