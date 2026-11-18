@@ -21,7 +21,7 @@ export const ROOM_DATA_TABLES=[
  "duo_draw_games","duo_escape_games",
  "couple_watch_presence","couple_watch_sessions",
  "couple_tiktok_presence","couple_tiktok_watch",
- "couple_reconciliations","push_subscriptions","room_revisions","partner_recovery","room_plus","chat_themes"
+ "couple_reconciliations","push_subscriptions","room_revisions","partner_recovery","room_plus","chat_themes","couple_avatar_styles","couple_avatar_rooms"
 ] as const;
 export const MEMBER_DATA_TABLES=["member_recovery","push_test_throttle","care_share_throttle","screenshot_throttle"] as const;
 
