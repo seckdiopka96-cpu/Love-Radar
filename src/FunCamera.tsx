@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState} from "react";
 import LensPicker from "./LensPicker";
+import {isCallAudioActive} from "./audio-focus";
 import {createLensProcessor,type LensProcessor,type LoveLensId} from "./love-lenses";
 import "./fun-camera.css";
 
@@ -75,6 +76,7 @@ export default function FunCamera({partner,onBack,onSendPhoto,onOpenChat}:Props)
   if(busy)return;
   setError("");setBusy(true);clearOutputs();
   try{
+   if(isCallAudioActive())throw Error("Un appel est déjà en cours. Utilise les effets ✨ de l’appel vidéo ou termine-le avant d’ouvrir le studio.");
    if(!navigator.mediaDevices?.getUserMedia)throw Error("Ouvre Love Radar en HTTPS et autorise la caméra.");
    const camera=await navigator.mediaDevices.getUserMedia(cameraSettings(facing));
    if(!alive.current){camera.getTracks().forEach(t=>t.stop());return}
