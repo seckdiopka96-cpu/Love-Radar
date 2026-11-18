@@ -62,7 +62,7 @@ export default function CoupleAvatarStudio({data,myName,partnerName,hasPartner,s
     pose={posePreview} mode="hero" mineName={myName} partnerName={partnerName}
     token={token} mine3d={Boolean(data.mine3d)} partner3d={Boolean(data.partner3d)} modelVersion={data.version}/>
    <div className="lr-avatar-studio-names"><span><i/> {myName}</span><span><i/> {partnerName}</span></div>
-   {hasPartner&&!data.partner3d?<p className="lr-avatar-studio-hint">Ton partenaire pourra créer son propre avatar 3D depuis son téléphone.</p>:null}
+   {hasPartner&&!data.partner3d?<p className="lr-avatar-studio-hint">Ton avatar s’affiche seul pour le moment. Les câlins, bisous et danses à deux prendront vie quand ton partenaire aura créé son avatar 3D.</p>:null}
    {!hasPartner?<p className="lr-avatar-studio-hint">Invite ton partenaire pour vivre vos animations ensemble.</p>:null}
   </div>
 
