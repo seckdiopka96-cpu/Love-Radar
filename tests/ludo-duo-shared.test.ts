@@ -20,9 +20,9 @@ test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()
  const boardSlice=s=>(s.slice(s.indexOf(start),s.indexOf(end))).replace(/^\s+|\s+$/g,"");
  assert.ok(duoHTML.includes(start));
  assert.equal(boardSlice(duoHTML),boardSlice(soloHTML));
- assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v10"'));
- assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v10"'));
- assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v10" defer'));
+ assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v11"'));
+ assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v11"'));
+ assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v11" defer'));
  assert.ok(duoHTML.includes('LUDO <span>♥</span> DUO'));
  assert.ok(duoHTML.includes('id="roll-dice"'));
  assert.ok(duoCSS.includes('.duo-side-actions'));
@@ -64,7 +64,7 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
  'function duoFrameAction(','signRules()', 'giftAction(','ludo-agreement-backdrop','ludo-gift-dialog','ludo-modal-backdrop']){
   assert.ok(parent.includes(unchanged),unchanged);
  }
- assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v10"'));
+ assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v11"'));
  assert.ok(bridge.includes('event.source!==frame'));
  assert.ok(bridge.includes('event.origin!==window.location.origin'));
  assert.ok(!bridge.includes("token:"));
@@ -90,7 +90,7 @@ test("Duo iframe works offline and uses only a same-origin parent, never replaci
   assert.ok(sw.includes('"'+path+'"'),path);
  }
  assert.ok(sw.includes('url.pathname.startsWith("/ludo-duo/")'));
- assert.ok(sw.includes("love-radar-static-v135"),"new PWA release must invalidate old shell");
+ assert.ok(sw.includes("love-radar-static-v136"),"new PWA release must invalidate old shell");
 });
 
 test("live Duo synchronizes promptly with conditional server reads",()=>{
@@ -102,8 +102,8 @@ test("live Duo synchronizes promptly with conditional server reads",()=>{
  assert.ok(parent.includes('!activeDuoGame.current?700'),"avoid expensive full pre-game polling");
  assert.ok(parent.includes('inFlight=true'),"never stack network checks");
  assert.ok(!parent.includes('setInterval(()=>{if(document.visibilityState==="visible")void load()},1600)'),"remove 1.6s polling delay");
- assert.ok(parent.includes('Math.max(0,690-(Date.now()-actionStarted))'),"finish dice animation sooner");
- assert.ok(duoJS.includes('remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},650)'),"partner dice resolves promptly");
+ assert.ok(parent.includes('Math.max(0,320-(Date.now()-actionStarted))'),"finish dice animation sooner");
+ assert.ok(duoJS.includes('remoteDieTimer=setTimeout(()=>{remoteDieTimer=null;render()},250)'),"partner dice resolves promptly");
  const server=backend;
  assert.ok(server.includes('if(method==="GET"&&g?.status==="playing")'),"fast path only for active game");
  assert.ok(server.includes('params.get("game")===g.game_id'),"refuse stale game ids");
