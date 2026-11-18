@@ -65,7 +65,7 @@ test("four pawns are chosen by touching the board, never from a second numbered 
  assert.ok(senegal.includes('className={"ludo-senegal-choice"'));
  assert.ok(solo.includes('choices.length>1 ? "Touche le pion à déplacer"'));
  assert.ok(!duoHTML.includes('class="turn-banner"'),"the redundant Duo waiting HUD is gone");
- assert.ok(duo.includes('base.is-current-turn'),"the active turn is still indicated on the player's house");
+ assert.ok(duo.includes('el.classList.toggle("is-current-turn",active)'),"the active turn is still indicated on the player's house");
 });
 test("moving pin shadow follows the pawn, not the board, in all modes",()=>{
  const immersive=readFileSync("src/ludo-immersive.css","utf8");
