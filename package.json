@@ -18,6 +18,7 @@
     "test:call": "tsx --test tests/voice-call.test.ts tests/call-history.test.ts tests/native-voip.test.ts tests/android-voip.test.ts tests/call-resilience.test.ts",
     "test:care": "tsx --test tests/couple-care.test.ts",
     "test:keepsakes": "tsx --test tests/keepsakes.test.ts",
+    "test:couple-experiences": "tsx --test tests/couple-experiences.test.ts",
     "test:background-call": "tsx --test tests/native-background-call.test.ts",
     "test:iphone": "tsx --test tests/iphone-testflight.test.ts",
     "test:e2ee": "tsx --test tests/e2ee.test.ts",
