@@ -144,10 +144,10 @@
  }
  /* Only one dock occupies the bottom edge; reserve its height in scrolling
     content without adding a second dark/footer surface. */
- .lr-app.lr-app-locked:not(.lr-chat-mode):not(.lr-watch-mode):not(.lr-puzzle-mode):not(.lr-reconcile-mode):not(.lr-ludo-mode) .lr-shell{
+ .lr-app.lr-app-locked:not(.lr-chat-mode):not(.lr-watch-mode):not(.lr-puzzle-mode):not(.lr-reconcile-mode):not(.lr-ludo-mode):not(.lr-avatar-mode) .lr-shell{
   padding-bottom:calc(88px + env(safe-area-inset-bottom))!important;
  }
- .lr-app.lr-app-locked:not(.lr-chat-mode):not(.lr-watch-mode):not(.lr-puzzle-mode):not(.lr-reconcile-mode):not(.lr-ludo-mode) .lr-main{
+ .lr-app.lr-app-locked:not(.lr-chat-mode):not(.lr-watch-mode):not(.lr-puzzle-mode):not(.lr-reconcile-mode):not(.lr-ludo-mode):not(.lr-avatar-mode) .lr-main{
   scroll-padding-bottom:22px!important;
  }
 }
