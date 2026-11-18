@@ -285,3 +285,17 @@ CREATE TABLE IF NOT EXISTS chat_themes(
  animated INTEGER NOT NULL DEFAULT 1,
  version INTEGER NOT NULL DEFAULT 1
 );
+
+-- Each partner styles their own vector avatar; the pose belongs to the couple.
+CREATE TABLE IF NOT EXISTS couple_avatar_styles(
+ room_id TEXT NOT NULL,member_id TEXT NOT NULL,
+ skin TEXT NOT NULL,hair TEXT NOT NULL,hair_color TEXT NOT NULL,
+ outfit TEXT NOT NULL,accessory TEXT NOT NULL,
+ updated_at INTEGER NOT NULL,
+ PRIMARY KEY(room_id,member_id)
+);
+CREATE TABLE IF NOT EXISTS couple_avatar_rooms(
+ room_id TEXT PRIMARY KEY,
+ pose TEXT NOT NULL DEFAULT 'main',
+ version INTEGER NOT NULL DEFAULT 0
+);

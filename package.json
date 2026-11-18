@@ -34,6 +34,7 @@
     "test:chat-type-push": "tsx --test tests/chat-type-push-avatar.test.ts tests/notification-routing.test.ts",
     "test:expressions": "tsx --test tests/expressions.test.ts",
     "test:themes": "tsx --test tests/chat-themes.test.ts",
+    "test:avatars": "tsx --test tests/couple-avatars.test.ts",
     "test:activity": "tsx --test tests/activity-icons.test.ts",
     "test:animation": "tsx --test tests/activity-frames.test.ts",
     "test:replies": "tsx --test tests/message-replies.test.ts",
