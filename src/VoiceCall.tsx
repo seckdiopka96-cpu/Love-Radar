@@ -9,9 +9,12 @@ import {reconnectDelayMs,mustReconnect,MAX_RECONNECT_ATTEMPTS,clampFloatingCall}
 import type {PointerEvent as ReactPointerEvent,MouseEvent as ReactMouseEvent,CSSProperties} from "react";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
+import LensPicker from "./LensPicker";
+import {createLensProcessor,type LensProcessor,type LoveLensId} from "./love-lenses";
 import "./voice-call.css";
 import "./video-call.css";
 import "./floating-video.css";
+import "./fun-camera.css";
 
 type Call = {id:string;status:"ringing"|"active";direction:"incoming"|"outgoing";createdAt:number;updatedAt:number;expiresAt:number;mode?:"audio"|"video"};
 type Signal = {id:number;kind:"offer"|"answer"|"candidate"|"restart";payload:string};
@@ -49,6 +52,9 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const [cameraFacing,setCameraFacing]=useState<"user"|"environment">("user");
  const [cameraBusy,setCameraBusy]=useState(false);
  const [cameraWarning,setCameraWarning]=useState("");
+ const [callLens,setCallLens]=useState<LoveLensId>("none");
+ const [lensTray,setLensTray]=useState(false);
+ const [lensBusy,setLensBusy]=useState(false);
  const [remoteHasVideo,setRemoteHasVideo]=useState(false);
  const [remoteVideoReady,setRemoteVideoReady]=useState(false);
  const [localPreviewReady,setLocalPreviewReady]=useState(false);
@@ -62,10 +68,13 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
  const remoteVideo=useRef<HTMLVideoElement|null>(null);
  const localVideo=useRef<HTMLVideoElement|null>(null);
  const cameraSwitching=useRef(false);
+ const lensProcessor=useRef<LensProcessor|null>(null);
+ const lensRequest=useRef(0);
  const cancelPendingStart=useRef(false);
  const playLocalPreview=useCallback(async()=>{
   const element=localVideo.current;
-  const track=local.current?.getVideoTracks().find(video=>video.readyState==="live");
+  const track=lensProcessor.current?.track?.readyState==="live"?lensProcessor.current.track:
+   local.current?.getVideoTracks().find(video=>video.readyState==="live");
   if(!element)return;
   if(!track){
    element.srcObject=null;
@@ -276,6 +285,8 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   const p=pc.current;
   pc.current=null;
   if(p){p.ontrack=null;p.onicecandidate=null;p.onconnectionstatechange=null;p.oniceconnectionstatechange=null;p.close()}
+  lensRequest.current++;
+  lensProcessor.current?.stop();lensProcessor.current=null;
   if(local.current){local.current.getTracks().forEach(track=>track.stop());local.current=null}
   if(remote.current){remote.current.pause();remote.current.srcObject=null}
   if(remoteVideo.current){remoteVideo.current.pause();remoteVideo.current.srcObject=null}
@@ -289,6 +300,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(audioSession){try{audioSession.type="auto"}catch{/* Browser controls audio routing. */}}
   previousSinkId.current="";
   setMuted(false);setNeedsPlay(false);setDuration(0);setSpeakerHelp("");setSpeakerSelected(false);setSpeakerBusy(false);setMinimized(false);setVideoControlsVisible(true);setCallPanel("none");setDialed("");
+  setCallLens("none");setLensTray(false);setLensBusy(false);
   cameraSwitching.current=false;setCameraOff(false);setCameraFacing("user");setCameraBusy(false);setCameraWarning("");setRemoteHasVideo(false);setRemoteVideoReady(false);setLocalPreviewReady(false);setLocalPreviewHelp("");
  },[]);
  const reset=useCallback(()=>{
@@ -322,7 +334,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   for(const track of local.current.getAudioTracks())peer.addTrack(track,local.current);
   if(current.current?.mode==="video"){
    const videos=local.current.getVideoTracks();
-   if(videos.length)for(const track of videos)peer.addTrack(track,local.current);
+   if(videos.length)for(const track of videos)peer.addTrack(lensProcessor.current?.track||track,lensProcessor.current?.stream||local.current);
    else peer.addTransceiver("video",{direction:"recvonly"});
   }
   peer.ontrack=event=>{
@@ -707,6 +719,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   if(!tracks.length){setCameraWarning("Cette caméra est indisponible. Autorise-la puis rappelle.");return}
   const next=!cameraOff;
   tracks.forEach(track=>{track.enabled=!next});
+  if(lensProcessor.current)lensProcessor.current.track.enabled=!next;
   setCameraOff(next);
   if(next)setLocalPreviewReady(false);
   else void playLocalPreview();
