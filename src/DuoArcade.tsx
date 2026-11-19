@@ -38,6 +38,27 @@ export default function DuoArcade({mode,token,myName,partnerName,onExit,onOpenCh
  const mounted=useRef(true);
  const latest=useRef<Game|null>(null);
  const activePointer=useRef<number|null>(null);
+ const canvasStage=useRef<HTMLDivElement|null>(null);
+ const [canvasSize,setCanvasSize]=useState(0);
+ // Resize only the drawing surface, never the whole page. Keeps a square
+ // canvas fully inside the available iPhone height in both player roles.
+ useEffect(()=>{
+  if(mode!=="draw")return;
+  const stage=canvasStage.current;
+  if(!stage)return;
+  const measure=()=>{
+   const size=Math.max(0,Math.floor(Math.min(stage.clientWidth,stage.clientHeight)));
+   if(size>0)setCanvasSize(old=>old===size?old:size);
+  };
+  measure();
+  if(typeof ResizeObserver==="undefined"){
+   window.addEventListener("resize",measure);
+   return()=>window.removeEventListener("resize",measure);
+  }
+  const observer=new ResizeObserver(measure);
+  observer.observe(stage);
+  return()=>observer.disconnect();
+ },[mode,loading,reply?.game?.id]);
  const endpoint="/api/duo-arcade?game="+mode;
  const apply=useCallback((data:Reply)=>{
   if(!mounted.current)return;
@@ -161,7 +182,7 @@ export default function DuoArcade({mode,token,myName,partnerName,onExit,onOpenCh
  }
  const drawScore=draw?(draw.scores[seat]??0):0;
  const otherScore=draw?(draw.scores[seat===0?1:0]??0):0;
- return <section className="lr-duo" aria-label={mode==="draw"?"Devine ce que je dessine":"Escape Room Duo"}>
+ return <section className={"lr-duo"+(mode==="draw"?" lr-duo-draw":"")} aria-label={mode==="draw"?"Devine ce que je dessine":"Escape Room Duo"}>
   <header className="lr-duo-nav">
    <button type="button" onClick={onExit} className="lr-duo-back" aria-label="Retour à la salle de jeux">‹ <span>Jeux</span></button>
    <span className="lr-duo-live"><span/> DUO EN DIRECT</span>
@@ -185,7 +206,7 @@ export default function DuoArcade({mode,token,myName,partnerName,onExit,onOpenCh
      <strong className={remaining<=15?"urgent":""} aria-label="Temps restant">⏱ {clock(remaining)}</strong>
      <span>{mode==="draw"?"À TOUR DE RÔLE":"ENSEMBLE"}</span>
     </div>
-    {draw?<div className="lr-duo-panel">
+    {draw?<div className="lr-duo-panel lr-duo-draw-panel">
      <div className="lr-duo-score">
       <div><small>TOI · {myName}</small><strong>{drawScore}</strong></div>
       <span>VS</span>
@@ -200,7 +221,9 @@ export default function DuoArcade({mode,token,myName,partnerName,onExit,onOpenCh
       <small>{isDrawer?"TON MOT SECRET":ended?"LE MOT ÉTAIT":"CATÉGORIE"}</small>
       <strong>{isDrawer||ended?draw.word:draw.category}</strong>
      </div>
+     <div className="lr-duo-canvas-stage" ref={canvasStage}>
      <svg className={"lr-duo-canvas"+(canPaint?" can-draw":"")} viewBox="0 0 1000 1000" role="img"
+      style={canvasSize>0?{width:canvasSize,height:canvasSize}:undefined}
       aria-label={isDrawer?"Zone pour dessiner avec le doigt ou la souris":"Le dessin de ton partenaire"}
       onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>
       <rect width="1000" height="1000" rx="34" fill="#17253c"/>
@@ -210,6 +233,7 @@ export default function DuoArcade({mode,token,myName,partnerName,onExit,onOpenCh
          stroke={line.color} strokeWidth={line.width*3.1}/>)}
       </g>
      </svg>
+     </div>
      {isDrawer&&!ended?<div className="lr-duo-tools">
       <div className="lr-duo-colors" aria-label="Choisir une couleur">{COLORS.map(c=>
        <button key={c} type="button" style={{background:c}} className={color===c?"active":""}
