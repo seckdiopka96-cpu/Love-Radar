@@ -15,6 +15,8 @@ type Row={
 };
 const yes=(body:Record<string,unknown>)=>Response.json({ok:true,...body},{headers:{"Cache-Control":"private, no-store"}});
 const no=(error:string,status=400)=>Response.json({ok:false,error},{status,headers:{"Cache-Control":"private, no-store"}});
+// Show the revealed hands before automatically starting the next round.
+const RESULT_DISPLAY_MS=4500;
 let ready:Promise<void>|null=null;
 async function ensure(db:D1Database){
  if(!ready)ready=db.exec(
@@ -40,7 +42,16 @@ async function getRow(db:D1Database,roomId:string){
  return db.prepare("SELECT * FROM rps_games WHERE room_id=?").bind(roomId).first<Row>();
 }
 async function publicState(db:D1Database,player:Member,members:number){
- const row=members===2?await getRow(db,player.room_id):null;
+ let row=members===2?await getRow(db,player.room_id):null;
+ if(row?.status==="revealed"&&row.revealed_at!==null&&
+    Date.now()-row.revealed_at>=RESULT_DISPLAY_MS){
+  // Compare-and-set: only one client can advance the round.
+  await db.prepare("UPDATE rps_games SET round=round+1,version=version+1,status='choosing',"+
+   "move_0=NULL,move_1=NULL,winner=NULL,ready_0=0,ready_1=0,revealed_at=NULL,updated_at=?"+
+   " WHERE room_id=? AND game_id=? AND round=? AND status='revealed' AND revealed_at<=?")
+   .bind(Date.now(),player.room_id,row.game_id,row.round,Date.now()-RESULT_DISPLAY_MS).run();
+  row=await getRow(db,player.room_id);
+ }
  if(!row)return {members,seat:player.seat,game:null,serverNow:Date.now()};
  const mine=player.seat===0?row.move_0:row.move_1;
  const partner=player.seat===0?row.move_1:row.move_0;
