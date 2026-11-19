@@ -94,6 +94,8 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const versionRef=useRef(0);
  const idRef=useRef("");
  const busyRef=useRef(false);
+ const pollInFlight=useRef(false);
+ const pollQueued=useRef(false);
  const lastAnimated=useRef("");
  const lastReactionId=useRef("");
  const clearTimers=()=>{for(const t of timers.current)window.clearTimeout(t);timers.current=[];};
@@ -183,7 +185,9 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   if(!data.game)return;
   const next=data.game;
   const oldVersion=versionRef.current,oldId=idRef.current;
-  if(next.version<oldVersion&&next.id===oldId)return;
+  // Version is monotonic for the entire private room, including rematches.
+  // A delayed GET from an earlier match must never resurrect its old board.
+  if(next.version<oldVersion||(next.version===oldVersion&&oldId&&next.id!==oldId))return;
   // A roll with no legal move immediately changes turns and clears dice.
   // Recover the real face from lastAction rather than showing an invented 1.
   const faceMatch=/Dé ([1-6])/.exec(next.lastAction);
@@ -213,19 +217,37 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   }
  },[animate,seat]);
  const refresh=useCallback(async()=>{
-  if(solo||busyRef.current||document.visibilityState!=="visible")return;
+  if(solo||document.visibilityState!=="visible")return;
+  if(pollInFlight.current||busyRef.current){pollQueued.current=true;return;}
+  pollInFlight.current=true;
   try{
    const response=await fetch("/api/ludo-senegal",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
    const data=await response.json() as ServerResponse;
    if(!response.ok||!data.ok)throw Error(data.error||"Connexion indisponible.");
    accept(data);setError("");
   }catch(e){setError(e instanceof Error?e.message:"Connexion indisponible.");setOnline(false);}
+  finally{
+   pollInFlight.current=false;
+   if(pollQueued.current&&!busyRef.current&&document.visibilityState==="visible"){
+    pollQueued.current=false;
+    void refresh();
+   }
+  }
  },[token,solo,accept]);
  useEffect(()=>{
   if(solo)return;
   void refresh();
-  const id=window.setInterval(()=>void refresh(),1400);
-  return ()=>window.clearInterval(id);
+  const id=window.setInterval(()=>void refresh(),850);
+  const onResume=()=>{if(document.visibilityState==="visible")void refresh()};
+  document.addEventListener("visibilitychange",onResume);
+  window.addEventListener("focus",onResume);
+  window.addEventListener("online",onResume);
+  return ()=>{
+   window.clearInterval(id);
+   document.removeEventListener("visibilitychange",onResume);
+   window.removeEventListener("focus",onResume);
+   window.removeEventListener("online",onResume);
+  };
  },[solo,refresh]);
  // Solo player has 15 seconds for each action. AI takes over if the timer expires.
  // The AI turn effect below MUST depend on captureBack.length: a captured pawn
@@ -252,7 +274,12 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   }catch(e){
    setError(e instanceof Error?e.message:"Action refusée.");
    void refresh();return null;
-  }finally{busyRef.current=false;setBusy(false)}
+  }finally{
+   busyRef.current=false;setBusy(false);
+   if(pollQueued.current&&document.visibilityState==="visible"){
+    pollQueued.current=false;void refresh();
+   }
+  }
  }
  async function sendSticker(emoji:string,label:string){
   setEmotes(false);
@@ -278,7 +305,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   finally{setReactionBusy(false);}
  }
  async function roll(automatic=false){
-  if(game.status!=="playing"||game.dice!==null||rolling||busy||motion||captureBack.length||chosen||(!solo&&(!online||members!==2||game.turn!==seat))||
+  if(game.status!=="playing"||game.dice!==null||rolling||busy||busyRef.current||motion||captureBack.length||chosen||(!solo&&(!online||members!==2||game.turn!==seat))||
    (solo&&game.turn!==1&&!(game.turn===0&&(automatic||!assisted))))return;
   if(!automatic)unlockSound();
   setRolling(true); // The one Classic frame plays the physical dice sound.
@@ -302,7 +329,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   }
  }
  async function move(option:MoveOption,automatic=false){
-  if(busy||rolling||motion||captureBack.length||game.status!=="playing"||game.dice===null||
+  if(busy||busyRef.current||rolling||motion||captureBack.length||game.status!=="playing"||game.dice===null||
    (!solo&&(!online||members!==2||game.turn!==seat))||
    (solo&&game.turn!==1&&!(game.turn===0&&(automatic||!assisted))))return;
   const legal=movesForPawn(game,game.turn,option.pawn).find(m=>
