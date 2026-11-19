@@ -14,6 +14,9 @@ type Ctx={request:Request;env:PushEnv;waitUntil?:(task:Promise<unknown>)=>void};
 type Member={id:string;room_id:string;seat:number;name:string};
 type Phase="ready"|"question"|"result"|"finished"|"choose"|"challenge";
 const WIN_SCORE=10;
+// An explicit Quitter is immediate; a lost connection must stay absent
+// for a full minute before it can count as an abandonment.
+const FORFEIT_GRACE_MS=60000;
 type Row={
  room_id:string;mode:PartyMode;game_id:string;version:number;round:number;
  phase:Phase;question_index:number;prompt_kind:ChallengeKind|null;
@@ -123,6 +126,7 @@ function visible(row:Row,seat:number){
    partnerChoice:revealed?(seat===0?row.picked_1:row.picked_0):null,
    winner:revealed?row.winner:null,
    matchWinner:row.phase==="finished"?row.winner:null,winScore:WIN_SCORE,
+   winByForfeit:row.phase==="finished"&&Math.max(row.score_0,row.score_1)<WIN_SCORE,
    startAt:row.started_at,deadlineAt:row.deadline_at};
  }
  return {...common,myReady:(seat===0?row.picked_0:row.picked_1)===1,
@@ -146,9 +150,27 @@ async function enterGame(db:D1Database,member:Member,mode:PartyMode){
   " ON CONFLICT(room_id,mode,member_id) DO UPDATE SET last_seen_at=excluded.last_seen_at"
  ).bind(member.room_id,mode,member.id,Date.now()).run();
 }
+/** A started quiz cannot remain indefinitely paused when one partner has
+ * actually abandoned it. Do not penalize somebody who has not yet joined
+ * the very first ready screen. Other modes are untouched. */
+async function finishAbsentRapid(db:D1Database,row:Row,member:Member):Promise<Row>{
+ if(row.mode!=="rapid"||(row.phase!=="question"&&row.phase!=="result"))return row;
+ const opponent=await db.prepare(
+  "SELECT last_seen_at FROM couple_party_presence WHERE room_id=? AND mode='rapid' AND member_id<>? LIMIT 1"
+ ).bind(member.room_id,member.id).first<{last_seen_at:number}>();
+ const last=Number(opponent?.last_seen_at||0),now=Date.now();
+ if(!last||now-last<FORFEIT_GRACE_MS)return row;
+ const saved=await db.prepare(
+  "UPDATE couple_party_games SET phase='finished',winner=?,version=version+1,updated_at=?"+
+  " WHERE room_id=? AND mode='rapid' AND game_id=? AND version=? AND phase IN('question','result')"
+ ).bind(member.seat,now,member.room_id,row.game_id,row.version).run();
+ if(saved.meta.changes!==1)return await get(db,member.room_id,"rapid")||row;
+ return {...row,phase:"finished",winner:member.seat,version:row.version+1,updated_at:now};
+}
 async function publicState(db:D1Database,member:Member,mode:PartyMode,members:number){
  let game=members===2?await get(db,member.room_id,mode):null;
  if(game)game=await expire(db,game);
+ if(game&&members===2)game=await finishAbsentRapid(db,game,member);
  return {members,seat:member.seat,partnerHere:members===2?await partnerInGame(db,member,mode):false,
   game:game?visible(game,member.seat):null,serverNow:Date.now()};
 }
@@ -191,6 +213,21 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    const job=notifyPartner(ctx.env,member.room_id,member.id,title,message,mode);
    if(ctx.waitUntil)ctx.waitUntil(job);else void job;
    return send({invited:true,...await publicState(db,member,mode,members)});
+  }
+  if(mode==="rapid"&&data.action==="quit"){
+   // Leaving a started quiz awards the match to the partner, at any score.
+   // A quit before both started only removes presence, not an unearned win.
+   if(row.phase==="question"||row.phase==="result"){
+    const result=await db.prepare(
+     "UPDATE couple_party_games SET phase='finished',winner=?,version=version+1,updated_at=?"+
+     " WHERE room_id=? AND mode='rapid' AND game_id=? AND version=? AND phase IN('question','result')"
+    ).bind(1-member.seat,now,member.room_id,row.game_id,row.version).run();
+    if(result.meta.changes!==1)return fail("La partie a changé. Actualise le jeu.",409);
+   }
+   await db.prepare("DELETE FROM couple_party_presence WHERE room_id=? AND mode='rapid' AND member_id=?")
+    .bind(member.room_id,member.id).run();
+   // Do not call enterGame here: a quitter cannot remain present.
+   return send(await publicState(db,member,mode,members));
   }
   await enterGame(db,member,mode);
   if(mode==="rapid"&&data.action==="restart"){
