@@ -440,3 +440,18 @@
  .lr-app.lr-escape-mode .lr-duo-escape-game .lr-duo-attempts{display:none}
  .lr-app.lr-escape-mode .lr-duo-escape-game .lr-duo-footer{display:none!important}
 }
+
+/* End-of-match trophy stays inside the existing fixed drawing panel. */
+.lr-duo-draw-victory{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:8px;text-align:center;padding:12px;border:1px solid #dfbf96;
+ border-radius:16px;background:linear-gradient(135deg,#4e3d54,#26394b);
+}
+.lr-duo-draw-victory .lr-duo-large-icon{font-size:clamp(26px,5dvh,40px)}
+.lr-duo-draw-victory strong{font:700 clamp(17px,4.6vw,24px)/1.15 Georgia,serif;color:#fff2d9}
+.lr-duo-draw-victory p{margin:0;color:#dfd3df;font-size:12px;line-height:1.3}
+.lr-duo-draw-victory .lr-duo-primary{min-height:40px;padding:8px 14px}
+@media(max-width:700px){
+ .lr-duo-draw-victory{gap:5px;padding:8px}
+ .lr-duo-draw-victory .lr-duo-large-icon{font-size:29px}
+}
