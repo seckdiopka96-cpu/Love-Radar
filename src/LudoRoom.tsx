@@ -36,8 +36,8 @@ export function LudoMark({compact=false}:{compact?:boolean}){
  </svg>;
 }
 
-type Props={onExit:()=>void;onOpenMode:(mode:LudoMode)=>void;partnerName:string|null};
-export default function LudoRoom({onExit,onOpenMode,partnerName}:Props){
+type Props={onExit:()=>void;onOpenMode:(mode:LudoMode)=>void;onOpenTeam:()=>void;partnerName:string|null};
+export default function LudoRoom({onExit,onOpenMode,onOpenTeam,partnerName}:Props){
  return <section className="lr-ludo-room lr-ludo-room-unified" aria-label="Un plateau Ludo et quatre modes">
   <header className="lr-ludo-room-top">
    <button type="button" className="lr-ludo-room-back" onClick={onExit}>‹ Jeux</button>
@@ -59,6 +59,9 @@ export default function LudoRoom({onExit,onOpenMode,partnerName}:Props){
     <span className="lr-ludo-room-unified-arrow" aria-hidden="true">›</span>
    </button>)}
   </div>
+  <button type="button" className="lr-ludo-room-back" onClick={onOpenTeam}>
+   ❤️ VS 💙 · 2 couples, 4 joueurs · Ludo Classique / Sénégal
+  </button>
   <p className="lr-ludo-room-note">Les règles et parties restent indépendantes pour chaque mode{partnerName?". Invite "+partnerName+" pour le Duo.":"."}</p>
  </section>;
 }
