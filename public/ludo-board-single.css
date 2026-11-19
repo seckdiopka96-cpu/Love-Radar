@@ -22,7 +22,7 @@ html.lr-ludo-duo-ui #plateau .lr-unified-ludo-board,
 html.lr-ludo-solo-ui #plateau .lr-unified-ludo-frame,
 html.lr-ludo-duo-ui #plateau .lr-unified-ludo-frame,
 #root .ludo-experience.ludo-senegal .lr-unified-ludo-frame,
-#root .lr-ludo-room-unified .lr-ludo-unified-board {
+#root .lr-ludo-room-unified .lr-ludo-unified-board-frame {
  border:3px solid #a88743!important;
  border-radius:16px!important;
  padding:5px!important;
@@ -34,8 +34,9 @@ html.lr-ludo-duo-ui #plateau .lr-unified-ludo-frame,
 #root .lr-ludo-room-unified .lr-ludo-unified-board{
  display:block!important;
  grid-template:none!important;
- width:min(100%,385px,43svh);
+ width:100%!important;height:100%!important;
  aspect-ratio:1!important;
+ padding:0!important;
  overflow:hidden!important;
 }
 /* Hide the legacy colored cells and their borders, not their event or
