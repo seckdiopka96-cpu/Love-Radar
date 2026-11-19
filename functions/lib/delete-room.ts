@@ -19,6 +19,8 @@ export const ROOM_DATA_TABLES=[
  "ludo_senegal_reactions","ludo_senegal_moves","ludo_senegal_games",
  "rps_games","couple_party_games","couple_party_prompt_history","couple_party_presence","couple_puzzles","couple_puzzle_presence",
  "duo_draw_games","duo_escape_games",
+ // Two distinct couple rooms join a single competitive game, by invitation.
+ "team_games","team_game_presence",
  "couple_watch_presence","couple_watch_sessions",
  "couple_tiktok_presence","couple_tiktok_watch",
  "couple_reconciliations","push_subscriptions","room_revisions","partner_recovery","room_plus","chat_themes","couple_avatar_styles","couple_avatar_rooms","couple_avatar_models","couple_avatar_looks"
@@ -57,7 +59,23 @@ export function buildRoomDeletionBatch(db:D1Database,roomId:string,existing:Set<
    "DELETE FROM abuse_counters WHERE actor IN (SELECT 'member:'||id FROM members WHERE room_id=?)"
   ).bind(roomId));
  }
+ // Remove shared competitions before either couple's membership disappears.
+ // They have host_room/guest_room rather than a single private room_id.
+ // Closing one couple deletes ONLY its shared competition, not the other
+ // couple's personal account, chat, media or invitations.
+ if(existing.has("team_game_presence")&&existing.has("team_games")){
+  statements.push(db.prepare(
+   "DELETE FROM team_game_presence WHERE game_id IN "+
+   "(SELECT id FROM team_games WHERE host_room=? OR guest_room=?)"
+  ).bind(roomId,roomId));
+ }
+ if(existing.has("team_games")){
+  statements.push(db.prepare(
+   "DELETE FROM team_games WHERE host_room=? OR guest_room=?"
+  ).bind(roomId,roomId));
+ }
  for(const table of ROOM_DATA_TABLES){
+  if(table==="team_games"||table==="team_game_presence")continue;
   if(existing.has(table))statements.push(db.prepare("DELETE FROM "+table+" WHERE room_id=?").bind(roomId));
  }
  // Keep these last: ownership verification and active sessions depend on them.
