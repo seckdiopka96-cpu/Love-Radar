@@ -2,17 +2,18 @@ import {BASE,HOME,SAFE,TRACK,type Point} from "./ludo-visuals";
 
 /**
  * Ludo Sénégal — original implementation of the house rules described by
- * players: optional home entry, multiple laps, enemy home-lane raids, and a
- * a six to leave the enemy's lane and continue forward on the track.
+ * players: optional home entry, multiple laps, enemy home-lane raids,
+ * one-square retreats on a six inside the enemy lane, and two-pawn
+ * barricades that can only be jumped with a six (one square beyond).
  *
  * Track steps are unbounded lap counters, not classic 0..50 progression.
- * A pawn retains its track progress and direction while raiding a lane,
- * so leaving it never forces a reverse route through the same squares.
+ * A pawn keeps its direction on leaving the opponent's lane, then
+ * resumes ordinary track movement.
  */
 export type Seat=0|1;
 export type Zone="base"|"track"|"home"|"enemy"|"finished";
 export type Pawn={zone:Zone;step:number;depth:number;gate:number;dir:1|-1};
-export type Action="track"|"home"|"enemy"|"exit"|"turn";
+export type Action="track"|"home"|"enemy"|"exit"|"turn"|"jump";
 export type MoveOption={pawn:number;action:Action;to:Pawn;label:string};
 export type SenegalGame={
  positions:[Pawn[],Pawn[]];turn:Seat;dice:number|null;streak:number;
@@ -25,13 +26,14 @@ export const MAX_STEPS=520;
 export const freshPawn=():Pawn=>({zone:"base",step:-1,depth:0,gate:0,dir:1});
 const other=(seat:Seat):Seat=>(1-seat) as Seat;
 const mod=(n:number,m:number)=>((n%m)+m)%m;
+const homePoint=(owner:Seat,depth:number):Point=>HOME[owner][depth-1]||[7,7];
 export const trackIndex=(seat:Seat,step:number)=>mod(seat*26+step,52);
 export const pointForPawn=(seat:Seat,index:number,pawn:Pawn):Point=>{
  if(pawn.zone==="base")return BASE[seat][index];
  if(pawn.zone==="finished")return [7,7];
  if(pawn.zone==="track")return TRACK[trackIndex(seat,pawn.step)];
- if(pawn.zone==="home")return HOME[seat][pawn.depth-1];
- return HOME[other(seat)][pawn.depth-1];
+ if(pawn.zone==="home")return homePoint(seat,pawn.depth);
+ return homePoint(other(seat),pawn.depth);
 };
 export function newSenegalGame():SenegalGame{
  return {positions:[[0,1,2,3].map(()=>freshPawn()),[0,1,2,3].map(()=>freshPawn())],
@@ -76,28 +78,107 @@ function laneOption(pawn:number,from:Pawn,dest:number,dir:1|-1,gate:number,zone:
   step:dest,depth,gate,dir};
  return {pawn,action:zone,to,label:zone==="home"?"🏠 Entrer chez moi":"😈 Attaquer la cage adverse"};
 }
+type RouteCell={kind:"track";step:number}|{kind:"lane";owner:Seat;depth:number};
+const routeKey=(seat:Seat,cell:RouteCell)=>cell.kind==="track"
+ ?"track:"+trackIndex(seat,cell.step):"lane:"+cell.owner+":"+cell.depth;
+/** A pair of pieces on the SAME square blocks the opponent, including
+ * the home lane when it is being raided. */
+function opponentBarricades(game:SenegalGame,seat:Seat):Set<string>{
+ const enemy=other(seat),counts=new Map<string,number>();
+ for(const piece of game.positions[enemy]){
+  let key:string|null=null;
+  if(piece.zone==="track")key="track:"+trackIndex(enemy,piece.step);
+  else if(piece.zone==="home")key="lane:"+enemy+":"+piece.depth;
+  else if(piece.zone==="enemy")key="lane:"+seat+":"+piece.depth;
+  if(key)counts.set(key,(counts.get(key)||0)+1);
+ }
+ return new Set([...counts].filter(([,count])=>count>=2).map(([key])=>key));
+}
+function guardedOptions(game:SenegalGame,seat:Seat,pawn:number,from:Pawn,roll:number,
+ options:MoveOption[]):MoveOption[]{
+ const barricades=opponentBarricades(game,seat);
+ if(!barricades.size)return options;
+ const result:MoveOption[]=[],jumpKeys=new Set<string>();
+ for(const option of options){
+  const to=option.to,dir=to.dir;
+  const route:RouteCell[]=[];
+  if(from.zone==="base"){
+   if(to.zone==="track")route.push({kind:"track",step:to.step});
+  }else if(from.zone==="track"){
+   if(to.zone==="track"){
+    for(let step=from.step+dir;dir*(step-to.step)<=0;step+=dir)route.push({kind:"track",step});
+   }else{
+    for(let step=from.step+dir;dir*(step-to.gate)<=0;step+=dir)route.push({kind:"track",step});
+    const owner=to.zone==="enemy"?other(seat):seat;
+    for(let depth=1;depth<=to.depth;depth++)route.push({kind:"lane",owner,depth});
+   }
+  }else if(from.zone==="home"){
+   for(let depth=from.depth+1;depth<=to.depth;depth++)route.push({kind:"lane",owner:seat,depth});
+  }else if(from.zone==="enemy"){
+   if(option.action==="exit"){
+    if(to.zone==="track"){
+     route.push({kind:"track",step:from.gate});
+     route.push({kind:"track",step:to.step});
+    }else route.push({kind:"lane",owner:other(seat),depth:to.depth});
+   }else{
+    for(let depth=from.depth+1;depth<=to.depth;depth++)route.push({kind:"lane",owner:other(seat),depth});
+   }
+  }
+  const blocked=route.find(cell=>barricades.has(routeKey(seat,cell)));
+  if(!blocked){result.push(option);continue;}
+  if(roll!==6||!(from.zone==="track"||from.zone==="home"||from.zone==="base"))continue;
+  let landing:Pawn|null=null;
+  if(blocked.kind==="track"){
+   const step=blocked.step+dir;
+   if(step>=-MAX_STEPS&&step<=MAX_STEPS)landing={zone:"track",step,depth:0,gate:0,dir};
+  }else if(to.zone!=="track"){
+   const depth=blocked.depth+1,own=blocked.owner===seat;
+   if(depth<=(own?7:6)){
+    const gate=from.zone==="home"?from.gate:to.gate;
+    landing={zone:own&&depth===7?"finished":own?"home":"enemy",
+     step:gate+dir*(depth-1),depth,gate,dir};
+   }
+  }
+  if(!landing)continue;
+  const target:RouteCell=landing.zone==="track"
+   ?{kind:"track",step:landing.step}
+   :{kind:"lane",owner:landing.zone==="enemy"?other(seat):seat,depth:landing.depth};
+  if(barricades.has(routeKey(seat,target)))continue;
+  const id=[landing.zone,landing.step,landing.depth,landing.gate,landing.dir].join(":");
+  if(jumpKeys.has(id))continue;
+  jumpKeys.add(id);
+  result.push({pawn,action:"jump",to:landing,label:"⤴️ 6 : sauter le barrage (une case après)"});
+ }
+ return result;
+}
 export function movesForPawn(game:SenegalGame,seat:Seat,pawn:number):MoveOption[]{
  if(game.status!=="playing"||game.turn!==seat||game.dice===null||pawn<0||pawn>3)return [];
  const roll=game.dice,from=game.positions[seat][pawn];
  if(from.zone==="finished")return [];
- if(from.zone==="base")return roll===6?[{pawn,action:"track",to:{zone:"track",step:0,depth:0,gate:0,dir:1},label:"Sortir de la base"}]:[];
+ if(from.zone==="base")return guardedOptions(game,seat,pawn,from,roll,
+  roll===6?[{pawn,action:"track",to:{zone:"track",step:0,depth:0,gate:0,dir:1},label:"Sortir de la base"}]:[]);
  if(from.zone==="home"){
   const depth=from.depth+roll;
   if(depth>7)return [];
-  return [{pawn,action:"home",to:{...from,depth,zone:depth===7?"finished":"home"},label:depth===7?"🏆 Arriver au centre":"Avancer vers le centre"}];
+  return guardedOptions(game,seat,pawn,from,roll,
+   [{pawn,action:"home",to:{...from,depth,zone:depth===7?"finished":"home"},label:depth===7?"🏆 Arriver au centre":"Avancer vers le centre"}]);
  }
  if(from.zone==="enemy"){
   if(roll===6){
-   // Resume from the last track progress, then advance six forward.
-   // Never walk the enemy lane in reverse or flip the pawn's direction.
-   const target=from.step+from.dir*roll;
-   if(target< -MAX_STEPS||target>MAX_STEPS)return [];
-   return [{pawn,action:"exit",
-    to:{zone:"track",step:target,depth:0,gate:0,dir:from.dir},
-    label:"➡️ 6 : sortir de la cage et continuer"}];
+   // One 6 = exactly ONE square backwards inside the opponent's lane.
+   // At depth 1 it crosses the gate to the preceding track square;
+   // subsequent rolls move forwards normally, not a forced reverse route.
+   const depth=from.depth-1;
+   const to:Pawn=depth>=1?
+    {...from,zone:"enemy",depth,step:from.gate+from.dir*(depth-1)}:
+    {zone:"track",step:from.gate-from.dir,depth:0,gate:0,dir:from.dir};
+   if(to.step< -MAX_STEPS||to.step>MAX_STEPS)return [];
+   return guardedOptions(game,seat,pawn,from,roll,[{pawn,action:"exit",to,
+    label:depth>=1?"↩️ 6 : reculer d’une seule case":"↩️ 6 : sortir de la cage"}]);
   }
   if(from.depth+roll>6)return [];
-  return [{pawn,action:"enemy",to:{...from,depth:from.depth+roll},label:"😈 Avancer dans la cage adverse"}];
+  return guardedOptions(game,seat,pawn,from,roll,
+   [{pawn,action:"enemy",to:{...from,depth:from.depth+roll},label:"😈 Avancer dans la cage adverse"}]);
  }
  const options:MoveOption[]=[];
  function addDirection(dir:1|-1,action:Action){
@@ -119,7 +200,7 @@ export function movesForPawn(game:SenegalGame,seat:Seat,pawn:number):MoveOption[
  addDirection(from.dir,"track");
  // A six is required for EVERY fresh U-turn (not just the one in enemy lane).
  if(roll===6)addDirection(from.dir===1?-1:1,"turn");
- return options;
+ return guardedOptions(game,seat,pawn,from,roll,options);
 }
 export function movesForSeat(game:SenegalGame,seat:Seat):MoveOption[]{
  return game.positions[seat].flatMap((_,i)=>movesForPawn(game,seat,i));
@@ -135,34 +216,36 @@ export function rollSenegal(game:SenegalGame,face:number):SenegalGame{
  if(!canPlay)return {...staged,dice:null,turn:other(seat),streak:0,lastAction:"Dé "+face+" : aucun déplacement, tour passé automatiquement."};
  return {...staged,lastAction:"Dé "+face+" : choisis un pion ou une direction."};
 }
-/** Produces the actual cells crossed, including backward travel in enemy lanes. */
+/** Actual cells crossed: one-square enemy-lane retreats and barricade hops
+ * never animate a pawn walking across the occupied barricade square. */
 export function movementPath(seat:Seat,from:Pawn,to:Pawn,action:Action):Point[]{
  const path:Point[]=[];
  if(from.zone==="base")return [pointForPawn(seat,0,to)];
  if(from.zone==="home"){
-  for(let d=from.depth+1;d<=to.depth;d++)path.push(d===7?[7,7]:HOME[seat][d-1]);
-  return path;
- }
- if(from.zone==="enemy"){
-  if(action==="exit"){
-   // One visible transition back onto the track at the pawn's saved progress,
-   // then exactly six forward steps. No backwards path through the cage.
-   path.push(TRACK[trackIndex(seat,from.step)]);
-   for(let s=from.step+from.dir;s!==to.step+from.dir;s+=from.dir){
-    path.push(TRACK[trackIndex(seat,s)]);
-   }
-  }else{
-   for(let d=from.depth+1;d<=to.depth;d++)path.push(HOME[other(seat)][d-1]);
+  for(let d=from.depth+1;d<=to.depth;d++){
+   if(action==="jump"&&d===to.depth-1)continue;
+   path.push(homePoint(seat,d));
   }
   return path;
  }
- const dir=action==="turn"?(from.dir===1?-1:1):from.dir;
+ if(from.zone==="enemy"){
+  if(action==="exit")return [pointForPawn(seat,0,to)];
+  for(let d=from.depth+1;d<=to.depth;d++)path.push(homePoint(other(seat),d));
+  return path;
+ }
+ const dir=to.dir;
  if(to.zone==="track"){
-  for(let s=from.step+dir;s!==to.step+dir;s+=dir)path.push(TRACK[trackIndex(seat,s)]);
+  for(let s=from.step+dir;dir*(s-to.step)<=0;s+=dir){
+   if(action==="jump"&&s===to.step-dir)continue;
+   path.push(TRACK[trackIndex(seat,s)]);
+  }
   return path;
  }
  for(let s=from.step+dir;dir*(s-to.gate)<0;s+=dir)path.push(TRACK[trackIndex(seat,s)]);
- for(let d=1;d<=to.depth;d++)path.push(to.zone==="finished"&&d===7?[7,7]:HOME[to.zone==="enemy"?other(seat):seat][d-1]);
+ for(let d=1;d<=to.depth;d++){
+  if(action==="jump"&&d===to.depth-1)continue;
+  path.push(homePoint(to.zone==="enemy"?other(seat):seat,d));
+ }
  return path;
 }
 function captureTargets(positions:[Pawn[],Pawn[]],seat:Seat,to:Pawn):Capture[]{
@@ -196,7 +279,9 @@ export function applySenegalMove(game:SenegalGame,option:MoveOption):{game:Seneg
  const winner=positions[seat].every(p=>p.zone==="finished")?seat:null;
  const bonus=game.dice===6||captures.length>0||legal.to.zone==="finished";
  const nextTurn=winner!==null||bonus?seat:other(seat);
- const description=legal.action==="enemy"?"attaque la cage adverse 😈":legal.action==="exit"?"sort de la cage adverse et continue avec un 6 ➡️":
+ const description=legal.action==="enemy"?"attaque la cage adverse 😈":
+  legal.action==="exit"?(legal.to.zone==="track"?"sort de la cage adverse après un pas de recul ↩️":"recule d’une case dans la cage adverse ↩️"):
+  legal.action==="jump"?"saute un barrage et s’arrête une case après ⤴️":
   legal.action==="home"?"entre dans sa cage 🏠":legal.action==="turn"?"fait demi-tour 🔄":"avance sur le plateau";
  return {game:{...game,positions,turn:nextTurn,dice:null,streak:game.dice===6?game.streak:0,
    status:winner!==null?"won":"playing",winner,updatedAt:Date.now(),
@@ -221,6 +306,7 @@ export function chooseSenegalBotMove(game:SenegalGame):MoveOption|null{
   let s=to.zone==="finished"?20000:to.zone==="home"?2000+to.depth*60:to.zone==="enemy"?260:to.zone==="track"?to.step:0;
   if(option.action==="turn")s-=150;
   if(option.action==="exit")s+=400;
+  if(option.action==="jump")s+=525;
   if(option.action==="enemy"&&to.zone==="enemy"){
    s+=enemyHomePawns.length*275;
   }
