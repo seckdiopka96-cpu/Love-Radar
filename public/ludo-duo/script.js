@@ -153,6 +153,8 @@
   if(m.progress!==m.from&&movingPawn.dataset.motionProgress!==String(m.progress)){
    const pawn=movingPawn;
    pawn.dataset.motionProgress=String(m.progress);
+   // One audible landing per real square, not on every poll/re-render.
+   window.LudoSfx?.play("step");
    const to=getPosition(c,m.progress,m.pawn);
    requestAnimationFrame(()=>{
     if(pawn!==movingPawn||pawn.dataset.motionProgress!==String(m.progress))return;
