@@ -73,3 +73,18 @@ test("all modes have a prominent shared Ludo logo, stronger shadows, and distinc
  assert.ok(senegalCSS.includes(".ludo-experience.ludo-senegal-duo"));
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .game-screen{"),"Duo keeps the Solo fixed stage layout");
 });
+
+
+test("Ludo room keeps back button clear of iPhone status bar and centers cards",()=>{
+ assert.ok(room.includes('className="lr-ludo-room-back" onClick={onExit}'));
+ assert.ok(css.includes('padding:max(66px, calc(env(safe-area-inset-top) + 12px))'),
+  "room must reserve a real safe top area even in standalone iPhone mode");
+ assert.ok(css.includes('justify-content:safe center'),
+  "cards and header should sit at the screen center when space permits");
+ assert.ok(css.includes('overflow-y:auto'),
+  "short phone screens must scroll rather than clip the return button");
+ assert.ok(css.includes('.lr-app.lr-ludo-mode .lr-ludo-room-back'));
+ assert.ok(css.includes('min-height:44px'),"return target stays comfortably tappable");
+ assert.equal((room.match(/onClick=\{\(\)=>onOpenMode\(mode.id\)\}/g)||[]).length,1,
+  "each mode remains directly tappable");
+});
