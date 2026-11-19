@@ -12,7 +12,8 @@ import {
  */
 type Ctx={request:Request;env:PushEnv;waitUntil?:(task:Promise<unknown>)=>void};
 type Member={id:string;room_id:string;seat:number;name:string};
-type Phase="ready"|"question"|"result"|"choose"|"challenge";
+type Phase="ready"|"question"|"result"|"finished"|"choose"|"challenge";
+const WIN_SCORE=10;
 type Row={
  room_id:string;mode:PartyMode;game_id:string;version:number;round:number;
  phase:Phase;question_index:number;prompt_kind:ChallengeKind|null;
@@ -80,6 +81,13 @@ async function get(db:D1Database,room:string,mode:PartyMode){
   .bind(room,mode).first<Row>();
 }
 async function expire(db:D1Database,row:Row):Promise<Row>{
+ if(row.mode==="rapid"&&row.phase!=="finished"&&(row.score_0>=WIN_SCORE||row.score_1>=WIN_SCORE)){
+  await db.prepare("UPDATE couple_party_games SET phase='finished',winner=?,version=version+1,updated_at=?"+
+   " WHERE room_id=? AND mode='rapid' AND game_id=? AND version=? AND phase<>'finished'")
+   .bind(row.score_0>=WIN_SCORE?0:1,Date.now(),row.room_id,row.game_id,row.version).run();
+  return await get(db,row.room_id,row.mode)||row;
+ }
+
  // Resume pre-update rooms stuck in ready after round one, only once.
  if(row.mode==="rapid"&&row.phase==="ready"&&row.round>1){
   const now=Date.now(),start=now+RAPID_COUNTDOWN_MS;
@@ -103,7 +111,7 @@ function visible(row:Row,seat:number){
   updatedAt:row.updated_at
  };
  if(row.mode==="rapid"){
-  const q=partyQuestion(row.question_index),revealed=row.phase==="result";
+  const q=partyQuestion(row.question_index),revealed=row.phase==="result"||row.phase==="finished";
   const waiting=row.phase==="ready";
   return {...common,question:waiting?null:q.question,options:waiting?null:q.options,
    // Neither the question nor correct choice is visible until both players are ready.
@@ -114,6 +122,7 @@ function visible(row:Row,seat:number){
    partnerPicked:!waiting&&(seat===0?row.picked_1:row.picked_0)!==null,
    partnerChoice:revealed?(seat===0?row.picked_1:row.picked_0):null,
    winner:revealed?row.winner:null,
+   matchWinner:row.phase==="finished"?row.winner:null,winScore:WIN_SCORE,
    startAt:row.started_at,deadlineAt:row.deadline_at};
  }
  return {...common,myReady:(seat===0?row.picked_0:row.picked_1)===1,
@@ -123,7 +132,7 @@ function visible(row:Row,seat:number){
    partyChallenge(row.prompt_kind,row.question_index):null};
 }
 // Only an actively opened game screen counts as participating in the match.
-const GAME_PRESENCE_MS=6500;
+const GAME_PRESENCE_MS=30000; // Grace for brief iOS call/poll suspension.
 async function partnerInGame(db:D1Database,member:Member,mode:PartyMode):Promise<boolean>{
  const current=await db.prepare(
   "SELECT last_seen_at FROM couple_party_presence WHERE room_id=? AND mode=? AND member_id<>? LIMIT 1"
@@ -184,7 +193,18 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    return send({invited:true,...await publicState(db,member,mode,members)});
   }
   await enterGame(db,member,mode);
-   if(!(await partnerInGame(db,member,mode)))return fail("Ton partenaire doit rejoindre le jeu pour commencer ou continuer.",409);
+  if(mode==="rapid"&&data.action==="restart"){
+   if(row.phase!=="finished")return fail("Terminez d'abord cette partie.",409);
+   const updated=await db.prepare(
+    "UPDATE couple_party_games SET game_id=?,round=1,phase='ready',version=version+1,"+
+    "score_0=0,score_1=0,winner=NULL,picked_0=NULL,picked_1=NULL,"+
+    "question_index=?,started_at=0,deadline_at=0,updated_at=?"+
+    " WHERE room_id=? AND mode='rapid' AND game_id=? AND phase='finished'"
+   ).bind(crypto.randomUUID(),newIndex(RAPID_QUESTIONS.length,-1),now,member.room_id,row.game_id).run();
+   if(updated.meta.changes!==1)return fail("Une nouvelle partie a déjà commencé.",409);
+   return send(await publicState(db,member,mode,members));
+  }
+   if(!(await partnerInGame(db,member,mode)))return fail("Ton partenaire doit ouvrir cette salle pour continuer.",409);
    if(!Number.isInteger(data.round)||data.round!==row.round)
    return fail("Ton partenaire a déjà changé de manche.",409);
   if(mode==="rapid"){
@@ -218,17 +238,18 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
     const scoreCol=member.seat===0?"score_0":"score_1";
     const correct=data.choice===partyQuestion(row.question_index).answer?1:0;
     const changed=await db.prepare(
-     "UPDATE couple_party_games SET "+col+"=?,phase=CASE WHEN ?=1 THEN 'result' ELSE phase END,"+
+     "UPDATE couple_party_games SET "+col+"=?,phase=CASE WHEN ?=1 AND "+scoreCol+">=? THEN 'finished' WHEN ?=1 THEN 'result' ELSE phase END,"+
      "winner=CASE WHEN ?=1 THEN ? ELSE winner END,"+scoreCol+"="+scoreCol+"+?,"+
      "version=version+1,updated_at=? WHERE room_id=? AND mode='rapid'"+
      " AND game_id=? AND round=? AND phase='question' AND started_at<=?"+
      " AND deadline_at>? AND "+col+" IS NULL"
-    ).bind(data.choice,correct,correct,member.seat,correct,now,
+    ).bind(data.choice,correct,WIN_SCORE-1,correct,correct,member.seat,correct,now,
      member.room_id,row.game_id,row.round,now,now).run();
     if(changed.meta.changes!==1)return fail("La réponse ou la manche a déjà été validée.",409);
     return send(await publicState(db,member,mode,members));
    }
    if(data.action==="next"){
+    if(row.phase==="finished")return fail("La partie est terminée à 10 points.",409);
     if(row.phase!=="result")return fail("Attends la fin de cette question.",409);
     const next=newIndex(RAPID_QUESTIONS.length,row.question_index);
     const start=now+RAPID_COUNTDOWN_MS;
