@@ -162,15 +162,15 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
    rapid?<div className="lr-party-panel">
     <div className="lr-party-question-meta">
      <span>QUESTION {rapid.round}</span>
-     <span className={"lr-party-timer"+(secondsLeft<=5?" urgent":"")} aria-live="off">{rapid.phase==="result"||rapid.phase==="finished"?"Terminé":secondsToStart>0?"Départ dans "+secondsToStart+"…":secondsLeft+" s"}</span>
+     <span className={"lr-party-timer"+(secondsLeft<=5?" urgent":"")} aria-live="off">{rapid.phase==="result"?"Terminé":secondsToStart>0?"Départ dans "+secondsToStart+"…":secondsLeft+" s"}</span>
     </div>
     <div className="lr-party-timer-track" aria-hidden="true">
-     <span style={{width:rapid.phase==="result"||rapid.phase==="finished"?"0%":secondsToStart>0?"100%":Math.max(0,Math.min(100,(rapid.deadlineAt-now)/180))+"%"}}/>
+     <span style={{width:rapid.phase==="result"?"0%":secondsToStart>0?"100%":Math.max(0,Math.min(100,(rapid.deadlineAt-now)/180))+"%"}}/>
     </div>
     <h2>{rapid.question||"Question en préparation…"}</h2>
     <div className="lr-party-answers" role="group" aria-label="Choisir une réponse">
      {(rapid.options||[]).map((choice,index)=>{
-      const revealed=rapid.phase==="result"||rapid.phase==="finished";
+      const revealed=rapid.phase==="result";
       const correct=revealed&&rapid.correct===index;
       const wrong=revealed&&rapid.myChoice===index&&!correct;
       return <button type="button" key={index} className={"lr-party-answer"+(correct?" is-correct":"")+(wrong?" is-wrong":"")+(rapid.myChoice===index?" is-selected":"")}
