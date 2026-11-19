@@ -339,8 +339,8 @@ test("even old backward saved track directions cannot reverse the next roll",()=
  assert.equal(six[0].to.dir,1);
 });
 test("home entry then exact home finish still wins with four pawns",()=>{
- const g=withTurn(pawn("home",55,6,51),pawn("base",-1),1);
- for(let i=1;i<4;i++)g.positions[0][i]=pawn("finished",57,7,51);
+ const g=withTurn(pawn("home",55,5,51),pawn("base",-1),1);
+ for(let i=1;i<4;i++)g.positions[0][i]=pawn("finished",56,6,51);
  const option=movesForPawn(g,0,0).find(o=>o.action==="home");
  assert.ok(option);
  const played=applySenegalMove(g,option!);
@@ -366,8 +366,8 @@ test("capture inside an opponent's lane also works after the raider is already i
 test("four qualified pawns immediately end Senegal Duo and reject all further moves",()=>{
  for(const seat of [0,1] as const){
   const game=newSenegalGame();game.turn=seat;game.dice=1;
-  game.positions[seat][0]=pawn("home",55,6,51);
-  for(let i=1;i<4;i++)game.positions[seat][i]=pawn("finished",57,7,51);
+  game.positions[seat][0]=pawn("home",55,5,51);
+  for(let i=1;i<4;i++)game.positions[seat][i]=pawn("finished",56,6,51);
   const winning=movesForPawn(game,seat,0).find(o=>o.action==="home");
   assert.ok(winning);
   const result=applySenegalMove(game,winning!);
@@ -405,6 +405,45 @@ test("an already fully finished Duo match is reconciled and frozen when reopened
   for(let i=0;i<4;i++)half.positions[seat][i]=pawn("home",55,5,51);
   const pending=repairSenegalHomeShortcut(half);
   assert.equal(pending.status,"playing","being in the five entry squares is not finishing");
+ }
+});
+test("old home-depth-six pawns appearing at the center are qualified on reopening",()=>{
+ for(const seat of [0,1] as const){
+  const match=newSenegalGame();
+  match.turn=seat;
+  match.dice=3;
+  match.positions[seat][0]=pawn("home",56,6,51);
+  for(let i=1;i<4;i++)match.positions[seat][i]=pawn("finished",56,6,51);
+  const repaired=repairSenegalHomeShortcut(match);
+  assert.equal(repaired.positions[seat][0].zone,"finished");
+  assert.equal(repaired.positions[seat][0].depth,6);
+  assert.equal(repaired.status,"won","already-completed four pawns must stop the match");
+  assert.equal(repaired.winner,seat);
+  assert.equal(repaired.dice,null);
+  assert.deepEqual(movesForSeat(repaired,seat),[]);
+  assert.equal(repairSenegalHomeShortcut(repaired),repaired);
+ }
+});
+test("Sénégal Solo and Duo finish at the physical center with one after fifth square",()=>{
+ for(const seat of [0,1] as const){
+  const match=newSenegalGame();
+  match.turn=seat;match.dice=1;
+  match.positions[seat][0]=pawn("home",55,5,51);
+  const finish=movesForPawn(match,seat,0).find(o=>o.action==="home");
+  assert.ok(finish);
+  assert.equal(finish.to.zone,"finished");
+  assert.equal(finish.to.depth,6);
+  assert.deepEqual(pointForPawn(seat,0,finish.to),[7,7]);
+  const ended=applySenegalMove(match,finish);
+  assert.equal(ended?.game.positions[seat][0].zone,"finished");
+  assert.equal(ended?.move.path.length,1,"no invisible extra move");
+  const last=ended!.move.path.at(-1);
+  assert.deepEqual(last,[7,7]);
+  const gateGame=newSenegalGame();gateGame.turn=seat;gateGame.dice=6;
+  gateGame.positions[seat][0]=pawn("track",50);
+  const direct=movesForPawn(gateGame,seat,0).find(o=>o.action==="home");
+  assert.equal(direct?.to.depth,6);
+  assert.equal(direct?.to.zone,"finished");
  }
 });
 test("ordinary roll without legal move immediately passes the turn",()=>{
