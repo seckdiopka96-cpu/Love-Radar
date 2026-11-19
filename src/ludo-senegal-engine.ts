@@ -27,13 +27,17 @@ export const freshPawn=():Pawn=>({zone:"base",step:-1,depth:0,gate:0,dir:1});
 const other=(seat:Seat):Seat=>(1-seat) as Seat;
 const mod=(n:number,m:number)=>((n%m)+m)%m;
 const homePoint=(owner:Seat,depth:number):Point=>HOME[owner][depth-1]||[7,7];
+// Opponent's colored corridor has five cells. The sixth step would be the
+// central finish: that destination belongs ONLY to the pawn's own home lane.
+export const ENEMY_LANE_LENGTH=HOME[0].length;
 export const trackIndex=(seat:Seat,step:number)=>mod(seat*26+step,52);
 export const pointForPawn=(seat:Seat,index:number,pawn:Pawn):Point=>{
  if(pawn.zone==="base")return BASE[seat][index];
  if(pawn.zone==="finished")return [7,7];
  if(pawn.zone==="track")return TRACK[trackIndex(seat,pawn.step)];
  if(pawn.zone==="home")return homePoint(seat,pawn.depth);
- return homePoint(other(seat),pawn.depth);
+ // Even a legacy enemy-depth-6 position must never render on the victory center.
+ return homePoint(other(seat),Math.max(1,Math.min(ENEMY_LANE_LENGTH,pawn.depth)));
 };
 export function newSenegalGame():SenegalGame{
  return {positions:[[0,1,2,3].map(()=>freshPawn()),[0,1,2,3].map(()=>freshPawn())],
@@ -64,10 +68,13 @@ export function repairSenegalHomeShortcut(game:SenegalGame):SenegalGame{
    changed=true;
    return {...piece,step:Math.abs(piece.step),dir:1 as const,depth:0,gate:0};
   }
-  if(piece.zone==="enemy"&&(piece.dir===-1||piece.gate<0)){
+  if(piece.zone==="enemy"&&(piece.dir===-1||piece.gate<0||piece.depth>ENEMY_LANE_LENGTH)){
    changed=true;
    const gate=77+52*Math.max(0,Math.round((Math.abs(piece.gate)-77)/52));
-   return {...piece,gate,step:gate+piece.depth-1,dir:1 as const};
+   // A previously allowed depth 6 visually occupied the finish.
+   // Restore it to the last physical cell inside the enemy corridor.
+   const depth=Math.max(1,Math.min(ENEMY_LANE_LENGTH,piece.depth));
+   return {...piece,gate,step:gate+depth-1,depth,dir:1 as const};
   }
   if(piece.zone==="home"&&piece.dir===-1){
    changed=true;
@@ -119,7 +126,7 @@ function gatesBetween(start:number,end:number,base:number,dir:1|-1):number[]{
 }
 function laneOption(pawn:number,from:Pawn,dest:number,dir:1|-1,gate:number,zone:"home"|"enemy"):MoveOption|null{
  const depth=1+dir*(dest-gate);
- if(depth<1||depth>(zone==="home"?7:6))return null;
+ if(depth<1||depth>(zone==="home"?7:ENEMY_LANE_LENGTH))return null;
  const to:Pawn={zone:zone==="home"&&depth===7?"finished":zone,
   step:dest,depth,gate,dir};
  return {pawn,action:zone,to,label:zone==="home"?"🏠 Entrer chez moi":"😈 Attaquer la cage adverse"};
@@ -179,7 +186,7 @@ function guardedOptions(game:SenegalGame,seat:Seat,pawn:number,from:Pawn,roll:nu
    if(step>=-MAX_STEPS&&step<=MAX_STEPS)landing={zone:"track",step,depth:0,gate:0,dir};
   }else if(to.zone!=="track"){
    const depth=blocked.depth+1,own=blocked.owner===seat;
-   if(depth<=(own?7:6)){
+   if(depth<=(own?7:ENEMY_LANE_LENGTH)){
     const gate=from.zone==="home"?from.gate:to.gate;
     landing={zone:own&&depth===7?"finished":own?"home":"enemy",
      step:gate+dir*(depth-1),depth,gate,dir};
@@ -222,7 +229,10 @@ export function movesForPawn(game:SenegalGame,seat:Seat,pawn:number):MoveOption[
    return guardedOptions(game,seat,pawn,from,roll,[{pawn,action:"exit",to,
     label:depth>=1?"↩️ 6 : reculer d’une seule case":"↩️ 6 : sortir de la cage"}]);
   }
-  if(from.depth+roll>6)return [];
+  // An invader may use only the five colored enemy-lane squares.
+  // Passing the last square cannot qualify it at the central finish;
+  // it stays inside until a six retreats it by one square.
+  if(from.depth+roll>ENEMY_LANE_LENGTH)return [];
   return guardedOptions(game,seat,pawn,from,roll,
    [{pawn,action:"enemy",to:{...from,depth:from.depth+roll},label:"😈 Avancer dans la cage adverse"}]);
  }
