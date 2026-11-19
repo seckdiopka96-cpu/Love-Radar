@@ -1,13 +1,46 @@
+import {CELL,TRACK,SAFE,HOME,key} from "./ludo-visuals";
 import "./ludo-room.css";
 
 export type LudoMode="ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo";
 
+/** One visible board, four modes. The same 15×15 preview is never duplicated. */
 const MODES=[
- {id:"ludo-solo",tag:"CLASSIQUE",title:"Ludo Solo",meta:"Toi contre l’ordinateur",description:"Le vrai Ludo traditionnel, à ton rythme.",icon:"🎲",number:"01",kind:"classic-solo"},
- {id:"ludo",tag:"EN COUPLE",title:"Ludo Duo",meta:"Deux joueurs · En direct",description:"Une partie partagée avec défis et pions animés.",icon:"♥",number:"02",kind:"classic-duo"},
- {id:"ludo-senegal-solo",tag:"🇸🇳 SÉNÉGAL",title:"Sunu Ludo Solo",meta:"Toi contre l’ordinateur",description:"Tours supplémentaires et stratégie sénégalaise.",icon:"★",number:"03",kind:"senegal-solo"},
- {id:"ludo-senegal",tag:"🇸🇳 SÉNÉGAL",title:"Sunu Ludo Duo",meta:"Deux joueurs · En direct",description:"Entre dans la cage adverse et tente ta chance.",icon:"⚔",number:"04",kind:"senegal-duo"},
+ {id:"ludo",title:"Classique · Duo",subtitle:"Avec ton partenaire",kind:"classic-duo",icon:"♥"},
+ {id:"ludo-senegal",title:"Sénégal · Duo",subtitle:"Avec ton partenaire",kind:"senegal-duo",icon:"🇸🇳"},
+ {id:"ludo-solo",title:"Classique · Solo",subtitle:"Contre l’ordinateur",kind:"classic-solo",icon:"🎲"},
+ {id:"ludo-senegal-solo",title:"Sénégal · Solo",subtitle:"Contre l’ordinateur",kind:"senegal-solo",icon:"★"},
 ] as const;
+const TRACK_KEYS=new Map(TRACK.map((p,i)=>[key(p[0],p[1]),i]));
+const RED_HOME=new Set(HOME[0].map(p=>key(p[0],p[1])));
+const YELLOW_HOME=new Set(HOME[1].map(p=>key(p[0],p[1])));
+
+function SingleLudoBoard(){
+ return <div className="lr-ludo-unified-board-wrap">
+  <div className="lr-ludo-unified-board" aria-hidden="true">
+   {CELL.map(([row,col])=>{
+    const spot=key(row,col),track=TRACK_KEYS.get(spot);
+    const red=row<6&&col<6;
+    const green=row<6&&col>8;
+    const blue=row>8&&col<6;
+    const yellow=row>8&&col>8;
+    const center=row>=6&&row<=8&&col>=6&&col<=8;
+    const redLane=RED_HOME.has(spot),yellowLane=YELLOW_HOME.has(spot);
+    const greenLane=col===7&&row>0&&row<6;
+    const blueLane=col===7&&row>8&&row<14;
+    const kind=red?" red":green?" green":blue?" blue":yellow?" yellow":
+     redLane?" red-lane":yellowLane?" yellow-lane":greenLane?" green-lane":blueLane?" blue-lane":
+     center?" center":" path";
+    return <span className={"lr-ludo-preview-cell"+kind} key={spot}>
+     {track!==undefined&&SAFE.has(track)?<b>★</b>:null}
+    </span>;
+   })}
+   {["red","green","blue","yellow"].map(color=><div key={color} className={"lr-ludo-preview-home lr-ludo-preview-home-"+color}>
+    {[0,1,2,3].map(i=><span key={i}/>)}
+   </div>)}
+   <div className="lr-ludo-preview-center"><span>♥</span></div>
+  </div>
+ </div>;
+}
 
 /** Original scalable Ludo house symbol: four quarters, four safe stars, dice. */
 export function LudoMark({compact=false}:{compact?:boolean}){
@@ -27,29 +60,27 @@ export function LudoMark({compact=false}:{compact?:boolean}){
 
 type Props={onExit:()=>void;onOpenMode:(mode:LudoMode)=>void;partnerName:string|null};
 export default function LudoRoom({onExit,onOpenMode,partnerName}:Props){
- return <section className="lr-ludo-room" aria-label="Salle des quatre Ludos">
+ return <section className="lr-ludo-room lr-ludo-room-unified" aria-label="Un plateau Ludo et quatre modes">
   <header className="lr-ludo-room-top">
    <button type="button" className="lr-ludo-room-back" onClick={onExit}>‹ Jeux</button>
-   <span className="lr-ludo-room-top-title">SALLE LUDO</span>
-   <span className="lr-ludo-room-top-icon" aria-hidden="true">★</span>
+   <span className="lr-ludo-room-top-title"><LudoMark compact/> LUDO</span>
+   <span className="lr-ludo-room-top-icon" aria-hidden="true">✦</span>
   </header>
-  <div className="lr-ludo-room-hero">
-   <div className="lr-ludo-room-logo"><LudoMark/></div>
-   <div className="lr-ludo-room-intro">
-    <span className="lr-ludo-room-kicker">LOVE RADAR · QUATRE FAÇONS DE JOUER</span>
-    <h1>LA SALLE <span>LUDO</span></h1>
-    <p>Un seul espace pour les quatre jeux. Choisis ton plateau et défie {partnerName||"ton partenaire"} ou l’ordinateur.</p>
-   </div>
+  <div className="lr-ludo-room-unified-title">
+   <span>UN SEUL PLATEAU</span>
+   <h1>Choisis ton <em>mode.</em></h1>
+   <p>Classique ou Sénégal, en solo ou à deux.</p>
   </div>
-  <div className="lr-ludo-room-mode-grid">
+  <SingleLudoBoard/>
+  <div className="lr-ludo-room-mode-grid lr-ludo-room-unified-options" aria-label="Choisir les règles et l'adversaire">
    {MODES.map(mode=><button type="button" key={mode.id} onClick={()=>onOpenMode(mode.id)}
-    className={"lr-ludo-room-mode lr-ludo-room-"+mode.kind} aria-label={"Ouvrir "+mode.title}>
-    <span className="lr-ludo-room-mode-top"><small>{mode.tag}</small><span>{mode.number}</span></span>
-    <span className="lr-ludo-room-mode-emblem" aria-hidden="true"><span>{mode.icon}</span><i/><i/><i/><i/></span>
-    <span className="lr-ludo-room-mode-copy"><strong>{mode.title}</strong><small>{mode.meta}</small><span>{mode.description}</span></span>
-    <span className="lr-ludo-room-mode-action">ENTRER <span aria-hidden="true">›</span></span>
+    className={"lr-ludo-room-mode lr-ludo-room-unified-option lr-ludo-room-"+mode.kind}
+    aria-label={"Jouer au Ludo "+mode.title}>
+    <span className="lr-ludo-room-unified-icon" aria-hidden="true">{mode.icon}</span>
+    <span className="lr-ludo-room-unified-label"><strong>{mode.title}</strong><small>{mode.subtitle}</small></span>
+    <span className="lr-ludo-room-unified-arrow" aria-hidden="true">›</span>
    </button>)}
   </div>
-  <p className="lr-ludo-room-note">Chaque mode conserve sa partie et ses règles. Les parties à deux restent synchronisées entre les deux téléphones.</p>
+  <p className="lr-ludo-room-note">Les règles et parties restent indépendantes pour chaque mode{partnerName?". Invite "+partnerName+" pour le Duo.":"."}</p>
  </section>;
 }

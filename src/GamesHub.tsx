@@ -105,7 +105,7 @@ export default function GamesHub({onOpenGame,partnerName}:Props){
    </button>
    <button type="button" className="lr-games-choice lr-games-ludo lr-games-ludo-room-card" onClick={()=>onOpenGame("ludo-room")}>
     <GameArtwork game="ludo"/>
-    <span className="lr-games-copy"><small>🎲 UNE SEULE SALLE · 4 MODES</small><strong>La salle Ludo</strong><span>Classique ou Sénégal, en Solo ou Duo : choisis ton plateau dans notre salle Ludo.</span><b>Découvrir les quatre jeux ›</b></span>
+    <span className="lr-games-copy"><small>🎲 UN SEUL PLATEAU · 4 MODES</small><strong>La salle Ludo</strong><span>Classique ou Sénégal, en Solo ou Duo : choisis simplement ton mode sur le même plateau.</span><b>Choisir un mode ›</b></span>
    </button>
    <button type="button" className="lr-games-choice lr-games-memory" onClick={()=>onOpenGame("memory")}>
     <GameArtwork game="memory"/>

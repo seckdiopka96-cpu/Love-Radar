@@ -361,9 +361,9 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
      <div className={"ludo-board"+(motion?" ludo-board-animating":"")} role="group" aria-label="Plateau Ludo Sénégal">
       {CELL.map(([r,c])=>{
        const k=key(r,c),track=routeMap.get(k),pawns=occupancy.get(k)||[];
-       const red=r<6&&c<6,gold=r>8&&c>8,blue=r<6&&c>8,green=r>8&&c<6;
+       const red=r<6&&c<6,gold=r>8&&c>8,green=r<6&&c>8,blue=r>8&&c<6;
        const redLane=homeMap[0].has(k),goldLane=homeMap[1].has(k);
-       const blueLane=c===7&&r>=1&&r<=5,greenLane=c===7&&r>=9&&r<=13;
+       const greenLane=c===7&&r>=1&&r<=5,blueLane=c===7&&r>=9&&r<=13;
        const center=r>=6&&r<=8&&c>=6&&c<=8;
        const classes="ludo-cell"+(red?" ludo-red-base":gold?" ludo-gold-base":blue?" ludo-blue-base":green?" ludo-green-base":"")+
         (track!==undefined?" ludo-path":"")+(redLane?" ludo-red-lane":"")+(goldLane?" ludo-gold-lane":"")+
@@ -375,7 +375,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
         {pawns.length?<div className={"ludo-cell-pawns ludo-stack-"+Math.min(pawns.length,5)}>
          {pawns.map((item,i)=>{
           return <button type="button" key={item.seat+"-"+item.pawn} disabled={!item.active}
-           className={"ludo-pawn ludo-pawn-stacked ludo-pawn-"+(item.seat===0?"red":"gold")+(item.active?" can-move":"")+(item.zone==="enemy"?" is-invading":"")}
+           className={"ludo-pawn ludo-pawn-stacked ludo-pawn-"+(item.seat===0?"red":"gold")+(item.active?" can-move":"")+(game.status==="playing"&&game.turn===seat&&item.seat===seat?" is-own-turn":"")+(item.zone==="enemy"?" is-invading":"")}
            onClick={()=>choose(item.pawn)}
            title={"Pion "+(item.pawn+1)+(item.zone==="enemy"?" · cage adverse":"")}
            aria-label={"Pion "+(item.pawn+1)+(item.zone==="enemy"?" dans la cage adverse":"")}
@@ -387,10 +387,10 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
         {pawns.length>1?<span className="ludo-stack-count" aria-hidden="true">×{pawns.length}</span>:null}
        </div>;
       })}
-      <div className="ludo-yard ludo-yard-red" aria-hidden="true"/>
+      <div className={"ludo-yard ludo-yard-red"+(game.status==="playing"&&game.turn===0?" is-current-turn":"")} aria-hidden="true"/>
       <div className="ludo-yard ludo-yard-upper" aria-hidden="true"/>
       <div className="ludo-yard ludo-yard-lower" aria-hidden="true"/>
-      <div className="ludo-yard ludo-yard-gold" aria-hidden="true"/>
+      <div className={"ludo-yard ludo-yard-gold"+(game.status==="playing"&&game.turn===1?" is-current-turn":"")} aria-hidden="true"/>
       <div className="ludo-board-center" aria-hidden="true"><span>🇸🇳</span></div>
       {captureBack.map(row=><div key={"capture-"+row.seat+"-"+row.pawn}
        className={"ludo-captured-pawn ludo-pawn-"+(row.seat===0?"red":"gold")+" is-returning"}

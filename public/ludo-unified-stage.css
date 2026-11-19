@@ -1,0 +1,122 @@
+/* One canonical 15x15 board skin across Ludo Classique Solo/Duo
+   and Senegal Solo/Duo. The four rule engines remain independent;
+   gameplay geometry, scoring, touch targets and synchronization are untouched. */
+:root{
+ --lr-ludo-red:#ef5974;
+ --lr-ludo-green:#28b78b;
+ --lr-ludo-blue:#43abe9;
+ --lr-ludo-yellow:#ffd36a;
+ --lr-ludo-white:#fffaf1;
+ --lr-ludo-rim:#f3dcaa;
+}
+/* Exactly the same warm ivory frame, corner treatment and shadows
+   in the iframe boards and the Senegal React board. */
+html.lr-ludo-solo-ui .game-screen .board-frame,
+html.lr-ludo-duo-ui .game-screen .board-frame,
+#root .ludo-experience.ludo-senegal .ludo-board-wrap-immersive {
+ border:3px solid var(--lr-ludo-rim)!important;
+ border-radius:16px!important;
+ background:linear-gradient(155deg,#fff6db,#bd9872)!important;
+ box-shadow:0 14px 32px #001124bb,0 0 0 2px #71908fa8,
+ 0 0 21px #fbd77c42!important;
+ transform:none!important;
+}
+html.lr-ludo-solo-ui .game-screen .board,
+html.lr-ludo-duo-ui .game-screen .board,
+#root .ludo-experience.ludo-senegal .ludo-board {
+ background:var(--lr-ludo-white)!important;
+ border:1px solid #fdf3dc!important;
+ border-radius:10px!important;
+ transform:none!important;
+ animation:none!important;
+}
+html.lr-ludo-solo-ui .board .cell,
+html.lr-ludo-duo-ui .board .cell,
+#root .ludo-senegal .ludo-cell{
+ border:.5px solid #b9b1a59e;
+}
+/* The same four corners, in the same order:
+   red upper-left, green upper-right, blue lower-left, yellow lower-right.
+   In Senegal the decorative green/blue corners have no active pawn engine. */
+html.lr-ludo-solo-ui .board .base--red,
+html.lr-ludo-duo-ui .board .base--red,
+#root .ludo-senegal .ludo-red-base{
+ background:linear-gradient(145deg,#fa8295,var(--lr-ludo-red))!important;
+}
+html.lr-ludo-solo-ui .board .base--green,
+html.lr-ludo-duo-ui .board .base--green,
+#root .ludo-senegal .ludo-green-base{
+ background:linear-gradient(145deg,#80e4c2,var(--lr-ludo-green))!important;
+}
+html.lr-ludo-solo-ui .board .base--blue,
+html.lr-ludo-duo-ui .board .base--blue,
+#root .ludo-senegal .ludo-blue-base{
+ background:linear-gradient(145deg,#91d6fa,var(--lr-ludo-blue))!important;
+}
+html.lr-ludo-solo-ui .board .base--yellow,
+html.lr-ludo-duo-ui .board .base--yellow,
+#root .ludo-senegal .ludo-gold-base{
+ background:linear-gradient(145deg,#fff1ab,var(--lr-ludo-yellow))!important;
+}
+/* Senegal uses red/yellow as its two active lanes. Other lanes are
+   purely decorative and now agree with the common colored board. */
+#root .ludo-senegal .ludo-red-lane,
+#root .ludo-senegal .ludo-red-start{background:#f18298!important}
+#root .ludo-senegal .ludo-gold-lane,
+#root .ludo-senegal .ludo-gold-start{background:#ffe08d!important}
+#root .ludo-senegal .ludo-green-lane{background:#82dfbf!important}
+#root .ludo-senegal .ludo-blue-lane{background:#8bcbf5!important}
+#root .ludo-senegal .ludo-path{background:#fffaf0!important;border:.5px solid #c8bfae!important}
+#root .ludo-senegal .ludo-path.ludo-red-start,
+#root .ludo-senegal .ludo-path.ludo-red-lane{background:#f18298!important}
+#root .ludo-senegal .ludo-path.ludo-gold-start,
+#root .ludo-senegal .ludo-path.ludo-gold-lane{background:#ffe08d!important}
+#root .ludo-senegal .ludo-path.ludo-green-lane{background:#82dfbf!important}
+#root .ludo-senegal .ludo-path.ludo-blue-lane{background:#8bcbf5!important}
+#root .ludo-senegal .ludo-yard-upper{--yard-outline:#258464}
+#root .ludo-senegal .ludo-yard-lower{--yard-outline:#267faf}
+#root .ludo-senegal .ludo-yard::before{
+ background:linear-gradient(140deg,#fffefd,#f7f0e7)!important;
+ border:2px solid #fff!important;
+ box-shadow:0 4px 10px #172a3545,inset 0 1px #fff!important;
+}
+html.lr-ludo-solo-ui .board .base-inner,
+html.lr-ludo-duo-ui .board .base-inner {
+ background:linear-gradient(145deg,#fffefd,#f7f0e7)!important;
+ border:2px solid #fff!important;
+ box-shadow:0 4px 10px #172a3545!important;
+ border-radius:8px!important;
+}
+/* No new transforms on the whole board. Only the CURRENT house flashes. */
+#root .ludo-senegal .ludo-yard.is-current-turn::before {
+ border:3px solid #fffde7!important;
+ animation:lr-unified-house-beacon .85s ease-in-out infinite!important;
+}
+@keyframes lr-unified-house-beacon {
+ 0%,100%{box-shadow:0 2px 7px #06132677,0 0 0 1px #ffe2a4,0 0 8px #fff5c5}
+ 45%{box-shadow:0 2px 7px #06132677,0 0 0 3px #fff,0 0 21px #fff5b4}
+}
+/* White stroke = pawn belongs to the player whose turn it is.
+   Legally movable pawns get an extra warm spotlight. */
+#root .ludo-senegal .ludo-pawn.is-own-turn svg{
+ filter:drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff)
+  drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff)
+  drop-shadow(0 3px 3px #031b2c9c)!important;
+}
+#root .ludo-senegal .ludo-pawn.is-own-turn.can-move svg{
+ filter:drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff)
+  drop-shadow(0 -1px 0 #fff) drop-shadow(0 0 8px #ffe7a1)!important;
+}
+#root .ludo-senegal .ludo-board-center{
+ background:conic-gradient(from 45deg,var(--lr-ludo-yellow) 0 25%,
+ var(--lr-ludo-blue) 25% 50%,var(--lr-ludo-red) 50% 75%,
+ var(--lr-ludo-green) 75% 100%)!important;
+}
+/* Senegal still keeps the authentic flag and its own gameplay rules. */
+#root .ludo-senegal .ludo-board-center>span{font-size:clamp(12px,3vw,25px)}
+@media(prefers-reduced-motion:reduce){
+ #root .ludo-senegal .ludo-yard.is-current-turn::before{
+  animation:none!important;
+  box-shadow:0 0 0 2px #fff7d4!important;
+ }
+}

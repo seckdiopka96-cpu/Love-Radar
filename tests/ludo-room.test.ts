@@ -31,6 +31,23 @@ test("one visible Ludo entrance opens the room with all four games",()=>{
  assert.ok(app.includes('onExit={()=>navigate("ludo-room")}'));
  assert.ok(room.includes('onOpenMode(mode.id)'));
  assert.ok(css.includes(".lr-ludo-room-mode-grid"));
+ assert.equal((room.match(/<SingleLudoBoard\/>/g)||[]).length,1,"only one board is displayed at the entrance");
+ assert.ok(room.includes('className="lr-ludo-room-mode-grid lr-ludo-room-unified-options"'));
+ assert.ok(room.includes('Choisis ton <em>mode.</em>'));
+ assert.ok(!room.includes('lr-ludo-room-mode-emblem'),"no repeated mini-board per card");
+ for(const mode of ["Classique · Duo","Sénégal · Duo","Classique · Solo","Sénégal · Solo"])
+  assert.ok(room.includes(mode),"one simple option per rule/opponent combination");
+ const unified=read("public/ludo-unified-stage.css");
+ assert.ok(unified.includes(".board-frame")&&unified.includes(".ludo-board-wrap-immersive"),
+  "all four games share board framing and visual tokens");
+ assert.ok(unified.includes(".ludo-yard.is-current-turn"),"Sénégal player house lights up");
+ assert.ok(unified.includes(".ludo-pawn.is-own-turn"),"Sénégal current player's pins are outlined");
+ assert.ok(read("index.html").includes("/ludo-unified-stage.css"),"Sénégal app shares the same stylesheet");
+ assert.ok(soloHTML.includes("/ludo-unified-stage.css")&&duoHTML.includes("/ludo-unified-stage.css"),
+  "Solo and Duo classic share the same stylesheet");
+ assert.ok(read("src/SenegalLudo.tsx").includes('green=r<6&&c>8,blue=r>8&&c<6'),
+  "both games have consistent decorative green/blue house corners");
+
 });
 
 test("classic Duo loads the newest shared board, never a cached legacy iframe",()=>{
@@ -45,7 +62,7 @@ test("classic Duo loads the newest shared board, never a cached legacy iframe",(
  assert.ok(duoHTML.includes("../ludo-effects.css"));
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .app{"),"Duo must not replace the stable Solo stage with a purple skin");
  assert.ok(duoCSS.includes("Same blue background, board border"),"Duo inherits Solo board/frame and rail styles");
- assert.ok(read("public/sw.js").includes('love-radar-static-v147'));
+ assert.ok(read("public/sw.js").includes('love-radar-static-v148'));
 });
 
 test("the eight classic safe cells each have a visible star on both boards",()=>{
@@ -64,7 +81,7 @@ test("the eight classic safe cells each have a visible star on both boards",()=>
 
 test("all modes have a prominent shared Ludo logo, stronger shadows, and distinct skins",()=>{
  assert.ok(read("public/ludo-mark.svg").startsWith("<svg"));
- assert.ok(room.includes("<LudoMark/>"));
+ assert.ok(room.includes("<LudoMark compact/>"));
  for(const source of [soloHTML,duoHTML,read("src/Ludo.tsx"),read("src/SenegalLudo.tsx")])
   assert.ok(source.includes("ludo-mark.svg"));
  assert.ok(soloCSS.includes(".game-screen .piece--moving .piece-svg"));
