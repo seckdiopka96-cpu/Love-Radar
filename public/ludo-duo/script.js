@@ -379,7 +379,7 @@
      "Objectif : amener ses quatre pions au centre avant l’adversaire.",
      "Sortir : il faut un 6. Tu peux continuer plusieurs tours autour du plateau.",
      "Déplacer : suis le dé. Tu peux choisir de continuer ou d’entrer dans un couloir lorsque le moteur te le propose.",
-     "Règle Sénégal : tu peux entrer dans le couloir adverse pour attaquer. Un 6 permet de faire demi-tour pour en sortir.",
+     "Règle Sénégal : tu peux entrer dans le couloir adverse pour attaquer. Avec un 6, tu en sors et continues de six cases en avant, sans refaire le chemin inverse.",
      "Il faut atteindre exactement le centre. Les cases étoilées protègent les pions.",
      "En Solo l’ordinateur peut jouer après le délai ; en Duo les actions restent synchronisées entre les deux téléphones."
     ];
