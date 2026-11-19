@@ -97,13 +97,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   const interval=window.setInterval(()=>setNow(Date.now()),250);
   return ()=>window.clearInterval(interval);
  },[]);
- // Use the real Senegal result, never rapidly fake sequential faces.
- // The same Classic iframe animates every dice throw.
- useEffect(()=>{
-  if(game.dice===null)return;
-  setLastRoll(previous=>previous?.seat===game.turn&&previous.face===game.dice&&previous.at===game.updatedAt?
-   previous:{seat:game.turn,face:game.dice as number,at:game.updatedAt});
- },[game.dice,game.turn,game.updatedAt]);
+ // Only authentic Senegal dice results are passed to the existing Classic 3D die.
  const animate=useCallback((move:SenegalMove)=>{
   const path=move.path;
   if(!path.length)return;
@@ -153,6 +147,15 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   }
   if(!data.game)return;
   const next=data.game;
+  // A roll with no legal move immediately changes turns and clears dice.
+  // Recover the real face from lastAction rather than showing an invented 1.
+  const faceMatch=/Dé ([1-6])/.exec(next.lastAction);
+  const actualFace=next.dice??(faceMatch?Number(faceMatch[1]):null);
+  if(actualFace!==null){
+   const roller:Seat=next.dice!==null?next.turn:(1-next.turn) as Seat;
+   setLastRoll(previous=>previous?.at===next.updatedAt&&previous.face===actualFace&&previous.seat===roller?
+    previous:{seat:roller,face:actualFace,at:next.updatedAt});
+  }
   const oldVersion=versionRef.current,oldId=idRef.current;
   if(next.id!==oldId){lastAnimated.current="";setMotion(null);setCaptureBack([]);clearTimers();setChosen(null);}
   if(next.version<oldVersion&&next.id===oldId)return;
@@ -241,6 +244,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    later(()=>{
     if(!loaded.current)return;
     setFace(face);
+    setLastRoll({seat:game.turn,face,at:Date.now()});
     setGame(prev=>{
      if(prev.dice!==null)return prev;
      const next=rollSenegal(prev,face);
