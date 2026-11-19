@@ -1,5 +1,6 @@
 import {apiFetch,isNativeApp} from "./api";
 import {beginNativeCallSession,endNativeCallSession,nativeCallSessionRunning} from "./native-call-session";
+import {keepCallScreenAwake} from "./call-screen-awake";
 import {activateNativeVoip,hasNativeVoip,nativeVoipAnswered,nativeVoipEnd,type NativeVoipAction} from "./native-voip";
 import {findBuiltInSpeaker,audioRouteHelp} from "./audio-output";
 import {claimCallAudio,releaseCallAudio} from "./audio-focus";
@@ -37,6 +38,13 @@ const STUN_SERVERS:RTCIceServer[]=[
 export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton,onOpenChat,onNavigate,focusCallId}:Props){
  const [anchor,setAnchor]=useState<HTMLElement|null>(null);
  const [active,setActive]=useState<Call|null>(null);
+ // Keep the display on during connected or outgoing-ringing calls, including
+ // when minimized to chat or games; restore automatic sleep at hangup.
+ useEffect(()=>{
+  if(!active||active.id==="preparing-video"||
+    (active.status!=="active"&&active.direction!=="outgoing"))return;
+  return keepCallScreenAwake();
+ },[active?.id,active?.status,active?.direction]);
  const [minimized,setMinimized]=useState(false);
  const [callNavigationOpen,setCallNavigationOpen]=useState(false);
  const [videoControlsVisible,setVideoControlsVisible]=useState(true);
