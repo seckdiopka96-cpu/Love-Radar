@@ -150,7 +150,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   // A roll with no legal move immediately changes turns and clears dice.
   // Recover the real face from lastAction rather than showing an invented 1.
   const faceMatch=/Dé ([1-6])/.exec(next.lastAction);
-  const actualFace=next.dice??(faceMatch?Number(faceMatch[1]):null);
+  const actualFace=next.dice??(faceMatch?Number(faceMatch[1]):next.lastAction.includes("Troisième 6")?6:null);
   if(actualFace!==null){
    const roller:Seat=next.dice!==null?next.turn:(1-next.turn) as Seat;
    setLastRoll(previous=>previous?.at===next.updatedAt&&previous.face===actualFace&&previous.seat===roller?
