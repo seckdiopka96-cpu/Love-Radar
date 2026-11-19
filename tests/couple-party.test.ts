@@ -23,6 +23,9 @@ function harness(){
  const historyStart=schema.indexOf("CREATE TABLE IF NOT EXISTS couple_party_prompt_history");
  assert.ok(historyStart>=0);
  sqlite.exec(schema.slice(historyStart,schema.indexOf(";",historyStart)+1));
+ const presenceStart=schema.indexOf("CREATE TABLE IF NOT EXISTS couple_party_presence");
+ assert.ok(presenceStart>=0);
+ sqlite.exec(schema.slice(presenceStart,schema.indexOf(";",presenceStart)+1));
  for(const [name,room,seat,letter] of [
   ["Alice","room-A",0,"a"],["Benoît","room-A",1,"b"],
   ["Dina","room-B",0,"c"],["Eric","room-B",1,"d"]
