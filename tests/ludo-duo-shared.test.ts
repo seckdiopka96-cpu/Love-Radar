@@ -367,7 +367,7 @@ test("Solo and Duo share a stable stage, and dice respond in under a half-second
   "Duo does not overwrite Solo's stable blue theme");
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .game-screen{"),
   "Duo does not move or resize the game stage with a different theme");
- assert.ok(soloFrame.includes("ludo-room-20261118-v21"));
+ assert.ok(soloFrame.includes("ludo-room-20261118-v22"));
  assert.ok(bridge.includes("ludo-room-20261118-v21"));
 });
 
@@ -446,7 +446,7 @@ test("Solo and Duo keep the board centered, roll quickly and play different orig
  assert.ok(sound.includes('createBufferSource()'),"clacking is made from noise impacts, not sequential musical notes");
  assert.ok(soloJS.includes('sfx?.play("step")'),"each solo square triggers one footstep");
  assert.ok(duoJS.includes('window.LudoSfx?.play("step")'),"only a new authoritative duo progress step triggers a footstep");
- assert.ok(soloHTML.includes('../ludo-sfx.js?v=ludo-room-20261118-v21'));
+ assert.ok(soloHTML.includes('../ludo-sfx.js?v=ludo-room-20261118-v22'));
  assert.ok(duoHTML.includes('../ludo-sfx.js?v=ludo-room-20261118-v21'));
  assert.ok(sw.includes('"/ludo-sfx.js"'),"audio stays available to installed PWAs offline");
  assert.ok(soloJS.includes('new ResizeObserver(centerBoard).observe(boardArea)'));
