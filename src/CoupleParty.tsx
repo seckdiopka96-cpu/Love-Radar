@@ -7,9 +7,9 @@ type Base={id:string;mode:PartyMode;version:number;round:number;phase:string;tur
 type RapidGame=Base&{mode:"rapid";phase:"ready"|"question"|"result";question:string|null;options:[string,string,string,string]|null;correct:number|null;
  myReady:boolean;partnerReady:boolean;
  myChoice:number|null;partnerPicked:boolean;partnerChoice:number|null;winner:number|null;startAt:number;deadlineAt:number};
-type TruthGame=Base&{mode:"truth";phase:"choose"|"challenge";kind:ChallengeKind|null;prompt:string|null};
+type TruthGame=Base&{mode:"truth";phase:"choose"|"challenge";myReady:boolean;partnerReady:boolean;kind:ChallengeKind|null;prompt:string|null};
 type Game=RapidGame|TruthGame;
-type Data={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;serverNow?:number;invited?:boolean};
+type Data={ok:boolean;error?:string;members?:number;seat?:number;partnerHere?:boolean;game?:Game|null;serverNow?:number;invited?:boolean};
 type Props={mode:PartyMode;token:string;myName:string;partnerName:string|null;onExit:()=>void;onOpenChat:()=>void};
 const requestUrl=(mode:PartyMode)=>"/api/couple-party?mode="+mode;
 function initials(name:string){return name.trim().slice(0,1).toUpperCase()||"♥"}
@@ -91,10 +91,10 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
  const motto=isRapid?"La première bonne réponse marque le point.":"Vos secrets, vos rires, vos défis.";
  const rapid=game?.mode==="rapid"?game:null;
  const truth=game?.mode==="truth"?game:null;
- const truthMyTurn=Boolean(truth&&truth.turn===seat);
+ const truthMyTurn=Boolean(data?.partnerHere&&truth&&truth.turn===seat);
  const secondsToStart=rapid?Math.max(0,Math.ceil((rapid.startAt-now)/1000)):0;
  const secondsLeft=rapid?Math.max(0,Math.ceil((rapid.deadlineAt-now)/1000)):0;
- const canAnswer=Boolean(rapid&&rapid.phase==="question"&&secondsToStart===0&&secondsLeft>0&&rapid.myChoice===null&&!busy);
+ const canAnswer=Boolean(data?.partnerHere&&rapid&&rapid.phase==="question"&&secondsToStart===0&&secondsLeft>0&&rapid.myChoice===null&&!busy);
  const mine=game?.scores[seat]??0,other=game?.scores[seat===0?1:0]??0;
  return <section className={"lr-party lr-party-"+mode} aria-label={title+" à deux"}>
   <div className="lr-party-top">
@@ -120,6 +120,24 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
     <strong>Votre partie vous attend</strong>
     <p>Rejoignez tous les deux votre espace privé pour jouer ensemble, même à distance.</p>
     <button type="button" className="lr-party-primary" onClick={onOpenChat}>Ouvrir notre conversation</button>
+   </div>:
+   !data?.partnerHere?<div className="lr-party-panel lr-party-wait lr-party-absent" role="status">
+    <span className="lr-party-big-icon" aria-hidden="true">💌</span>
+    <strong>En attente de {name}</strong>
+    <p>{name} n'est pas encore dans cette salle. Le jeu reste en pause jusqu'à ce que vous soyez présents tous les deux.</p>
+    <span className="lr-party-presence-indicator">● Partenaire absent du jeu</span>
+    <button type="button" className="lr-party-primary" onClick={()=>void post("invite")} disabled={busy}>Inviter {name} 💌</button>
+   </div>:
+   truth&&(!truth.myReady||!truth.partnerReady)?<div className="lr-party-panel lr-party-wait lr-party-ready" role="status">
+    <span className="lr-party-big-icon" aria-hidden="true">💗</span>
+    <strong>Prêts pour Action ou vérité ?</strong>
+    <p>Confirmez une seule fois tous les deux. Les tours suivants continuent sans vous redemander.</p>
+    <div className="lr-party-ready-status">
+     <span className={truth.myReady?"is-ready":""}>Toi {truth.myReady?"✓ Prêt(e)":"· En attente"}</span>
+     <span className={truth.partnerReady?"is-ready":""}>{name} {truth.partnerReady?"✓ Prêt(e)":"· En attente"}</span>
+    </div>
+    <button type="button" className="lr-party-primary" disabled={truth.myReady||busy}
+     onClick={()=>void post("ready")}>{truth.myReady?"✓ Tu es prêt(e)":"Je suis prêt(e) →"}</button>
    </div>:
    rapid?.phase==="ready"?<div className="lr-party-panel lr-party-wait lr-party-ready">
     <span className="lr-party-big-icon" aria-hidden="true">⚡</span>
