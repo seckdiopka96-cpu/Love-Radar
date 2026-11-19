@@ -15,6 +15,7 @@ import "./voice-call.css";
 import "./video-call.css";
 import "./floating-video.css";
 import "./fun-camera.css";
+import "./call-premium.css";
 
 type Call = {id:string;status:"ringing"|"active";direction:"incoming"|"outgoing";createdAt:number;updatedAt:number;expiresAt:number;mode?:"audio"|"video"};
 type Signal = {id:number;kind:"offer"|"answer"|"candidate"|"restart";payload:string};
@@ -1105,7 +1106,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
       </button>
       <button type="button" className={"lr-call-action lr-call-mute "+(muted?"is-muted":"")} onClick={toggleMute} disabled={!local.current} aria-label={muted?"Réactiver le microphone":"Couper le microphone"} aria-pressed={muted}>
        <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/>{muted?<path d="M3 3 21 21" strokeWidth="2.5"/>:null}</svg></span>
-       <span className="lr-call-control-label">{muted?"Réactiver":"Couper le son"}</span>
+       <span className="lr-call-control-label">{muted?"Réactiver":"Silence"}</span>
       </button>
       {isVideo?<button type="button" className={"lr-call-action lr-call-camera"+(cameraOff?" is-muted":"")} onClick={toggleCamera} aria-label={cameraOff?"Activer la caméra":"Désactiver la caméra"} aria-pressed={!cameraOff}>
        <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3"/>{cameraOff?<path d="M3 3 21 21" strokeWidth="2.6"/>:null}</svg></span>
@@ -1125,7 +1126,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
       </button>
       <button type="button" className="lr-call-action lr-call-decline lr-call-hangup" onClick={hangup} aria-label="Raccrocher" disabled={busy&&!starting.current}>
        <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" aria-hidden="true"><path d="M3 17.5c5.4-4.7 12.6-4.7 18 0M5 17.5V21M19 17.5V21"/></svg></span>
-       <span className="lr-call-control-label">Raccrocher</span>
+       <span className="lr-call-control-label">Terminer</span>
       </button>
       <button type="button" className="lr-call-action lr-call-keypad" onClick={()=>setCallPanel("keypad")} aria-label="Ouvrir le clavier d’appel">
        <span className="lr-call-control-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">{[4,10,16].flatMap(y=>[4,10,16].map(x=><circle key={x+"-"+y} cx={x+2} cy={y+1} r="2.15"/>))}</svg></span>
