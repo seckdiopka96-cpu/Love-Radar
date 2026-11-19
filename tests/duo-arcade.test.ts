@@ -57,7 +57,7 @@ test("Devine mon dessin stays on one iPhone screen without moving the drawing bo
  const ui=readFileSync("src/DuoArcade.tsx","utf8");
  const css=readFileSync("src/duo-arcade.css","utf8");
  assert.ok(app.includes('tab==="draw"&&room?"lr-draw-mode ":""'),"only drawing mode gets the no-scroll class");
- assert.ok(ui.includes('mode==="draw"?" lr-duo-draw":""'),"drawing mode is isolated from escape room");
+ assert.ok(ui.includes('mode==="draw"?" lr-duo-draw":" lr-duo-escape-game"'),"drawing and escape each keep independent viewport classes");
  assert.ok(ui.includes('lr-duo-canvas-stage'),"square drawing uses its own available stage");
  assert.ok(ui.includes('new ResizeObserver(measure)'),"the drawing square fits changes in height/width");
  assert.ok(ui.includes('Math.min(stage.clientWidth,stage.clientHeight)'),"the canvas always fits both dimensions");
@@ -70,4 +70,37 @@ test("Devine mon dessin stays on one iPhone screen without moving the drawing bo
  assert.ok(ui.includes('onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp}'),"drawing stays interactive");
  assert.ok(ui.includes('onClick={()=>void act("clear")}'),"erase remains available");
  assert.ok(ui.includes('onClick={()=>void act("skip")}'),"skip remains available");
+});
+
+test("Escape Room Duo uses one fixed iPhone viewport for both solving and time-expired states",()=>{
+ const app=readFileSync("src/App.tsx","utf8");
+ const ui=readFileSync("src/DuoArcade.tsx","utf8");
+ const css=readFileSync("src/duo-arcade.css","utf8");
+ assert.ok(app.includes('tab==="escape"&&room?"lr-escape-mode ":""'),
+  "only the Escape tab opts into the fixed screen layout");
+ assert.ok(ui.includes('mode==="draw"?" lr-duo-draw":" lr-duo-escape-game"'));
+ assert.ok(ui.includes('escape?<div className={"lr-duo-panel lr-duo-escape"+(ended?" is-ended":" is-solving")}'),
+  "active rooms and expired rooms keep the same one-screen panel");
+ assert.ok(css.includes('.lr-app.lr-app-locked.lr-escape-mode .lr-main'),
+  "main area no longer scrolls while Escape is open");
+ assert.ok(css.includes('.lr-app.lr-escape-mode .lr-duo.lr-duo-escape-game'),
+  "room height is bounded by the usable screen");
+ assert.ok(css.includes('.lr-app.lr-escape-mode .lr-duo-escape-game .lr-duo-panel.lr-duo-escape'),
+  "the scenario card shrinks instead of pushing its buttons below the dock");
+ assert.ok(css.includes('overflow:hidden!important;overscroll-behavior:none!important'),
+  "no page-level vertical drag is possible");
+ assert.ok(css.includes('.lr-app.lr-escape-mode .lr-duo-escape-game .lr-duo-end .lr-duo-primary'),
+  "retry and next-room actions stay visible without scrolling");
+ assert.ok(css.includes('.lr-app.lr-escape-mode .lr-duo-escape-game .lr-duo-clue'),
+  "personal clues are kept inside the fixed puzzle panel");
+ assert.ok(css.includes('.lr-app.lr-escape-mode .lr-duo-escape-game .lr-duo-answer:focus-within'),
+  "the answer field remains usable above the iPhone keyboard");
+ assert.ok(css.includes('.lr-app.lr-escape-mode .lr-duo-escape-game .lr-duo-footer'),
+  "invite and talk shortcuts remain on-screen in portrait");
+ assert.ok(css.includes('@media(max-width:700px) and (max-height:630px)'),
+  "very short screens have compact optional copy");
+ assert.ok(ui.includes('onClick={()=>void act("restart")}'),
+  "expired room can still be restarted");
+ assert.ok(ui.includes('onOpenChat}'),"chat shortcut remains available");
+ assert.ok(ui.includes('onSubmit={submit}'),"the puzzle submission still works");
 });
