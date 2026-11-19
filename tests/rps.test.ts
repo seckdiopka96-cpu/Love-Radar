@@ -31,7 +31,7 @@ test("server only accepts authenticated room members and protects secret choices
  assert.ok(api.includes("SELECT id,room_id,seat,name FROM members WHERE token_hash=?"));
  assert.ok(api.includes("room_id TEXT PRIMARY KEY"));
  assert.ok(api.includes('if(members!==2)return no'));
- assert.ok(api.includes('row.status==="revealed"?partner:null'));
+ assert.ok(api.includes('row.status==="revealed"||row.status==="finished"?partner:null'));
  assert.ok(api.includes("partnerPicked:partner!==null"));
  assert.ok(api.includes("if(!isRpsMove(data.move))"));
  assert.ok(api.includes('data.round!==game.round'));
@@ -72,4 +72,19 @@ test("game screen synchronizes both clients, supports replay and is reachable fr
  assert.ok(css.includes("grid-template-rows:minmax(0,1fr) auto auto auto"),"arena, options, and actions fit on one screen");
  assert.ok(css.includes(".lr-rps-mode .lr-rps-bottom-actions button"),"invite and message controls stay visible");
  assert.ok(css.includes(".lr-rps-mode .lr-rps-modal{max-height:"),"rules remain independently scrollable");
+});
+
+test("both players see a trophy at 10 points, no extra rounds and an explicit replay",()=>{
+ assert.ok(api.includes("const WIN_SCORE=10;"));
+ assert.ok(api.includes("status=CASE WHEN score_0+?>=? OR score_1+?>=? THEN 'finished'"));
+ assert.ok(api.includes('if(data.action==="restart")'),"the winner does not auto-reset the match");
+ assert.ok(api.includes('game.status!=="finished"'),"restart is only possible after winning");
+ assert.ok(api.includes('" WHERE room_id=? AND game_id=? AND status=\'finished\'"'),
+  "a delayed replay cannot replace a newer match");
+ assert.ok(screen.includes('game.status==="finished"?<div className="lr-rps-match-finished"'));
+ assert.ok(screen.includes('onClick={()=>void act("restart")}'));
+ assert.ok(screen.includes("Score final :"));
+ assert.ok(screen.includes("Le premier joueur à 10 points gagne le match"));
+ const css=readFileSync("src/rps-duo.css","utf8");
+ assert.ok(css.includes(".lr-rps-match-finished"));
 });
