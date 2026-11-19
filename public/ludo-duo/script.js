@@ -68,7 +68,7 @@
  let activeCaptureSounds=new Set(),pendingCaptureSounds=new Set();
  let dieVisualTimer=null,dieVisualUntil=0;
  let lastTossVariant=-1;
- const DIE_TUMBLE_MS=260;
+ const DIE_TUMBLE_MS=430;
  // The backend alone decides the result. Show a physical 3D tumble even when
  // it answers in less than 170 ms, without holding back legal pawn moves.
  function animateRealDieRoll(){
@@ -190,7 +190,9 @@
  }
  function createPawn(paletteColor,seat,index,selectable){
   const b=document.createElement("button");
-  b.type="button";b.className="piece piece--"+paletteColor+(selectable?" piece--selectable":"");
+  b.type="button";b.className="piece piece--"+paletteColor+
+   (state?.game?.status==="playing"&&state.game.turn===state.mySeat&&seat===state.mySeat?" piece--owned-turn":"")+
+   (selectable?" piece--selectable":"");
   b.dataset.seat=String(seat);b.dataset.pawn=String(index);
   b.setAttribute("aria-label",label(seat)+" : pion "+(index+1)+(selectable?", toucher pour déplacer":""));
   b.disabled=!selectable;b.title="Pion "+(index+1);

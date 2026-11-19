@@ -6,6 +6,7 @@ import {Script} from "node:vm";
 const solo=readFileSync("public/ludo-solo/script.js","utf8");
 const duo=readFileSync("public/ludo-duo/script.js","utf8");
 const soloCSS=readFileSync("public/ludo-solo/style.css","utf8");
+const sharedEffects=readFileSync("public/ludo-effects.css","utf8");
 const soloHTML=readFileSync("public/ludo-solo/index.html","utf8");
 const duoHTML=readFileSync("public/ludo-duo/index.html","utf8");
 const server=readFileSync("functions/api/ludo.ts","utf8");
@@ -33,7 +34,7 @@ test("Ludo screenshot fixes: compact pawns, correct capture and clean HUD",()=>{
  assert.ok(soloCSS.includes(".lr-ludo-solo-ui .game-actions"));
  assert.ok(soloCSS.includes(".lr-ludo-solo-ui #game-feedback"));
  assert.ok(soloCSS.includes(".lr-ludo-duo-ui #new-game:disabled"));
- assert.ok(solo.includes('dieResult.textContent=needsNewRoll?"↻":String(lastRoll)'));
+ assert.ok(solo.includes('dieResult.textContent=game.phase==="rolling"?"·":needsNewRoll?"↻":String(lastRoll)'));
  assert.ok(solo.includes("await sleep(start===HOME?520:540)"));
 });
 test("four pawns are chosen by touching the board, never from a second numbered picker",()=>{
@@ -106,13 +107,31 @@ test("Solo and Duo both display the final real die result, separate from transie
  }
  assert.ok(solo.includes("game.lastRoll=value"));
  assert.ok(solo.includes("lastRoll=game.die||((Number.isInteger(game.lastRoll)"));
- assert.ok(solo.includes('dieResult.textContent=needsNewRoll?"↻":String(lastRoll)'));
+ assert.ok(solo.includes('dieResult.textContent=game.phase==="rolling"?"·":needsNewRoll?"↻":String(lastRoll)'));
  assert.ok(duo.includes("const diceValue=g.dice??last?.face??"));
  assert.ok(duo.includes('dieResult.textContent=rollingNow?"·":String(diceValue)'));
  assert.ok(duo.includes("lastAnimatedRoll"));
  assert.ok(duo.includes("dieVisualUntil"),"animation lasts long enough to show a physical throw");
  assert.ok(duo.includes("receivedState"));
  assert.ok(!duo.includes("dé\\\\s"),"regexp must have real whitespace escapes");
+});
+test("Solo and Duo toss their actual die, light the active house and outline my pawns",()=>{
+ for(const game of [solo,duo]){
+  assert.ok(game.includes("piece--owned-turn"),"the local current player's pins receive an outline");
+  assert.ok(game.includes("is-current-turn"),"only the active color is ringed");
+  assert.ok(game.includes("is-my-turn"),"stronger pulsing indicates my own turn");
+  assert.ok(game.includes("dataset.toss"),"the die visibly changes its physical trajectory");
+ }
+ assert.ok(solo.includes("await sleep(reducedMotion?80:430)"),"Solo waits for one clear throw, under 0.5s");
+ assert.ok(duo.includes("const DIE_TUMBLE_MS=430"),"Duo's transient throw lasts under 0.5s");
+ assert.ok(solo.includes("const value=getRoll()"),"Solo uses its genuine random result");
+ assert.ok(duo.includes("const diceValue=g.dice??last?.face??"),"Duo uses the server result");
+ assert.ok(!duo.includes("getRandomValues"),"the visual Duo frame cannot roll for the server");
+ for(const name of ["lr-ludo-cinematic-toss-a","lr-ludo-cinematic-toss-b","lr-ludo-cinematic-toss-c","lr-ludo-house-beacon","lr-ludo-legal-white-glow"])
+  assert.ok(sharedEffects.includes(name),name);
+ assert.ok(sharedEffects.includes("pointer-events:none!important"),"visual effects never swallow pawn touches");
+ assert.ok(sharedEffects.includes("prefers-reduced-motion:reduce"),"reduced-motion users retain legible highlights");
+ for(const html of [soloHTML,duoHTML])assert.ok(html.includes("../ludo-effects.css?v=ludo-effects-20261119-v1"));
 });
 test("Solo hops through every cell, shows step number and animates captures back to home",()=>{
  assert.ok(solo.includes("for (let step=first;step<=target;step++)"));
