@@ -35,7 +35,10 @@ async function ensure(db:D1Database){
   "last_invite_at INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(room_id,mode));"+
   "CREATE TABLE IF NOT EXISTS couple_party_prompt_history("+
   "room_id TEXT NOT NULL,game_id TEXT NOT NULL,kind TEXT NOT NULL,"+
-  "prompt_index INTEGER NOT NULL,PRIMARY KEY(room_id,game_id,kind,prompt_index))"
+  "prompt_index INTEGER NOT NULL,PRIMARY KEY(room_id,game_id,kind,prompt_index));"+
+  "CREATE TABLE IF NOT EXISTS couple_party_presence("+
+  "room_id TEXT NOT NULL,mode TEXT NOT NULL,member_id TEXT NOT NULL,"+
+  "last_seen_at INTEGER NOT NULL,PRIMARY KEY(room_id,mode,member_id))"
  ).then(()=>{}).catch(e=>{ready=null;throw e});
  await ready;
 }
@@ -113,14 +116,32 @@ function visible(row:Row,seat:number){
    winner:revealed?row.winner:null,
    startAt:row.started_at,deadlineAt:row.deadline_at};
  }
- return {...common,kind:row.phase==="challenge"?row.prompt_kind:null,
+ return {...common,myReady:(seat===0?row.picked_0:row.picked_1)===1,
+  partnerReady:(seat===0?row.picked_1:row.picked_0)===1,
+  kind:row.phase==="challenge"?row.prompt_kind:null,
   prompt:row.phase==="challenge"&&validChallengeKind(row.prompt_kind)?
    partyChallenge(row.prompt_kind,row.question_index):null};
+}
+// Only an actively opened game screen counts as participating in the match.
+const GAME_PRESENCE_MS=6500;
+async function partnerInGame(db:D1Database,member:Member,mode:PartyMode):Promise<boolean>{
+ const current=await db.prepare(
+  "SELECT last_seen_at FROM couple_party_presence WHERE room_id=? AND mode=? AND member_id<>? LIMIT 1"
+ ).bind(member.room_id,mode,member.id).first<{last_seen_at:number}>();
+ const seen=Number(current?.last_seen_at||0);
+ return seen>0&&seen>Date.now()-GAME_PRESENCE_MS;
+}
+async function enterGame(db:D1Database,member:Member,mode:PartyMode){
+ await db.prepare(
+  "INSERT INTO couple_party_presence(room_id,mode,member_id,last_seen_at) VALUES(?,?,?,?)"+
+  " ON CONFLICT(room_id,mode,member_id) DO UPDATE SET last_seen_at=excluded.last_seen_at"
+ ).bind(member.room_id,mode,member.id,Date.now()).run();
 }
 async function publicState(db:D1Database,member:Member,mode:PartyMode,members:number){
  let game=members===2?await get(db,member.room_id,mode):null;
  if(game)game=await expire(db,game);
- return {members,seat:member.seat,game:game?visible(game,member.seat):null,serverNow:Date.now()};
+ return {members,seat:member.seat,partnerHere:members===2?await partnerInGame(db,member,mode):false,
+  game:game?visible(game,member.seat):null,serverNow:Date.now()};
 }
 async function handle(ctx:Ctx,method:"GET"|"POST"){
  try{
@@ -136,7 +157,10 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    .bind(member.room_id).first<{n:number}>();
   const members=Number(count?.n||0);
   if(members===2)await init(db,member.room_id,mode);
-  if(method==="GET")return send(await publicState(db,member,mode,members));
+  if(method==="GET"){
+    if(members===2)await enterGame(db,member,mode);
+    return send(await publicState(db,member,mode,members));
+   }
   if(members!==2)return fail("Invitez votre partenaire pour jouer à deux.",409);
   const raw=await ctx.request.text();
   if(raw.length>600)return fail("Requête trop longue.",413);
@@ -159,7 +183,9 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    if(ctx.waitUntil)ctx.waitUntil(job);else void job;
    return send({invited:true,...await publicState(db,member,mode,members)});
   }
-  if(!Number.isInteger(data.round)||data.round!==row.round)
+  await enterGame(db,member,mode);
+   if(!(await partnerInGame(db,member,mode)))return fail("Ton partenaire doit rejoindre le jeu pour commencer ou continuer.",409);
+   if(!Number.isInteger(data.round)||data.round!==row.round)
    return fail("Ton partenaire a déjà changé de manche.",409);
   if(mode==="rapid"){
    if(data.action==="ready"){
@@ -216,7 +242,17 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    }
    return fail("Action de quiz inconnue.");
   }
-  if(data.action==="pick"){
+  if(data.action==="ready"){
+    const col=member.seat===0?"picked_0":"picked_1";
+    const marked=await db.prepare(
+     "UPDATE couple_party_games SET "+col+"=1,version=version+1,updated_at=?"+
+     " WHERE room_id=? AND mode='truth' AND game_id=? AND "+col+" IS NULL"
+    ).bind(now,member.room_id,row.game_id).run();
+    if(marked.meta.changes!==1)return fail("Tu es déjà prêt(e).",409);
+    return send(await publicState(db,member,mode,members));
+   }
+   if(row.picked_0!==1||row.picked_1!==1)return fail("Attendez que vous soyez prêts tous les deux.",409);
+   if(data.action==="pick"){
    if(row.phase!=="choose"||row.turn!==member.seat)return fail("C'est au tour de ton partenaire.",409);
    if(data.kind!=="surprise"&&!validChallengeKind(data.kind))return fail("Choisis Action ou Vérité.");
    // Surprise alternates categories while explicit picks remain the player's choice.

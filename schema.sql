@@ -168,6 +168,15 @@ CREATE TABLE IF NOT EXISTS couple_party_prompt_history (
  PRIMARY KEY(room_id,game_id,kind,prompt_index)
 );
 
+-- Foreground game-screen heartbeat: a registered partner is not necessarily playing.
+CREATE TABLE IF NOT EXISTS couple_party_presence (
+ room_id TEXT NOT NULL,
+ mode TEXT NOT NULL,
+ member_id TEXT NOT NULL,
+ last_seen_at INTEGER NOT NULL,
+ PRIMARY KEY(room_id,mode,member_id)
+);
+
 -- Native iOS PushKit VoIP tokens (never Apple signing keys). Each record is
 -- linked to an authenticated room member and physical installation.
 CREATE TABLE IF NOT EXISTS native_voip_devices (

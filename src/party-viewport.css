@@ -1,0 +1,95 @@
+/* One-screen couple mini-games: the iPhone header, game and dock remain fixed.
+   Applies only to Action ou vérité and Questions rapides, not chat or other tabs. */
+.lr-party-presence-indicator{
+ display:inline-flex;align-items:center;justify-content:center;
+ color:#ffd1e0;font-size:11px;font-weight:750;
+ border:1px solid #946e87;background:#423346;border-radius:999px;
+ min-height:30px;padding:6px 12px
+}
+@media(max-width:700px){
+ .lr-app.lr-app-locked.lr-party-mode{touch-action:manipulation!important;overscroll-behavior:none!important}
+ .lr-app.lr-app-locked.lr-party-mode .lr-shell{
+  padding:0 0 calc(85px + env(safe-area-inset-bottom))!important;
+  overflow:hidden!important
+ }
+ .lr-app.lr-app-locked.lr-party-mode .lr-main{
+  display:flex!important;flex-direction:column!important;
+  min-height:0!important;max-height:100%!important;
+  padding:5px 12px 2px!important;
+  overflow:hidden!important;overscroll-behavior:none!important;
+  touch-action:manipulation!important
+ }
+ .lr-app.lr-app-locked.lr-party-mode .lr-party{
+  flex:1 1 0!important;min-height:0!important;max-height:100%!important;
+  width:100%!important;margin:0 auto!important;
+  overflow:hidden!important;overscroll-behavior:none!important;
+  touch-action:manipulation!important;
+  padding:3px 2px 4px!important;
+  gap:clamp(5px,1.2dvh,10px)!important
+ }
+ .lr-party .lr-party-top{flex:0 0 auto;min-height:32px}
+ .lr-party .lr-party-back{width:35px;height:35px;padding:7px}
+ .lr-party .lr-party-invite{min-height:33px;padding:5px 11px}
+ .lr-party .lr-party-hero{flex:0 0 auto;padding:0 5px!important;gap:2px!important}
+ .lr-party .lr-party-kicker{font-size:9px;letter-spacing:1.5px}
+ .lr-party .lr-party-hero h1{font-size:clamp(28px,7vw,36px);line-height:1.08}
+ .lr-party .lr-party-hero p{font-size:11px;line-height:1.35}
+ .lr-party .lr-party-score{flex:0 0 auto;padding:7px 9px!important;border-radius:17px}
+ .lr-party .lr-party-avatar{width:28px;height:28px}
+ .lr-party .lr-party-player>strong{height:27px}
+ .lr-party .lr-party-panel{
+  flex:1 1 0!important;min-height:0!important;
+  overflow:hidden!important;
+  padding:clamp(10px,1.9dvh,15px) 12px!important;
+  gap:clamp(6px,1.25dvh,12px)!important;
+  justify-content:center!important
+ }
+ .lr-party .lr-party-footer{display:none!important}
+ .lr-party .lr-party-question-meta{font-size:9px}
+ .lr-party .lr-party-timer-track{height:5px}
+ .lr-party .lr-party-panel h2{font-size:clamp(18px,5.4vw,25px);line-height:1.2}
+ .lr-party .lr-party-answers{gap:7px}
+ .lr-party .lr-party-answer{min-height:clamp(45px,7.5dvh,58px);padding:8px!important}
+ .lr-party .lr-party-hint{font-size:10px;line-height:1.3}
+ .lr-party .lr-party-result{padding:9px 10px;gap:5px}
+ .lr-party .lr-party-truth-board{gap:clamp(6px,1.2dvh,12px)!important}
+ .lr-party .lr-party-turn{min-height:24px;padding:4px 10px;font-size:9px}
+ .lr-party .lr-party-challenge-symbol{
+  flex:0 0 auto;width:clamp(40px,7dvh,53px);height:clamp(40px,7dvh,53px);
+  border-radius:16px;font-size:31px
+ }
+ .lr-party .lr-party-challenge-category{font-size:9px;letter-spacing:1.5px}
+ .lr-party .lr-party-panel .lr-party-challenge-text{
+  font-size:clamp(17px,5.1vw,25px);line-height:1.25;
+  max-width:100%;overflow-wrap:anywhere
+ }
+ .lr-party .lr-party-truth-board>p{font-size:clamp(10px,2.9vw,12px);line-height:1.35}
+ .lr-party .lr-party-challenge-actions{gap:7px;max-width:none}
+ .lr-party .lr-party-primary{min-height:40px;padding:8px}
+ .lr-party .lr-party-secondary{min-height:37px;padding:8px}
+ .lr-party .lr-party-deck{gap:8px}
+ .lr-party .lr-party-deck button{min-height:clamp(88px,17dvh,140px);gap:5px;padding:8px}
+ .lr-party .lr-party-deck button>span{width:38px;height:38px;font-size:25px}
+ .lr-party .lr-party-deck strong{font-size:20px}
+ .lr-party .lr-party-deck small{font-size:10px}
+ .lr-party .lr-party-surprise{min-height:38px}
+ .lr-party .lr-party-wait{gap:11px!important}
+ .lr-party .lr-party-wait strong{font-size:18px}
+ .lr-party .lr-party-wait p{font-size:11px;line-height:1.4;margin:0}
+ .lr-party .lr-party-big-icon{font-size:35px}
+ .lr-party .lr-party-ready-status span{min-height:39px;padding:7px}
+ .lr-party .lr-party-alert,.lr-party .lr-party-notice{
+  position:absolute;bottom:calc(100px + env(safe-area-inset-bottom));
+  left:15px;right:15px;max-width:580px;margin:auto
+ }
+}
+@media(max-width:700px) and (max-height:740px){
+ .lr-app.lr-party-mode .lr-party .lr-party-hero p{display:none}
+ .lr-app.lr-party-mode .lr-party .lr-party-hero h1{font-size:28px}
+ .lr-app.lr-party-mode .lr-party .lr-party-score{padding:4px 8px!important}
+ .lr-app.lr-party-mode .lr-party .lr-party-panel{padding:8px 10px!important;gap:5px!important}
+ .lr-app.lr-party-mode .lr-party .lr-party-challenge-symbol{height:36px;width:36px;font-size:26px}
+ .lr-app.lr-party-mode .lr-party .lr-party-panel .lr-party-challenge-text{font-size:17px}
+ .lr-app.lr-party-mode .lr-party .lr-party-answer{min-height:42px}
+ .lr-app.lr-party-mode .lr-party .lr-party-truth-board>p{font-size:10px}
+}
