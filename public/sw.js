@@ -1,8 +1,8 @@
 /* Love Radar progressive web app: cache the shell, never cache private API traffic. */
 // Refresh the installed PWA shell after the Cloudflare Pages GIPHY build variable was configured.
-const CACHE="love-radar-static-v147";
+const CACHE="love-radar-static-v148";
 const PRIVATE_AVATAR_CACHE="love-radar-private-notification-avatar-v1";
-const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png","/ludo-mark.svg","/ludo-solo/index.html","/ludo-solo/style.css","/ludo-solo/script.js","/ludo-duo/index.html","/ludo-duo/style.css","/ludo-duo/script.js","/ludo-effects.css","/ludo-sfx.js"];
+const SHELL=["/","/manifest.webmanifest","/favicon.svg","/icons/icon-192.png","/icons/icon-512.png","/icons/icon-512-maskable.png","/ludo-mark.svg","/ludo-solo/index.html","/ludo-solo/style.css","/ludo-solo/script.js","/ludo-duo/index.html","/ludo-duo/style.css","/ludo-duo/script.js","/ludo-effects.css","/ludo-unified-stage.css","/ludo-sfx.js"];
 self.addEventListener("install",event=>{
  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
 });
@@ -16,6 +16,11 @@ self.addEventListener("fetch",event=>{
  if(url.origin!==self.location.origin||url.pathname.startsWith("/api/"))return;
  // The solo game is a real static page inside Love Radar. Never store it
  // as the root app shell: that could replace the app when offline.
+ if(url.pathname==="/ludo-unified-stage.css"){
+  event.respondWith(fetch(request).catch(()=>caches.match("/ludo-unified-stage.css")
+   .then(response=>response||Response.error())));
+  return;
+ }
  if(url.pathname==="/ludo-effects.css"){
   event.respondWith(fetch(request).catch(()=>caches.match("/ludo-effects.css")
    .then(response=>response||Response.error())));
