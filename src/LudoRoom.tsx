@@ -9,8 +9,8 @@ const MODES=[
  {id:"ludo-solo",title:"Classique · Solo",subtitle:"Contre l’ordinateur",kind:"classic-solo",icon:"🎲"},
  {id:"ludo-senegal-solo",title:"Sénégal · Solo",subtitle:"Contre l’ordinateur",kind:"senegal-solo",icon:"★"},
 ] as const;
-const TRACK_KEYS=new Map(TRACK.map((p,i)=>[key(p[0],p[1])/** This is the exact same vector artwork used by ALL four games.
- * No parallel React preview renderer, color palette or star placement. */
+
+/** Exact same board artwork, from the shared SVG, in the lobby and in play. */
 function SingleLudoBoard(){
  return <div className="lr-ludo-unified-board-wrap">
   <div className="lr-ludo-unified-board-frame">
@@ -20,7 +20,7 @@ function SingleLudoBoard(){
  </div>;
 }
 
-our safe stars, dice. */
+/** Original scalable Ludo house symbol: four quarters, four safe stars, dice. */
 export function LudoMark({compact=false}:{compact?:boolean}){
  return <svg className={"lr-ludo-mark"+(compact?" is-compact":"")} viewBox="0 0 100 100" role="img" aria-label="Logo Ludo, plateau quatre couleurs et dé" xmlns="http://www.w3.org/2000/svg">
   <defs>
