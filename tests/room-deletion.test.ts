@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {DatabaseSync} from "node:sqlite";
 import {readFileSync,readdirSync} from "node:fs";
-import {deleteCoupleRoom,ROOM_DATA_TABLES,MEMBER_DATA_TABLES,buildRoomDeletionBatch} from "../functions/lib/delete-room";
+import {deleteCoupleRoom,ROOM_DATA_TABLES,CROSS_ROOM_TABLES,MEMBER_DATA_TABLES,buildRoomDeletionBatch} from "../functions/lib/delete-room";
 
 type Bound={sql:string;params:unknown[];run:()=>Promise<{meta:{changes:number}}>;first:()=>Promise<Record<string,unknown>|null>;all:()=>Promise<{results:Record<string,unknown>[]}>};
 function localD1(){
@@ -179,7 +179,7 @@ test("D1 batch failure rolls back all feature and account deletions",async()=>{
 
 test("new private database tables must always be added to room deletion inventory",()=>{
  const handled=new Set<string>([
-  ...ROOM_DATA_TABLES,...MEMBER_DATA_TABLES,
+  ...ROOM_DATA_TABLES,...CROSS_ROOM_TABLES,...MEMBER_DATA_TABLES,
   "rooms","members","abuse_salt","abuse_counters","couple_reconciliation_entries"
  ]);
  for(const filename of readdirSync("functions/api")){
@@ -193,4 +193,23 @@ test("new private database tables must always be added to room deletion inventor
  assert.ok(source.includes("deleteCoupleRoom(db,bindings().STORAGE,u.room_id)"));
  const statements=buildRoomDeletionBatch(localD1().db,"room-A",new Set(["members","rooms","couple_reconciliations","couple_reconciliation_entries"]));
  assert.ok(statements.length>=4);
+});
+
+test("deleting a couple clears every shared tournament without exposing or removing unrelated couples",async()=>{
+ const local=localD1();seed(local,false);
+ local.sqlite.exec("CREATE TABLE team_games(id TEXT PRIMARY KEY,host_room TEXT NOT NULL,guest_room TEXT);"+
+  "CREATE TABLE team_game_presence(game_id TEXT NOT NULL,member_id TEXT,last_seen INTEGER)");
+ local.sqlite.prepare("INSERT INTO team_games VALUES('tournament-A','room-A','room-B')").run();
+ local.sqlite.prepare("INSERT INTO team_games VALUES('tournament-C','room-B','room-C')").run();
+ local.sqlite.prepare("INSERT INTO team_game_presence VALUES('tournament-A','a1',5)").run();
+ local.sqlite.prepare("INSERT INTO team_game_presence VALUES('tournament-A','b1',5)").run();
+ local.sqlite.prepare("INSERT INTO team_game_presence VALUES('tournament-C','b1',5)").run();
+ const result=await deleteCoupleRoom(local.db,undefined,"room-A");
+ assert.equal(result.deleted,true);
+ assert.equal(rowCount(local.sqlite,"team_games","id='tournament-A'"),0);
+ assert.equal(rowCount(local.sqlite,"team_game_presence","game_id='tournament-A'"),0);
+ assert.equal(rowCount(local.sqlite,"team_games","id='tournament-C'"),1);
+ assert.equal(rowCount(local.sqlite,"team_game_presence","game_id='tournament-C'"),1);
+ assert.equal(rowCount(local.sqlite,"rooms","id='room-B'"),1);
+ assert.equal(rowCount(local.sqlite,"members","room_id='room-B'"),1);
 });
