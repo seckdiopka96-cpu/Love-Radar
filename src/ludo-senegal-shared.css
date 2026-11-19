@@ -95,3 +95,19 @@
 @media(prefers-reduced-motion:reduce){
  .ludo-experience.ludo-senegal-classic .ludo-senegal-shared-sticker{animation:none}
 }
+
+/* Route consent belongs to one pawn at the current entrance, not the whole match. */
+.ludo-experience.ludo-senegal-classic .ludo-senegal-shared-dialog>.ludo-senegal-per-pawn-hint{
+ padding:8px 10px;border:1px solid #dcc08e8a;border-radius:10px;
+ background:#283c5f;color:#f6e5c8;font-weight:650;line-height:1.35;
+}
+.ludo-experience.ludo-senegal-classic .ludo-senegal-shared-dialog>.ludo-senegal-route-continue{
+ background:linear-gradient(130deg,#177a69,#1e997a);border-color:#a8eac7;color:#fff;
+}
+.ludo-experience.ludo-senegal-classic .ludo-senegal-shared-dialog>.ludo-senegal-route-enter{
+ background:linear-gradient(130deg,#985575,#c26b8a);border-color:#ffc3dc;color:#fff;
+}
+.ludo-experience.ludo-senegal-classic .ludo-senegal-shared-dialog>.ludo-senegal-route-enter:disabled,
+.ludo-experience.ludo-senegal-classic .ludo-senegal-shared-dialog>.ludo-senegal-route-continue:disabled{
+ filter:saturate(.55);opacity:.55;box-shadow:none;
+}
