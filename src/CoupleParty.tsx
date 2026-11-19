@@ -4,9 +4,9 @@ import type {PartyMode,ChallengeKind} from "./couple-party-engine";
 import "./couple-party.css";
 
 type Base={id:string;mode:PartyMode;version:number;round:number;phase:string;turn:number;scores:[number,number];updatedAt:number};
-type RapidGame=Base&{mode:"rapid";phase:"ready"|"question"|"result";question:string|null;options:[string,string,string,string]|null;correct:number|null;
+type RapidGame=Base&{mode:"rapid";phase:"ready"|"question"|"result"|"finished";question:string|null;options:[string,string,string,string]|null;correct:number|null;
  myReady:boolean;partnerReady:boolean;
- myChoice:number|null;partnerPicked:boolean;partnerChoice:number|null;winner:number|null;startAt:number;deadlineAt:number};
+ myChoice:number|null;partnerPicked:boolean;partnerChoice:number|null;winner:number|null;matchWinner:number|null;winScore:number;startAt:number;deadlineAt:number};
 type TruthGame=Base&{mode:"truth";phase:"choose"|"challenge";myReady:boolean;partnerReady:boolean;kind:ChallengeKind|null;prompt:string|null};
 type Game=RapidGame|TruthGame;
 type Data={ok:boolean;error?:string;members?:number;seat?:number;partnerHere?:boolean;game?:Game|null;serverNow?:number;invited?:boolean};
@@ -64,7 +64,7 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
   const timeout=window.setTimeout(()=>setNotice(""),2800);
   return()=>window.clearTimeout(timeout);
  },[notice]);
- async function post(action:"invite"|"ready"|"answer"|"next"|"pick"|"finish"|"pass",extra:Record<string,unknown>={}){
+ async function post(action:"invite"|"ready"|"answer"|"next"|"restart"|"pick"|"finish"|"pass",extra:Record<string,unknown>={}){
   const game=last.current;
   if(!game||busyRef.current)return;
   busyRef.current=true;setBusy(true);setError("");
@@ -88,7 +88,7 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
  const now=clock+offset;
  const isRapid=mode==="rapid";
  const title=isRapid?"Questions rapides":"Action ou vérité";
- const motto=isRapid?"La première bonne réponse marque le point.":"Vos secrets, vos rires, vos défis.";
+ const motto=isRapid?"Le premier à 10 bonnes réponses gagne le match.":"Vos secrets, vos rires, vos défis.";
  const rapid=game?.mode==="rapid"?game:null;
  const truth=game?.mode==="truth"?game:null;
  const truthMyTurn=Boolean(data?.partnerHere&&truth&&truth.turn===seat);
@@ -111,7 +111,7 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
   </header>
   <div className="lr-party-score" aria-label="Points des deux joueurs">
    <div className="lr-party-player"><span className="lr-party-avatar">{initials(myName)}</span><span className="lr-party-player-name">Toi</span><strong>{mine}</strong></div>
-   <div className="lr-party-round"><span>{isRapid?"VS":"♥"}</span><small>Manche {game?.round||1}</small></div>
+   <div className="lr-party-round"><span>{isRapid?"VS":"♥"}</span><small>{isRapid?"Objectif 10 · ":""}Manche {game?.round||1}</small></div>
    <div className="lr-party-player"><span className="lr-party-avatar is-other">{initials(name)}</span><span className="lr-party-player-name">{name}</span><strong>{other}</strong></div>
   </div>
   {loading?<div className="lr-party-panel lr-party-wait" role="status">Chargement de votre partie…</div>:
@@ -121,11 +121,20 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
     <p>Rejoignez tous les deux votre espace privé pour jouer ensemble, même à distance.</p>
     <button type="button" className="lr-party-primary" onClick={onOpenChat}>Ouvrir notre conversation</button>
    </div>:
+   rapid?.phase==="finished"?<div className="lr-party-panel lr-party-wait lr-party-match-finished" role="status">
+    <span className="lr-party-big-icon" aria-hidden="true">{rapid.matchWinner===seat?"🏆":"💗"}</span>
+    <strong>{rapid.matchWinner===seat?"Tu as gagné le match !":name+" a gagné le match !"}</strong>
+    <p>Le premier à {rapid.winScore} points remporte la victoire. Score final : {mine} – {other}.</p>
+    <span className="lr-party-presence-indicator">🏁 Partie terminée · {rapid.round} manches</span>
+    <button type="button" className="lr-party-primary" disabled={busy}
+     onClick={()=>void post("restart")}>↻ Rejouer un nouveau match</button>
+    <button type="button" className="lr-party-secondary" onClick={onExit}>Retour aux jeux</button>
+   </div>:
    !data?.partnerHere?<div className="lr-party-panel lr-party-wait lr-party-absent" role="status">
     <span className="lr-party-big-icon" aria-hidden="true">💌</span>
     <strong>En attente de {name}</strong>
-    <p>{name} n'est pas encore dans cette salle. Le jeu reste en pause jusqu'à ce que vous soyez présents tous les deux.</p>
-    <span className="lr-party-presence-indicator">● Partenaire absent du jeu</span>
+    <p>{name} doit ouvrir {isRapid?"Questions rapides":"Action ou vérité"} pour reprendre cette salle. Être connecté(e) à Love Radar ou dans un autre jeu ne signifie pas être dans cette partie.</p>
+    <span className="lr-party-presence-indicator">● En attente dans cette salle uniquement</span>
     <button type="button" className="lr-party-primary" onClick={()=>void post("invite")} disabled={busy}>Inviter {name} 💌</button>
    </div>:
    truth&&(!truth.myReady||!truth.partnerReady)?<div className="lr-party-panel lr-party-wait lr-party-ready" role="status">
@@ -153,15 +162,15 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
    rapid?<div className="lr-party-panel">
     <div className="lr-party-question-meta">
      <span>QUESTION {rapid.round}</span>
-     <span className={"lr-party-timer"+(secondsLeft<=5?" urgent":"")} aria-live="off">{rapid.phase==="result"?"Terminé":secondsToStart>0?"Départ dans "+secondsToStart+"…":secondsLeft+" s"}</span>
+     <span className={"lr-party-timer"+(secondsLeft<=5?" urgent":"")} aria-live="off">{rapid.phase==="result"||rapid.phase==="finished"?"Terminé":secondsToStart>0?"Départ dans "+secondsToStart+"…":secondsLeft+" s"}</span>
     </div>
     <div className="lr-party-timer-track" aria-hidden="true">
-     <span style={{width:rapid.phase==="result"?"0%":secondsToStart>0?"100%":Math.max(0,Math.min(100,(rapid.deadlineAt-now)/180))+"%"}}/>
+     <span style={{width:rapid.phase==="result"||rapid.phase==="finished"?"0%":secondsToStart>0?"100%":Math.max(0,Math.min(100,(rapid.deadlineAt-now)/180))+"%"}}/>
     </div>
     <h2>{rapid.question||"Question en préparation…"}</h2>
     <div className="lr-party-answers" role="group" aria-label="Choisir une réponse">
      {(rapid.options||[]).map((choice,index)=>{
-      const revealed=rapid.phase==="result";
+      const revealed=rapid.phase==="result"||rapid.phase==="finished";
       const correct=revealed&&rapid.correct===index;
       const wrong=revealed&&rapid.myChoice===index&&!correct;
       return <button type="button" key={index} className={"lr-party-answer"+(correct?" is-correct":"")+(wrong?" is-wrong":"")+(rapid.myChoice===index?" is-selected":"")}
