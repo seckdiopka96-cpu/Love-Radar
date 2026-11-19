@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
+import {DatabaseSync} from "node:sqlite";
+import {createHash,webcrypto} from "node:crypto";
+import type {D1Database} from "@cloudflare/workers-types";
+import {onRequestGet,onRequestPost} from "../functions/api/duo-arcade";
 import {DRAW_WORDS,ESCAPE_SCENES,normalizeGuess,validStroke} from "../functions/lib/duo-arcade-rules";
 
 test("drawing answers ignore accents, casing, whitespace and punctuation",()=>{
@@ -103,4 +107,123 @@ test("Escape Room Duo uses one fixed iPhone viewport for both solving and time-e
   "expired room can still be restarted");
  assert.ok(ui.includes('onOpenChat}'),"chat shortcut remains available");
  assert.ok(ui.includes('onSubmit={submit}'),"the puzzle submission still works");
+});
+
+function duoHarness(){
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const sqlite=new DatabaseSync(":memory:");
+ sqlite.exec("CREATE TABLE members(id TEXT PRIMARY KEY,name TEXT NOT NULL,room_id TEXT NOT NULL,"+
+  "seat INTEGER NOT NULL,token_hash TEXT NOT NULL)");
+ for(const [letter,seat,room] of [["a",0,"room-A"],["b",1,"room-A"],["c",0,"room-B"],["d",1,"room-B"]] as const){
+  sqlite.prepare("INSERT INTO members VALUES(?,?,?,?,?)").run(
+   letter,letter.toUpperCase(),room,seat,createHash("sha256").update(letter.repeat(64)).digest("hex"));
+ }
+ const bound=(sql:string,args:unknown[])=>({
+  async first(){return sqlite.prepare(sql).get(...args as [])??null},
+  async all(){return {results:sqlite.prepare(sql).all(...args as [])}},
+  async run(){const out=sqlite.prepare(sql).run(...args as []);return {meta:{changes:Number(out.changes)}}}
+ });
+ const db={async exec(sql:string){sqlite.exec(sql)},prepare(sql:string){
+  return {...bound(sql,[]),bind(...args:unknown[]){return bound(sql,args)}};
+ }} as unknown as D1Database;
+ async function request(player:string,mode:"draw"|"escape",action?:string,extra:Record<string,unknown>={}){
+  const req=new Request("https://example.org/api/duo-arcade?game="+mode,{
+   method:action?"POST":"GET",
+   headers:{Authorization:"Bearer "+player.repeat(64)},
+   ...(action?{body:JSON.stringify({action,...extra})}:{})
+  });
+  const res=await (action?onRequestPost({request:req,env:{DB:db}}):
+   onRequestGet({request:req,env:{DB:db}}));
+  return {status:res.status,data:await res.json() as any};
+ }
+ return {sqlite,request};
+}
+test("drawing game has an authoritative winner at ten, never a silent endless scoreboard",async()=>{
+ const {sqlite,request}=duoHarness();
+ try{
+  const original=(await request("a","draw")).data.game;
+  assert.equal(original.status,"playing");
+  const row=sqlite.prepare("SELECT word_index FROM duo_draw_games WHERE room_id='room-A'")
+   .get() as {word_index:number};
+  const word=DRAW_WORDS[row.word_index].word;
+  sqlite.prepare("UPDATE duo_draw_games SET scores_1=9,drawer=0,round=20 WHERE room_id='room-A'").run();
+  const hidden=(await request("b","draw")).data.game;
+  assert.equal(hidden.word,null,"guessing partner must not see the secret before the reveal");
+  const wrong=await request("b","draw","guess",{gameId:original.id,round:20,guess:"une mauvaise réponse"});
+  assert.equal(wrong.status,200);
+  assert.equal(wrong.data.correct,false);
+  assert.deepEqual(wrong.data.game.scores,[0,9]);
+  const victory=await request("b","draw","guess",{gameId:original.id,round:20,guess:word});
+  assert.equal(victory.status,200);
+  assert.equal(victory.data.game.status,"finished");
+  assert.equal(victory.data.game.matchWinner,1);
+  assert.equal(victory.data.game.winScore,10);
+  assert.deepEqual(victory.data.game.scores,[0,10]);
+  const other=(await request("a","draw")).data.game;
+  assert.equal(other.status,"finished");
+  assert.equal(other.matchWinner,1);
+  assert.deepEqual(other.scores,[0,10]);
+  assert.equal(other.word,word,"winner screen reveals the last word to both");
+  assert.equal((await request("a","draw","next",{gameId:original.id,round:20})).status,409,
+   "another round is forbidden after a player reaches ten");
+  assert.equal((await request("b","draw","guess",{gameId:original.id,round:20,guess:word})).status,400,
+   "a finished match must not award additional points");
+  const replay=await request("a","draw","restart",{gameId:original.id,round:20});
+  assert.equal(replay.status,200);
+  assert.equal(replay.data.game.status,"playing");
+  assert.equal(replay.data.game.round,1);
+  assert.deepEqual(replay.data.game.scores,[0,0]);
+  assert.equal(replay.data.game.matchWinner,null);
+  assert.notEqual(replay.data.game.id,original.id);
+  assert.equal((await request("b","draw")).data.game.id,replay.data.game.id);
+  assert.equal((await request("b","draw","guess",{gameId:original.id,round:20,guess:word})).status,409);
+  assert.deepEqual((await request("c","draw")).data.game.scores,[0,0],
+   "another couple's scoreboard is isolated");
+ }finally{sqlite.close()}
+});
+test("old drawing matches with ten points are recognized as won on reopening",async()=>{
+ const {sqlite,request}=duoHarness();
+ try{
+  const initial=(await request("a","draw")).data.game;
+  sqlite.prepare("UPDATE duo_draw_games SET scores_0=10,status='revealed' WHERE room_id='room-A'").run();
+  const migrated=(await request("b","draw")).data.game;
+  assert.equal(migrated.id,initial.id);
+  assert.equal(migrated.status,"finished");
+  assert.equal(migrated.matchWinner,0);
+  assert.deepEqual(migrated.scores,[10,0]);
+ }finally{sqlite.close()}
+});
+test("Escape Room solves all stages exactly once, then freezes victory for both phones",async()=>{
+ const {sqlite,request}=duoHarness();
+ try{
+  const first=(await request("a","escape")).data.game;
+  const scene=ESCAPE_SCENES[first.scenario];
+  let game=first;
+  for(let stage=0;stage<scene.stages.length;stage++){
+   const solution=await request(stage%2===0?"a":"b","escape","solve",{
+    gameId:first.id,stage,answer:scene.stages[stage].answer});
+   assert.equal(solution.status,200);
+   assert.equal(solution.data.correct,true);
+   game=solution.data.game;
+   assert.equal(game.stage,stage+1);
+  }
+  assert.equal(game.status,"escaped");
+  assert.equal((await request("b","escape")).data.game.status,"escaped");
+  assert.equal((await request("a","escape","solve",{gameId:first.id,stage:2,answer:scene.stages[2].answer})).status,409,
+   "solved mission cannot be scored twice");
+  const newRoom=await request("a","escape","restart",{gameId:first.id});
+  assert.equal(newRoom.status,200);
+  assert.equal(newRoom.data.game.stage,0);
+  assert.equal(newRoom.data.game.status,"playing");
+ }finally{sqlite.close()}
+});
+test("drawing trophy and replay use the same fixed mobile game panel",()=>{
+ const ui=readFileSync("src/DuoArcade.tsx","utf8");
+ const api=readFileSync("functions/api/duo-arcade.ts","utf8");
+ const css=readFileSync("src/duo-arcade.css","utf8");
+ assert.ok(api.includes("const DRAW_WIN_SCORE=10;"));
+ assert.ok(api.includes('status=CASE WHEN "+column+">=? THEN \'finished\' ELSE \'revealed\' END'));
+ assert.ok(ui.includes('draw.status==="finished"?<div className="lr-duo-finish lr-duo-draw-victory"'));
+ assert.ok(ui.includes('onClick={()=>void act("restart")}'));
+ assert.ok(css.includes(".lr-duo-draw-victory"));
 });
