@@ -431,3 +431,28 @@ test("Ludo Duo board never follows iOS toolbar, scroll or turn-message changes",
  assert.ok(duoJS.includes("const diceValue=g.dice??last?.face??"),"every final value comes from the backend");
  assert.ok(!duoJS.includes("Math.random()*6"),"the renderer never chooses the actual dice result");
 });
+
+
+test("Solo and Duo keep the board centered, roll quickly and play different original cues",()=>{
+ const sound=readFileSync("public/ludo-sfx.js","utf8");
+ const soloJS=readFileSync("public/ludo-solo/script.js","utf8");
+ const soloCSS=readFileSync("public/ludo-solo/style.css","utf8");
+ assert.doesNotThrow(()=>new Script(sound,{filename:"public/ludo-sfx.js"}));
+ for(const event of ['roll','exit','capture','win']){
+  assert.ok(sound.includes(event+":[["),"original cue "+event);
+ }
+ assert.ok(soloHTML.includes('../ludo-sfx.js?v=ludo-room-20261118-v20'));
+ assert.ok(duoHTML.includes('../ludo-sfx.js?v=ludo-room-20261118-v20'));
+ assert.ok(sw.includes('"/ludo-sfx.js"'),"audio stays available to installed PWAs offline");
+ assert.ok(soloJS.includes('new ResizeObserver(centerBoard).observe(boardArea)'));
+ assert.ok(soloCSS.includes('align-items:center!important;justify-content:center!important'));
+ assert.ok(duoCSS.includes('align-items:center!important;justify-content:center!important'));
+ assert.ok(soloJS.includes('await sleep(reducedMotion?80:240)'));
+ assert.ok(duoJS.includes('const DIE_TUMBLE_MS=260'));
+ assert.ok(soloJS.includes('sfx?.play("exit")'));
+ assert.ok(soloJS.includes('sfx?.play("capture")'));
+ assert.ok(soloJS.includes('sfx?.play("win")'));
+ assert.ok(duoJS.includes('window.LudoSfx?.play("capture")'));
+ assert.ok(duoJS.includes('window.LudoSfx?.play("exit")'));
+ assert.ok(duoJS.includes('window.LudoSfx?.play("win")'));
+});
