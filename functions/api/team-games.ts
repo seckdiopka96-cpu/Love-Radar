@@ -1,6 +1,6 @@
 import type {D1Database} from "@cloudflare/workers-types";
 import {RAPID_QUESTIONS} from "../../src/couple-party-engine";
-import {newTeamMatch,teamRoll,teamMove,teamQuizAnswer,teamQuizTick,teamForfeit,teamOf,
+import {newTeamMatch,repairTeamClassic,teamRoll,teamMove,teamQuizAnswer,teamQuizTick,teamForfeit,teamOf,
  type TeamSeat,type TeamId,type TeamKind,type TeamGame,type TeamMove
 } from "../../src/team-games-engine";
 
@@ -103,7 +103,14 @@ async function save(db:D1Database,row:Row,state:TeamGame):Promise<Row|null>{
  return result.meta.changes===1?await get(db,row.id):null;
 }
 async function sync(db:D1Database,row:Row):Promise<Row>{
- const game=JSON.parse(row.state_json) as TeamGame;
+ let game=JSON.parse(row.state_json) as TeamGame;
+ const repaired=repairTeamClassic(game);
+ if(repaired!==game){
+  // Heal already-running Classic matches without a reset. Use the same
+  // optimistic revision guard as rolls/moves so the latest action wins.
+  row=await save(db,row,repaired)||await get(db,row.id)||row;
+  game=JSON.parse(row.state_json) as TeamGame;
+ }
  // Presence has a 30 s display window, but forfeiture requires a full
  // 60 seconds of absence. This avoids penalizing brief iOS interruptions.
  if(game.status==="playing"&&row.guest_room){
