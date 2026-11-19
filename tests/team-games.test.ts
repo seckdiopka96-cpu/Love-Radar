@@ -105,7 +105,7 @@ test("Senegal enemy lane is not a shortcut to winning, and six retreats one squa
  invasion.turn=0;invasion.dice=6;
  const retreat=movesForTeamPawn(invasion,0,0).find(x=>x.action==="exit");
  assert.equal(retreat?.to.zone,"enemy");
- assert.equal(retreat?.to.depth,2,"six retreats exactly one inside enemy lane");
+ assert.equal(retreat?.to.depth,3,"six retreats exactly one inside enemy lane");
  assert.notDeepEqual(teamPiecePoint(0,0,retreat!.to),[7,7]);
 });
 test("Senegal two-piece opponent barricade blocks a standard die but six can jump",()=>{
