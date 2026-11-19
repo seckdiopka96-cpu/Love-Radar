@@ -5,7 +5,7 @@ import {DatabaseSync} from "node:sqlite";
 import {createHash,webcrypto} from "node:crypto";
 import type {D1Database} from "@cloudflare/workers-types";
 import {RAPID_QUESTIONS} from "../src/couple-party-engine";
-import {newTeamMatch,repairTeamClassic,teamOf,TEAM_COLORS,TEAM_BASE,TEAM_HOME,movesForTeamPawn,
+import {newTeamMatch,repairTeamClassic,teamIdleTurn,TEAM_TURN_MS,teamOf,TEAM_COLORS,TEAM_BASE,TEAM_HOME,movesForTeamPawn,
  teamRoll,teamMove,teamQuizAnswer,teamQuizTick,teamForfeit,teamPiecePoint,
  type TeamSeat
 } from "../src/team-games-engine";
@@ -354,5 +354,64 @@ test("two simultaneous players with a stale revision receive the newest authorit
   const other=(await request("c",undefined,{},host.id)).data.game;
   assert.equal(other.version,rolled.data.game.version);
   assert.deepEqual(other.state,rolled.data.game.state);
+ }finally{sqlite.close()}
+});
+
+test("2v2 Ludo cannot stay blocked forever when one phone stops taking turns",()=>{
+ const now=100000;
+ assert.equal(TEAM_TURN_MS,15000);
+ for(const kind of ["classic","senegal"] as const){
+  const game=newTeamMatch(kind,"playing",now);
+  game.turn=3;game.updatedAt=now;
+  const early=teamIdleTurn(game,now+14999);
+  assert.equal(early,game,"playing at 14.999s must not be penalized");
+  const passed=teamIdleTurn(game,now+15000);
+  assert.equal(passed.turn,0,"last player wraps to the first");
+  assert.equal(passed.dice,null);
+  assert.equal(passed.sixStreak,0);
+  assert.equal(passed.updatedAt,now+15000);
+  assert.match(passed.lastAction,/15 secondes sans action/);
+  assert.equal(teamIdleTurn(passed,now+15001),passed,
+   "a network duplicate must not skip the next player's fresh turn");
+  const midTurn={...game,turn:1 as const,dice:6,sixStreak:2};
+  const midPassed=teamIdleTurn(midTurn,now+15000);
+  assert.equal(midPassed.turn,2);
+  assert.equal(midPassed.dice,null,"pending six cannot keep an inactive player's turn");
+  assert.equal(midPassed.sixStreak,0);
+  assert.equal(teamIdleTurn({...game,status:"finished"},now+20000).status,"finished");
+ }
+ const quiz=newTeamMatch("quiz","playing",now);
+ assert.equal(teamIdleTurn(quiz,now+120000),quiz,"quiz timer is managed independently");
+ const waiting=newTeamMatch("classic","waiting",now);
+ assert.equal(teamIdleTurn(waiting,now+120000),waiting,"the lobby cannot auto-play before four arrive");
+ const ui=readFileSync("src/TeamGames.tsx","utf8");
+ assert.ok(ui.includes("const turnLeft=Math.max(0"));
+ assert.ok(ui.includes('Tour adverse"} · {turnLeft}s'));
+});
+test("the four-player server advances exactly one idle turn on the next authenticated poll",async()=>{
+ const {sqlite,request}=testDB();
+ try{
+  const host=(await request("a","create",{kind:"classic"})).data.game;
+  await request("c","join",{code:host.code});
+  await request("b",undefined,{},host.id);
+  await request("d",undefined,{},host.id);
+  const running=(await request("a",undefined,{},host.id)).data.game;
+  assert.equal(running.state.status,"playing");
+  const outdated={...running.state,turn:0,dice:6,sixStreak:1,updatedAt:Date.now()-16000};
+  sqlite.prepare("UPDATE team_games SET state_json=? WHERE id=?").run(JSON.stringify(outdated),host.id);
+  const auto=await request("b",undefined,{},host.id);
+  assert.equal(auto.status,200);
+  assert.equal(auto.data.game.state.turn,1);
+  assert.equal(auto.data.game.state.dice,null);
+  assert.equal(auto.data.game.state.sixStreak,0);
+  assert.equal(auto.data.game.version,running.version+1);
+  const immediate=await request("d",undefined,{},host.id);
+  assert.equal(immediate.data.game.version,auto.data.game.version,
+   "another phone's poll cannot count the same timeout twice");
+  assert.equal(immediate.data.game.state.turn,1);
+  const old=await request("a","move",{id:host.id,version:running.version,pawn:0,move:"release"});
+  assert.equal(old.status,409,"pending actions from an old turn must not override the timeout");
+  assert.equal(old.data.game.version,auto.data.game.version);
+  assert.equal(old.data.game.state.turn,1);
  }finally{sqlite.close()}
 });
