@@ -63,6 +63,16 @@ async function get(db:D1Database,room:string,mode:PartyMode){
   .bind(room,mode).first<Row>();
 }
 async function expire(db:D1Database,row:Row):Promise<Row>{
+ // Resume pre-update rooms stuck in ready after round one, only once.
+ if(row.mode==="rapid"&&row.phase==="ready"&&row.round>1){
+  const now=Date.now(),start=now+RAPID_COUNTDOWN_MS;
+  await db.prepare(
+   "UPDATE couple_party_games SET phase='question',picked_0=NULL,picked_1=NULL,"+
+   "started_at=?,deadline_at=?,version=version+1,updated_at=?"+
+   " WHERE room_id=? AND mode='rapid' AND game_id=? AND round=? AND phase='ready'"
+  ).bind(start,start+RAPID_SECONDS*1000,now,row.room_id,row.game_id,row.round).run();
+  return await get(db,row.room_id,row.mode)||row;
+ }
  if(row.mode!=="rapid"||row.phase!=="question"||Date.now()<row.deadline_at)return row;
  await db.prepare("UPDATE couple_party_games SET phase='result',version=version+1,updated_at=?"+
   " WHERE room_id=? AND mode='rapid' AND game_id=? AND round=? AND phase='question' AND deadline_at<=?")
@@ -139,7 +149,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    return fail("Ton partenaire a déjà changé de manche.",409);
   if(mode==="rapid"){
    if(data.action==="ready"){
-    if(row.phase!=="ready")return fail("La question est déjà commencée.",409);
+    if(row.phase!=="ready"||row.round!==1)return fail("La salle est déjà prête. Les manches suivantes démarrent automatiquement.",409);
     const col=member.seat===0?"picked_0":"picked_1";
     const marked=await db.prepare(
      "UPDATE couple_party_games SET "+col+"=1,version=version+1,updated_at=?"+
@@ -181,11 +191,12 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    if(data.action==="next"){
     if(row.phase!=="result")return fail("Attends la fin de cette question.",409);
     const next=newIndex(RAPID_QUESTIONS.length,row.question_index);
+    const start=now+RAPID_COUNTDOWN_MS;
     const changed=await db.prepare(
-     "UPDATE couple_party_games SET round=round+1,version=version+1,phase='ready',"+
+     "UPDATE couple_party_games SET round=round+1,version=version+1,phase='question',"+
      "question_index=?,picked_0=NULL,picked_1=NULL,winner=NULL,started_at=?,deadline_at=?,updated_at=?"+
      " WHERE room_id=? AND mode='rapid' AND game_id=? AND round=? AND phase='result'"
-    ).bind(next,0,0,now,member.room_id,row.game_id,row.round).run();
+    ).bind(next,start,start+RAPID_SECONDS*1000,now,member.room_id,row.game_id,row.round).run();
     if(changed.meta.changes!==1)return fail("La prochaine question a déjà commencé.",409);
     return send(await publicState(db,member,mode,members));
    }
