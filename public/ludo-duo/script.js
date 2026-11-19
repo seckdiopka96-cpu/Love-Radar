@@ -421,7 +421,10 @@
   app.dataset.computer=colors[1-state.mySeat];
   const me=color(state.mySeat),other=color(1-state.mySeat);
   renderProfilePhoto(".player--human",state.myAvatar);
-  renderProfilePhoto(".player--cpu",state.partnerAvatar);
+  // Solo is an ordinary computer opponent: no robot avatar or partner photo.
+  const opponentPlayer=document.querySelector(".player--cpu");
+  opponentPlayer?.classList.toggle("is-solo",solo);
+  if(!solo)renderProfilePhoto(".player--cpu",state.partnerAvatar);
   // Ring the active player's house; never transform the board or its grid.
   for(const el of board.querySelectorAll(".base")){
    const c=[...el.classList].find(x=>x.startsWith("base--"))?.slice(6);
@@ -439,7 +442,7 @@
   document.querySelector(".player--human b").textContent="TOI";
   document.querySelector(".player--cpu b").textContent=solo?"ORDI":"PARTENAIRE";
   const opponentIcon=document.querySelector(".player--cpu .avatar-fallback");
-  if(opponentIcon&&senegal)opponentIcon.textContent=solo?"🤖":"♥";
+  if(opponentIcon)opponentIcon.textContent="♥";
   document.getElementById("player-count").textContent=g.positions[state.mySeat].filter(p=>p>=FINISH_PROGRESS).length+" / 4";
    document.getElementById("computer-count").textContent=g.positions[1-state.mySeat].filter(p=>p>=FINISH_PROGRESS).length+" / 4";
    const legal=legalPawns();
