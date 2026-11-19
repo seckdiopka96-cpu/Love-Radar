@@ -166,7 +166,7 @@ test("drawing game has an authoritative winner at ten, never a silent endless sc
   assert.equal(other.word,word,"winner screen reveals the last word to both");
   assert.equal((await request("a","draw","next",{gameId:original.id,round:20})).status,409,
    "another round is forbidden after a player reaches ten");
-  assert.equal((await request("b","draw","guess",{gameId:original.id,round:20,guess:word})).status,400,
+  assert.equal((await request("b","draw","guess",{gameId:original.id,round:20,guess:word})).status,409,
    "a finished match must not award additional points");
   const replay=await request("a","draw","restart",{gameId:original.id,round:20});
   assert.equal(replay.status,200);
