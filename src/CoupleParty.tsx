@@ -6,7 +6,7 @@ import "./couple-party.css";
 type Base={id:string;mode:PartyMode;version:number;round:number;phase:string;turn:number;scores:[number,number];updatedAt:number};
 type RapidGame=Base&{mode:"rapid";phase:"ready"|"question"|"result"|"finished";question:string|null;options:[string,string,string,string]|null;correct:number|null;
  myReady:boolean;partnerReady:boolean;
- myChoice:number|null;partnerPicked:boolean;partnerChoice:number|null;winner:number|null;matchWinner:number|null;winScore:number;startAt:number;deadlineAt:number};
+ myChoice:number|null;partnerPicked:boolean;partnerChoice:number|null;winner:number|null;matchWinner:number|null;winScore:number;winByForfeit:boolean;startAt:number;deadlineAt:number};
 type TruthGame=Base&{mode:"truth";phase:"choose"|"challenge";myReady:boolean;partnerReady:boolean;kind:ChallengeKind|null;prompt:string|null};
 type Game=RapidGame|TruthGame;
 type Data={ok:boolean;error?:string;members?:number;seat?:number;partnerHere?:boolean;game?:Game|null;serverNow?:number;invited?:boolean};
@@ -24,6 +24,7 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
  const alive=useRef(true);
  const inFlight=useRef(false);
  const busyRef=useRef(false);
+ const leavingRef=useRef(false);
  const last=useRef<Game|null>(null);
  const accept=useCallback((result:Data)=>{
   if(!alive.current)return;
@@ -82,6 +83,31 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
   }catch(e){if(alive.current)setError(e instanceof Error?e.message:"Action impossible.");void refresh()}
   finally{busyRef.current=false;if(alive.current)setBusy(false)}
  }
+ async function leaveMatch(destination:()=>void){
+  const current=last.current;
+  if(mode!=="rapid"||!current||current.phase==="finished"){destination();return;}
+  if(leavingRef.current||busyRef.current)return;
+  leavingRef.current=true;busyRef.current=true;setBusy(true);setError("");
+  try{
+   // The server awards the win to the other player before navigation;
+   // simply switching tabs or losing internet will be handled by its
+   // separate presence timeout, not by this explicit abandon action.
+   const response=await apiFetch(requestUrl(mode),{
+    method:"POST",cache:"no-store",
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    body:JSON.stringify({action:"quit",gameId:current.id,round:current.round})
+   });
+   const result=await response.json() as Data;
+   if(!response.ok||!result.ok)throw Error(result.error||"Impossible de quitter la partie.");
+   accept(result);
+   destination();
+  }catch(e){
+   if(alive.current)setError(e instanceof Error?e.message:"Impossible de quitter la partie.");
+  }finally{
+   leavingRef.current=false;busyRef.current=false;
+   if(alive.current)setBusy(false);
+  }
+ }
  const game=data?.game||null;
  const seat=data?.seat??0;
  const name=partnerName||"Ton amour";
@@ -98,7 +124,7 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
  const mine=game?.scores[seat]??0,other=game?.scores[seat===0?1:0]??0;
  return <section className={"lr-party lr-party-"+mode} aria-label={title+" à deux"}>
   <div className="lr-party-top">
-   <button type="button" className="lr-party-back" onClick={onExit} aria-label="Retour aux jeux">
+   <button type="button" className="lr-party-back" onClick={()=>void leaveMatch(onExit)} disabled={busy} aria-label="Quitter le match et retourner aux jeux">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
    </button>
    <span>JEU À DEUX · EN DIRECT</span>
@@ -124,11 +150,13 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
    rapid?.phase==="finished"?<div className="lr-party-panel lr-party-wait lr-party-match-finished" role="status">
     <span className="lr-party-big-icon" aria-hidden="true">{rapid.matchWinner===seat?"🏆":"💗"}</span>
     <strong>{rapid.matchWinner===seat?"Tu as gagné le match !":name+" a gagné le match !"}</strong>
-    <p>Le premier à {rapid.winScore} points remporte la victoire. Score final : {mine} – {other}.</p>
+    <p>{rapid.winByForfeit
+     ?rapid.matchWinner===seat?name+" a quitté la partie. Tu gagnes par abandon !":"Tu as quitté la partie. "+name+" gagne par abandon."
+     :"Le premier à "+rapid.winScore+" points remporte la victoire."} Score final : {mine} – {other}.</p>
     <span className="lr-party-presence-indicator">🏁 Partie terminée · {rapid.round} manches</span>
     <button type="button" className="lr-party-primary" disabled={busy}
      onClick={()=>void post("restart")}>↻ Rejouer un nouveau match</button>
-    <button type="button" className="lr-party-secondary" onClick={onExit}>Retour aux jeux</button>
+    <button type="button" className="lr-party-secondary" onClick={()=>void leaveMatch(onExit)}>Retour aux jeux</button>
    </div>:
    !data?.partnerHere?<div className="lr-party-panel lr-party-wait lr-party-absent" role="status">
     <span className="lr-party-big-icon" aria-hidden="true">💌</span>
@@ -220,7 +248,7 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
   }
   <div className="lr-party-footer">
    <p>{isRapid?"18 secondes par question · Un point pour la première réponse correcte.":"À tour de rôle · Vérité = répondre, Action = agir · Tu peux toujours passer."}</p>
-   <button type="button" onClick={onOpenChat}>💬 Discuter ensemble</button>
+   <button type="button" onClick={()=>void leaveMatch(onOpenChat)} disabled={busy}>💬 Discuter ensemble</button>
   </div>
   {error?<div className="lr-party-alert" role="alert">{error}<button type="button" onClick={()=>{setError("");void refresh()}}>Réessayer</button></div>:null}
   {notice?<div className="lr-party-notice" role="status">{notice}</div>:null}
