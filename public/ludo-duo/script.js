@@ -438,6 +438,8 @@
   document.querySelector(".player--cpu").classList.toggle("is-turn",g.turn!==state.mySeat&&g.status==="playing");
   document.querySelector(".player--human b").textContent="TOI";
   document.querySelector(".player--cpu b").textContent=solo?"ORDI":"PARTENAIRE";
+  const opponentIcon=document.querySelector(".player--cpu .avatar-fallback");
+  if(opponentIcon&&senegal)opponentIcon.textContent=solo?"🤖":"♥";
   document.getElementById("player-count").textContent=g.positions[state.mySeat].filter(p=>p>=FINISH_PROGRESS).length+" / 4";
    document.getElementById("computer-count").textContent=g.positions[1-state.mySeat].filter(p=>p>=FINISH_PROGRESS).length+" / 4";
    const legal=legalPawns();
