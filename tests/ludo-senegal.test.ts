@@ -170,23 +170,27 @@ test("own home opens only after a full forward lap",()=>{
   assert.ok(movesForPawn(later,seat,0).some(o=>o.action==="home"));
  }
 });
-test("raiding the opponent's home lane cannot capture a protected home pawn",()=>{
+test("Sénégal Duo and Solo: invading an opponent's colored lane captures its unfinished pawn",()=>{
  for(const seat of [0,1] as const){
   const game=newSenegalGame(),opponent=(1-seat) as 0|1;
   game.turn=seat;game.dice=5;
   game.positions[seat][0]=pawn("track",74);
   game.positions[opponent][0]=pawn("home",53,3,51);
   const invasion=movesForPawn(game,seat,0).find(o=>o.action==="enemy");
-  assert.ok(invasion,"human can still choose an opponent-lane raid");
+  assert.ok(invasion,"both players can choose to raid the opponent's lane");
   assert.equal(invasion?.to.depth,3);
   const played=applySenegalMove(game,invasion!);
   assert.equal(played?.game.positions[seat][0].zone,"enemy");
-  assert.equal(played?.game.positions[opponent][0].zone,"home","own home is untouchable");
-  assert.equal(played?.game.positions[opponent][0].depth,3);
-  assert.deepEqual(played?.move.captures,[],"no false capture animation");
+  assert.equal(played?.game.positions[opponent][0].zone,"base",
+   "an unfinished home-lane pawn must be captured on the exact arrival square");
+  assert.equal(played?.game.positions[opponent][0].step,-1);
+  assert.equal(played?.move.captures.length,1,"capture animation is reported");
+  assert.equal(played?.move.captures[0].from.zone,"home");
+  assert.equal(played?.move.captures[0].seat,opponent);
+  assert.equal(played?.game.turn,seat,"capturing awards the bonus turn");
   assert.equal(played?.move.path.length,5);
-  assert.equal(chooseSenegalBotMove(game)?.action,"track",
-   "computer does not invade a protected home for a fake capture");
+  assert.equal(chooseSenegalBotMove(game)?.action,"enemy",
+   "the computer may also take a legal opponent-lane capture");
  }
 });
 test("Senegal captured pawn returns to its base when landing on the ordinary track",()=>{
@@ -344,6 +348,65 @@ test("home entry then exact home finish still wins with four pawns",()=>{
  assert.equal(played?.game.winner,0);
  assert.equal(played?.move.path.length,1);
 });
+test("capture inside an opponent's lane also works after the raider is already inside",()=>{
+ for(const seat of [0,1] as const){
+  const opp=(1-seat) as 0|1;
+  const g=newSenegalGame();g.turn=seat;g.dice=1;
+  g.positions[seat][0]=pawn("enemy",78,2,77);
+  g.positions[opp][0]=pawn("home",53,3,51);
+  const move=movesForPawn(g,seat,0).find(o=>o.action==="enemy"&&o.to.depth===3);
+  assert.ok(move);
+  const outcome=applySenegalMove(g,move!);
+  assert.equal(outcome?.move.captures.length,1);
+  assert.equal(outcome?.move.captures[0].from.zone,"home");
+  assert.equal(outcome?.game.positions[opp][0].zone,"base");
+  assert.equal(outcome?.game.positions[seat][0].depth,3);
+ }
+});
+test("four qualified pawns immediately end Senegal Duo and reject all further moves",()=>{
+ for(const seat of [0,1] as const){
+  const game=newSenegalGame();game.turn=seat;game.dice=1;
+  game.positions[seat][0]=pawn("home",55,6,51);
+  for(let i=1;i<4;i++)game.positions[seat][i]=pawn("finished",57,7,51);
+  const winning=movesForPawn(game,seat,0).find(o=>o.action==="home");
+  assert.ok(winning);
+  const result=applySenegalMove(game,winning!);
+  assert.equal(result?.game.status,"won");
+  assert.equal(result?.game.winner,seat);
+  assert.equal(result?.game.dice,null);
+  assert.equal(result?.game.positions[seat].filter(p=>p.zone==="finished").length,4);
+  assert.equal(rollSenegal(result!.game,6),result!.game,"the die is frozen after win");
+  assert.deepEqual(movesForSeat(result!.game,seat),[]);
+  assert.deepEqual(movesForSeat(result!.game,(1-seat) as 0|1),[]);
+  assert.equal(applySenegalMove(result!.game,winning!),null,"no post-win move allowed");
+  assert.equal(autoplayTurn(result!.game).game,result!.game,"the bot cannot resume a finished match");
+  assert.equal(stopSenegalGame(result!.game,"Personne"),result!.game);
+ }
+ const ui=readFileSync("src/SenegalLudo.tsx","utf8");
+ assert.ok(ui.includes('game.status==="won"?<div className="ludo-senegal-overlay"'),
+  "both phones show the same victory overlay");
+ assert.ok(ui.includes("Le match est arrêté pour vous deux."));
+ assert.ok(ui.includes('if(from.zone==="enemy"||from.zone==="home")'),
+  "captured home-lane pawns animate to their real base");
+});
+test("an already fully finished Duo match is reconciled and frozen when reopened",()=>{
+ for(const seat of [0,1] as const){
+  const old=newSenegalGame();
+  for(let i=0;i<4;i++)old.positions[seat][i]=pawn("finished",57,7,51);
+  assert.equal(old.status,"playing");
+  const repaired=repairSenegalHomeShortcut(old);
+  assert.equal(repaired.status,"won");
+  assert.equal(repaired.winner,seat);
+  assert.equal(repaired.dice,null);
+  assert.equal(repairSenegalHomeShortcut(repaired),repaired);
+  assert.deepEqual(movesForSeat(repaired,seat),[]);
+  assert.ok(isSenegalGame(repaired));
+  const half=newSenegalGame();
+  for(let i=0;i<4;i++)half.positions[seat][i]=pawn("home",55,5,51);
+  const pending=repairSenegalHomeShortcut(half);
+  assert.equal(pending.status,"playing","being in the five entry squares is not finishing");
+ }
+});
 test("ordinary roll without legal move immediately passes the turn",()=>{
  const g=newSenegalGame();
  const next=rollSenegal(g,2);
@@ -351,12 +414,12 @@ test("ordinary roll without legal move immediately passes the turn",()=>{
  assert.equal(next.dice,null);
  assert.equal(TURN_MS,15000);
 });
-test("bot picks a legal forward move instead of attacking protected home pawns",()=>{
+test("bot follows the legal capture rule for an unfinished lane defender",()=>{
  const g=withTurn(pawn("track",74),pawn("home",53,3,51),5);
  const option=chooseSenegalBotMove(g);
- assert.ok(option);
- assert.equal(option?.action,"track","AI must respect protected home pawns");
- assert.equal(option?.to.step,79);
+ assert.equal(option?.action,"enemy");
+ const applied=applySenegalMove(g,option!);
+ assert.equal(applied?.game.positions[1][0].zone,"base");
  const result=autoplayTurn({...newSenegalGame(),turn:1});
  assert.equal(result.game.turn,0);
 });
@@ -378,13 +441,18 @@ test("players are always offered both continue and invade when crossing an EMPTY
   assert.equal(continued?.game.positions[seat][0].step,79);
  }
 });
-test("computer never tries to capture home-lane defenders",()=>{
- const game=withTurn(pawn("track",74),pawn("home",53,3,51),5);
- const selected=chooseSenegalBotMove(game);
- assert.equal(selected?.action,"track");
- const result=applySenegalMove(game,selected!);
- assert.equal(result?.move.captures.length,0);
- assert.equal(result?.game.positions[1][0].zone,"home");
+test("center-qualified pawns can NEVER be captured by an enemy-lane raid",()=>{
+ for(const seat of [0,1] as const){
+  const opponent=(1-seat) as 0|1;
+  const game=newSenegalGame();game.turn=seat;game.dice=5;
+  game.positions[seat][0]=pawn("track",74);
+  game.positions[opponent][0]=pawn("finished",57,7,51);
+  const raid=movesForPawn(game,seat,0).find(o=>o.action==="enemy");
+  assert.ok(raid);
+  const result=applySenegalMove(game,raid!);
+  assert.equal(result?.game.positions[opponent][0].zone,"finished");
+  assert.deepEqual(result?.move.captures,[]);
+ }
 });
 test("a defender can still capture an unprotected invader in its own lane",()=>{
  for(const seat of [0,1] as const){
