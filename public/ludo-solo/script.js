@@ -404,7 +404,7 @@
       game.phase==="rolling" ? "🎲 Le dé roule…" :
       game.phase==="moving" ? "Ton pion avance…" :
       game.phase==="no-move" ? "Aucun déplacement possible" :
-      !isHuman ? "🤖 L’ordinateur joue…" :
+      !isHuman ? "L’ordinateur joue…" :
       game.phase==="roll" ? "À toi de jouer : lance le dé !" :
       choices.length>1 ? "Touche le pion à déplacer" :
       choices.length===1 ? "Ton pion avance automatiquement…" : "À toi de jouer !";
