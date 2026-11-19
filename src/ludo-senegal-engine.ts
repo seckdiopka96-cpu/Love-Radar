@@ -48,6 +48,24 @@ export function stopSenegalGame(game:SenegalGame,playerName:string):SenegalGame{
  return {...game,status:"ended",winner:null,dice:null,streak:0,updatedAt:Date.now(),
   lastAction:name+" a arrêté la partie."};
 }
+/** Reposition pawns that entered the own-home shortcut at gate -1 before
+ * this rule was corrected. Legal home gates (+51, -53 and later laps)
+ * are preserved, as are completed/stopped matches without bad shortcuts. */
+export function repairSenegalHomeShortcut(game:SenegalGame):SenegalGame{
+ let changed=false;
+ const positions=game.positions.map(row=>row.map(piece=>{
+  if((piece.zone==="home"||piece.zone==="finished")&&piece.gate===-1){
+   changed=true;
+   return {...piece,zone:"track" as const,depth:0,gate:0};
+  }
+  return piece;
+ })) as [Pawn[],Pawn[]];
+ if(!changed)return game;
+ return {...game,positions,
+  status:game.status==="won"?"playing":game.status,
+  winner:null,dice:null,streak:0,updatedAt:Date.now(),
+  lastAction:"Un pion entré trop tôt dans sa maison a repris le parcours normal."};
+}
 function validPawn(p:unknown):p is Pawn{
  if(!p||typeof p!=="object")return false;
  const x=p as Partial<Pawn>;
