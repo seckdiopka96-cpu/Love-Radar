@@ -141,13 +141,15 @@
    const progress=document.createElement("b");
    progress.className="piece-step-counter";progress.setAttribute("aria-hidden","true");
    movingPawn.append(progress);
-   const from=getPosition(c,m.from,m.pawn);
+   const from=state.variant==="senegal"&&Array.isArray(m.point)
+    ?{x:(m.point[1]+.5)/15*100,y:(m.point[0]+.5)/15*100}
+    :getPosition(c,m.from,m.pawn);
    movingPawn.style.left=from.x+"%";movingPawn.style.top=from.y+"%";
    movingPawn.dataset.motionProgress=String(m.from);
    movementLayer.replaceChildren(movingPawn);
   }
   const progress=movingPawn.querySelector(".piece-step-counter");
-  if(progress)progress.textContent=Math.max(0,m.progress-m.from)+" / "+Math.max(1,m.to-m.from);
+  if(progress)progress.textContent=(m.index??Math.max(0,m.progress-m.from))+" / "+(m.length??Math.max(1,m.to-m.from));
   // Countdown and polling can send the same pawn location more than once.
   // Replaying that CSS transition causes a jitter that Solo never has.
   if(m.progress!==m.from&&movingPawn.dataset.motionProgress!==String(m.progress)){
@@ -155,7 +157,9 @@
    pawn.dataset.motionProgress=String(m.progress);
    // One audible landing per real square, not on every poll/re-render.
    window.LudoSfx?.play("step");
-   const to=getPosition(c,m.progress,m.pawn);
+   const to=state.variant==="senegal"&&Array.isArray(m.point)
+    ?{x:(m.point[1]+.5)/15*100,y:(m.point[0]+.5)/15*100}
+    :getPosition(c,m.progress,m.pawn);
    requestAnimationFrame(()=>{
     if(pawn!==movingPawn||pawn.dataset.motionProgress!==String(m.progress))return;
     pawn.classList.remove("is-hopping");
@@ -186,6 +190,8 @@
   const g=state?.game;
   // The previous pawn's animation must never lock the NEXT legal turn.
   if(!g||g.status!=="playing"||g.turn!==state.mySeat||g.dice===null||state.busy||state.rolling||state.overlayOpen)return [];
+  // Senegal legal choices belong to the Senegal engine, NOT Classic arithmetic.
+  if(state.variant==="senegal")return Array.isArray(state.legalPawns)?state.legalPawns:[];
   return g.positions[state.mySeat].flatMap((p,i)=>(p===-1?g.dice===6:p>=0&&p<FINISH_PROGRESS&&p+g.dice<=FINISH_PROGRESS)?[i]:[]);
  }
  function createPawn(paletteColor,seat,index,selectable){
@@ -220,17 +226,22 @@
    if(!pawn){
     pawn=createPawn(c,m.seat,m.pawn,false);
     pawn.classList.add("piece--board","piece--captured","piece--moving");
-    const pt=getPosition(c,m.from,m.pawn);
+    const pt=state.variant==="senegal"&&Array.isArray(m.point)
+     ?{x:(m.point[1]+.5)/15*100,y:(m.point[0]+.5)/15*100}
+     :getPosition(c,m.from,m.pawn);
     pawn.style.left=pt.x+"%";pawn.style.top=pt.y+"%";
     captureLayer.append(pawn);capturePins.set(key,pawn);
    }
    // Each server-authoritative reverse step moves this SAME DOM pawn.
    // Never teleport straight from the capture square to its home.
    if(m.returning)pawn.classList.add("is-returning");
-   const nextProgress=Number.isInteger(m.progress)?m.progress:m.from;
+   const nextProgress=state.variant==="senegal"&&Array.isArray(m.point)
+    ?m.point.join(":"):(Number.isInteger(m.progress)?m.progress:m.from);
    if(pawn.dataset.reverseProgress!==String(nextProgress)){
     pawn.dataset.reverseProgress=String(nextProgress);
-    const dest=getPosition(c,nextProgress,m.pawn);
+    const dest=state.variant==="senegal"&&Array.isArray(m.point)
+     ?{x:(m.point[1]+.5)/15*100,y:(m.point[0]+.5)/15*100}
+     :getPosition(c,Number(nextProgress),m.pawn);
     requestAnimationFrame(()=>{
      if(capturePins.get(key)!==pawn)return;
      pawn.style.left=dest.x+"%";pawn.style.top=dest.y+"%";
@@ -264,7 +275,7 @@
      const slot=document.querySelector(".base--"+c+" .base-spot:nth-child("+(pawn+1)+")");
      if(slot){piece.classList.add("piece--home");slot.append(piece)}
     }else{
-     const pt=pointFor(c,progress);
+     const pt=state.variant==="senegal"?state.boardPoints?.[seat]?.[pawn]:pointFor(c,progress);
      if(pt)placements.push({point:pt,piece,progress});
     }
    }
@@ -301,7 +312,8 @@
  }
  function showVictory(){
   if(!state?.game||state.game.status!=="won"||state.overlayOpen||restartPending)return;
-  document.getElementById("win-title").textContent=state.game.winner===state.mySeat?"Tu as gagné ! 🎉":"Ton partenaire a gagné";
+  document.getElementById("win-title").textContent=state.game.winner===state.mySeat?"Tu as gagné ! 🎉":
+   state.opponent==="solo"?"L’ordinateur a gagné":"Ton partenaire a gagné";
   document.getElementById("win-text").textContent=state.game.lastAction.includes("abandonné la partie")?state.game.lastAction:
    "La partie est terminée. Les défis et cadeaux restent disponibles dans Love Radar.";
   if(!victory.open){
@@ -352,6 +364,28 @@
  function render(){
   if(!state?.game)return;
   const g=state.game,colors=state.palette.colors;
+  const senegal=state.variant==="senegal",solo=state.opponent==="solo";
+  if(senegal){
+   const heading=document.querySelector(".game-title strong");
+   const subtitle=document.querySelector(".game-title small");
+   if(heading)heading.textContent="LUDO 🇸🇳 "+(solo?"SOLO":"DUO");
+   if(subtitle)subtitle.textContent=solo?"TOI CONTRE L’ORDINATEUR · RÈGLES SÉNÉGALAISES":
+    "TOI CONTRE TON PARTENAIRE · RÈGLES SÉNÉGALAISES";
+   if(rules.dataset.variant!=="senegal"){
+    rules.dataset.variant="senegal";
+    const title=rules.querySelector("#rules-title");
+    if(title)title.textContent="Règles du Ludo Sénégal 🇸🇳";
+    const notes=[
+     "Objectif : amener ses quatre pions au centre avant l’adversaire.",
+     "Sortir : il faut un 6. Tu peux continuer plusieurs tours autour du plateau.",
+     "Déplacer : suis le dé. Tu peux choisir de continuer ou d’entrer dans un couloir lorsque le moteur te le propose.",
+     "Règle Sénégal : tu peux entrer dans le couloir adverse pour attaquer. Un 6 permet de faire demi-tour pour en sortir.",
+     "Il faut atteindre exactement le centre. Les cases étoilées protègent les pions.",
+     "En Solo l’ordinateur peut jouer après le délai ; en Duo les actions restent synchronisées entre les deux téléphones."
+    ];
+    rules.querySelectorAll("p").forEach((el,i)=>{if(notes[i])el.textContent=notes[i]});
+   }
+  }
   if(previousSoundGame!==g.id){
    previousSoundGame=g.id;
    previousSoundPositions=g.positions.map(row=>row.slice());
@@ -399,15 +433,17 @@
    if(human){human.textContent="TOI";human.style.display=c===me?"block":"none"}
    if(cpu){cpu.textContent="PARTENAIRE";cpu.style.display=c===other?"block":"none"}
   }
-  lastColor.textContent="Ta couleur : "+COLORS[me]+" · Partenaire : "+COLORS[other];
+  lastColor.textContent="Ta couleur : "+COLORS[me]+" · "+(solo?"Ordinateur":"Partenaire")+" : "+COLORS[other];
   document.querySelector(".player--human").classList.toggle("is-turn",g.turn===state.mySeat&&g.status==="playing");
   document.querySelector(".player--cpu").classList.toggle("is-turn",g.turn!==state.mySeat&&g.status==="playing");
   document.querySelector(".player--human b").textContent="TOI";
-  document.querySelector(".player--cpu b").textContent="PARTENAIRE";
+  document.querySelector(".player--cpu b").textContent=solo?"ORDI":"PARTENAIRE";
+  const opponentIcon=document.querySelector(".player--cpu .avatar-fallback");
+  if(opponentIcon&&senegal)opponentIcon.textContent=solo?"🤖":"♥";
   document.getElementById("player-count").textContent=g.positions[state.mySeat].filter(p=>p>=FINISH_PROGRESS).length+" / 4";
    document.getElementById("computer-count").textContent=g.positions[1-state.mySeat].filter(p=>p>=FINISH_PROGRESS).length+" / 4";
    const legal=legalPawns();
-  const isMine=g.turn===state.mySeat,canRoll=isMine&&g.dice===null&&g.status==="playing"&&!state.busy&&!state.rolling&&!state.overlayOpen;
+  const isMine=g.turn===state.mySeat,canRoll=isMine&&g.dice===null&&g.status==="playing"&&!state.busy&&!state.rolling&&!state.overlayOpen&&state.canRoll!==false;
   roll.disabled=!canRoll;
   roll.classList.toggle("is-ready",canRoll);
   roll.classList.toggle("is-busy",state.busy||state.rolling);
@@ -432,9 +468,12 @@
   roll.setAttribute("aria-label",canRoll?"Lancer le dé":"Dé : "+diceValue);
   const isSix=g.dice===6;
   feedback.textContent=state.error||g.lastAction||"Jouez à deux en direct.";
+  const turnBanner=document.getElementById("turn-message");
+  if(turnBanner&&senegal)turnBanner.textContent=state.statusText||
+   (isMine?"À TOI DE JOUER !":solo?"L’ordinateur joue…":"Ton partenaire joue…");
    matchButton.disabled=g.status!=="won";
   matchButton.textContent=g.status==="won"?"↺ Nouvelle manche":"♥ Partie en direct";
-  const renderKey=JSON.stringify([g.id,g.version,g.positions,g.dice,g.turn,g.status,colors,state.motion,state.capturedMotions,legal]);
+  const renderKey=JSON.stringify([g.id,g.version,g.positions,g.dice,g.turn,g.status,colors,state.motion,state.capturedMotions,legal,state.boardPoints]);
   if(renderKey!==lastBoardKey){lastBoardKey=renderKey;drawPawns()}
   receivedState=true;
   // Don't trap someone behind a win dialog when a rematch request failed.

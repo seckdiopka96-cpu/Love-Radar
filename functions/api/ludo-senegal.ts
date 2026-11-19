@@ -11,7 +11,7 @@ type Member={id:string;room_id:string;seat:number;name:string};
 type Row={room_id:string;game_id:string;version:number;state_text:string;updated_at:number};
 type Match={id:string;version:number;state:SenegalGame};
 type ReactionEvent={id:string;seat:number;emoji:string;at:number};
-const REACTION_EMOJIS=new Set(["😝","🤪","🤣","😂","😭","😱","😎","👏"]);
+const REACTION_EMOJIS=new Set(["😝","🤪","🤣","😂","😭","😱","😎","👏","🎁"]);
 const send=(payload:object,status=200)=>Response.json(payload,{status,headers:{"Cache-Control":"no-store"}});
 const fail=(error:string,status=400)=>send({ok:false,error},status);
 let tables:Promise<void>|null=null;

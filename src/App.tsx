@@ -2180,8 +2180,8 @@ export default function LoveRadar(){
     {tab==="ludo"?<Ludo token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} myAvatar={avatars.mine} partnerAvatar={avatars.partner} onExit={()=>navigate("ludo-room")} challengeId={noticeTarget?.kind==="ludo-challenge"||noticeTarget?.kind==="ludo-joined"?noticeTarget.id:null}
       onNotificationReady={markLudoNoticeReady}/>:null}
      {tab==="ludo-solo"?<LudoSoloEmbedded scope={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null}
-     {tab==="ludo-senegal"?<SenegalLudo mode="duo" token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null}
-     {tab==="ludo-senegal-solo"?<SenegalLudo mode="solo" token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null}
+     {tab==="ludo-senegal"?<SenegalLudo mode="duo" token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} myAvatar={avatars.mine} partnerAvatar={avatars.partner} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null}
+     {tab==="ludo-senegal-solo"?<SenegalLudo mode="solo" token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} myAvatar={avatars.mine} partnerAvatar={avatars.partner} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null}
     {tab==="memory"?<MemoryLove token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} challengeId={noticeTarget?.kind==="memory-challenge"?noticeTarget.id:null}/>:null}
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">

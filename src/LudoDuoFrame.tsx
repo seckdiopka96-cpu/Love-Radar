@@ -2,13 +2,15 @@ import {useCallback,useEffect,useRef,useState} from "react";
 import "./ludo-duo-frame.css";
 
 type DuoColor="blue"|"red"|"green"|"yellow";
+type BoardPoint=[number,number];
+export type SharedBoardMotion={seat:number;pawn:number;progress:number;from:number;to:number;point?:BoardPoint;index?:number;length?:number};
+export type SharedBoardCapture={seat:number;pawn:number;from:number;returning:boolean;progress:number;point?:BoardPoint};
 type DuoGameSnapshot={
  id:string;version:number;turn:number;dice:number|null;
  positions:number[][];status:"playing"|"won";winner:number|null;autoCounts:[number,number];
  lastAction:string;deadlineAt:number|null;
 };
-type Motion={seat:number;pawn:number;progress:number;from:number;to:number};
-type CapturedMotion={seat:number;pawn:number;from:number;returning:boolean;progress:number};
+
 type Props={
  game:DuoGameSnapshot;
  palette:{colors:[DuoColor,DuoColor];chosenBy:number|null};
@@ -17,7 +19,11 @@ type Props={
  myAvatar?:string;partnerAvatar?:string;
  remaining:number|null;rolling:boolean;rollingFace:number;
  busy:boolean;animationBusy:boolean;
- motion:Motion|null;capturedMotions:CapturedMotion[];
+ motion:SharedBoardMotion|null;capturedMotions:SharedBoardCapture[];
+ /** The same board renderer serves Classic and Senegal rules; only the state adapter differs. */
+ variant?:"classic"|"senegal";opponent?:"duo"|"solo";
+ boardPoints?:(BoardPoint|null)[][];legalPawns?:number[];
+ statusText?:string;canRoll?:boolean;
  error:string;overlayOpen:boolean;
  onAction:(action:"roll"|"move"|"restart"|"exit"|"leave"|"gift"|"menu",pawn?:number)=>void;
  onReady?:()=>void;
@@ -51,11 +57,14 @@ export default function LudoDuoFrame(props:Props){
    remaining:props.remaining,rolling:props.rolling,rollingFace:props.rollingFace,
    busy:props.busy,animationBusy:props.animationBusy,
    motion:props.motion,capturedMotions:props.capturedMotions,error:props.error,
-   overlayOpen:props.overlayOpen
+   overlayOpen:props.overlayOpen,variant:props.variant||"classic",opponent:props.opponent||"duo",
+   boardPoints:props.boardPoints,legalPawns:props.legalPawns,
+   statusText:props.statusText,canRoll:props.canRoll
   },window.location.origin);
  },[props.game,props.palette,props.lastRoll,props.mySeat,props.myName,props.partnerName,props.myAvatar,props.partnerAvatar,
     props.remaining,props.rolling,props.rollingFace,props.busy,props.animationBusy,
-    props.motion,props.capturedMotions,props.error,props.overlayOpen]);
+    props.motion,props.capturedMotions,props.error,props.overlayOpen,
+    props.variant,props.opponent,props.boardPoints,props.legalPawns,props.statusText,props.canRoll]);
  const sendRef=useRef(send);
  sendRef.current=send;
  useEffect(()=>{if(ready)send()},[ready,send]);
@@ -90,9 +99,9 @@ export default function LudoDuoFrame(props:Props){
   window.addEventListener("message",message);
   return()=>window.removeEventListener("message",message);
  },[]);
- return <section className="ludo-duo-shared-frame" aria-label="Plateau Ludo Duo identique au Ludo Solo">
+ return <section className="ludo-duo-shared-frame" aria-label={"Plateau Ludo "+(props.variant==="senegal"?"Sénégal ":"Classique ")+(props.opponent==="solo"?"Solo":"Duo")+" partagé"}>
   <iframe key={retry} ref={ref} className="ludo-duo-shared-iframe"
-   src="/ludo-duo/index.html?v=ludo-room-20261119-v25" title="Ludo Duo : plateau et dé synchronisés avec ton partenaire"
+   src="/ludo-duo/index.html?v=ludo-room-20261119-v26" title={"Ludo "+(props.variant==="senegal"?"Sénégal ":"Classique ")+(props.opponent==="solo"?"Solo":"Duo")+" : même plateau, mêmes animations"}
    referrerPolicy="same-origin" loading="eager" onError={()=>setFailed(true)}/>
   {failed&&!ready?<div className="ludo-duo-frame-error" role="alert">
    <strong>Impossible de charger le nouveau plateau Duo.</strong>
