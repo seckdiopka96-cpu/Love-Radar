@@ -1,6 +1,6 @@
 import "./games-hub.css";
 
-type Game="rapid"|"truth"|"rps"|"ludo-room"|"ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo"|"draw"|"escape";
+type Game="team-games"|"rapid"|"truth"|"rps"|"ludo-room"|"ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo"|"draw"|"escape";
 type Props={onOpenGame:(game:Game)=>void;partnerName:string|null};
 
 /** Original, consistent vector artwork — no robot or emoji graphics. */
@@ -77,6 +77,13 @@ export default function GamesHub({onOpenGame,partnerName}:Props){
    <h1>À deux <em>ou en solo.</em></h1>
    <p>{partnerName?"Défie "+partnerName+" ou affronte l’ordinateur quand tu veux.":"Joue contre l’ordinateur dès maintenant, même sans partenaire."}</p>
   </header>
+  <button type="button" className="lr-games-choice lr-games-teams" onClick={()=>onOpenGame("team-games")}>
+   <span className="lr-games-symbol" aria-hidden="true">❤️ VS 💙</span>
+   <span className="lr-games-copy"><small>2 COUPLES · 4 JOUEURS · 2 ÉQUIPES</small>
+    <strong>Défis entre couples</strong>
+    <span>Ludo Classique, Ludo Sénégal et Questions rapides chronométrées uniquement. Chaque couple forme une équipe.</span>
+    <b>Créer ou rejoindre un salon 2 contre 2 →</b></span>
+  </button>
   <div className="lr-games-grid">
    <button type="button" className="lr-games-choice lr-games-rapid" onClick={()=>onOpenGame("rapid")}>
     <GameArtwork game="rapid"/>
