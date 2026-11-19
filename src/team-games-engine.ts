@@ -31,6 +31,21 @@ export const TEAM_HOME:[number,number][][]=[
 const mod=(v:number,n:number)=>((v%n)+n)%n;
 export const teamOf=(seat:TeamSeat):TeamId=>(seat%2) as TeamId;
 export const freshPiece=(seat:TeamSeat):TeamPiece=>({zone:"base",step:-1,depth:0,gate:0,owner:seat});
+/** Older Classic 2v2 builds mistakenly let track pieces pass their own
+ * finishing entrance and circle endlessly. Preserve progress when possible,
+ * without awarding an unearned central finish or resetting the match. */
+export function repairTeamClassic(game:TeamGame):TeamGame{
+ if(game.kind!=="classic")return game;
+ let changed=false;
+ const positions=game.positions.map((row,seat)=>row.map(piece=>{
+  if(piece.zone!=="track"||piece.step<=50)return piece;
+  changed=true;
+  const depth=Math.min(5,Math.max(1,piece.step-50));
+  return {...piece,zone:"home" as const,step:50+depth,depth,gate:51,owner:seat as TeamSeat};
+ }));
+ if(!changed)return game;
+ return {...game,positions,lastAction:"Parcours Classique corrigé : le pion a rejoint son couloir d'arrivée."};
+}
 export function newTeamMatch(kind:TeamKind,status:TeamStatus="waiting",now=Date.now()):TeamGame{
  return {kind,status,winner:null,winReason:null,positions:([0,1,2,3] as TeamSeat[]).map(seat=>
   Array.from({length:4},()=>freshPiece(seat))),turn:0,dice:null,sixStreak:0,round:1,phase:kind==="quiz"?"question":null,
@@ -90,7 +105,7 @@ export function movesForTeamPawn(game:TeamGame,seat:TeamSeat,pawn:number):TeamMo
    const current=square(seat,from);
    // A two-pawn opponent stack is a true barrier; a six jumps just beyond
    // it (no remaining pips) and never captures the stack itself.
-   if(current!==null){
+   if(game.kind==="senegal"&&current!==null){
     for(let i=1;i<=face;i++){
      if(!occupiedBarrage(game,seat,mod(current+i,52)))continue;
      if(face!==6)return;
@@ -101,7 +116,7 @@ export function movesForTeamPawn(game:TeamGame,seat:TeamSeat,pawn:number):TeamMo
      return;
     }
    }
-   if(occupiedBarrage(game,seat,landing))return;
+   if(game.kind==="senegal"&&occupiedBarrage(game,seat,landing))return;
   }
   choices.push({pawn,action,to,captures:capturesAt(game,seat,to)});
  };
@@ -124,9 +139,13 @@ export function movesForTeamPawn(game:TeamGame,seat:TeamSeat,pawn:number):TeamMo
  }
  const destination=from.step+face;
  if(destination>260)return [];
- offer("track",{zone:"track",step:destination,depth:0,gate:0,owner:seat});
- // Own finishing corridor only after at least one circuit.
- for(let k=0;k<=4;k++){
+ // Classic must enter its own home corridor after one full circuit, not
+ // run a second lap. Senegal intentionally keeps the optional forward lap.
+ if(game.kind==="senegal"||destination<=50)
+  offer("track",{zone:"track",step:destination,depth:0,gate:0,owner:seat});
+ // Own finishing corridor begins at progress 51. Senegal can repeat laps;
+ // Classic has exactly one finishing gate, and requires an exact die.
+ for(let k=0;k<=(game.kind==="senegal"?4:0);k++){
   const gate=51+52*k;
   if(from.step<gate&&gate<=destination){
    const depth=destination-gate+1;
