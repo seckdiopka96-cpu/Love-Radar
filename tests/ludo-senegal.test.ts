@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {Script} from "node:vm";
-import {newSenegalGame,movesForPawn,applySenegalMove,rollSenegal,pointForPawn,trackIndex,
+import {newSenegalGame,stopSenegalGame,isSenegalGame,movesForPawn,applySenegalMove,rollSenegal,pointForPawn,trackIndex,
  movementPath,autoplayTurn,TURN_MS,chooseSenegalBotMove,type Pawn,type SenegalGame} from "../src/ludo-senegal-engine";
 const pawn=(zone:Pawn["zone"],step:number,depth=0,gate=0,dir:1|-1=1):Pawn=>({zone,step,depth,gate,dir});
 const withTurn=(red:Pawn,yellow:Pawn,face:number,seat:0|1=0):SenegalGame=>{
@@ -274,4 +274,35 @@ test("a double stack in your own home can still stop the opposing raider",()=>{
  const g=withTurn(pawn("enemy",78,2,77,1),pawn("home",78,2,51),5);
  g.positions[1][1]=pawn("home",78,2,51);
  assert.equal(movesForPawn(g,0,0).find(o=>o.action==="enemy"),undefined);
+});
+
+test("Quitting Senegal match freezes dice, moves and autoplay without granting a win",()=>{
+ const game=withTurn(pawn("track",18),pawn("track",25),6);
+ game.streak=1;
+ const ended=stopSenegalGame(game,"Partenaire");
+ assert.equal(ended.status,"ended");
+ assert.equal(ended.winner,null,"quit is not an automatic loss");
+ assert.equal(ended.dice,null,"pending throw is cancelled");
+ assert.equal(ended.streak,0);
+ assert.equal(ended.lastAction,"Partenaire a arrêté la partie.");
+ assert.ok(isSenegalGame(ended),"stopped state is valid for persistent Duo games");
+ assert.deepEqual(movesForPawn(ended,0,0),[]);
+ assert.equal(rollSenegal(ended,6),ended,"no more dice rolls");
+ assert.equal(autoplayTurn(ended).game,ended,"the computer can never restart a stopped game");
+ assert.equal(stopSenegalGame(ended,"Toi"),ended,"a repeated stop is idempotent");
+ const fresh=newSenegalGame();
+ assert.equal(fresh.status,"playing","only a deliberately new match restarts the game");
+ assert.equal(fresh.positions[0][0].zone,"base");
+});
+test("Duo quit is authenticated, game-ID-bound and ends a shared match regardless of turn",()=>{
+ const backend=readFileSync("functions/api/ludo-senegal.ts","utf8");
+ const ui=readFileSync("src/SenegalLudo.tsx","utf8");
+ assert.ok(backend.includes('if(action==="quit")'));
+ assert.ok(backend.includes('data.gameId!==game.id'),"a stale stop cannot terminate a newer game");
+ assert.ok(backend.includes('stopSenegalGame(game.state,player.name)'),"server stops the shared state");
+ assert.ok(backend.includes('DELETE FROM ludo_senegal_moves WHERE room_id=?'),"stale animations are cleared");
+ assert.ok(backend.indexOf('if(action==="quit")')<backend.indexOf('if(!Number.isInteger(data.version)'),
+  "quitting does not depend on the latest roll or whose turn it is");
+ assert.ok(ui.includes('localStorage.removeItem(storage(storageKey))'),"Solo game is discarded");
+ assert.ok(ui.includes('onClick={reset} disabled={busy||quitting}'),"restarting requires explicit action");
 });
