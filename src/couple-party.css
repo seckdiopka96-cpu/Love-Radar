@@ -180,3 +180,11 @@
 }
 .lr-party-surprise:active:not(:disabled){transform:scale(.985)}
 .lr-party-truth-board .lr-party-challenge-text{overflow-wrap:anywhere}
+
+/* First to ten — winning panel uses the same phone-friendly room layout. */
+.lr-party-match-finished{align-items:center;justify-content:center;text-align:center;gap:12px;border-color:#e6c68e8a;background:radial-gradient(ellipse at 50% 0,#68516088,transparent 70%),linear-gradient(150deg,#263849,#172538)}
+.lr-party-match-finished>strong{font:700 clamp(23px,5.5vw,34px)/1.15 Georgia,serif;color:#fff1d8}
+.lr-party-match-finished>p{margin:0;font-size:13px;line-height:1.5;color:#e0d6df}
+.lr-party-match-finished>.lr-party-primary{max-width:350px}
+.lr-party-match-finished>.lr-party-secondary{min-width:190px}
+@media(max-width:700px){.lr-party-match-finished{min-height:0;flex:1 1 0;padding:12px 10px;gap:9px}.lr-party-match-finished>.lr-party-big-icon{font-size:39px}.lr-party-match-finished>.lr-party-primary{min-height:40px}}
