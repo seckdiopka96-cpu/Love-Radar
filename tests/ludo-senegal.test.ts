@@ -20,6 +20,58 @@ test("Senegal pawn can skip its own home and keep going around second and third 
  const another=withTurn(pawn("track",101),pawn("base",-1),5);
  assert.ok(movesForPawn(another,0,0).some(o=>o.action==="home"));
 });
+test("a pawn cannot enter its home immediately after leaving base and reversing on six",()=>{
+ // Both red (seat 0) and yellow (seat 1) use these rules in Solo and Duo.
+ for(const seat of [0,1] as const){
+  const game=newSenegalGame();
+  game.turn=seat;game.dice=6;
+  const release=movesForPawn(game,seat,0).find(o=>o.action==="track");
+  assert.ok(release);
+  const outside=applySenegalMove(game,release!);
+  assert.equal(outside?.game.positions[seat][0].step,0);
+  const firstSix={...outside!.game,turn:seat,dice:6,streak:0};
+  const choices=movesForPawn(firstSix,seat,0);
+  assert.ok(choices.some(o=>o.action==="turn"&&o.to.step===-6),
+   "turning around is still allowed on six");
+  assert.ok(choices.every(o=>o.action!=="home"),
+   "no immediate home shortcut through the -1 gate");
+  assert.ok(choices.every(o=>o.to.zone!=="home"&&o.to.zone!=="finished"));
+  assert.equal(chooseSenegalBotMove(firstSix)?.to.zone,"track",
+   "the AI cannot enter its home without a lap");
+  const reverse=choices.find(o=>o.action==="turn")!;
+  const reversed=applySenegalMove(firstSix,reverse);
+  assert.ok(reversed);
+  assert.equal(reversed!.game.positions[seat][0].zone,"track");
+  const next={...reversed!.game,turn:seat,dice:3,streak:0};
+  assert.ok(movesForPawn(next,seat,0).every(o=>o.action!=="home"),
+   "a later roll cannot enter home before the first complete circuit");
+  const crossover={...next,dice:6};
+  crossover.positions=[[...next.positions[0]],[...next.positions[1]]];
+  crossover.positions[seat][0]=pawn("track",-3,0,0,1);
+  assert.ok(movesForPawn(crossover,seat,0).every(o=>o.action!=="home"),
+   "passing the -1 shortcut again is not a lap");
+ }
+});
+test("own home remains accessible only after a full forward or reverse circuit",()=>{
+ for(const seat of [0,1] as const){
+  const forward=newSenegalGame();forward.turn=seat;forward.dice=4;
+  forward.positions[seat][0]=pawn("track",49);
+  assert.ok(movesForPawn(forward,seat,0).some(o=>o.action==="home"&&o.to.depth===3),
+   "full forward lap can still reach home");
+  const reverse=newSenegalGame();reverse.turn=seat;reverse.dice=6;
+  reverse.positions[seat][0]=pawn("track",-50,0,0,-1);
+  assert.ok(movesForPawn(reverse,seat,0).some(o=>o.action==="home"&&o.to.depth===4),
+   "full backwards lap can still reach home");
+  const notYet=newSenegalGame();notYet.turn=seat;notYet.dice=6;
+  notYet.positions[seat][0]=pawn("track",-2,0,0,-1);
+  assert.ok(movesForPawn(notYet,seat,0).every(o=>o.action!=="home"),
+   "a partial reverse lap must not enter home");
+  const later=newSenegalGame();later.turn=seat;later.dice=4;
+  later.positions[seat][0]=pawn("track",101);
+  assert.ok(movesForPawn(later,seat,0).some(o=>o.action==="home"),
+   "second and later laps still work");
+ }
+});
 test("player can choose invading enemy home on crossing step 77",()=>{
  const g=withTurn(pawn("track",74),pawn("home",77,3,51),5);
  const invasion=movesForPawn(g,0,0).find(o=>o.action==="enemy");
