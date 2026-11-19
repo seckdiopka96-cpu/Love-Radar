@@ -40,7 +40,7 @@ test("one visible Ludo entrance opens the room with all four games",()=>{
  const unified=read("public/ludo-unified-stage.css");
  assert.ok(unified.includes(".board-frame")&&unified.includes(".ludo-board-wrap-immersive"),
   "all four games share board framing and visual tokens");
- assert.ok(unified.includes(".ludo-yard.is-current-turn"),"Sénégal player house lights up");
+ assert.ok(unified.includes(".lr-ludo-base.is-current-turn"),"the shared house glows on the active turn");
  assert.ok(unified.includes(".ludo-pawn.is-own-turn"),"Sénégal current player's pins are outlined");
  assert.ok(read("index.html").includes("/ludo-unified-stage.css"),"Sénégal app shares the same stylesheet");
  assert.ok(soloHTML.includes("/ludo-unified-stage.css")&&duoHTML.includes("/ludo-unified-stage.css"),
@@ -51,8 +51,8 @@ test("one visible Ludo entrance opens the room with all four games",()=>{
 });
 
 test("classic Duo loads the newest shared board, never a cached legacy iframe",()=>{
- const duoVersion="ludo-room-20261119-v23";
- const soloVersion="ludo-room-20261119-v23";
+ const duoVersion="ludo-room-20261119-v24";
+ const soloVersion="ludo-room-20261119-v24";
  assert.ok(duoFrame.includes('/ludo-duo/index.html?v='+duoVersion));
  assert.ok(soloFrame.includes('&v='+soloVersion));
  assert.ok(duoHTML.includes('../ludo-solo/style.css?v='+duoVersion));
@@ -62,7 +62,7 @@ test("classic Duo loads the newest shared board, never a cached legacy iframe",(
  assert.ok(duoHTML.includes("../ludo-effects.css"));
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .app{"),"Duo must not replace the stable Solo stage with a purple skin");
  assert.ok(duoCSS.includes("Same blue background, board border"),"Duo inherits Solo board/frame and rail styles");
- assert.ok(read("public/sw.js").includes('love-radar-static-v148'));
+ assert.ok(read("public/sw.js").includes('love-radar-static-v149'));
 });
 
 test("the eight classic safe cells each have a visible star on both boards",()=>{
@@ -106,4 +106,32 @@ test("Ludo room keeps back button clear of iPhone status bar and centers cards",
  assert.ok(css.includes('min-height:44px'),"return target stays comfortably tappable");
  assert.equal((room.match(/onClick=\{\(\)=>onOpenMode\(mode.id\)\}/g)||[]).length,1,
   "each mode remains directly tappable");
+});
+
+test("all four modes render the SAME dark grid, four base spots and SVG center",()=>{
+ const unified=read("public/ludo-unified-stage.css");
+ const senegal=read("src/SenegalLudo.tsx");
+ assert.ok(unified.includes("--lr-ludo-red:#a91e3e"));
+ assert.ok(unified.includes("--lr-ludo-green:#08734e"));
+ assert.ok(unified.includes("--lr-ludo-blue:#155593"));
+ assert.ok(unified.includes("--lr-ludo-yellow:#ad7916"));
+ assert.ok(unified.includes(".lr-unified-ludo-board"),"shared 15×15 board stylesheet");
+ assert.ok(unified.includes(".lr-ludo-base .base-inner"),"same house inner component");
+ assert.ok(unified.includes(".lr-ludo-base .base-spot"),"same home circles");
+ assert.ok(unified.includes(".lr-shared-center svg"),"same SVG center");
+ assert.ok(unified.includes("pointer-events:auto!important;cursor:pointer!important"),"base pawns still respond to taps");
+ assert.ok(senegal.includes('lr-unified-ludo-board'),"Senegal uses the common board");
+ assert.ok(senegal.includes('lr-ludo-base base--'),"Senegal uses actual classic base markup");
+ assert.ok(senegal.includes('className="base-inner"')&&senegal.includes('className="base-spot"'));
+ assert.ok(senegal.includes('className="ludo-board-center lr-shared-center"'));
+ assert.ok(senegal.includes('style={{gridRow:r+1,gridColumn:c+1}}'),"Senegal 225 cells keep explicit grid placement");
+ assert.ok(!senegal.includes('className="ludo-yard'),"old alternate Senegal base shape is gone");
+ for(const html of [soloHTML,duoHTML]){
+  assert.ok(html.includes('class="board lr-unified-ludo-board"'));
+  assert.ok(html.includes('class="board-center lr-shared-center"'));
+  assert.equal((html.match(/class="base lr-ludo-base base--/g)||[]).length,4);
+  assert.ok(html.includes('one-board-dark-20261119-v2'),"force the same fresh board CSS");
+ }
+ assert.ok(read("src/LudoRoom.tsx").includes("<SingleLudoBoard/>"),"mode selection remains unified");
+ assert.ok(read("public/sw.js").includes("love-radar-static-v149"),"installed PWA gets a new cache");
 });
