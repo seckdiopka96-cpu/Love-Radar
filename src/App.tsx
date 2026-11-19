@@ -258,6 +258,9 @@ export default function LoveRadar(){
   window.history.replaceState(null,"",url.pathname+(url.search||""));
  }
  function navigate(tab:Tab){
+  // Leaving the live quiz via bottom navigation is an explicit forfeit.
+  // Merely losing network or hiding the app doesn't fire this signal.
+  if(currentTab.current==="rapid"&&tab!=="rapid")window.dispatchEvent(new Event("lr-rapid-leave"));
   if(tab==="chat"&&currentTab.current!=="chat")chatReturnTab.current=currentTab.current;
   closeNotice();
   setPartnerPhotoOpen(false);
