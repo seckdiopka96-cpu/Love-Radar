@@ -16,7 +16,6 @@ import CallHistoryBubble,{type CallHistoryEvent} from "./CallHistoryBubble";
 import Ludo from "./Ludo";
 import LudoSoloEmbedded from "./LudoSoloEmbedded";
 import SenegalLudo from "./SenegalLudo";
-import MemoryLove from "./MemoryLove";
 import DailyMoment from "./DailyMoment";
 import Together from "./Together";
 import CoupleCare from "./CoupleCare";
@@ -92,7 +91,7 @@ import "./chat-themes.css";
 import "./party-viewport.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
-type Tab = "home" | "together" | "camera" | "life" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "ludo-room" | "rps" | "draw" | "escape" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "memory" | "chat" | "memories" | "story" | "settings";
+type Tab = "home" | "together" | "camera" | "life" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "ludo-room" | "rps" | "draw" | "escape" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "chat" | "memories" | "story" | "settings";
 type EncryptionState={mine:string|null;partner:string|null;required:boolean};
 type ScreenshotEvent={id:string;member_id:string;created_at:number};
 type ChatTimelineItem = {type:"message";message:Message;index:number;createdAt:number}|{type:"call";call:CallHistoryEvent;createdAt:number}|{type:"screenshot";event:ScreenshotEvent;createdAt:number};
@@ -126,25 +125,27 @@ function selectedNav(tab:Tab):Tab {
  if(tab==="camera"||tab==="life"||tab==="care"||tab==="moment"||tab==="puzzle"||tab==="reconcile"||tab==="reunion"||tab==="watch"||tab==="watch-tiktok")return "together";
  if(tab==="story")return "memories";
 
- if(tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo"||tab==="memory"||tab==="rps"||tab==="draw"||tab==="escape"||tab==="rapid"||tab==="truth")return "games";
+ if(tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo"||tab==="rps"||tab==="draw"||tab==="escape"||tab==="rapid"||tab==="truth")return "games";
  return tab;
 }
 const HEARTS = ["♡","♥","✦","♡","♥"];
 const CHAT_REACTIONS=["👍","❤️","😂","😮","😢","🙏","👏"];
 const EXTRA_CHAT_REACTIONS=["🥰","😍","😘","💗","🔥","🎉","💯","🤗","😎","💐","🤲","😅"];
 
-type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"ludo-joined"|"memory-challenge"|"rps-challenge"|"daily-question"|"love-signal"|"love-letter"|"album-memory"|"couple-date"|"couple-mood"|"couple-dream"|"couple-hug"|"couple-challenge"|"couple-gift";
+type NoticeKind="message"|"photo"|"audio"|"call"|"ludo-challenge"|"ludo-joined"|"rps-challenge"|"daily-question"|"love-signal"|"love-letter"|"album-memory"|"couple-date"|"couple-mood"|"couple-dream"|"couple-hug"|"couple-challenge"|"couple-gift";
 type NoticeTarget={tab:Tab;kind:NoticeKind|null;id:string|null};
-const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","ludo-joined","memory-challenge","rps-challenge","daily-question","love-signal","love-letter","album-memory","couple-date","couple-mood","couple-dream","couple-hug","couple-challenge","couple-gift"]);
+const NOTICE_KINDS=new Set(["message","photo","audio","call","ludo-challenge","ludo-joined","rps-challenge","daily-question","love-signal","love-letter","album-memory","couple-date","couple-mood","couple-dream","couple-hug","couple-challenge","couple-gift"]);
 function parseNotice(search:string):NoticeTarget|null{
  const q=new URLSearchParams(search);
  const tab=q.get("tab");
  if(tab==="location")return {tab:"together",kind:null,id:null};
  if(tab==="avatars")return {tab:"home",kind:null,id:null};
- if(tab!=="settings"&&tab!=="home"&&tab!=="life"&&tab!=="care"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="puzzle"&&tab!=="reconcile"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo-room"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="memory"&&tab!=="rps"&&tab!=="draw"&&tab!=="escape"&&tab!=="rapid"&&tab!=="truth"&&tab!=="memories")return null;
+ // Old Memory Love invitations/bookmarks must never open a deleted game.
+ if(tab==="memory"||q.get("kind")==="memory-challenge")return {tab:"games",kind:null,id:null};
+ if(tab!=="settings"&&tab!=="home"&&tab!=="life"&&tab!=="care"&&tab!=="moment"&&tab!=="together"&&tab!=="watch"&&tab!=="watch-tiktok"&&tab!=="puzzle"&&tab!=="reconcile"&&tab!=="reunion"&&tab!=="story"&&tab!=="chat"&&tab!=="games"&&tab!=="ludo-room"&&tab!=="ludo"&&tab!=="ludo-solo"&&tab!=="ludo-senegal"&&tab!=="ludo-senegal-solo"&&tab!=="rps"&&tab!=="draw"&&tab!=="escape"&&tab!=="rapid"&&tab!=="truth"&&tab!=="memories")return null;
  const kind=q.get("kind"),id=q.get("id");
  if(!kind||!NOTICE_KINDS.has(kind)||!id||!(/^[0-9a-f-]{36}$/i.test(id)||(kind==="daily-question"&&/^\d{4}-\d{2}-\d{2}$/.test(id))))return {tab,kind:null,id:null};
- return {tab:kind==="ludo-challenge"||kind==="ludo-joined"?"ludo":kind==="memory-challenge"?"memory":kind==="rps-challenge"?"rps":kind==="daily-question"?"moment":kind==="love-signal"?"together":kind==="love-letter"||kind==="album-memory"?"memories":kind.startsWith("couple-")?"life":"chat",kind:kind as NoticeKind,id};
+ return {tab:kind==="ludo-challenge"||kind==="ludo-joined"?"ludo":kind==="rps-challenge"?"rps":kind==="daily-question"?"moment":kind==="love-signal"?"together":kind==="love-letter"||kind==="album-memory"?"memories":kind.startsWith("couple-")?"life":"chat",kind:kind as NoticeKind,id};
 }
 function noticeUrl(target:NoticeTarget){
  const q=new URLSearchParams({tab:target.tab});
@@ -771,7 +772,7 @@ export default function LoveRadar(){
      setNoticeTarget(dest);
      setTab(dest.tab);setWatchInvite(null);setReconcileInvite(false);firstPoll.current=true;
     }
-   }else if(["chat","watch","watch-tiktok","games","ludo-room","ludo","ludo-solo","ludo-senegal","ludo-senegal-solo","memory","rps","draw","escape" ,"moment","together","life","puzzle","reconcile","reunion","story","home","memories"].includes(data?.tab)){
+   }else if(["chat","watch","watch-tiktok","games","ludo-room","ludo","ludo-solo","ludo-senegal","ludo-senegal-solo" ,"rps","draw","escape" ,"moment","together","life","puzzle","reconcile","reunion","story","home","memories"].includes(data?.tab)){
     const dest=data.tab as Tab;
     setTab(dest);setNoticeTarget({tab:dest,kind:null,id:null});if(dest==="reconcile")setReconcileInvite(false);firstPoll.current=true;
    }
@@ -2008,7 +2009,7 @@ export default function LoveRadar(){
  // Each outgoing message displays its own receipt, not just the most recent one.
  const unreadCount=tab==="chat"&&document.visibilityState==="visible"?0:Math.max(0,Number(room?.unreadCount||0));
  const unreadLabel=unreadCount>99?"99+":String(unreadCount);
- return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(demoOpen&&!room&&!token?"lr-discovery-mode ":"")+(room&&tab==="chat"?"lr-conv-wallpaper-"+chatTheme.wallpaper+" lr-conv-color-"+chatTheme.color+" lr-conv-bubbles-"+chatTheme.bubble+" "+(chatTheme.animated?"lr-conv-animated ":""):"")+(room?"lr-app-locked ":"")+(tab==="home"&&room?"lr-home-mode ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+(tab==="memory"&&room?"lr-memory-mode ":"")+((tab==="rapid"||tab==="truth")&&room?"lr-party-mode ":"")+(tab==="draw"&&room?"lr-draw-mode ":"")+(tab==="escape"&&room?"lr-escape-mode ":"")+(tab==="rps"&&room?"lr-rps-mode ":"")+((tab==="together"||tab==="life"||tab==="camera")&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
+ return <div className={"lr-app "+(!room&&!initializing?"lr-welcome-mode ":"")+(demoOpen&&!room&&!token?"lr-discovery-mode ":"")+(room&&tab==="chat"?"lr-conv-wallpaper-"+chatTheme.wallpaper+" lr-conv-color-"+chatTheme.color+" lr-conv-bubbles-"+chatTheme.bubble+" "+(chatTheme.animated?"lr-conv-animated ":""):"")+(room?"lr-app-locked ":"")+(tab==="home"&&room?"lr-home-mode ":"")+(tab==="chat"&&room?"lr-chat-mode ":"")+((tab==="ludo-room"||tab==="ludo"||tab==="ludo-solo"||tab==="ludo-senegal"||tab==="ludo-senegal-solo")&&room?"lr-ludo-mode ":"")+((tab==="rapid"||tab==="truth")&&room?"lr-party-mode ":"")+(tab==="draw"&&room?"lr-draw-mode ":"")+(tab==="escape"&&room?"lr-escape-mode ":"")+(tab==="rps"&&room?"lr-rps-mode ":"")+((tab==="together"||tab==="life"||tab==="camera")&&room?"lr-together-mode ":"")+((tab==="watch"||tab==="watch-tiktok")&&room?"lr-watch-mode ":"")+(tab==="puzzle"&&room?"lr-puzzle-mode ":"")+(tab==="reconcile"&&room?"lr-reconcile-mode ":"")+(chatFocused&&tab==="chat"&&!recording?"lr-keyboard-open ":"")+(recording&&tab==="chat"?"lr-recording-mode":"")}>
   {recoveryCode?<RecoveryCodeDialog code={recoveryCode} onClose={()=>setRecoveryCode("")}/>:null}
   <div className="lr-bg-decor lr-bg-1" aria-hidden="true">♡</div><div className="lr-bg-decor lr-bg-2" aria-hidden="true">✧</div>
   <header className="lr-header"><div className="lr-header-context" aria-label="Espace privé"><span>ESPACE PRIVÉ</span><strong>{tab==="settings"?"Paramètres":room?.partner?"Notre univers":"Bienvenue"}</strong></div>
@@ -2054,7 +2055,6 @@ export default function LoveRadar(){
       notice.endsWith(":photo")?"📷 Nouvelle photo":
       notice.endsWith(":ludo-challenge")?"🎲 Invitation Ludo Duo · Appuie pour jouer":
       notice.endsWith(":ludo-joined")?"🎲 Ton partenaire a rejoint Ludo Duo · Rejoins-le":
-      notice.endsWith(":memory-challenge")?"🧠 Invitation au Memory · Appuie pour jouer":
       notice.endsWith(":rps-challenge")?"✊ Invitation au jeu · Appuie pour jouer":
       notice.endsWith(":call")?"📞 Appel de ton partenaire":
       notice.endsWith(":message")?"💌 Nouveau message":
@@ -2182,7 +2182,6 @@ export default function LoveRadar(){
      {tab==="ludo-solo"?<LudoSoloEmbedded scope={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null}
      {tab==="ludo-senegal"?<SenegalLudo mode="duo" token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} myAvatar={avatars.mine} partnerAvatar={avatars.partner} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null}
      {tab==="ludo-senegal-solo"?<SenegalLudo mode="solo" token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} myAvatar={avatars.mine} partnerAvatar={avatars.partner} storageKey={room.roomId+":"+room.user.id} onExit={()=>navigate("ludo-room")}/>:null}
-    {tab==="memory"?<MemoryLove token={token} mySeat={room.user.seat} myName={room.user.name} partnerName={room.partner} onExit={()=>navigate("games")} challengeId={noticeTarget?.kind==="memory-challenge"?noticeTarget.id:null}/>:null}
     {tab==="chat"?<section className="lr-chat" aria-label={"Conversation avec "+partner}>
      <div className="lr-chat-head">
       <button type="button" className="lr-chat-back" aria-label="Revenir aux onglets" onClick={()=>navigate(chatReturnTab.current)}>
