@@ -90,6 +90,7 @@ test("server keeps quiz answers secret, scores once, rejects unauthorized moves 
  assert.equal(game.correct,null,"never reveal the correct answer before the result");
  assert.equal(game.partnerChoice,null,"do not reveal the other player's answer");
  assert.equal(roomA.data.seat,0);
+ await request("rapid","b"); // Both game screens must actually be open.
  const roomB=await request("rapid","c");
  assert.equal(roomB.data.game.scores[0],0);
  assert.notEqual(roomB.data.game.id,game.id);
@@ -156,6 +157,7 @@ test("when the timer expires without a correct answer, both partners see the sam
  if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
  const {sqlite,request}=harness();
  const initial=await request("rapid","a");
+ await request("rapid","b");
  await request("rapid","a","ready",{gameId:initial.data.game.id,round:1});
  const original=await request("rapid","b","ready",{gameId:initial.data.game.id,round:1});
  assert.equal(original.data.game.phase,"question");
@@ -172,6 +174,9 @@ test("truth or action alternates turns; a pass is never scored; only active play
  if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
  const {request}=harness();
  const initial=(await request("truth","a")).data.game;
+ await request("truth","b");
+ await request("truth","a","ready",{gameId:initial.id,round:1});
+ await request("truth","b","ready",{gameId:initial.id,round:1});
  assert.equal(initial.turn,0);
  assert.equal(initial.phase,"choose");
  // Only the player whose turn it is may draw, even in round one.
@@ -206,6 +211,9 @@ test("surprise alternates real actions and truths without overriding a manual ch
  if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
  const {request}=harness();
  let game=(await request("truth","a")).data.game;
+ await request("truth","b");
+ await request("truth","a","ready",{gameId:game.id,round:1});
+ await request("truth","b","ready",{gameId:game.id,round:1});
  let picked=await request("truth","a","pick",{gameId:game.id,round:game.round,kind:"action"});
  assert.equal(picked.data.game.kind,"action");
  game=(await request("truth","a","finish",{gameId:game.id,round:game.round})).data.game;
@@ -223,6 +231,9 @@ test("the room remembers each action and truth card until its own deck is exhaus
  if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
  const {request,sqlite}=harness();
  let game=(await request("truth","a")).data.game;
+ await request("truth","b");
+ await request("truth","a","ready",{gameId:game.id,round:1});
+ await request("truth","b","ready",{gameId:game.id,round:1});
  for(const [kind,cards] of [["action",ACTION_PROMPTS],["truth",TRUTH_PROMPTS]] as const){
   const seen=new Set<string>();
   for(let i=0;i<cards.length;i++){
@@ -248,6 +259,39 @@ test("the room remembers each action and truth card until its own deck is exhaus
  }
  assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM couple_party_prompt_history WHERE room_id='room-B'").get()?.n,0,"other couples never share a deck");
 });
+test("offline partner never counts as an active game player",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {request,sqlite}=harness();
+ const alone=await request("rapid","a");
+ assert.equal(alone.data.members,2);
+ assert.equal(alone.data.partnerHere,false,"registration does not mean in-game presence");
+ assert.equal((await request("rapid","a","ready",{gameId:alone.data.game.id,round:1})).status,409);
+ assert.equal((await request("rapid","b")).data.partnerHere,true);
+ assert.equal((await request("rapid","a")).data.partnerHere,true);
+ sqlite.prepare("UPDATE couple_party_presence SET last_seen_at=0 WHERE room_id='room-A' AND mode='rapid' AND member_id='Benoît'").run();
+ assert.equal((await request("rapid","a")).data.partnerHere,false);
+ assert.equal((await request("rapid","a","ready",{gameId:alone.data.game.id,round:1})).status,409);
+});
+test("truth game asks for confirmation only once before the first turn",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {request}=harness();
+ const initial=(await request("truth","a")).data.game;
+ await request("truth","b");
+ assert.equal((await request("truth","a","pick",{gameId:initial.id,round:1,kind:"action"})).status,409);
+ const first=await request("truth","a","ready",{gameId:initial.id,round:1});
+ assert.equal(first.data.game.myReady,true);
+ assert.equal(first.data.game.partnerReady,false);
+ assert.equal((await request("truth","a","pick",{gameId:initial.id,round:1,kind:"action"})).status,409);
+ const second=await request("truth","b","ready",{gameId:initial.id,round:1});
+ assert.equal(second.data.game.myReady,true);
+ assert.equal(second.data.game.partnerReady,true);
+ assert.equal((await request("truth","a","pick",{gameId:initial.id,round:1,kind:"action"})).status,200);
+ const next=await request("truth","a","finish",{gameId:initial.id,round:1});
+ assert.equal(next.data.game.round,2);
+ assert.equal(next.data.game.myReady,true);
+ assert.equal(next.data.game.partnerReady,true);
+ assert.equal((await request("truth","b","pick",{gameId:initial.id,round:2,kind:"truth"})).status,200);
+});
 test("both new games are accessible, authenticated, and erased with room deletion",()=>{
  const app=readFileSync("src/App.tsx","utf8");
  const hub=readFileSync("src/GamesHub.tsx","utf8");
@@ -269,6 +313,8 @@ test("both new games are accessible, authenticated, and erased with room deletio
  assert.ok(sw.includes('"rps","draw","escape","rapid","truth"'));
  assert.ok(deletion.includes('"couple_party_games"'));
  assert.ok(deletion.includes('"couple_party_prompt_history"'),"deleting a room deletes its prompt history");
+ assert.ok(deletion.includes('"couple_party_presence"'),"room deletion clears the game heartbeat");
+ assert.ok(schema.includes("CREATE TABLE IF NOT EXISTS couple_party_presence"));
  assert.ok(schema.includes("CREATE TABLE IF NOT EXISTS couple_party_prompt_history"));
  assert.ok(schema.includes("CREATE TABLE IF NOT EXISTS couple_party_games"));
  assert.ok(ui.includes('window.setInterval(()=>void refresh(true),900)'));
