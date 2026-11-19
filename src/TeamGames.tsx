@@ -220,11 +220,11 @@ export default function TeamGames({token,onExit}:Props){
     <p>Début automatique lorsque les 4 joueurs sont présents.</p>
    </div>:null}
    {status==="finished"?<div className="lr-team-victory">
-    <span className="lr-team-trophy">🏆</span>
-    <h2>Victoire de l'équipe {active!.winner===0?"❤️":"💙"} !</h2>
+    <span className="lr-team-trophy">{active!.winner===null?"🔒":"🏆"}</span>
+    <h2>{active!.winner===null?"Salon fermé":("Victoire de l'équipe "+(active!.winner===0?"❤️":"💙")+" !")}</h2>
     <p>{active!.lastAction}</p>
-    {inQuiz?<p>Score final : {active!.scores[0]} – {active!.scores[1]}</p>:null}
-    <button className="lr-team-primary" type="button" disabled={working} onClick={()=>void act("restart")}>↻ Revanche à quatre</button>
+    {inQuiz&&active!.winner!==null?<p>Score final : {active!.scores[0]} – {active!.scores[1]}</p>:null}
+    {active!.winner!==null?<button className="lr-team-primary" type="button" disabled={working} onClick={()=>void act("restart")}>↻ Revanche à quatre</button>:null}
     <button type="button" onClick={()=>{receive(null);setHiddenResult(true)}}>Créer un autre match</button>
    </div>:null}
    {status==="playing"?(inQuiz?
