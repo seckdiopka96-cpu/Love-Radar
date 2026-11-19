@@ -1,9 +1,9 @@
 import {useCallback,useEffect,useRef,useState} from "react";
-import LudoDie3D from "./LudoDie3D";
-import PawnShape from "./LudoPawn";
-import {LudoReactionBurst,LudoReactionPicker,type LudoSticker} from "./LudoReactions";
+import LudoDuoFrame from "./LudoDuoFrame";
+
+import {type LudoSticker} from "./LudoReactions";
 import {useLudoSounds} from "./ludo-sounds";
-import {TRACK,HOME,BASE,SAFE,CELL,key,stackCellStyle,type Point} from "./ludo-visuals";
+import {TRACK,HOME,BASE,type Point} from "./ludo-visuals";
 import {
  TURN_MS,newSenegalGame,isSenegalGame,movesForPawn,rollSenegal,
  applySenegalMove,chooseSenegalBotMove,pointForPawn,die,
@@ -13,10 +13,12 @@ import "./ludo.css";
 import "./ludo-immersive.css";
 import "./ludo-solo.css";
 import "./ludo-senegal.css";
+import "./ludo-senegal-shared.css";
 
 type Props={
  mode:"solo"|"duo";token:string;mySeat:number;myName:string;
- partnerName:string|null;storageKey:string;onExit:()=>void
+ partnerName:string|null;storageKey:string;onExit:()=>void;
+ myAvatar?:string;partnerAvatar?:string
 };
 type ServerGame=SenegalGame&{id:string;version:number;deadlineAt:number|null};
 type ReactionEvent={id:string;seat:Seat;emoji:string;at:number};
@@ -50,21 +52,8 @@ function load(scope:string):SenegalGame{
  return newSenegalGame();
 }
 function haptic(){try{navigator.vibrate?.(20)}catch{/* iOS unsupported. */}}
-export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storageKey,onExit}:Props){
+export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storageKey,onExit,myAvatar,partnerAvatar}:Props){
  const solo=mode==="solo";
- // Important: the Senegal screen must paint the SAME SVG art as both
- // Classic iframes. Put the final shared CSS after all bundled legacy styles.
- useEffect(()=>{
-  const id="lr-single-canonical-ludo-board";
-  let link=document.getElementById(id) as HTMLLinkElement|null;
-  if(!link){
-   link=document.createElement("link");link.id=id;link.rel="stylesheet";
-   link.href="/ludo-board-single.css?v=canonical-20261119-v3";
-  }else if(!link.href.includes("canonical-20261119-v3")){
-   link.href="/ludo-board-single.css?v=canonical-20261119-v3";
-  }
-  document.head.appendChild(link);
- },[]);
  const seat:Seat=solo?0:mySeat===1?1:0;
  const enemy:Seat=(1-seat) as Seat;
  const [game,setGame]=useState<SenegalGame>(()=>solo?load(storageKey):newSenegalGame());
@@ -86,9 +75,10 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const [sticker,setSticker]=useState<LudoSticker|null>(null);
  const [reactionBusy,setReactionBusy]=useState(false);
  const [confirmReset,setConfirmReset]=useState(false);
- const [boardSize,setBoardSize]=useState(0);
+ const sessionId=useRef("senegal-"+storageKey+"-"+Date.now());
+ const [lastRoll,setLastRoll]=useState<{seat:number;face:number;at:number}|null>(null);
  const {enabled:soundOn,unlock:unlockSound,play:playSound,toggle:toggleSound}=useLudoSounds();
- const stage=useRef<HTMLDivElement|null>(null);
+
  const timers=useRef<number[]>([]);
  const loaded=useRef(true);
  const versionRef=useRef(0);
@@ -106,22 +96,16 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   try{localStorage.setItem(storage(storageKey),JSON.stringify(game))}catch{/* Offline play remains available. */}
  },[solo,storageKey,game]);
  useEffect(()=>{
-  const elem=stage.current;if(!elem)return;
-  const obs=new ResizeObserver(()=>{
-   const available=Math.floor(Math.min(elem.clientWidth-8,elem.clientHeight-8));
-   if(available>0)setBoardSize(available);
-  });
-  obs.observe(elem);return ()=>obs.disconnect();
- },[]);
- useEffect(()=>{
   const interval=window.setInterval(()=>setNow(Date.now()),250);
   return ()=>window.clearInterval(interval);
  },[]);
+ // Use the real Senegal result, never rapidly fake sequential faces.
+ // The same Classic iframe animates every dice throw.
  useEffect(()=>{
-  if(!rolling)return;
-  const interval=window.setInterval(()=>setFace(1+Math.floor(Math.random()*6)),90);
-  return ()=>window.clearInterval(interval);
- },[rolling]);
+  if(game.dice===null)return;
+  setLastRoll(previous=>previous?.seat===game.turn&&previous.face===game.dice&&previous.at===game.updatedAt?
+   previous:{seat:game.turn,face:game.dice as number,at:game.updatedAt});
+ },[game.dice,game.turn,game.updatedAt]);
  const animate=useCallback((move:SenegalMove)=>{
   const path=move.path;
   if(!path.length)return;
@@ -132,7 +116,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   path.forEach((point,i)=>later(()=>{
    if(!loaded.current)return;
    setMotion({seat:move.seat,pawn:move.pawn,point,index:i+1,length:path.length});
-   playSound("step");
+   // Shared Classic renderer plays each step sound.
    if(i===path.length-1)haptic();
   },START_MS+i*STEP_MS));
   const done=START_MS+path.length*STEP_MS+90;
@@ -140,7 +124,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    if(!loaded.current)return;
    setMotion(null);setLanding(pointForPawn(move.seat,move.pawn,move.to));
    if(move.captures.length){
-    playSound("capture");setReaction("💥");
+    setReaction("💥");
     const returns=move.captures.map(captured=>({...captured,path:captureReversePoints(captured)}));
     returns.forEach(item=>item.path.forEach((point,index)=>later(()=>{
      if(!loaded.current)return;
@@ -151,7 +135,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    }
    else if(move.to.zone==="enemy"){setReaction("😈");}
    else if(move.action==="reverse"){setReaction("↩️");}
-   else if(move.to.zone==="finished"){playSound("win");setReaction("🏠");}
+   else if(move.to.zone==="finished"){setReaction("🏠");}
    else if(move.action==="home")setReaction("🏠");
    later(()=>{if(loaded.current){setReaction("");setLanding(null)}},1300);
   },done);
@@ -253,7 +237,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   if(game.status!=="playing"||game.dice!==null||rolling||busy||motion||captureBack.length||chosen||(!solo&&(!online||members!==2||game.turn!==seat))||
    (solo&&game.turn!==1&&!(game.turn===0&&(automatic||!assisted))))return;
   if(!automatic)unlockSound();
-  playSound("roll");setRolling(true);
+  if(automatic)playSound("roll");setRolling(true);
   if(solo){
    const face=die();
    later(()=>{
@@ -312,7 +296,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  function reset(){
   setConfirmReset(false);setChosen(null);setAssisted(false);
   clearTimers();setMotion(null);setCaptureBack([]);setReaction("");setSticker(null);setEmotes(false);setRolling(false);
-  if(solo)setGame(newSenegalGame());
+  if(solo){sessionId.current="senegal-"+storageKey+"-"+Date.now();setLastRoll(null);setGame(newSenegalGame());}
   else void sendAction({action:"restart"});
  }
  const playerCanAct=game.status==="playing"&&game.turn===seat&&
