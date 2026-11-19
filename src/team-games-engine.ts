@@ -8,6 +8,7 @@ import {SAFE,TRACK} from "./ludo-visuals";
 export type TeamSeat=0|1|2|3;
 export type TeamId=0|1;
 export type TeamKind="classic"|"senegal"|"quiz";
+export const TEAM_TURN_MS=15000;
 export type TeamStatus="waiting"|"playing"|"finished";
 export type TeamPiece={zone:"base"|"track"|"home"|"enemy"|"finished";step:number;depth:number;gate:number;owner:TeamSeat};
 export type TeamMove={pawn:number;action:"release"|"track"|"home"|"enemy"|"exit"|"jump";to:TeamPiece;captures:{seat:TeamSeat;pawn:number}[]};
@@ -197,6 +198,16 @@ export function teamMove(game:TeamGame,seat:TeamSeat,pawn:number,action:TeamMove
   dice:null,sixStreak:game.dice===6?game.sixStreak:0,updatedAt:now,
   lastAction:won?"🏆 Le couple "+(team+1)+" a gagné !":
    "Pion "+(pawn+1)+" déplacé."+(option.captures.length?" Capture !":"")};
+}
+/** A silent player must never block the other three indefinitely.
+ * The server applies one guarded handoff after 15 s without any roll/move.
+ * No dice is invented and no pawn is moved without an explicit choice. */
+export function teamIdleTurn(game:TeamGame,now=Date.now()):TeamGame{
+ if(game.kind==="quiz"||game.status!=="playing"||
+   now<game.updatedAt+TEAM_TURN_MS)return game;
+ const next=((game.turn+1)%4) as TeamSeat;
+ return {...game,turn:next,dice:null,sixStreak:0,updatedAt:now,
+  lastAction:"⏱️ 15 secondes sans action : tour passé au joueur suivant."};
 }
 export function teamQuizTick(game:TeamGame,now=Date.now()):TeamGame{
  if(game.kind!=="quiz"||game.status!=="playing")return game;
