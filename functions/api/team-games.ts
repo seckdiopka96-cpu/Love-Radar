@@ -98,6 +98,22 @@ async function save(db:D1Database,row:Row,state:TeamGame):Promise<Row|null>{
 }
 async function sync(db:D1Database,row:Row):Promise<Row>{
  const game=JSON.parse(row.state_json) as TeamGame;
+ // Presence has a 30 s display window, but forfeiture requires a full
+ // 60 seconds of absence. This avoids penalizing brief iOS interruptions.
+ if(game.status==="playing"&&row.guest_room){
+  const host=await roomMembers(db,row.host_room),guest=await roomMembers(db,row.guest_room);
+  if(host.length===2&&guest.length===2){
+   const players=[host[0],guest[0],host[1],guest[1]];
+   const seen=await db.prepare("SELECT member_id,last_seen FROM team_game_presence WHERE game_id=?")
+    .bind(row.id).all<{member_id:string;last_seen:number}>();
+   const last=new Map((seen.results||[]).map(p=>[p.member_id,p.last_seen]));
+   const absent=players.findIndex(p=>Date.now()-Number(last.get(p.id)||0)>60000);
+   if(absent>=0){
+    const stopped=teamForfeit(game,teamOf(absent as TeamSeat));
+    return await save(db,row,stopped)||await get(db,row.id)||row;
+   }
+  }
+ }
  if(game.status==="waiting"&&row.guest_room){
   const arrived=await attendance(db,row);
   if(arrived.every(Boolean)){
