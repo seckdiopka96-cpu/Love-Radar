@@ -7,7 +7,7 @@ import type {D1Database} from "@cloudflare/workers-types";
 import {onRequestGet,onRequestPost} from "../functions/api/couple-party";
 import {
  RAPID_QUESTIONS,TRUTH_PROMPTS,ACTION_PROMPTS,
- nextPartyIndex,validChoice,partyChallenge,validChallengeKind
+ nextPartyIndex,nextUnseenPartyIndex,validChoice,partyChallenge,validChallengeKind
 } from "../src/couple-party-engine";
 
 const token=(letter:string)=>letter.repeat(64);
@@ -51,8 +51,12 @@ function harness(){
 }
 test("original question and challenge collections are substantial and safe",()=>{
  assert.ok(RAPID_QUESTIONS.length>=30);
- assert.ok(TRUTH_PROMPTS.length>=20);
- assert.ok(ACTION_PROMPTS.length>=20);
+ assert.ok(TRUTH_PROMPTS.length>=40);
+ assert.ok(ACTION_PROMPTS.length>=45);
+ assert.equal(new Set(TRUTH_PROMPTS).size,TRUTH_PROMPTS.length,"truths must not repeat");
+ assert.equal(new Set(ACTION_PROMPTS).size,ACTION_PROMPTS.length,"actions must not repeat");
+ assert.ok(TRUTH_PROMPTS.every(card=>card.trim().endsWith("?")),"truths are questions");
+ assert.ok(ACTION_PROMPTS.every(card=>!card.trim().endsWith("?")),"actions are things to do");
  for(const q of RAPID_QUESTIONS){
   assert.ok(q.question.length>=12);
   assert.equal(q.options.length,4);
@@ -63,6 +67,8 @@ test("original question and challenge collections are substantial and safe",()=>
   const next=nextPartyIndex(RAPID_QUESTIONS.length,4,n/100);
   assert.ok(next>=0&&next<RAPID_QUESTIONS.length&&next!==4);
  }
+ assert.equal(nextUnseenPartyIndex(4,[0,1,2],2,.9),3,"finish unused cards before reshuffling");
+ assert.notEqual(nextUnseenPartyIndex(4,[0,1,2,3],2,.4),2,"avoid last card at reshuffle");
  assert.ok(validChallengeKind("truth"));
  assert.ok(validChallengeKind("action"));
  assert.equal(validChallengeKind("private"),false);
@@ -165,10 +171,13 @@ test("truth or action alternates turns; a pass is never scored; only active play
  const initial=(await request("truth","a")).data.game;
  assert.equal(initial.turn,0);
  assert.equal(initial.phase,"choose");
- // Either member may begin round one, so a distant partner does not wait needlessly.
+ // Only the player whose turn it is may draw, even in round one.
+ const tooEarly=await request("truth","b","pick",{gameId:initial.id,round:1,kind:"truth"});
+ assert.equal(tooEarly.status,409);
  const picked=await request("truth","a","pick",{gameId:initial.id,round:1,kind:"truth"});
  assert.equal(picked.status,200);
  assert.equal(picked.data.game.kind,"truth");
+ assert.ok(TRUTH_PROMPTS.includes(picked.data.game.prompt));
  const duplicate=await request("truth","b","pick",{gameId:initial.id,round:1,kind:"action"});
  assert.equal(duplicate.status,409,"the first selected card is authoritative");
  assert.ok(picked.data.game.prompt?.length>12);
@@ -183,10 +192,58 @@ test("truth or action alternates turns; a pass is never scored; only active play
  const pickedB=await request("truth","b","pick",{gameId:initial.id,round:2,kind:"action"});
  assert.equal(pickedB.status,200);
  assert.equal(pickedB.data.game.kind,"action");
+ assert.ok(ACTION_PROMPTS.includes(pickedB.data.game.prompt),"action cannot silently become truth");
+ assert.equal((await request("truth","a")).data.game.prompt,pickedB.data.game.prompt,"the same action is shown to both");
  const pass=await request("truth","b","pass",{gameId:initial.id,round:2});
  assert.equal(pass.status,200);
  assert.equal(pass.data.game.turn,0);
  assert.equal(pass.data.game.scores[1],0);
+});
+test("surprise alternates real actions and truths without overriding a manual choice",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {request}=harness();
+ let game=(await request("truth","a")).data.game;
+ let picked=await request("truth","a","pick",{gameId:game.id,round:game.round,kind:"action"});
+ assert.equal(picked.data.game.kind,"action");
+ game=(await request("truth","a","finish",{gameId:game.id,round:game.round})).data.game;
+ picked=await request("truth","b","pick",{gameId:game.id,round:game.round,kind:"surprise"});
+ assert.equal(picked.data.game.kind,"truth","surprise should balance the previous action");
+ assert.equal((await request("truth","a")).data.game.kind,"truth");
+ game=(await request("truth","b","finish",{gameId:game.id,round:game.round})).data.game;
+ picked=await request("truth","a","pick",{gameId:game.id,round:game.round,kind:"surprise"});
+ assert.equal(picked.data.game.kind,"action","surprise should balance the previous truth");
+ game=(await request("truth","a","finish",{gameId:game.id,round:game.round})).data.game;
+ picked=await request("truth","b","pick",{gameId:game.id,round:game.round,kind:"truth"});
+ assert.equal(picked.data.game.kind,"truth","manual choice must remain available");
+});
+test("the room remembers each action and truth card until its own deck is exhausted",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {request,sqlite}=harness();
+ let game=(await request("truth","a")).data.game;
+ for(const [kind,cards] of [["action",ACTION_PROMPTS],["truth",TRUTH_PROMPTS]] as const){
+  const seen=new Set<string>();
+  for(let i=0;i<cards.length;i++){
+   const user=game.turn===0?"a":"b";
+   const drawn=await request("truth",user,"pick",{gameId:game.id,round:game.round,kind});
+   assert.equal(drawn.status,200);
+   assert.equal(drawn.data.game.kind,kind);
+   assert.ok(cards.includes(drawn.data.game.prompt));
+   assert.ok(!seen.has(drawn.data.game.prompt),"the "+kind+" deck must not repeat before exhaustion");
+   seen.add(drawn.data.game.prompt);
+   const next=await request("truth",user,"pass",{gameId:game.id,round:game.round});
+   assert.equal(next.status,200);
+   game=next.data.game;
+  }
+  assert.equal(seen.size,cards.length);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM couple_party_prompt_history WHERE room_id='room-A' AND kind=?").get(kind)?.n,cards.length);
+  const user=game.turn===0?"a":"b";
+  const next=await request("truth",user,"pick",{gameId:game.id,round:game.round,kind});
+  assert.equal(next.status,200,"the deck can reshuffle after all cards were played");
+  assert.notEqual(next.data.game.prompt,Array.from(seen)[seen.size-1],"reshuffle must avoid an immediate duplicate");
+  game=(await request("truth",user,"pass",{gameId:game.id,round:game.round})).data.game;
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM couple_party_prompt_history WHERE room_id='room-A' AND kind=?").get(kind)?.n,1);
+ }
+ assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM couple_party_prompt_history WHERE room_id='room-B'").get()?.n,0,"other couples never share a deck");
 });
 test("both new games are accessible, authenticated, and erased with room deletion",()=>{
  const app=readFileSync("src/App.tsx","utf8");
@@ -208,10 +265,13 @@ test("both new games are accessible, authenticated, and erased with room deletio
  assert.ok(push.includes('"rapid"|"truth"'));
  assert.ok(sw.includes('"rps","draw","escape","rapid","truth"'));
  assert.ok(deletion.includes('"couple_party_games"'));
+ assert.ok(deletion.includes('"couple_party_prompt_history"'),"deleting a room deletes its prompt history");
+ assert.ok(schema.includes("CREATE TABLE IF NOT EXISTS couple_party_prompt_history"));
  assert.ok(schema.includes("CREATE TABLE IF NOT EXISTS couple_party_games"));
  assert.ok(ui.includes('window.setInterval(()=>void refresh(true),900)'));
  assert.ok(ui.includes('onClick={()=>void post("ready")}'));
  assert.ok(api.includes('AND phase=\'ready\' AND picked_0=1 AND picked_1=1'));
  assert.ok(ui.includes('onClick={()=>void post("finish")}'));
  assert.ok(ui.includes('onClick={()=>void post("pass")}'));
+ assert.ok(ui.includes('kind:"surprise"'),"the balanced surprise draw is accessible");
 });
