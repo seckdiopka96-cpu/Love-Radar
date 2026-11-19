@@ -344,7 +344,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    case "move":if(Number.isInteger(pawn))choose(pawn as number);break;
    case "restart":reset();break;
    case "exit":case "leave":case "menu":onExit();break;
-   case "gift":setEmotes(true);break;
+   case "gift":void sendSticker("🎁","Cadeau");break;
   }
  };
  return <section className={"ludo-experience ludo-duo-arena ludo-senegal ludo-senegal-classic "+(solo?"ludo-senegal-solo":"ludo-senegal-duo")}
@@ -380,16 +380,6 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
       option.action==="enemy"&&invasionChoice?"😈 Entrer dans sa cage":option.label}
     </button>)}
     <button type="button" className="ludo-senegal-shared-cancel" onClick={()=>setChosen(null)}>Annuler</button>
-   </div>
-  </div>:null}
-  {emotes?<div className="ludo-senegal-overlay" role="dialog" aria-modal="true" aria-label="Envoyer une réaction">
-   <div className="ludo-senegal-shared-dialog">
-    <strong>Réagir à la partie</strong>
-    <div className="ludo-senegal-shared-reactions">
-     {["😂","😜","😱","😭","🥰","👏","🔥","🎁"].map(emoji=><button type="button" key={emoji}
-      onClick={()=>void sendSticker(emoji,"Ta réaction")}>{emoji}</button>)}
-    </div>
-    <button type="button" className="ludo-senegal-shared-cancel" onClick={()=>setEmotes(false)}>Fermer</button>
    </div>
   </div>:null}
   {sticker?<span className="ludo-senegal-shared-sticker" key={sticker.id} role="status">{sticker.emoji}</span>:null}
