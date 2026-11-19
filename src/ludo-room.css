@@ -171,7 +171,7 @@
  border:2px solid #fff9e7;border-radius:16px;
  background:#fffdf7;box-shadow:0 6px 11px #001b3b54;
  display:grid;grid-template-columns:repeat(2,1fr);
- grid-template-rows:repeat(2,1fr);place-items:center;padding:10%;
+ grid-template-rows:repeat(2,1fr);place-items:center;padding:3%;
  gap:10%;
 }
 .lr-ludo-preview-home span{
