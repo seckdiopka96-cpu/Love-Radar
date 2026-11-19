@@ -228,6 +228,9 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   return ()=>window.clearInterval(id);
  },[solo,refresh]);
  // Solo player has 15 seconds for each action. AI takes over if the timer expires.
+ // The AI turn effect below MUST depend on captureBack.length: a captured pawn
+ // can finish returning after the active move animation ends, without any dice
+ // or game-state change. Omitting that dependency strands the AI on a six.
  useEffect(()=>{
   if(!solo||game.status!=="playing"||game.turn!==0||assisted||busy||rolling||motion||captureBack.length||chosen||confirmReset)return;
   const id=window.setTimeout(()=>setAssisted(true),Math.max(0,game.updatedAt+TURN_MS-Date.now()));
@@ -350,7 +353,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    }
   },game.dice===null?790:570);
   return ()=>window.clearTimeout(timer);
- },[solo,game,rolling,motion,busy,chosen,confirmReset,assisted]);
+ },[solo,game,rolling,motion,captureBack.length,busy,chosen,confirmReset,assisted]);
  async function quitGame(){
   if(quittingRef.current)return;
   quittingRef.current=true;
