@@ -84,6 +84,7 @@
   let actionTimer = null;
   let movingToken = null;
   let lastRoll = 1;
+  let lastTossVariant = -1; // Changes only the toss animation, never the roll result.
   let rulesPause = false;
   // Love Radar already renders the main "LUDO SOLO" header above this iframe.
   // In embedded mode, retain the functional color/rules controls but place
@@ -292,7 +293,9 @@
   function createPawn(color,side,index,selectable) {
     const button = document.createElement("button");
     button.type="button";
-    button.className="piece piece--"+color+(selectable?" piece--selectable":"");
+    button.className="piece piece--"+color+
+      (side==="human"&&game.turn==="human"&&game.phase!=="finished"?" piece--owned-turn":"")+
+      (selectable?" piece--selectable":"");
     button.dataset.side=side;
     button.dataset.pawn=String(index);
     const state=game.pieces[side][index];
@@ -372,6 +375,13 @@
     app.dataset.player=game.playerColor;
     app.dataset.diceColor=getColor(game.turn);
     app.dataset.computer=game.cpuColor;
+    // A player-owned house glows only during its actual turn, not after victory.
+    for(const base of board.querySelectorAll(".base")){
+      const baseColor=[...base.classList].find(cls=>cls.startsWith("base--"))?.slice(6);
+      const current=game.phase!=="finished"&&baseColor===getColor(game.turn);
+      base.classList.toggle("is-current-turn",current);
+      base.classList.toggle("is-my-turn",current&&isHuman);
+    }
     rollButton.disabled=!humanCanRoll;
     rollButton.classList.toggle("is-ready",humanCanRoll);
     rollButton.classList.toggle("is-busy",game.phase==="rolling");
@@ -381,9 +391,9 @@
     // The previous result is NOT a new playable roll. Show a replay icon
     // while the player must throw again, then the real numeric result.
     const needsNewRoll=game.phase==="roll"&&isHuman;
-    dieResult.textContent=needsNewRoll?"↻":String(lastRoll);
-    dieResult.value=needsNewRoll?"":String(lastRoll);
-    dieResult.setAttribute("aria-label",needsNewRoll?"Lancer un nouveau dé":"Dernier lancer : "+lastRoll);
+    dieResult.textContent=game.phase==="rolling"?"·":needsNewRoll?"↻":String(lastRoll);
+    dieResult.value=game.phase==="rolling"||needsNewRoll?"":String(lastRoll);
+    dieResult.setAttribute("aria-label",game.phase==="rolling"?"Dé en train de tourner":needsNewRoll?"Lancer un nouveau dé":"Dernier lancer : "+lastRoll);
     rollButton.setAttribute("aria-label",humanCanRoll?"Lancer le dé":game.phase==="rolling"?"Le dé tourne":"Dé : "+lastRoll);
     document.getElementById("player-count").textContent=game.pieces.human.filter(p=>p===FINAL).length+" / 4 arrivés";
     document.getElementById("computer-count").textContent=game.pieces.cpu.filter(p=>p===FINAL).length+" / 4 arrivés";
@@ -592,9 +602,14 @@
     const tokenGeneration=generation;
     sfx?.unlock();sfx?.play("roll");
     busy=true;game.phase="rolling";
+    lastTossVariant=(lastTossVariant+1)%3;
+    die.dataset.toss=String(lastTossVariant);
+    // Re-arm the physical tumble even on consecutive sixes; never fake a face.
+    die.classList.remove("is-rolling");
+    void die.offsetWidth;
     game.message=(side==="human"?"Tu lances":"L’ordinateur lance")+" le dé…";
     render();
-    await sleep(reducedMotion?80:240);
+    await sleep(reducedMotion?80:430);
     if (!isCurrent(tokenGeneration)) return;
     const value=getRoll();
     lastRoll=value;
