@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
+import {DatabaseSync} from "node:sqlite";
+import {createHash,webcrypto} from "node:crypto";
+import type {D1Database} from "@cloudflare/workers-types";
+import {onRequestGet,onRequestPost} from "../functions/api/rps";
 import {RPS_MOVES,isRpsMove,rpsWinner,rpsEmoji,rpsName} from "../src/rps-engine";
 const api=readFileSync("functions/api/rps.ts","utf8");
 const app=readFileSync("src/App.tsx","utf8");
@@ -87,4 +91,94 @@ test("both players see a trophy at 10 points, no extra rounds and an explicit re
  assert.ok(screen.includes("Le premier joueur à 10 points gagne le match"));
  const css=readFileSync("src/rps-duo.css","utf8");
  assert.ok(css.includes(".lr-rps-match-finished"));
+});
+
+function matchHarness(){
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const sqlite=new DatabaseSync(":memory:");
+ sqlite.exec("CREATE TABLE members(id TEXT PRIMARY KEY,room_id TEXT NOT NULL,name TEXT NOT NULL,seat INTEGER NOT NULL,token_hash TEXT NOT NULL)");
+ for(const [letter,seat,room] of [["a",0,"match-A"],["b",1,"match-A"],["c",0,"match-B"],["d",1,"match-B"]] as const){
+  const raw=letter.repeat(64),hash=createHash("sha256").update(raw).digest("hex");
+  sqlite.prepare("INSERT INTO members VALUES(?,?,?,?,?)").run(letter,room,letter,seat,hash);
+ }
+ sqlite.exec("CREATE TABLE rps_games(room_id TEXT PRIMARY KEY,game_id TEXT NOT NULL,round INTEGER NOT NULL DEFAULT 1,"+
+  "version INTEGER NOT NULL DEFAULT 1,status TEXT NOT NULL DEFAULT 'choosing',move_0 TEXT,move_1 TEXT,"+
+  "score_0 INTEGER NOT NULL DEFAULT 0,score_1 INTEGER NOT NULL DEFAULT 0,ties INTEGER NOT NULL DEFAULT 0,"+
+  "winner INTEGER,ready_0 INTEGER NOT NULL DEFAULT 0,ready_1 INTEGER NOT NULL DEFAULT 0,"+
+  "updated_at INTEGER NOT NULL,revealed_at INTEGER,last_invite_at INTEGER NOT NULL DEFAULT 0)");
+ const bound=(sql:string,params:unknown[])=>({
+  async first(){return sqlite.prepare(sql).get(...params as [])??null},
+  async all(){return {results:sqlite.prepare(sql).all(...params as [])}},
+  async run(){const result=sqlite.prepare(sql).run(...params as []);return {meta:{changes:Number(result.changes)}}}
+ });
+ const db={async exec(sql:string){sqlite.exec(sql)},prepare(sql:string){
+  return {...bound(sql,[]),bind(...params:unknown[]){return bound(sql,params)}};
+ }} as unknown as D1Database;
+ async function request(letter:string,action?:string,fields:Record<string,unknown>={}){
+  const token=letter.repeat(64);
+  const request=new Request("https://example.org/api/rps",{
+   method:action?"POST":"GET",
+   headers:{Authorization:"Bearer "+token},
+   ...(action?{body:JSON.stringify({action,...fields})}:{})
+  });
+  const ctx={request,env:{DB:db}};
+  const response=await(action?onRequestPost(ctx):onRequestGet(ctx));
+  return {status:response.status,data:await response.json() as any};
+ }
+ return {sqlite,request};
+}
+test("actual RPS API: a nine-to-ten score ends the match and both see the same winner",async()=>{
+ const {sqlite,request}=matchHarness();
+ const first=(await request("a")).data.game;
+ await request("b");
+ sqlite.prepare("UPDATE rps_games SET score_0=9,score_1=7,round=17 WHERE room_id='match-A'").run();
+ assert.equal((await request("a","choose",{gameId:first.id,round:17,move:"rock"})).status,200);
+ const won=await request("b","choose",{gameId:first.id,round:17,move:"scissors"});
+ assert.equal(won.status,200);
+ assert.equal(won.data.game.status,"finished");
+ assert.equal(won.data.game.matchWinner,0);
+ assert.equal(won.data.game.winScore,10);
+ assert.deepEqual(won.data.game.scores,[10,7]);
+ assert.equal(won.data.game.round,17);
+ const other=(await request("a")).data.game;
+ assert.equal(other.id,won.data.game.id);
+ assert.equal(other.status,"finished");
+ assert.equal(other.matchWinner,0);
+ assert.deepEqual(other.scores,[10,7]);
+ const rejected=await request("b","choose",{gameId:first.id,round:17,move:"paper"});
+ assert.equal(rejected.status,409,"no more choices after championship victory");
+ assert.equal((await request("a","next",{gameId:first.id,round:17})).status,409);
+ sqlite.prepare("UPDATE rps_games SET revealed_at=? WHERE room_id='match-A'").run(Date.now()-60000);
+ assert.equal((await request("b")).data.game.round,17,"no automatic new round after victory");
+ const rematch=await request("a","restart",{gameId:first.id,round:17});
+ assert.equal(rematch.status,200);
+ assert.equal(rematch.data.game.status,"choosing");
+ assert.deepEqual(rematch.data.game.scores,[0,0]);
+ assert.equal(rematch.data.game.round,1);
+ assert.notEqual(rematch.data.game.id,first.id);
+ assert.equal((await request("b")).data.game.id,rematch.data.game.id);
+ assert.equal((await request("b","choose",{gameId:first.id,round:17,move:"paper"})).status,409,
+  "a stale request cannot interfere with the new match");
+ assert.equal((await request("c")).data.game.scores[0],0,"other rooms remain isolated");
+});
+test("actual RPS API: ties do not award points, and partner B can win at ten",async()=>{
+ const {sqlite,request}=matchHarness();
+ const original=(await request("a")).data.game;
+ await request("b");
+ sqlite.prepare("UPDATE rps_games SET score_0=8,score_1=9,round=24 WHERE room_id='match-A'").run();
+ const tiedA=await request("a","choose",{gameId:original.id,round:24,move:"rock"});
+ const tiedB=await request("b","choose",{gameId:original.id,round:24,move:"rock"});
+ assert.equal(tiedA.status,200);assert.equal(tiedB.status,200);
+ assert.equal(tiedB.data.game.status,"revealed");
+ assert.deepEqual(tiedB.data.game.scores,[8,9]);
+ assert.equal(tiedB.data.game.ties,1);
+ sqlite.prepare("UPDATE rps_games SET revealed_at=? WHERE room_id='match-A'").run(Date.now()-8000);
+ const newRound=(await request("a")).data.game;
+ assert.equal(newRound.status,"choosing");
+ assert.equal(newRound.round,25);
+ assert.equal((await request("a","choose",{gameId:original.id,round:25,move:"rock"})).status,200);
+ const final=await request("b","choose",{gameId:original.id,round:25,move:"paper"});
+ assert.equal(final.data.game.status,"finished");
+ assert.equal(final.data.game.matchWinner,1);
+ assert.deepEqual(final.data.game.scores,[8,10]);
 });
