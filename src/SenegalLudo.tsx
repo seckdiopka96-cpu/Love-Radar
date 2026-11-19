@@ -147,6 +147,8 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   }
   if(!data.game)return;
   const next=data.game;
+  const oldVersion=versionRef.current,oldId=idRef.current;
+  if(next.version<oldVersion&&next.id===oldId)return;
   // A roll with no legal move immediately changes turns and clears dice.
   // Recover the real face from lastAction rather than showing an invented 1.
   const faceMatch=/Dé ([1-6])/.exec(next.lastAction);
@@ -156,9 +158,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    setLastRoll(previous=>previous?.at===next.updatedAt&&previous.face===actualFace&&previous.seat===roller?
     previous:{seat:roller,face:actualFace,at:next.updatedAt});
   }
-  const oldVersion=versionRef.current,oldId=idRef.current;
   if(next.id!==oldId){lastAnimated.current="";setMotion(null);setCaptureBack([]);clearTimers();setChosen(null);}
-  if(next.version<oldVersion&&next.id===oldId)return;
   versionRef.current=next.version;idRef.current=next.id;
   setGame({
    positions:next.positions,turn:next.turn,dice:next.dice,streak:next.streak,
