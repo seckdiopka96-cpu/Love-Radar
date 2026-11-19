@@ -13,8 +13,10 @@ const TRACK_KEYS=new Map(TRACK.map((p,i)=>[key(p[0],p[1])/** This is the exact s
  * No parallel React preview renderer, color palette or star placement. */
 function SingleLudoBoard(){
  return <div className="lr-ludo-unified-board-wrap">
-  <div className="lr-ludo-unified-board" role="img"
-   aria-label="Plateau Ludo unique à 15 colonnes, quatre zones foncées et huit étoiles"/>
+  <div className="lr-ludo-unified-board-frame">
+   <div className="lr-ludo-unified-board" role="img"
+    aria-label="Plateau Ludo unique à 15 colonnes, quatre zones foncées et huit étoiles"/>
+  </div>
  </div>;
 }
 
