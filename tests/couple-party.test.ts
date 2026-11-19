@@ -156,6 +156,80 @@ test("legacy active rooms no longer get stuck on a ready screen after round one"
  assert.equal(resumed.correct,null);
  assert.equal(resumed.scores[0]+resumed.scores[1],0);
 });
+test("Questions rapides: exactly ten points end the match for both partners, no phantom rounds",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {sqlite,request}=harness();
+ const first=(await request("rapid","a")).data.game;
+ await request("rapid","b");
+ sqlite.prepare("UPDATE couple_party_games SET phase='question',round=11,score_0=9,score_1=3,started_at=?,deadline_at=? WHERE room_id='room-A' AND mode='rapid'")
+  .run(Date.now()-1000,Date.now()+18000);
+ const match=(await request("rapid","a")).data.game;
+ const q=RAPID_QUESTIONS.find(item=>item.question===match.question);
+ assert.ok(q);
+ const won=await request("rapid","a","answer",{gameId:first.id,round:11,choice:q.answer});
+ assert.equal(won.status,200);
+ assert.equal(won.data.game.phase,"finished");
+ assert.equal(won.data.game.matchWinner,0);
+ assert.equal(won.data.game.winner,0);
+ assert.deepEqual(won.data.game.scores,[10,3]);
+ assert.equal(won.data.game.correct,q.answer,"finished match reveals the right answer");
+ const other=(await request("rapid","b")).data.game;
+ assert.equal(other.id,first.id);
+ assert.equal(other.phase,"finished");
+ assert.equal(other.matchWinner,0);
+ assert.deepEqual(other.scores,[10,3]);
+ assert.equal((await request("rapid","b","next",{gameId:first.id,round:11})).status,409);
+ assert.equal((await request("rapid","b","answer",{gameId:first.id,round:11,choice:q.answer})).status,409);
+ assert.equal((await request("rapid","c")).data.game.scores[0],0);
+ // The victory remains visible even if the other participant changes games.
+ sqlite.prepare("UPDATE couple_party_presence SET last_seen_at=0 WHERE room_id='room-A' AND member_id='Benoît' AND mode='rapid'").run();
+ const absentWinner=await request("rapid","a");
+ assert.equal(absentWinner.data.partnerHere,false);
+ assert.equal(absentWinner.data.game.phase,"finished");
+ const restart=await request("rapid","a","restart",{gameId:first.id,round:11});
+ assert.equal(restart.status,200,"a rematch should not require the opponent to be online");
+ assert.notEqual(restart.data.game.id,first.id);
+ assert.equal(restart.data.game.phase,"ready","a new match requires consent once");
+ assert.deepEqual(restart.data.game.scores,[0,0]);
+ assert.equal(restart.data.game.round,1);
+ assert.equal((await request("rapid","b")).data.game.id,restart.data.game.id);
+ assert.equal((await request("rapid","b","answer",{gameId:first.id,round:11,choice:q.answer})).status,409);
+});
+test("Rapid respects score ten for player B and migrates older rooms",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {sqlite,request}=harness();
+ const first=(await request("rapid","a")).data.game;
+ await request("rapid","b");
+ sqlite.prepare("UPDATE couple_party_games SET phase='question',round=23,score_0=7,score_1=9,started_at=?,deadline_at=? WHERE room_id='room-A' AND mode='rapid'")
+  .run(Date.now()-1000,Date.now()+18000);
+ const next=(await request("rapid","b")).data.game;
+ const q=RAPID_QUESTIONS.find(item=>item.question===next.question);
+ assert.ok(q);
+ const won=await request("rapid","b","answer",{gameId:first.id,round:23,choice:q.answer});
+ assert.equal(won.data.game.phase,"finished");
+ assert.equal(won.data.game.matchWinner,1);
+ assert.deepEqual(won.data.game.scores,[7,10]);
+ const legacy=(await request("rapid","c")).data.game;
+ sqlite.prepare("UPDATE couple_party_games SET phase='result',score_0=10,score_1=8 WHERE room_id='room-B' AND mode='rapid'").run();
+ const migrated=(await request("rapid","c")).data.game;
+ assert.equal(migrated.id,legacy.id);
+ assert.equal(migrated.phase,"finished");
+ assert.equal(migrated.matchWinner,0);
+ assert.equal(migrated.scores[0],10);
+});
+test("short connection gaps do not falsely mark a partner absent from the rapid room",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {sqlite,request}=harness();
+ await request("rapid","a");await request("rapid","b");
+ sqlite.prepare("UPDATE couple_party_presence SET last_seen_at=? WHERE room_id='room-A' AND mode='rapid' AND member_id='Benoît'").run(Date.now()-9000);
+ assert.equal((await request("rapid","a")).data.partnerHere,true);
+ sqlite.prepare("UPDATE couple_party_presence SET last_seen_at=? WHERE room_id='room-A' AND mode='rapid' AND member_id='Benoît'").run(Date.now()-36000);
+ assert.equal((await request("rapid","a")).data.partnerHere,false);
+ const ui=readFileSync("src/CoupleParty.tsx","utf8");
+ assert.ok(ui.includes("Être connecté(e) à Love Radar ou dans un autre jeu ne signifie pas être dans cette partie."));
+ assert.ok(ui.includes('rapid?.phase==="finished"?<div'));
+ assert.ok(ui.includes('onClick={()=>void post("restart")}'));
+});
 test("when the timer expires without a correct answer, both partners see the same result",async()=>{
  if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
  const {sqlite,request}=harness();
