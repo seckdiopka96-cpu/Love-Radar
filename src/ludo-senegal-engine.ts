@@ -59,6 +59,12 @@ export function stopSenegalGame(game:SenegalGame,playerName:string):SenegalGame{
 export function repairSenegalHomeShortcut(game:SenegalGame):SenegalGame{
  let changed=false,invalidHome=false;
  const positions=game.positions.map(row=>row.map(piece=>{
+  // An older game may visually have reached the center while still storing
+  // zone "home". A depth-7 home pawn is completed, not a movable pawn.
+  if(piece.zone==="home"&&piece.depth===7&&piece.gate>=51){
+   changed=true;
+   return {...piece,zone:"finished" as const};
+  }
   if((piece.zone==="home"||piece.zone==="finished")&&piece.gate===-1){
    changed=true;invalidHome=true;
    return {...piece,zone:"track" as const,step:Math.abs(piece.step),
@@ -86,12 +92,19 @@ export function repairSenegalHomeShortcut(game:SenegalGame):SenegalGame{
   }
   return piece;
  })) as [Pawn[],Pawn[]];
- if(!changed)return game;
+ // A match is over as soon as ONE player has completed all four pawns.
+ // This is also enforced on persisted Duo games from older versions, so
+ // neither the other phone nor an inactivity bot may play after victory.
+ const completed=positions.findIndex(row=>row.every(piece=>piece.zone==="finished"));
+ const winner=completed===-1?null:completed as Seat;
+ const needsVictory=winner!==null&&game.status!=="won";
+ if(!changed&&!needsVictory)return game;
  return {...game,positions,
-  status:invalidHome&&game.status==="won"?"playing":game.status,
-  winner:invalidHome?null:game.winner,
+  status:winner!==null?"won":invalidHome&&game.status==="won"?"playing":game.status,
+  winner:winner!==null?winner:invalidHome?null:game.winner,
   dice:null,streak:0,updatedAt:Date.now(),
-  lastAction:"Direction corrigée : les pions avancent normalement vers l’avant."};
+  lastAction:winner!==null?"🏆 Les quatre pions sont arrivés : partie terminée !":
+   "Direction corrigée : les pions avancent normalement vers l’avant."};
 }
 function validPawn(p:unknown):p is Pawn{
  if(!p||typeof p!=="object")return false;
@@ -323,17 +336,19 @@ function captureTargets(positions:[Pawn[],Pawn[]],seat:Seat,to:Pawn):Capture[]{
  const enemy=other(seat),captured:Capture[]=[];
  for(let pawn=0;pawn<4;pawn++){
   const target=positions[enemy][pawn];
-  // A pawn already home (its own colored finishing lane or the center)
-  // is untouchable. Launch squares and stars on the outer track are safe.
-  // An invader in someone else's lane is NOT home and can be caught
-  // by the home owner; the home owner's pawn is never sent to base.
-  if(target.zone==="home"||target.zone==="finished"||target.zone==="base")continue;
+  // The center is always protected. A pawn still inside the five colored
+  // home-lane squares can be captured by an invader landing on its square.
+  // Thus captures work BOTH ways inside the same lane: an owner can catch
+  // an invader, and an invader can catch an owner. Two stacked defenders
+  // remain protected by the existing barricade rule.
+  if(target.zone==="finished"||target.zone==="base")continue;
   let caught=false;
   if(to.zone==="track"&&target.zone==="track"){
    const square=trackIndex(seat,to.step);
    caught=!SAFE.has(square)&&square===trackIndex(enemy,target.step);
   }
   if(to.zone==="home"&&target.zone==="enemy")caught=to.depth===target.depth;
+  if(to.zone==="enemy"&&target.zone==="home")caught=to.depth===target.depth;
   if(caught){
    captured.push({seat:enemy,pawn,from:target});
    positions[enemy][pawn]=freshPawn();
@@ -351,6 +366,8 @@ export function applySenegalMove(game:SenegalGame,option:MoveOption):{game:Seneg
  const positions:[Pawn[],Pawn[]]=[[...game.positions[0]],[...game.positions[1]]];
  positions[seat][option.pawn]=legal.to;
  const captures=captureTargets(positions,seat,legal.to);
+ // Never count "entered the colored lane" as victory: all four must reach
+ // the actual central finish, not the five approach squares.
  const winner=positions[seat].every(p=>p.zone==="finished")?seat:null;
  const bonus=game.dice===6||captures.length>0||legal.to.zone==="finished";
  const nextTurn=winner!==null||bonus?seat:other(seat);
@@ -360,7 +377,7 @@ export function applySenegalMove(game:SenegalGame,option:MoveOption):{game:Seneg
   legal.action==="home"?"entre dans sa cage 🏠":"avance sur le plateau";
  return {game:{...game,positions,turn:nextTurn,dice:null,streak:game.dice===6?game.streak:0,
    status:winner!==null?"won":"playing",winner,updatedAt:Date.now(),
-   lastAction:winner!==null?"🏆 Victoire au Ludo Sénégal !":
+   lastAction:winner!==null?"🏆 Tes 4 pions sont à l’arrivée. Partie terminée !":
     (seat===0?"Rouge":"Jaune")+" "+description+(captures.length?" · "+captures.length+" pion(s) capturé(s) !":"")},
   move:{seat,pawn:option.pawn,action:option.action,from,to:legal.to,captures,path:movementPath(seat,from,legal.to,legal.action)}
  };
@@ -371,11 +388,11 @@ export function chooseSenegalBotMove(game:SenegalGame):MoveOption|null{
  const seat=game.turn;
  const score=(option:MoveOption)=>{
   const to=option.to;
-  // Defenders in their own home lane are protected. The computer must
-  // not invade that lane merely to chase an impossible capture.
-  // Humans may still choose an opponent-lane raid as a house rule.
+  // The computer may raid the enemy lane to capture a vulnerable piece,
+  // but avoids needlessly entering an empty corridor and getting trapped.
   if(option.action==="enemy"&&game.positions[seat][option.pawn].zone==="track"){
-   return Number.NEGATIVE_INFINITY;
+   const defenders=game.positions[other(seat)].some(p=>p.zone==="home"&&p.depth===to.depth);
+   if(!defenders)return Number.NEGATIVE_INFINITY;
   }
   let s=to.zone==="finished"?20000:to.zone==="home"?2000+to.depth*60:to.zone==="enemy"?260:to.zone==="track"?to.step:0;
   if(option.action==="exit")s+=400;
