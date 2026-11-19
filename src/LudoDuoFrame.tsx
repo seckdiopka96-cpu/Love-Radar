@@ -8,7 +8,7 @@ export type SharedBoardMotion={seat:number;pawn:number;progress:number;from:numb
 export type SharedBoardCapture={seat:number;pawn:number;from:number;returning:boolean;progress:number;point?:BoardPoint};
 type DuoGameSnapshot={
  id:string;version:number;turn:number;dice:number|null;
- positions:number[][];status:"playing"|"won";winner:number|null;autoCounts:[number,number];
+ positions:number[][];status:"playing"|"won"|"ended";winner:number|null;autoCounts:[number,number];
  lastAction:string;deadlineAt:number|null;
 };
 
