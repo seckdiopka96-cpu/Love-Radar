@@ -19,12 +19,12 @@ export const ROOM_DATA_TABLES=[
  "ludo_senegal_reactions","ludo_senegal_moves","ludo_senegal_games",
  "rps_games","couple_party_games","couple_party_prompt_history","couple_party_presence","couple_puzzles","couple_puzzle_presence",
  "duo_draw_games","duo_escape_games",
- // Two distinct couple rooms join a single competitive game, by invitation.
- "team_games","team_game_presence",
  "couple_watch_presence","couple_watch_sessions",
  "couple_tiktok_presence","couple_tiktok_watch",
  "couple_reconciliations","push_subscriptions","room_revisions","partner_recovery","room_plus","chat_themes","couple_avatar_styles","couple_avatar_rooms","couple_avatar_models","couple_avatar_looks"
 ] as const;
+/** Matches linking two separate rooms do not have a room_id column. */
+export const CROSS_ROOM_TABLES=["team_games","team_game_presence"] as const;
 export const MEMBER_DATA_TABLES=["member_recovery","push_test_throttle","care_share_throttle","screenshot_throttle"] as const;
 
 /**
@@ -75,7 +75,6 @@ export function buildRoomDeletionBatch(db:D1Database,roomId:string,existing:Set<
   ).bind(roomId,roomId));
  }
  for(const table of ROOM_DATA_TABLES){
-  if(table==="team_games"||table==="team_game_presence")continue;
   if(existing.has(table))statements.push(db.prepare("DELETE FROM "+table+" WHERE room_id=?").bind(roomId));
  }
  // Keep these last: ownership verification and active sessions depend on them.
