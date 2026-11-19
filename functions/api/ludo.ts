@@ -151,20 +151,24 @@ async function syncGift(db:D1Database,g:Game){
   "WHERE ludo_gifts.game_id<>excluded.game_id"
  ).bind(g.room_id,g.game_id,Date.now()).run();
 }
-/* Each member signs with their own authenticated room identity before each match.
-   This records agreement in the app; it is not a legally verified e-signature. */
+/* Each member accepts once under their authenticated couple room identity.
+   Rematches inherit approvals and colors. Gift consent resets to false per game:
+   nobody agrees to a new gift challenge by inertia.
+   This is an in-app agreement, not a verified legal e-signature. */
 async function syncAgreement(db:D1Database,g:Game){
  await db.prepare(
   "INSERT INTO ludo_agreements(room_id,game_id,updated_at) VALUES(?,?,?) "+
-  "ON CONFLICT(room_id) DO UPDATE SET game_id=excluded.game_id,signed_0_name=NULL,signed_1_name=NULL,"+
-  "signed_0_at=NULL,signed_1_at=NULL,gift_0=NULL,gift_1=NULL,started_at=NULL,updated_at=excluded.updated_at "+
+  "ON CONFLICT(room_id) DO UPDATE SET game_id=excluded.game_id,"+
+  "gift_0=0,gift_1=0,"+
+  "started_at=CASE WHEN ludo_agreements.signed_0_at IS NOT NULL AND ludo_agreements.signed_1_at IS NOT NULL "+
+  "THEN excluded.updated_at ELSE NULL END,updated_at=excluded.updated_at "+
   "WHERE ludo_agreements.game_id<>excluded.game_id"
  ).bind(g.room_id,g.game_id,Date.now()).run();
 }
 
 async function syncPalette(db:D1Database,g:Game){
  await db.prepare("INSERT INTO ludo_palette(room_id,game_id,seat0_color,chosen_by,updated_at) VALUES(?,?,'blue',NULL,?) "+
- "ON CONFLICT(room_id) DO UPDATE SET game_id=excluded.game_id,seat0_color='blue',chosen_by=NULL,updated_at=excluded.updated_at "+
+ "ON CONFLICT(room_id) DO UPDATE SET game_id=excluded.game_id,updated_at=excluded.updated_at "+
  "WHERE ludo_palette.game_id<>excluded.game_id").bind(g.room_id,g.game_id,Date.now()).run();
 }
 async function palette(db:D1Database,g:Game):Promise<Palette>{
@@ -440,7 +444,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"):Promise<Response>{
    if(typeof data.gameId!=="string"||data.gameId!==g.game_id)
     return fail("La manche a changé. Recharge l'accord avant de signer.",409);
    if(g.status!=="playing")return fail("Cette manche est déjà terminée.",409);
-   if(signed?.startedAt)return fail("La partie a déjà commencé. Un nouvel accord sera proposé à la prochaine manche.",409);
+   if(signed?.startedAt)return fail("La partie a déjà commencé. Votre accord reste valable pour les prochaines manches.",409);
    if(data.acceptRules!==true||data.signed!==true)return fail("Lis les règles et coche la case de signature pour valider.",400);
    if((await palette(db,g)).chosenBy===null)return fail("Choisis d’abord une couleur pour vos pions.",409);
    if(typeof data.giftConsent!=="boolean")return fail("Indique si tu acceptes ou refuses le défi cadeau.",400);
