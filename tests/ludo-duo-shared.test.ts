@@ -315,7 +315,11 @@ test("Sénégal quit is a direct parent click and cannot be swallowed by the ifr
  assert.ok(bridge.includes("original.replaceWith(placeholder)"),"replaces old iframe-only action");
  assert.ok(bridge.includes('onClick={()=>actionRef.current("exit")}'),"click calls the parent directly");
  assert.ok(bridge.includes('placeholder.replaceWith(original)'),"native fallback restores on cleanup");
- assert.ok(senegal.includes('case "exit":case "leave":case "menu":onExit();break;'));
+ assert.ok(senegal.includes('case "exit":case "leave":case "menu":void quitGame();break;'));
+ assert.ok(senegal.includes('localStorage.removeItem(storage(storageKey))'),"quitting Solo discards the saved match");
+ assert.ok(senegal.includes('action:"quit",gameId:idRef.current'),"quitting Duo ends the shared server match");
+ assert.ok(senegal.includes('game.status==="ended"'),"the opponent sees a stopped game");
+ assert.ok(bridge.includes('status:"playing"|"won"|"ended"'),"renderer accepts ended matches");
  const app=readFileSync("src/App.tsx","utf8");
  assert.ok(app.includes('tab==="ludo-senegal"?<SenegalLudo mode="duo"'));
  assert.ok(app.includes('onExit={()=>navigate("ludo-room")}'));
