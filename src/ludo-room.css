@@ -108,3 +108,140 @@
  .lr-app.lr-ludo-mode .lr-ludo-room-mode-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
  .lr-app.lr-ludo-mode .lr-ludo-room-mode{min-height:205px}
 }
+
+
+/* Unified Ludo launch: ONE board in view, then four compact modes. */
+.lr-ludo-room.lr-ludo-room-unified{
+ --lr-board-red:#f25d78;--lr-board-green:#32bb88;
+ --lr-board-blue:#4aafe9;--lr-board-yellow:#ffd46c;
+ display:flex;flex-direction:column;align-items:center;gap:12px;
+ padding:12px 12px 18px;max-width:620px;
+}
+.lr-ludo-room-unified .lr-ludo-room-top{width:100%}
+.lr-ludo-room-unified .lr-ludo-room-top-title{
+ display:flex;align-items:center;gap:8px;font-size:16px;letter-spacing:1.4px;
+}
+.lr-ludo-room-unified .lr-ludo-mark.is-compact{width:31px;height:31px}
+.lr-ludo-room-unified-title{text-align:center;display:grid;gap:3px;flex-shrink:0}
+.lr-ludo-room-unified-title>span{
+ color:#ffdcac;font-size:9px;letter-spacing:2.4px;font-weight:900;
+}
+.lr-ludo-room-unified-title h1{
+ margin:0;color:#fff6e9;
+ font:900 clamp(26px,6vw,37px)/1.08 system-ui,-apple-system,sans-serif;
+ letter-spacing:-.8px;
+}
+.lr-ludo-room-unified-title h1 em{font-style:normal;color:#ffcd88}
+.lr-ludo-room-unified-title p{margin:0;font-size:12px;color:#dbe2ed}
+.lr-ludo-unified-board-wrap{
+ display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+ width:100%;min-height:0;
+}
+.lr-ludo-unified-board{
+ position:relative;display:grid;
+ grid-template-columns:repeat(15,minmax(0,1fr));
+ grid-template-rows:repeat(15,minmax(0,1fr));
+ width:min(100%,385px,43svh);
+ aspect-ratio:1;
+ padding:0;overflow:hidden;
+ border:5px solid #f0e4c5;border-radius:15px;
+ box-shadow:0 12px 30px #061327d5,0 0 0 2px #5e7390,0 0 22px #ffda8f37;
+ background:#fefcf4;
+}
+.lr-ludo-preview-cell{
+ display:grid;place-items:center;min-width:0;min-height:0;
+ border:.5px solid #b0aab0;
+ background:#fff9ed;
+}
+.lr-ludo-preview-cell.red{background:var(--lr-board-red);border-color:#ffffff1d}
+.lr-ludo-preview-cell.green{background:var(--lr-board-green);border-color:#ffffff1d}
+.lr-ludo-preview-cell.blue{background:var(--lr-board-blue);border-color:#ffffff1d}
+.lr-ludo-preview-cell.yellow{background:var(--lr-board-yellow);border-color:#ffffff1d}
+.lr-ludo-preview-cell.red-lane{background:#ee8298}
+.lr-ludo-preview-cell.green-lane{background:#78d9b3}
+.lr-ludo-preview-cell.blue-lane{background:#77c5f6}
+.lr-ludo-preview-cell.yellow-lane{background:#ffdf8a}
+.lr-ludo-preview-cell.center{background:#fdf5db;border:0}
+.lr-ludo-preview-cell b{
+ font-size:clamp(6px,1.5vw,12px);line-height:1;color:#354054;
+ text-shadow:0 1px #fff6d9;
+}
+.lr-ludo-preview-home{
+ position:absolute;z-index:3;width:30.7%;height:30.7%;
+ border:2px solid #fff9e7;border-radius:16px;
+ background:#fffdf7;box-shadow:0 6px 11px #001b3b54;
+ display:grid;grid-template-columns:repeat(2,1fr);
+ grid-template-rows:repeat(2,1fr);place-items:center;padding:10%;
+ gap:10%;
+}
+.lr-ludo-preview-home span{
+ display:block;width:100%;aspect-ratio:1;
+ border:2px solid var(--home-outline);border-radius:50%;
+ box-shadow:inset 0 2px 4px #00000017;
+}
+.lr-ludo-preview-home-red{left:4.7%;top:4.7%;--home-outline:#cd4b68}
+.lr-ludo-preview-home-green{right:4.7%;top:4.7%;--home-outline:#289b74}
+.lr-ludo-preview-home-blue{left:4.7%;bottom:4.7%;--home-outline:#398cc9}
+.lr-ludo-preview-home-yellow{right:4.7%;bottom:4.7%;--home-outline:#d5a334}
+.lr-ludo-preview-center{
+ position:absolute;left:40%;top:40%;width:20%;height:20%;
+ z-index:4;display:grid;place-items:center;
+ clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
+ background:conic-gradient(from 45deg,#ffd46c 0 25%,#4aafe9 25% 50%,#f25d78 50% 75%,#32bb88 75% 100%);
+}
+.lr-ludo-preview-center span{
+ font-size:clamp(13px,3vw,25px);color:white;
+ text-shadow:0 1px 3px #28384e;
+}
+.lr-ludo-room-unified .lr-ludo-room-mode-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ width:100%;gap:9px;flex:0 0 auto;
+}
+.lr-ludo-room-unified .lr-ludo-room-mode.lr-ludo-room-unified-option{
+ display:flex;flex-direction:row;align-items:center;gap:8px;
+ min-height:65px;max-height:86px;margin:0;
+ padding:10px 10px;border-radius:16px;
+ border:1px solid var(--mode-edge);
+ box-shadow:0 7px 14px #071227a3,inset 0 1px #ffffff2b;
+}
+.lr-ludo-room-unified-icon{
+ display:grid;place-items:center;flex:0 0 29px;
+ width:29px;height:31px;border-radius:10px;
+ background:#0b1d39a6;border:1px solid #ffffff61;
+ font-size:17px;
+}
+.lr-ludo-room-unified-label{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.lr-ludo-room-unified-label strong{
+ font-size:clamp(12px,3vw,16px);line-height:1.2;font-weight:850;
+ color:#fff5e9;white-space:nowrap;
+}
+.lr-ludo-room-unified-label small{
+ font-size:9px;line-height:1.25;font-weight:650;color:#e7dcec;
+}
+.lr-ludo-room-unified-arrow{font-size:22px;line-height:1;flex:0 0 auto;color:#ffe9bb}
+.lr-ludo-room-unified .lr-ludo-room-note{
+ max-width:450px;margin:0!important;font-size:10px;color:#ced9e4;
+ text-align:center;
+}
+@media(max-width:520px){
+ .lr-app.lr-ludo-mode .lr-main > .lr-ludo-room.lr-ludo-room-unified{
+  justify-content:safe center;
+  gap:clamp(6px,1.2svh,11px);
+  padding:max(61px,calc(env(safe-area-inset-top) + 8px)) 10px
+   max(12px,env(safe-area-inset-bottom));
+ }
+ .lr-ludo-room-unified .lr-ludo-room-unified-title p{font-size:11px}
+ .lr-ludo-room-unified .lr-ludo-room-unified-title h1{font-size:clamp(24px,6.5vw,32px)}
+ .lr-ludo-room-unified .lr-ludo-unified-board{width:min(100%,39svh,340px)}
+ .lr-ludo-room-unified .lr-ludo-room-mode-grid{gap:8px}
+ .lr-ludo-room-unified .lr-ludo-room-mode.lr-ludo-room-unified-option{
+  min-height:62px!important;max-height:74px;padding:8px 7px;gap:6px;border-radius:14px;
+ }
+ .lr-ludo-room-unified .lr-ludo-room-unified-icon{flex-basis:25px;width:25px;height:28px;font-size:15px}
+ .lr-ludo-room-unified .lr-ludo-room-unified-label strong{font-size:clamp(11px,3vw,14px)}
+ .lr-ludo-room-unified .lr-ludo-room-unified-label small{font-size:8px}
+}
+@media(max-width:360px),(max-height:700px){
+ .lr-ludo-room-unified .lr-ludo-unified-board{width:min(100%,35svh,290px)}
+ .lr-ludo-room-unified .lr-ludo-room-note{font-size:9px}
+}
