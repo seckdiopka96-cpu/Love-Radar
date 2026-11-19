@@ -3,16 +3,16 @@ import {BASE,HOME,SAFE,TRACK,type Point} from "./ludo-visuals";
 /**
  * Ludo Sénégal — original implementation of the house rules described by
  * players: optional home entry, multiple laps, enemy home-lane raids, and a
- * mandatory six to reverse direction inside the enemy's lane.
+ * a six to leave the enemy's lane and continue forward on the track.
  *
  * Track steps are unbounded lap counters, not classic 0..50 progression.
- * A pawn's lane/gate/direction is explicit, so a backward journey can be
- * replayed one square at a time without teleporting.
+ * A pawn retains its track progress and direction while raiding a lane,
+ * so leaving it never forces a reverse route through the same squares.
  */
 export type Seat=0|1;
 export type Zone="base"|"track"|"home"|"enemy"|"finished";
 export type Pawn={zone:Zone;step:number;depth:number;gate:number;dir:1|-1};
-export type Action="track"|"home"|"enemy"|"reverse"|"turn";
+export type Action="track"|"home"|"enemy"|"exit"|"turn";
 export type MoveOption={pawn:number;action:Action;to:Pawn;label:string};
 export type SenegalGame={
  positions:[Pawn[],Pawn[]];turn:Seat;dice:number|null;streak:number;
@@ -88,12 +88,13 @@ export function movesForPawn(game:SenegalGame,seat:Seat,pawn:number):MoveOption[
  }
  if(from.zone==="enemy"){
   if(roll===6){
-   // Reverse in six visible backward steps, leaving via the exact gate used to enter.
-   const target=from.gate-from.dir*(7-from.depth);
+   // Resume from the last track progress, then advance six forward.
+   // Never walk the enemy lane in reverse or flip the pawn's direction.
+   const target=from.step+from.dir*roll;
    if(target< -MAX_STEPS||target>MAX_STEPS)return [];
-   return [{pawn,action:"reverse",
-    to:{zone:"track",step:target,depth:0,gate:0,dir:from.dir===1?-1:1},
-    label:"↩️ 6 : demi-tour et sortie de la cage"}];
+   return [{pawn,action:"exit",
+    to:{zone:"track",step:target,depth:0,gate:0,dir:from.dir},
+    label:"➡️ 6 : sortir de la cage et continuer"}];
   }
   if(from.depth+roll>6)return [];
   return [{pawn,action:"enemy",to:{...from,depth:from.depth+roll},label:"😈 Avancer dans la cage adverse"}];
@@ -143,10 +144,13 @@ export function movementPath(seat:Seat,from:Pawn,to:Pawn,action:Action):Point[]{
   return path;
  }
  if(from.zone==="enemy"){
-  if(action==="reverse"){
-   for(let d=from.depth-1;d>=1;d--)path.push(HOME[other(seat)][d-1]);
-   const dir=from.dir;
-   for(let s=from.gate-dir;s!==to.step-dir;s-=dir)path.push(TRACK[trackIndex(seat,s)]);
+  if(action==="exit"){
+   // One visible transition back onto the track at the pawn's saved progress,
+   // then exactly six forward steps. No backwards path through the cage.
+   path.push(TRACK[trackIndex(seat,from.step)]);
+   for(let s=from.step+from.dir;s!==to.step+from.dir;s+=from.dir){
+    path.push(TRACK[trackIndex(seat,s)]);
+   }
   }else{
    for(let d=from.depth+1;d<=to.depth;d++)path.push(HOME[other(seat)][d-1]);
   }
@@ -192,7 +196,7 @@ export function applySenegalMove(game:SenegalGame,option:MoveOption):{game:Seneg
  const winner=positions[seat].every(p=>p.zone==="finished")?seat:null;
  const bonus=game.dice===6||captures.length>0||legal.to.zone==="finished";
  const nextTurn=winner!==null||bonus?seat:other(seat);
- const description=legal.action==="enemy"?"attaque la cage adverse 😈":legal.action==="reverse"?"fait demi-tour avec un 6 ↩️":
+ const description=legal.action==="enemy"?"attaque la cage adverse 😈":legal.action==="exit"?"sort de la cage adverse et continue avec un 6 ➡️":
   legal.action==="home"?"entre dans sa cage 🏠":legal.action==="turn"?"fait demi-tour 🔄":"avance sur le plateau";
  return {game:{...game,positions,turn:nextTurn,dice:null,streak:game.dice===6?game.streak:0,
    status:winner!==null?"won":"playing",winner,updatedAt:Date.now(),
@@ -216,7 +220,7 @@ export function chooseSenegalBotMove(game:SenegalGame):MoveOption|null{
   }
   let s=to.zone==="finished"?20000:to.zone==="home"?2000+to.depth*60:to.zone==="enemy"?260:to.zone==="track"?to.step:0;
   if(option.action==="turn")s-=150;
-  if(option.action==="reverse")s+=400;
+  if(option.action==="exit")s+=400;
   if(option.action==="enemy"&&to.zone==="enemy"){
    s+=enemyHomePawns.length*275;
   }
