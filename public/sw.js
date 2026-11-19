@@ -16,6 +16,11 @@ self.addEventListener("fetch",event=>{
  if(url.origin!==self.location.origin||url.pathname.startsWith("/api/"))return;
  // The solo game is a real static page inside Love Radar. Never store it
  // as the root app shell: that could replace the app when offline.
+ if(url.pathname==="/ludo-effects.css"){
+  event.respondWith(fetch(request).catch(()=>caches.match("/ludo-effects.css")
+   .then(response=>response||Response.error())));
+  return;
+ }
  if(url.pathname==="/ludo-sfx.js"){
   event.respondWith(fetch(request).catch(()=>caches.match("/ludo-sfx.js")
    .then(response=>response||Response.error())));
