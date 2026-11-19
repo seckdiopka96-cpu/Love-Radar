@@ -20,9 +20,9 @@ test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()
  const boardSlice=s=>(s.slice(s.indexOf(start),s.indexOf(end))).replace(/^\s+|\s+$/g,"");
  assert.ok(duoHTML.includes(start));
  assert.equal(boardSlice(duoHTML),boardSlice(soloHTML));
- assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v19"'));
- assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v19"'));
- assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v19" defer'));
+ assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261118-v20"'));
+ assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261118-v20"'));
+ assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261118-v20" defer'));
  assert.ok(duoHTML.includes('LUDO <span>♥</span> DUO'));
  assert.ok(duoHTML.includes('id="roll-dice"'));
  assert.ok(duoCSS.includes('.duo-side-actions'));
@@ -66,7 +66,7 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
  'function duoFrameAction(','signRules()', 'giftAction(','ludo-agreement-backdrop','ludo-gift-dialog','ludo-modal-backdrop']){
   assert.ok(parent.includes(unchanged),unchanged);
  }
- assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v19"'));
+ assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261118-v20"'));
  assert.ok(bridge.includes('event.source!==frame'));
  assert.ok(bridge.includes('event.origin!==window.location.origin'));
  assert.ok(!bridge.includes("token:"));
@@ -349,17 +349,17 @@ test("Solo and Duo share a stable stage, and dice respond in under a half-second
  const soloJS=readFileSync("public/ludo-solo/script.js","utf8");
  const soloCSS=readFileSync("public/ludo-solo/style.css","utf8");
  const soloFrame=readFileSync("src/LudoSoloEmbedded.tsx","utf8");
- assert.ok(soloJS.includes("await sleep(reducedMotion?120:330)"),
+ assert.ok(soloJS.includes("await sleep(reducedMotion?80:240)"),
   "solo dice animation is fast but still reveals the real RNG value");
  assert.ok(parent.includes("Math.max(0,170-(Date.now()-actionStarted))"),
   "Duo never waits 690ms just to stop the local spinning die");
- assert.ok(duoJS.includes("const DIE_TUMBLE_MS=520"),
+ assert.ok(duoJS.includes("const DIE_TUMBLE_MS=260"),
   "Duo roll must visibly tumble before landing, even on a very fast server response");
  assert.ok(duoJS.includes("if(receivedState&&last.seat!==state.mySeat&&!state.rolling)animateRealDieRoll()"),
   "partner rolls have the same visible physical toss");
  assert.ok(duoJS.includes("Date.now()<dieVisualUntil"),
   "the physical animation does not replace the server's actual result");
- assert.ok(soloCSS.includes("animation:dice-tumble-real .43s"),
+ assert.ok(soloCSS.includes("animation:dice-tumble-real .22s"),
   "both dice inherit the same short 3D animation");
  assert.ok(soloCSS.includes(".game-screen .board-area{"),
   "the board remains in a fixed container on both screens");
@@ -367,8 +367,8 @@ test("Solo and Duo share a stable stage, and dice respond in under a half-second
   "Duo does not overwrite Solo's stable blue theme");
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .game-screen{"),
   "Duo does not move or resize the game stage with a different theme");
- assert.ok(soloFrame.includes("ludo-room-20261118-v6"));
- assert.ok(bridge.includes("ludo-room-20261118-v19"));
+ assert.ok(soloFrame.includes("ludo-room-20261118-v20"));
+ assert.ok(bridge.includes("ludo-room-20261118-v20"));
 });
 
 test("one playable pawn exits its base on tap and die gives clear turn feedback",()=>{
