@@ -93,7 +93,7 @@ test("Duo iframe works offline and uses only a same-origin parent, never replaci
   assert.ok(sw.includes('"'+path+'"'),path);
  }
  assert.ok(sw.includes('url.pathname.startsWith("/ludo-duo/")'));
- assert.ok(sw.includes("love-radar-static-v146"),"new PWA release must invalidate old shell");
+ assert.ok(sw.includes("love-radar-static-v147"),"new PWA release must invalidate old shell");
 });
 
 
@@ -453,8 +453,8 @@ test("Solo and Duo keep the board centered, roll quickly and play different orig
  assert.ok(soloJS.includes('new ResizeObserver(centerBoard).observe(boardArea)'));
  assert.ok(soloCSS.includes('align-items:center!important;justify-content:center!important'));
  assert.ok(duoCSS.includes('align-items:center!important;justify-content:center!important'));
- assert.ok(soloJS.includes('await sleep(reducedMotion?80:240)'));
- assert.ok(duoJS.includes('const DIE_TUMBLE_MS=260'));
+ assert.ok(soloJS.includes('await sleep(reducedMotion?80:430)'));
+ assert.ok(duoJS.includes('const DIE_TUMBLE_MS=430'));
  assert.ok(soloJS.includes('sfx?.play("exit")'));
  assert.ok(soloJS.includes('sfx?.play("capture")'));
  assert.ok(soloJS.includes('sfx?.play("win")'));
