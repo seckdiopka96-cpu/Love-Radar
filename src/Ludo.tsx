@@ -118,7 +118,13 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  const [landing,setLanding]=useState<Point|null>(null);
  const [captureFlash,setCaptureFlash]=useState(false);
  const [reactionBusy,setReactionBusy]=useState(false);
- const {enabled:soundOn,unlock:unlockSound,play:playSound,toggle:toggleSound}=useLudoSounds();
+ const {enabled:soundOn,unlock:unlockSound,play:playParentSound,toggle:toggleSound}=useLudoSounds();
+ // The visible Duo iframe now owns its own sounds. Avoid playing the same
+ // capture, win or roll twice from the hidden legacy React board.
+ const playSound=useCallback((kind:Parameters<typeof playParentSound>[0])=>{
+  if(document.querySelector(".ludo-duo-shared-iframe"))return;
+  playParentSound(kind);
+ },[playParentSound]);
  const boardStage=useRef<HTMLDivElement|null>(null);
  const prior=useRef<Game|null>(null);
  const serverClockOffset=useRef(0);
