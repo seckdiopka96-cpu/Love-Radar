@@ -41,16 +41,39 @@ test("Senegal captured pawn returns to its base when landing on the ordinary tra
  assert.equal(captured?.game.positions[1][0].zone,"base");
  assert.equal(captured?.game.positions[1][0].step,-1);
 });
-test("inside opponent lane cannot reverse with ordinary roll, but six exits backward without teleporting",()=>{
- const g=withTurn(pawn("enemy",79,3,77,1),pawn("base",-1),2);
- assert.ok(movesForPawn(g,0,0).every(o=>o.action!=="reverse"));
- const six={...g,dice:6};
- const reverse=movesForPawn(six,0,0).find(o=>o.action==="reverse");
- assert.ok(reverse);
- assert.equal(reverse?.to.zone,"track");
- assert.equal(reverse?.to.step,73);
- assert.equal(reverse?.to.dir,-1);
- assert.equal(movementPath(0,g.positions[0][0],reverse!.to,"reverse").length,6);
+test("six exits enemy cage and continues forward without retracing the lane",()=>{
+ for(const seat of [0,1] as const){
+  const game=newSenegalGame();
+  game.turn=seat;
+  game.dice=2;
+  game.positions[seat][0]=pawn("enemy",79,3,77,1);
+  assert.ok(movesForPawn(game,seat,0).every(o=>o.action!=="exit"),"only a six allows the exit");
+  game.dice=6;
+  const exit=movesForPawn(game,seat,0).find(o=>o.action==="exit");
+  assert.ok(exit);
+  assert.equal(exit!.to.zone,"track");
+  assert.equal(exit!.to.step,85,"retain previous track progress and advance six");
+  assert.equal(exit!.to.dir,1,"do not reverse direction");
+  const path=movementPath(seat,game.positions[seat][0],exit!.to,exit!.action);
+  assert.equal(path.length,7,"one lane exit transition plus exactly six forward cells");
+  assert.deepEqual(path[0],pointForPawn(seat,0,pawn("track",79)));
+  assert.deepEqual(path[1],pointForPawn(seat,0,pawn("track",80)));
+  assert.deepEqual(path.at(-1),pointForPawn(seat,0,exit!.to));
+  const completed=applySenegalMove(game,exit!);
+  assert.ok(completed);
+  assert.deepEqual(completed!.move.path,path);
+  assert.equal(completed!.game.positions[seat][0].zone,"track");
+  const followup={...completed!.game,dice:2,turn:seat};
+  assert.equal(movesForPawn(followup,seat,0).find(o=>o.action==="track")?.to.step,87,
+   "later turns keep advancing forwards");
+ }
+});
+test("exit keeps the current direction when the pawn entered the enemy lane backwards",()=>{
+ const game=withTurn(pawn("enemy",76,2,77,-1),pawn("base",-1),6);
+ const exit=movesForPawn(game,0,0).find(o=>o.action==="exit");
+ assert.equal(exit?.to.step,70);
+ assert.equal(exit?.to.dir,-1,"existing chosen direction must not flip on exit");
+ assert.equal(movementPath(0,game.positions[0][0],exit!.to,exit!.action).length,7);
 });
 test("every new u-turn requires six, can run backwards on track then choose another reversal",()=>{
  const g=withTurn(pawn("track",73,0,0,-1),pawn("base",-1),3);
@@ -147,4 +170,11 @@ test("Senegal shares the physical Classic 3D die and preserves its special paths
  assert.ok(classic.includes('if(state.variant==="senegal")return Array.isArray(state.legalPawns)'));
  assert.ok(classic.includes('state.variant==="senegal"?state.boardPoints'));
  assert.ok(classic.includes("animateRealDieRoll()"),"same physical throw animation");
+});
+
+test("Sénégal exit movement is accepted by the server and shown in the board rules",()=>{
+ const api=readFileSync("functions/api/ludo-senegal.ts","utf8");
+ const sharedBoard=readFileSync("public/ludo-duo/script.js","utf8");
+ assert.ok(api.includes('"track","home","enemy","exit","turn"'));
+ assert.ok(sharedBoard.includes("sans refaire le chemin inverse"));
 });
