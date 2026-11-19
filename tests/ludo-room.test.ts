@@ -38,7 +38,7 @@ test("one visible Ludo entrance opens the room with all four games",()=>{
  for(const mode of ["Classique · Duo","Sénégal · Duo","Classique · Solo","Sénégal · Solo"])
   assert.ok(room.includes(mode),"one simple option per rule/opponent combination");
  const unified=read("public/ludo-unified-stage.css");
- assert.ok(unified.includes(".board-frame")&&unified.includes(".ludo-board-wrap-immersive"),
+ assert.ok(unified.includes(".lr-unified-ludo-frame")&&unified.includes(".lr-unified-ludo-board"),
   "all four games share board framing and visual tokens");
  assert.ok(unified.includes(".lr-ludo-base.is-current-turn"),"the shared house glows on the active turn");
  assert.ok(unified.includes(".ludo-pawn.is-own-turn"),"Sénégal current player's pins are outlined");
