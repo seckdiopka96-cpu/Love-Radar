@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {Script} from "node:vm";
-import {newSenegalGame,stopSenegalGame,isSenegalGame,movesForPawn,applySenegalMove,rollSenegal,pointForPawn,trackIndex,
+import {newSenegalGame,stopSenegalGame,isSenegalGame,repairSenegalHomeShortcut,movesForPawn,applySenegalMove,rollSenegal,pointForPawn,trackIndex,
  movementPath,autoplayTurn,TURN_MS,chooseSenegalBotMove,type Pawn,type SenegalGame} from "../src/ludo-senegal-engine";
 const pawn=(zone:Pawn["zone"],step:number,depth=0,gate=0,dir:1|-1=1):Pawn=>({zone,step,depth,gate,dir});
 const withTurn=(red:Pawn,yellow:Pawn,face:number,seat:0|1=0):SenegalGame=>{
@@ -19,6 +19,33 @@ test("Senegal pawn can skip its own home and keep going around second and third 
  assert.deepEqual(pointForPawn(0,0,next!.game.positions[0][0]),pointForPawn(0,0,pawn("track",1)));
  const another=withTurn(pawn("track",101),pawn("base",-1),5);
  assert.ok(movesForPawn(another,0,0).some(o=>o.action==="home"));
+});
+test("old saved premature home entries are repaired without losing a legitimate home",()=>{
+ for(const seat of [0,1] as const){
+  const old=newSenegalGame();
+  old.positions[seat][0]=pawn("home",-5,5,-1,-1);
+  old.positions[seat][1]=pawn("home",53,3,51,1);
+  old.positions[seat][2]=pawn("home",-56,4,-53,-1);
+  old.positions[seat][3]=pawn("finished",-7,7,-1,-1);
+  const repaired=repairSenegalHomeShortcut(old);
+  assert.notEqual(repaired,old);
+  assert.equal(repaired.positions[seat][0].zone,"track");
+  assert.equal(repaired.positions[seat][0].step,-5);
+  assert.equal(repaired.positions[seat][0].dir,-1);
+  assert.equal(repaired.positions[seat][3].zone,"track");
+  assert.equal(repaired.positions[seat][1].zone,"home","full clockwise lap remains valid");
+  assert.equal(repaired.positions[seat][2].zone,"home","full anticlockwise lap remains valid");
+  assert.equal(repaired.dice,null);
+  assert.ok(isSenegalGame(repaired));
+  assert.equal(repairSenegalHomeShortcut(repaired),repaired,"migration runs at most once");
+ }
+ const persisted=readFileSync("functions/api/ludo-senegal.ts","utf8");
+ const screen=readFileSync("src/SenegalLudo.tsx","utf8");
+ assert.ok(screen.includes("return repairSenegalHomeShortcut(game)"),"Solo repairs cached matches");
+ assert.ok(persisted.includes("const repaired=repairSenegalHomeShortcut(state)"),
+  "Duo repairs the same authoritative server state");
+ assert.ok(persisted.includes("WHERE room_id=? AND game_id=? AND version=?"),
+  "Duo migration cannot overwrite simultaneous partner moves");
 });
 test("a pawn cannot enter its home immediately after leaving base and reversing on six",()=>{
  // Both red (seat 0) and yellow (seat 1) use these rules in Solo and Duo.
