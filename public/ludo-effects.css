@@ -1,0 +1,109 @@
+/* Love Radar Ludo — shared Solo/Duo visual effects.
+   Only CSS is animated. The authoritative die face, legal moves and scores
+   always come from the Solo engine / authenticated Duo game state. */
+
+/* Keep the physical cube's movement inside its holder area and never
+   translate, resize, or reflow the fixed 15×15 game board. */
+html.lr-ludo-solo-ui .game-screen .dice-3d.is-rolling[data-toss],
+html.lr-ludo-duo-ui .game-screen .dice-3d.is-rolling[data-toss] {
+  transform-origin:50% 80%!important;
+  transform-style:preserve-3d!important;
+  -webkit-transform-style:preserve-3d!important;
+  will-change:transform;
+  transition:none!important;
+}
+html.lr-ludo-solo-ui .game-screen .dice-3d.is-rolling[data-toss="0"],
+html.lr-ludo-duo-ui .game-screen .dice-3d.is-rolling[data-toss="0"] {
+  animation:lr-ludo-cinematic-toss-a .43s cubic-bezier(.19,.58,.30,1) both!important;
+}
+html.lr-ludo-solo-ui .game-screen .dice-3d.is-rolling[data-toss="1"],
+html.lr-ludo-duo-ui .game-screen .dice-3d.is-rolling[data-toss="1"] {
+  animation:lr-ludo-cinematic-toss-b .43s cubic-bezier(.19,.58,.30,1) both!important;
+}
+html.lr-ludo-solo-ui .game-screen .dice-3d.is-rolling[data-toss="2"],
+html.lr-ludo-duo-ui .game-screen .dice-3d.is-rolling[data-toss="2"] {
+  animation:lr-ludo-cinematic-toss-c .43s cubic-bezier(.19,.58,.30,1) both!important;
+}
+@keyframes lr-ludo-cinematic-toss-a {
+  0%{transform:translate3d(0,0,0) rotateX(-15deg) rotateY(-21deg) rotateZ(0deg) scale(1)}
+  21%{transform:translate3d(-12px,-13px,0) rotateX(135deg) rotateY(141deg) rotateZ(29deg) scale(1.13)}
+  52%{transform:translate3d(9px,-30px,0) rotateX(364deg) rotateY(412deg) rotateZ(-44deg) scale(1.30)}
+  78%{transform:translate3d(-4px,-10px,0) rotateX(574deg) rotateY(610deg) rotateZ(21deg) scale(1.08)}
+  100%{transform:translate3d(0,0,0) rotateX(720deg) rotateY(720deg) rotateZ(0deg) scale(1)}
+}
+@keyframes lr-ludo-cinematic-toss-b {
+  0%{transform:translate3d(0,0,0) rotateX(-16deg) rotateY(-16deg) rotateZ(0deg) scale(1)}
+  24%{transform:translate3d(11px,-19px,0) rotateX(-168deg) rotateY(205deg) rotateZ(-48deg) scale(1.17)}
+  55%{transform:translate3d(-9px,-32px,0) rotateX(-398deg) rotateY(442deg) rotateZ(-90deg) scale(1.28)}
+  81%{transform:translate3d(5px,-6px,0) rotateX(-611deg) rotateY(633deg) rotateZ(26deg) scale(1.06)}
+  100%{transform:translate3d(0,0,0) rotateX(-720deg) rotateY(720deg) rotateZ(0deg) scale(1)}
+}
+@keyframes lr-ludo-cinematic-toss-c {
+  0%{transform:translate3d(0,0,0) rotateX(-12deg) rotateY(-20deg) rotateZ(0deg) scale(1)}
+  20%{transform:translate3d(-8px,-17px,0) rotateX(154deg) rotateY(-202deg) rotateZ(41deg) scale(1.18)}
+  52%{transform:translate3d(13px,-34px,0) rotateX(392deg) rotateY(-453deg) rotateZ(97deg) scale(1.31)}
+  80%{transform:translate3d(-5px,-7px,0) rotateX(594deg) rotateY(-645deg) rotateZ(-29deg) scale(1.06)}
+  100%{transform:translate3d(0,0,0) rotateX(720deg) rotateY(-720deg) rotateZ(0deg) scale(1)}
+}
+
+/* Light pulses only around the active player's house. It does NOT move
+   the cage, cover the playable pawns, or swallow any tap. */
+html.lr-ludo-solo-ui .board .base.is-current-turn::after,
+html.lr-ludo-duo-ui .board .base.is-current-turn::after {
+  content:"";
+  position:absolute;
+  inset:2%!important;
+  z-index:3!important;
+  border:clamp(3px,.75vw,5px) solid #fffde8!important;
+  border-radius:9px!important;
+  pointer-events:none!important;
+  animation:lr-ludo-house-beacon .86s ease-in-out infinite!important;
+  opacity:1!important;
+  box-shadow:inset 0 0 0 1px #143053,0 0 0 2px #ffe36a,0 0 12px #fff7c7!important;
+}
+html.lr-ludo-solo-ui .board .base.is-my-turn::after,
+html.lr-ludo-duo-ui .board .base.is-my-turn::after{
+  border-color:#fff!important;
+  animation-duration:.72s!important;
+}
+@keyframes lr-ludo-house-beacon {
+  0%,100%{
+    opacity:.68;
+    box-shadow:inset 0 0 0 1px #112f52,0 0 0 2px #ffe27a,0 0 9px #fff4ba;
+  }
+  35%{
+    opacity:1;
+    box-shadow:inset 0 0 0 2px #17324b,0 0 0 4px #fff5ac,0 0 24px #fff9d7,0 0 32px #fff1a266;
+  }
+  65%{opacity:.86;box-shadow:inset 0 0 0 1px #112f52,0 0 0 3px #ffe486,0 0 15px #fff5c8}
+}
+
+/* White sculpted pin silhouettes on MY turn. No token changes its position
+   or hit target. The soft spotlight is strongest for actually legal moves. */
+html.lr-ludo-solo-ui .game-screen .piece--owned-turn .piece-svg,
+html.lr-ludo-duo-ui .game-screen .piece--owned-turn .piece-svg{
+  filter:
+   drop-shadow(1.35px 0 0 #fff)
+   drop-shadow(-1.35px 0 0 #fff)
+   drop-shadow(0 1.35px 0 #fff)
+   drop-shadow(0 -1.35px 0 #fff)
+   drop-shadow(0 2px 4px #06142cc0)!important;
+}
+html.lr-ludo-solo-ui .game-screen .piece--owned-turn.piece--selectable,
+html.lr-ludo-duo-ui .game-screen .piece--owned-turn.piece--selectable{
+  animation:lr-ludo-legal-white-glow .90s ease-in-out infinite!important;
+}
+@keyframes lr-ludo-legal-white-glow{
+  0%,100%{filter:drop-shadow(0 0 3px #fff6d0)}
+  50%{filter:drop-shadow(0 0 11px #fff) drop-shadow(0 0 5px #ffe9a9)}
+}
+@media(prefers-reduced-motion:reduce){
+ html.lr-ludo-solo-ui .game-screen .dice-3d.is-rolling[data-toss],
+ html.lr-ludo-duo-ui .game-screen .dice-3d.is-rolling[data-toss],
+ html.lr-ludo-solo-ui .board .base.is-current-turn::after,
+ html.lr-ludo-duo-ui .board .base.is-current-turn::after,
+ html.lr-ludo-solo-ui .game-screen .piece--owned-turn.piece--selectable,
+ html.lr-ludo-duo-ui .game-screen .piece--owned-turn.piece--selectable{
+  animation:none!important;
+ }
+}
