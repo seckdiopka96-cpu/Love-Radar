@@ -238,7 +238,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   if(game.status!=="playing"||game.dice!==null||rolling||busy||motion||captureBack.length||chosen||(!solo&&(!online||members!==2||game.turn!==seat))||
    (solo&&game.turn!==1&&!(game.turn===0&&(automatic||!assisted))))return;
   if(!automatic)unlockSound();
-  if(automatic)playSound("roll");setRolling(true);
+  setRolling(true); // The one Classic frame plays the physical dice sound.
   if(solo){
    const face=die();
    later(()=>{
