@@ -88,6 +88,8 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
 
  const timers=useRef<number[]>([]);
  const captureDeadline=useRef(0);
+ const motionDeadline=useRef(0);
+ const motionGeneration=useRef(0);
  const loaded=useRef(true);
  const versionRef=useRef(0);
  const idRef=useRef("");
@@ -108,17 +110,26 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   const interval=window.setInterval(()=>setNow(Date.now()),250);
   return ()=>window.clearInterval(interval);
  },[]);
- // iOS may suspend callbacks during a phone call. A captured pawn must not
- // leave the game blocked after the app becomes responsive again.
+ // iOS may suspend callbacks during a phone call. Neither a moving pawn
+ // nor a captured pawn may keep inputs locked after the game resumes.
  useEffect(()=>{
-  if(captureBack.length&&captureDeadline.current>0&&now>=captureDeadline.current){
+  if(motion&&motionDeadline.current>0&&now>=motionDeadline.current){
+   motionGeneration.current++;
+   clearTimers();motionDeadline.current=0;captureDeadline.current=0;
+   setMotion(null);setCaptureBack([]);setLanding(null);setReaction("");
+   setRolling(false);
+  }else if(captureBack.length&&captureDeadline.current>0&&now>=captureDeadline.current){
    setCaptureBack([]);captureDeadline.current=0;
   }
- },[now,captureBack.length]);
+ },[now,Boolean(motion),captureBack.length]);
  // Only authentic Senegal dice results are passed to the existing Classic 3D die.
  const animate=useCallback((move:SenegalMove)=>{
   const path=move.path;
   if(!path.length)return;
+  const generation=++motionGeneration.current;
+  const STEP_MS=move.from.zone==="base"?520:540,START_MS=250;
+  const done=START_MS+path.length*STEP_MS+90;
+  motionDeadline.current=Date.now()+done+850;
   const captured=move.captures.map(p=>({...p,point:pointForPawn(p.seat,p.pawn,p.from)}));
   if(captured.length){
    // Enforce an absolute deadline independent of every animation callback.
@@ -126,28 +137,27 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    setCaptureBack(captured.map(({seat,pawn,point})=>({seat,pawn,point})));
   }
   setMotion({seat:move.seat,pawn:move.pawn,point:pointForPawn(move.seat,move.pawn,move.from),index:0,length:path.length});
-  const STEP_MS=move.from.zone==="base"?520:540,START_MS=250;
   path.forEach((point,i)=>later(()=>{
-   if(!loaded.current)return;
+   if(!loaded.current||motionGeneration.current!==generation)return;
    setMotion({seat:move.seat,pawn:move.pawn,point,index:i+1,length:path.length});
    // Shared Classic renderer plays each step sound.
    if(i===path.length-1)haptic();
   },START_MS+i*STEP_MS));
-  const done=START_MS+path.length*STEP_MS+90;
   later(()=>{
-   if(!loaded.current)return;
+   if(!loaded.current||motionGeneration.current!==generation)return;
+   motionDeadline.current=0;
    setMotion(null);setLanding(pointForPawn(move.seat,move.pawn,move.to));
    if(move.captures.length){
     setReaction("💥");
     const returns=move.captures.map(captured=>({...captured,path:captureReversePoints(captured)}));
     returns.forEach(item=>item.path.forEach((point,index)=>later(()=>{
-     if(!loaded.current)return;
+     if(!loaded.current||motionGeneration.current!==generation)return;
      setCaptureBack(rows=>rows.map(row=>row.seat===item.seat&&row.pawn===item.pawn?{...row,point}:row));
     },70+index*50)));
     const longest=Math.max(...returns.map(item=>item.path.length));
     const returnMs=240+longest*50;
     captureDeadline.current=Date.now()+returnMs+350;
-    later(()=>{if(loaded.current){setCaptureBack([]);captureDeadline.current=0}},returnMs);
+    later(()=>{if(loaded.current&&motionGeneration.current===generation){setCaptureBack([]);captureDeadline.current=0}},returnMs);
    }
    else if(move.action==="exit"){setReaction("↩️");}
    else if(move.action==="jump"){setReaction("⤴️");}
@@ -183,12 +193,12 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    setLastRoll(previous=>previous?.at===next.updatedAt&&previous.face===actualFace&&previous.seat===roller?
     previous:{seat:roller,face:actualFace,at:next.updatedAt});
   }
-  if(next.id!==oldId){lastAnimated.current="";setMotion(null);setCaptureBack([]);captureDeadline.current=0;clearTimers();setChosen(null);}
+  if(next.id!==oldId){lastAnimated.current="";motionGeneration.current++;motionDeadline.current=0;setMotion(null);setCaptureBack([]);captureDeadline.current=0;clearTimers();setChosen(null);}
   versionRef.current=next.version;idRef.current=next.id;
   if(next.status==="ended"){
    for(const id of timers.current)window.clearTimeout(id);
    timers.current=[];
-   setMotion(null);setCaptureBack([]);captureDeadline.current=0;setChosen(null);setRolling(false);
+   motionGeneration.current++;motionDeadline.current=0;setMotion(null);setCaptureBack([]);captureDeadline.current=0;setChosen(null);setRolling(false);
   }
   setGame({
    positions:next.positions,turn:next.turn,dice:next.dice,streak:next.streak,
@@ -353,6 +363,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  }
  function reset(){
   setConfirmReset(false);setChosen(null);setAssisted(false);
+  motionGeneration.current++;motionDeadline.current=0;captureDeadline.current=0;
   clearTimers();setMotion(null);setCaptureBack([]);setReaction("");setSticker(null);setEmotes(false);setRolling(false);
   if(solo){sessionId.current="senegal-"+storageKey+"-"+Date.now();setLastRoll(null);setGame(newSenegalGame());}
   else void sendAction({action:"restart"});
