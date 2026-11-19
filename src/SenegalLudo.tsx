@@ -367,7 +367,6 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const invasionChoice=Boolean(chosen?.some(option=>option.action==="enemy"&&game.positions[seat][option.pawn].zone==="track"));
  const enemyCagePawns=game.positions[enemy].filter(p=>p.zone==="home");
  // Own-home pawns are protected: invading a lane can never capture them.
- const directCapture=false;
  const lastFace=game.lastAction.match(/Dé ([1-6])/);
  const shownDie=rolling?face:game.dice??(lastFace?Number(lastFace[1]):face);
  const status=game.status==="won"?(game.winner===seat?"🏆 Tu as gagné !":"🏆 Ton adversaire a gagné !"):
