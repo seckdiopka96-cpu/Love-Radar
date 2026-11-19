@@ -183,7 +183,8 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    if(ctx.waitUntil)ctx.waitUntil(job);else void job;
    return send({invited:true,...await publicState(db,member,mode,members)});
   }
-  if(!(await partnerInGame(db,member,mode)))return fail("Ton partenaire doit rejoindre le jeu pour commencer ou continuer.",409);
+  await enterGame(db,member,mode);
+   if(!(await partnerInGame(db,member,mode)))return fail("Ton partenaire doit rejoindre le jeu pour commencer ou continuer.",409);
    if(!Number.isInteger(data.round)||data.round!==row.round)
    return fail("Ton partenaire a déjà changé de manche.",409);
   if(mode==="rapid"){
