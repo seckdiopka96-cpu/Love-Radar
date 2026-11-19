@@ -1,0 +1,169 @@
+/* Love Radar Ludo — ONE ACTUAL BOARD ARTWORK in ALL 5 views.
+ * Artwork: /ludo-board-art.svg. The independent engines own ONLY the pawn
+ * positions, game rules and interactive controls. No mode is allowed to draw
+ * its own background cells, circles, center or safe stars. */
+:root{--lr-canonical-art:url("/ludo-board-art.svg?v=canonical-20261119-v3");}
+html.lr-ludo-solo-ui #plateau .lr-unified-ludo-board,
+html.lr-ludo-duo-ui #plateau .lr-unified-ludo-board,
+#root .ludo-experience.ludo-senegal .lr-unified-ludo-board,
+#root .lr-ludo-room-unified .lr-ludo-unified-board{
+ background-image:var(--lr-canonical-art)!important;
+ background-size:100% 100%!important;
+ background-position:center center!important;
+ background-repeat:no-repeat!important;
+ background-color:#f4efe3!important;
+ border:1px solid #fff5d9!important;
+ border-radius:9px!important;
+ box-shadow:inset 0 0 3px #1b2f322c!important;
+ transform:none!important;
+ animation:none!important;
+}
+/* All board frames match: same depth, same gold border, same padding. */
+html.lr-ludo-solo-ui #plateau .lr-unified-ludo-frame,
+html.lr-ludo-duo-ui #plateau .lr-unified-ludo-frame,
+#root .ludo-experience.ludo-senegal .lr-unified-ludo-frame,
+#root .lr-ludo-room-unified .lr-ludo-unified-board {
+ border:3px solid #a88743!important;
+ border-radius:16px!important;
+ padding:5px!important;
+ background:#bc9c5f!important;
+ box-shadow:0 13px 26px #07131ccd,0 0 0 2px #493c24,
+  inset 0 1px 2px #fce7ad!important;
+}
+/* Preview has no separate tile renderer anymore. */
+#root .lr-ludo-room-unified .lr-ludo-unified-board{
+ display:block!important;
+ grid-template:none!important;
+ width:min(100%,385px,43svh);
+ aspect-ratio:1!important;
+ overflow:hidden!important;
+}
+/* Hide the legacy colored cells and their borders, not their event or
+ * grid placement: the single SVG renders those exact 225 squares. */
+html.lr-ludo-solo-ui #plateau .lr-unified-ludo-board > .lr-ludo-cell,
+html.lr-ludo-duo-ui #plateau .lr-unified-ludo-board > .lr-ludo-cell,
+#root .ludo-senegal .lr-unified-ludo-board > .lr-ludo-cell{
+ background:transparent!important;
+ border:0!important;
+ box-shadow:none!important;
+}
+/* The SVG contains all eight safety stars: zero duplications. */
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-ludo-cell .star,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-ludo-cell .star,
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-cell .ludo-star{
+ visibility:hidden!important;
+}
+/* The same four 6x6 houses exist in each DOM for pawn positions.
+ * Their paint is transparent, because the SVG draws all four houses. */
+html.lr-ludo-solo-ui #plateau .lr-unified-ludo-board .lr-ludo-base,
+html.lr-ludo-duo-ui #plateau .lr-unified-ludo-board .lr-ludo-base,
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-base{
+ background:transparent!important;
+ box-shadow:none!important;
+ border:0!important;
+ pointer-events:none!important;
+ z-index:4!important;
+}
+/* IMPORTANT: classic pawns live INSIDE each spot. Align their controls with
+ * the same art-ring centers as Senegal's base pawns: 1.5 and 4.5 grid cells. */
+html.lr-ludo-solo-ui #plateau .lr-unified-ludo-board .lr-ludo-base .base-inner,
+html.lr-ludo-duo-ui #plateau .lr-unified-ludo-board .lr-ludo-base .base-inner,
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-base .base-inner{
+ position:absolute!important;inset:0!important;
+ width:100%!important;height:100%!important;
+ display:block!important;
+ background:transparent!important;
+ border:0!important;border-radius:0!important;
+ box-shadow:none!important;
+ padding:0!important;
+ pointer-events:none!important;
+ animation:none!important;
+}
+html.lr-ludo-solo-ui #plateau .lr-unified-ludo-board .lr-ludo-base .base-spot,
+html.lr-ludo-duo-ui #plateau .lr-unified-ludo-board .lr-ludo-base .base-spot,
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-base .base-spot{
+ position:absolute!important;
+ display:grid!important;place-items:center!important;
+ width:17%!important;height:17%!important;
+ aspect-ratio:1!important;
+ border:0!important;border-radius:50%!important;
+ background:transparent!important;
+ box-shadow:none!important;
+ transform:translate(-50%,-50%)!important;
+ pointer-events:none!important;
+}
+.lr-unified-ludo-board .lr-ludo-base .base-spot:nth-child(1){left:25%!important;top:25%!important}
+.lr-unified-ludo-board .lr-ludo-base .base-spot:nth-child(2){left:75%!important;top:25%!important}
+.lr-unified-ludo-board .lr-ludo-base .base-spot:nth-child(3){left:25%!important;top:75%!important}
+.lr-unified-ludo-board .lr-ludo-base .base-spot:nth-child(4){left:75%!important;top:75%!important}
+html.lr-ludo-solo-ui .lr-unified-ludo-board .base-spot .piece,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .base-spot .piece{
+ pointer-events:auto!important;
+}
+html.lr-ludo-solo-ui .lr-unified-ludo-board .base-label,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .base-label{
+ display:none!important;
+}
+/* In Senegal the base pieces are real buttons on 0-based [1,1] etc cells,
+ * exactly the same ring centers. Do not remove the overlaid pieces. */
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-cell.has-pawns{
+ position:relative!important;
+ z-index:20!important;
+ overflow:visible!important;
+}
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-cell.has-pawns .ludo-cell-pawns{
+ z-index:21!important;pointer-events:none!important;
+}
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-cell.has-pawns button{
+ pointer-events:auto!important;
+}
+/* One shared central diamond from the SVG. Existing DOM stays in place
+ * but never draws a second, differently-colored center on top. */
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-shared-center,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-shared-center,
+#root .ludo-senegal .lr-unified-ludo-board .lr-shared-center{
+ background:transparent!important;
+ border:0!important;
+ box-shadow:none!important;
+ pointer-events:none!important;
+}
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-shared-center svg,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-shared-center svg,
+#root .ludo-senegal .lr-unified-ludo-board .lr-shared-center svg{
+ visibility:hidden!important;
+}
+/* The HOUSE flashes subtly on a real turn; the board itself never moves. */
+.lr-unified-ludo-board .lr-ludo-base.is-current-turn::after{
+ content:""!important;
+ position:absolute!important;inset:11%!important;
+ border:4px solid #fffef4!important;
+ border-radius:20px!important;
+ box-shadow:0 0 0 2px #f5db91,0 0 15px #ffe8a49c!important;
+ animation:lr-one-board-beacon .9s ease-in-out infinite!important;
+ opacity:1!important;
+ pointer-events:none!important;
+ z-index:5!important;
+}
+@keyframes lr-one-board-beacon{
+ 0%,100%{filter:brightness(.84) drop-shadow(0 0 2px #fff9de)}
+ 45%{filter:brightness(1.18) drop-shadow(0 0 10px #fff4ca)}
+}
+/* Same dark blue-green ambience surrounding the board; the game headers
+ * still display Sénégal/Classic and retain their own controls. */
+html.lr-ludo-solo-ui .app,
+html.lr-ludo-duo-ui .app,
+#root .ludo-experience.ludo-senegal-solo,
+#root .ludo-experience.ludo-senegal-duo{
+ background:radial-gradient(ellipse at 50% 48%,#16485c66,transparent 67%),
+ linear-gradient(168deg,#0d2939 0%,#0c1e2e 67%,#102c3a 100%)!important;
+}
+/* Force the same subdued palette for extra game UI coloring, not only board. */
+html.lr-ludo-solo-ui .app,
+html.lr-ludo-duo-ui .app{
+ --red:#a91e3e;--green:#08734e;--blue:#155593;--yellow:#ad7916;
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-unified-ludo-board .lr-ludo-base.is-current-turn::after{
+  animation:none!important;
+ }
+}
