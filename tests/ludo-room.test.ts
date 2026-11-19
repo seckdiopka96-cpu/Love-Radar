@@ -34,16 +34,18 @@ test("one visible Ludo entrance opens the room with all four games",()=>{
 });
 
 test("classic Duo loads the newest shared board, never a cached legacy iframe",()=>{
- const duoVersion="ludo-room-20261118-v21";
- const soloVersion="ludo-room-20261118-v22";
+ const duoVersion="ludo-room-20261119-v23";
+ const soloVersion="ludo-room-20261119-v23";
  assert.ok(duoFrame.includes('/ludo-duo/index.html?v='+duoVersion));
  assert.ok(soloFrame.includes('&v='+soloVersion));
  assert.ok(duoHTML.includes('../ludo-solo/style.css?v='+duoVersion));
  assert.ok(duoHTML.includes('./script.js?v='+duoVersion));
  assert.ok(soloHTML.includes('./style.css?v='+soloVersion));
+ assert.ok(soloHTML.includes("../ludo-effects.css"));
+ assert.ok(duoHTML.includes("../ludo-effects.css"));
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .app{"),"Duo must not replace the stable Solo stage with a purple skin");
  assert.ok(duoCSS.includes("Same blue background, board border"),"Duo inherits Solo board/frame and rail styles");
- assert.ok(read("public/sw.js").includes('love-radar-static-v146'));
+ assert.ok(read("public/sw.js").includes('love-radar-static-v147'));
 });
 
 test("the eight classic safe cells each have a visible star on both boards",()=>{
