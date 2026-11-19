@@ -67,11 +67,13 @@ function capturesAt(game:TeamGame,seat:TeamSeat,to:TeamPiece):{seat:TeamSeat;paw
   if(teamOf(other)===teamOf(seat))continue;
   for(let pawn=0;pawn<4;pawn++){
    const target=game.positions[other][pawn];
-   if(target.zone==="base"||target.zone==="home"||target.zone==="finished")continue;
+   if(target.zone==="base"||target.zone==="finished")continue;
    if(to.zone==="track"&&target.zone==="track"){
     const landing=square(seat,to);
     if(landing!==null&&!SAFE.has(landing)&&landing===square(other,target))found.push({seat:other,pawn});
    }else if(to.zone==="home"&&target.zone==="enemy"&&target.owner===seat&&to.depth===target.depth){
+    found.push({seat:other,pawn});
+   }else if(to.zone==="enemy"&&target.zone==="home"&&to.owner===other&&to.depth===target.depth){
     found.push({seat:other,pawn});
    }
   }
