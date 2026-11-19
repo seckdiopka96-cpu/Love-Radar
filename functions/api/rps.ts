@@ -9,7 +9,7 @@ import {isRpsMove,rpsWinner,type RpsMove} from "../../src/rps-engine";
 type Ctx={request:Request;env:PushEnv;waitUntil?:(task:Promise<unknown>)=>void};
 type Member={id:string;room_id:string;seat:number;name:string};
 type Row={
- room_id:string;game_id:string;round:number;version:number;status:"choosing"|"revealed";
+ room_id:string;game_id:string;round:number;version:number;status:"choosing"|"revealed"|"finished";
  move_0:RpsMove|null;move_1:RpsMove|null;score_0:number;score_1:number;ties:number;
  winner:number|null;ready_0:number;ready_1:number;updated_at:number;revealed_at:number|null;last_invite_at:number;
 };
@@ -17,6 +17,7 @@ const yes=(body:Record<string,unknown>)=>Response.json({ok:true,...body},{header
 const no=(error:string,status=400)=>Response.json({ok:false,error},{status,headers:{"Cache-Control":"private, no-store"}});
 // Show the revealed hands before automatically starting the next round.
 const RESULT_DISPLAY_MS=4500;
+const WIN_SCORE=10;
 let ready:Promise<void>|null=null;
 async function ensure(db:D1Database){
  if(!ready)ready=db.exec(
@@ -43,6 +44,12 @@ async function getRow(db:D1Database,roomId:string){
 }
 async function publicState(db:D1Database,player:Member,members:number){
  let row=members===2?await getRow(db,player.room_id):null;
+ if(row&&row.status!=="finished"&&(row.score_0>=WIN_SCORE||row.score_1>=WIN_SCORE)){
+  await db.prepare("UPDATE rps_games SET status='finished',version=version+1,updated_at=?"+
+   " WHERE room_id=? AND game_id=? AND version=? AND status<>'finished'")
+   .bind(Date.now(),player.room_id,row.game_id,row.version).run();
+  row=await getRow(db,player.room_id);
+ }
  if(row?.status==="revealed"&&row.revealed_at!==null&&
     Date.now()-row.revealed_at>=RESULT_DISPLAY_MS){
   // Compare-and-set: only one client can advance the round.
@@ -59,8 +66,10 @@ async function publicState(db:D1Database,player:Member,members:number){
  return {members,seat:player.seat,game:{
   id:row.game_id,round:row.round,version:row.version,status:row.status,
   mine,partnerPicked:partner!==null,
-  partnerMove:row.status==="revealed"?partner:null,
-  scores:[row.score_0,row.score_1],ties:row.ties,winner:row.status==="revealed"?row.winner:null,
+  partnerMove:row.status==="revealed"||row.status==="finished"?partner:null,
+  scores:[row.score_0,row.score_1],ties:row.ties,
+  winner:row.status==="revealed"||row.status==="finished"?row.winner:null,
+  matchWinner:row.status==="finished"?(row.score_0>=WIN_SCORE?0:1):null,winScore:WIN_SCORE,
   ready:[!!row.ready_0,!!row.ready_1],
   updatedAt:row.updated_at,revealedAt:row.revealed_at
  },serverNow:Date.now()};
@@ -98,6 +107,17 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    if(ctx.waitUntil)ctx.waitUntil(task);else void task;
    return yes({invited:true,...await publicState(db,member,members)});
   }
+  if(data.action==="restart"){
+   if(game.status!=="finished")return no("Le match n'est pas encore terminé.",409);
+   const updated=await db.prepare(
+    "UPDATE rps_games SET game_id=?,round=1,version=version+1,status='choosing',"+
+    "move_0=NULL,move_1=NULL,score_0=0,score_1=0,ties=0,winner=NULL,"+
+    "ready_0=0,ready_1=0,revealed_at=NULL,updated_at=?"+
+    " WHERE room_id=? AND game_id=? AND status='finished'"
+   ).bind(crypto.randomUUID(),Date.now(),member.room_id,game.game_id).run();
+   if(updated.meta.changes!==1)return no("La nouvelle partie a déjà commencé.",409);
+   return yes(await publicState(db,member,members));
+  }
   if(!Number.isInteger(data.round)||data.round!==game.round)return no("Cette manche est terminée. Actualise le jeu.",409);
   if(data.action==="choose"){
    if(!isRpsMove(data.move))return no("Choisis Pierre, Papier ou Ciseaux.",400);
@@ -116,10 +136,11 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    if(completed?.status==="choosing"&&isRpsMove(completed.move_0)&&isRpsMove(completed.move_1)){
     const winner=rpsWinner(completed.move_0,completed.move_1);
     // Only one concurrent request can score a revealed round.
-    await db.prepare("UPDATE rps_games SET status='revealed',winner=?,"+
+    await db.prepare("UPDATE rps_games SET status=CASE WHEN score_0+?>=? OR score_1+?>=? THEN 'finished' ELSE 'revealed' END,winner=?,"+
      "score_0=score_0+?,score_1=score_1+?,ties=ties+?,revealed_at=?,updated_at=?,version=version+1"+
      " WHERE room_id=? AND game_id=? AND round=? AND status='choosing' AND move_0=? AND move_1=?")
-     .bind(winner,winner===0?1:0,winner===1?1:0,winner===null?1:0,
+     .bind(winner===0?1:0,WIN_SCORE,winner===1?1:0,WIN_SCORE,
+      winner,winner===0?1:0,winner===1?1:0,winner===null?1:0,
       Date.now(),Date.now(),member.room_id,game.game_id,game.round,completed.move_0,completed.move_1).run();
    }
    return yes(await publicState(db,member,members));
