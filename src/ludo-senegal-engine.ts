@@ -7,13 +7,13 @@ import {BASE,HOME,SAFE,TRACK,type Point} from "./ludo-visuals";
  * barricades that can only be jumped with a six (one square beyond).
  *
  * Track steps are unbounded lap counters, not classic 0..50 progression.
- * A pawn keeps its direction on leaving the opponent's lane, then
- * resumes ordinary track movement.
+ * Outside the opponent's home lane all pawns travel FORWARD on the outer
+ * track, including after a six. A six NEVER makes a track pawn turn around.
  */
 export type Seat=0|1;
 export type Zone="base"|"track"|"home"|"enemy"|"finished";
 export type Pawn={zone:Zone;step:number;depth:number;gate:number;dir:1|-1};
-export type Action="track"|"home"|"enemy"|"exit"|"turn"|"jump";
+export type Action="track"|"home"|"enemy"|"exit"|"jump";
 export type MoveOption={pawn:number;action:Action;to:Pawn;label:string};
 export type SenegalGame={
  positions:[Pawn[],Pawn[]];turn:Seat;dice:number|null;streak:number;
@@ -48,23 +48,43 @@ export function stopSenegalGame(game:SenegalGame,playerName:string):SenegalGame{
  return {...game,status:"ended",winner:null,dice:null,streak:0,updatedAt:Date.now(),
   lastAction:name+" a arrêté la partie."};
 }
-/** Reposition pawns that entered the own-home shortcut at gate -1 before
- * this rule was corrected. Legal home gates (+51, -53 and later laps)
- * are preserved, as are completed/stopped matches without bad shortcuts. */
+/** Repair past games that used the accidental reverse-track rule.
+ * Already-started pawns retain the number of squares travelled, but use
+ * forward-only progress from now on. Only the invalid gate -1 home shortcut
+ * resets a previously claimed victory. */
 export function repairSenegalHomeShortcut(game:SenegalGame):SenegalGame{
- let changed=false;
+ let changed=false,invalidHome=false;
  const positions=game.positions.map(row=>row.map(piece=>{
   if((piece.zone==="home"||piece.zone==="finished")&&piece.gate===-1){
+   changed=true;invalidHome=true;
+   return {...piece,zone:"track" as const,step:Math.abs(piece.step),
+    depth:0,gate:0,dir:1 as const};
+  }
+  if(piece.zone==="track"&&(piece.dir===-1||piece.step<0)){
    changed=true;
-   return {...piece,zone:"track" as const,depth:0,gate:0};
+   return {...piece,step:Math.abs(piece.step),dir:1 as const,depth:0,gate:0};
+  }
+  if(piece.zone==="enemy"&&(piece.dir===-1||piece.gate<0)){
+   changed=true;
+   const gate=77+52*Math.max(0,Math.round((Math.abs(piece.gate)-77)/52));
+   return {...piece,gate,step:gate+piece.depth-1,dir:1 as const};
+  }
+  if(piece.zone==="home"&&piece.dir===-1){
+   changed=true;
+   return {...piece,step:50+piece.depth,gate:51,dir:1 as const};
+  }
+  if(piece.zone==="finished"&&piece.dir===-1){
+   changed=true;
+   return {...piece,step:57,gate:51,dir:1 as const};
   }
   return piece;
  })) as [Pawn[],Pawn[]];
  if(!changed)return game;
  return {...game,positions,
-  status:game.status==="won"?"playing":game.status,
-  winner:null,dice:null,streak:0,updatedAt:Date.now(),
-  lastAction:"Un pion entré trop tôt dans sa maison a repris le parcours normal."};
+  status:invalidHome&&game.status==="won"?"playing":game.status,
+  winner:invalidHome?null:game.winner,
+  dice:null,streak:0,updatedAt:Date.now(),
+  lastAction:"Direction corrigée : les pions avancent normalement vers l’avant."};
 }
 function validPawn(p:unknown):p is Pawn{
  if(!p||typeof p!=="object")return false;
@@ -196,8 +216,8 @@ export function movesForPawn(game:SenegalGame,seat:Seat,pawn:number):MoveOption[
    // subsequent rolls move forwards normally, not a forced reverse route.
    const depth=from.depth-1;
    const to:Pawn=depth>=1?
-    {...from,zone:"enemy",depth,step:from.gate+from.dir*(depth-1)}:
-    {zone:"track",step:from.gate-from.dir,depth:0,gate:0,dir:from.dir};
+    {...from,zone:"enemy",depth,step:from.gate+(depth-1),dir:1}:
+    {zone:"track",step:from.gate-1,depth:0,gate:0,dir:1};
    if(to.step< -MAX_STEPS||to.step>MAX_STEPS)return [];
    return guardedOptions(game,seat,pawn,from,roll,[{pawn,action:"exit",to,
     label:depth>=1?"↩️ 6 : reculer d’une seule case":"↩️ 6 : sortir de la cage"}]);
@@ -206,32 +226,25 @@ export function movesForPawn(game:SenegalGame,seat:Seat,pawn:number):MoveOption[
   return guardedOptions(game,seat,pawn,from,roll,
    [{pawn,action:"enemy",to:{...from,depth:from.depth+roll},label:"😈 Avancer dans la cage adverse"}]);
  }
+ // The normal Senegalese track ALWAYS moves forward from each player's
+ // colored start. Only the opponent's lane has the one-square backward six.
  const options:MoveOption[]=[];
- function addDirection(dir:1|-1,action:Action){
-  const dest=from.step+dir*roll;
-  if(dest< -MAX_STEPS||dest>MAX_STEPS)return;
-  options.push({pawn,action,to:{zone:"track",step:dest,depth:0,gate:0,dir},
-   label:action==="turn"?"🔄 Faire demi-tour (6)":"🔁 Continuer le tour"});
-  // At each own entrance the player chooses between home and another lap.
-  // The opponent's entrance allows a deliberate home-lane raid.
-  for(const gate of gatesBetween(from.step,dest,51,dir)){
-   // A fresh pawn can reverse on a six near its starting square. The nearest
-   // home gate (-1) is physically beside that start, but is NOT a completed
-   // lap: entering there previously teleported a just-released pawn home.
-   // The legitimate gates are +51 (one full forward circuit), -53 (one
-   // full reverse circuit), and their subsequent 52-square repetitions.
-   if(gate>-53&&gate<51)continue;
-   const own=laneOption(pawn,from,dest,dir,gate,"home");
-   if(own)options.push(own);
-  }
-  for(const gate of gatesBetween(from.step,dest,77,dir)){
-   const raid=laneOption(pawn,from,dest,dir,gate,"enemy");
-   if(raid)options.push(raid);
-  }
+ const dest=from.step+roll;
+ if(dest>MAX_STEPS)return [];
+ options.push({pawn,action:"track",to:{zone:"track",step:dest,depth:0,gate:0,dir:1},
+  label:"➡️ Continuer vers l’avant"});
+ // Own home can only be entered on completing a full forward lap.
+ // The outer circuit can instead be repeated as many times as desired.
+ for(const gate of gatesBetween(from.step,dest,51,1)){
+  if(gate<51)continue;
+  const own=laneOption(pawn,from,dest,1,gate,"home");
+  if(own)options.push(own);
  }
- addDirection(from.dir,"track");
- // A six is required for EVERY fresh U-turn (not just the one in enemy lane).
- if(roll===6)addDirection(from.dir===1?-1:1,"turn");
+ // Opponent-lane raids are a distinct optional choice, not a U-turn.
+ for(const gate of gatesBetween(from.step,dest,77,1)){
+  const raid=laneOption(pawn,from,dest,1,gate,"enemy");
+  if(raid)options.push(raid);
+ }
  return guardedOptions(game,seat,pawn,from,roll,options);
 }
 export function movesForSeat(game:SenegalGame,seat:Seat):MoveOption[]{
@@ -314,7 +327,7 @@ export function applySenegalMove(game:SenegalGame,option:MoveOption):{game:Seneg
  const description=legal.action==="enemy"?"attaque la cage adverse 😈":
   legal.action==="exit"?(legal.to.zone==="track"?"sort de la cage adverse après un pas de recul ↩️":"recule d’une case dans la cage adverse ↩️"):
   legal.action==="jump"?"saute un barrage et s’arrête une case après ⤴️":
-  legal.action==="home"?"entre dans sa cage 🏠":legal.action==="turn"?"fait demi-tour 🔄":"avance sur le plateau";
+  legal.action==="home"?"entre dans sa cage 🏠":"avance sur le plateau";
  return {game:{...game,positions,turn:nextTurn,dice:null,streak:game.dice===6?game.streak:0,
    status:winner!==null?"won":"playing",winner,updatedAt:Date.now(),
    lastAction:winner!==null?"🏆 Victoire au Ludo Sénégal !":
@@ -336,7 +349,6 @@ export function chooseSenegalBotMove(game:SenegalGame):MoveOption|null{
    return Number.NEGATIVE_INFINITY;
   }
   let s=to.zone==="finished"?20000:to.zone==="home"?2000+to.depth*60:to.zone==="enemy"?260:to.zone==="track"?to.step:0;
-  if(option.action==="turn")s-=150;
   if(option.action==="exit")s+=400;
   if(option.action==="jump")s+=525;
   if(option.action==="enemy"&&to.zone==="enemy"){
