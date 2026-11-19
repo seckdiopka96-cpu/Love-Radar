@@ -365,6 +365,16 @@
   if(!state?.game)return;
   const g=state.game,colors=state.palette.colors;
   const senegal=state.variant==="senegal",solo=state.opponent==="solo";
+  // Sénégal uses the single visible Quitter action beside Cadeau.
+  // Keep Classic's existing header button, but hide and disable it
+  // for Sénégal so the title/logo never overlaps a duplicate action.
+  document.documentElement.classList.toggle("lr-senegal-one-quit",senegal);
+  const headerQuit=document.getElementById("choose-again");
+  if(headerQuit){
+   headerQuit.disabled=senegal;
+   headerQuit.tabIndex=senegal?-1:0;
+   headerQuit.setAttribute("aria-hidden",String(senegal));
+  }
   if(senegal){
    const heading=document.querySelector(".game-title strong");
    const subtitle=document.querySelector(".game-title small");
