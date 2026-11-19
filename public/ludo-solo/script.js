@@ -457,6 +457,7 @@
       void pawn.offsetWidth; // Restart the bounce at every step on Safari.
       pawn.classList.add("is-hopping");
       counter.textContent=(step-first+1)+" / "+totalSteps;
+      sfx?.play("step");
       // Deliberately slow, readable movement: each square gets its full
       // landing + hop animation before the next step begins.
       await sleep(start===HOME?520:540);
