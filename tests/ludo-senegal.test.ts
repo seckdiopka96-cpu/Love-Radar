@@ -691,3 +691,23 @@ test("Duo quit is authenticated, game-ID-bound and ends a shared match regardles
  assert.ok(ui.includes('localStorage.removeItem(storage(storageKey))'),"Solo game is discarded");
  assert.ok(ui.includes('onClick={reset} disabled={busy||quitting}'),"restarting requires explicit action");
 });
+
+test("Senegal Duo refuses delayed old-phone board responses after a rematch",()=>{
+ const ui=readFileSync("src/SenegalLudo.tsx","utf8");
+ assert.ok(ui.includes('if(next.version<oldVersion||(next.version===oldVersion&&oldId&&next.id!==oldId))return;'),
+  "a delayed GET of the previous match cannot revive its old turn or pieces");
+ assert.ok(ui.includes("pollInFlight.current||busyRef.current"),
+  "only one server poll is active, none runs over a move");
+ assert.ok(ui.includes("pollQueued.current=true"),"missed refresh is queued for after the action");
+ assert.ok(ui.includes('window.setInterval(()=>void refresh(),850)'),"visible Duo polls approximately each second");
+ assert.ok(ui.includes('window.addEventListener("focus",onResume)'));
+ assert.ok(ui.includes('window.addEventListener("online",onResume)'));
+ assert.ok(ui.includes('document.addEventListener("visibilitychange",onResume)'));
+ assert.ok(ui.includes("busy||busyRef.current||rolling||motion"),
+  "a pending network move prevents a second tap from firing another move");
+ const api=readFileSync("functions/api/ludo-senegal.ts","utf8");
+ assert.ok(api.includes("WHERE room_id=? AND version=?"),
+  "server persists only the next legal revision");
+ assert.ok(api.includes('if(!Number.isInteger(data.version)||data.version!==game.version)'),
+  "a stale phone cannot overwrite the newer opponent move");
+});
