@@ -80,6 +80,14 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   // The explorer is a temporary overlay; the peer connection is untouched.
   if(!active||!minimized)setCallNavigationOpen(false);
  },[active?.id,minimized]);
+ useEffect(()=>{
+  if(!callNavigationOpen)return;
+  const dismiss=(event:KeyboardEvent)=>{
+   if(event.key==="Escape")setCallNavigationOpen(false);
+  };
+  document.addEventListener("keydown",dismiss);
+  return()=>document.removeEventListener("keydown",dismiss);
+ },[callNavigationOpen]);
  const pc=useRef<RTCPeerConnection|null>(null);
  const iceServers=useRef<RTCIceServer[]>(STUN_SERVERS);
  const local=useRef<MediaStream|null>(null);
