@@ -4,7 +4,7 @@ import "./duo-arcade.css";
 
 type Stroke={points:[number,number][];color:string;width:number};
 type Common={id:string;version:number;mode:"draw"|"escape";status:string;expiresAt:number;updatedAt:number};
-type DrawGame=Common&{mode:"draw";round:number;drawer:number;word:string|null;category:string;strokes:Stroke[];scores:[number,number]};
+type DrawGame=Common&{mode:"draw";round:number;drawer:number;word:string|null;category:string;strokes:Stroke[];scores:[number,number];winScore:number;matchWinner:number|null};
 type EscapeGame=Common&{mode:"escape";scenario:number;sceneTitle:string;sceneEmoji:string;stage:number;totalStages:number;stageTitle:string;intro:string;clue:string;placeholder:string;attempts:number;startedAt:number};
 type Game=DrawGame|EscapeGame;
 type Reply={ok:boolean;error?:string;mode?:"draw"|"escape";game?:Game|null;members?:number;seat?:number;serverNow?:number;correct?:boolean;invited?:boolean};
@@ -140,7 +140,8 @@ export default function DuoArcade({mode,token,myName,partnerName,onExit,onOpenCh
  const escape=game?.mode==="escape"?game:null;
  const seat=reply?.seat??0;
  const remaining=game?Math.max(0,Math.ceil((game.expiresAt-(now-clockOffset))/1000)):0;
- const ended=game?.status==="timeout"||game?.status==="revealed"||game?.status==="escaped"||remaining===0;
+ const ended=game?.status==="timeout"||game?.status==="revealed"||
+  game?.status==="finished"||game?.status==="escaped"||remaining===0;
  const isDrawer=Boolean(draw&&draw.drawer===seat);
  const canPaint=Boolean(draw&&!ended&&isDrawer&&!busy);
  function pointerDown(event:ReactPointerEvent<SVGSVGElement>){
@@ -203,7 +204,7 @@ export default function DuoArcade({mode,token,myName,partnerName,onExit,onOpenCh
     </div>:<>
     <div className="lr-duo-info">
      <span>{mode==="draw"?"MANCHE "+(draw?.round||1):"MISSION "+((escape?.scenario||0)+1)}</span>
-     <strong className={remaining<=15?"urgent":""} aria-label="Temps restant">⏱ {clock(remaining)}</strong>
+     <strong className={remaining<=15?"urgent":""} aria-label="Temps restant">{draw?.status==="finished"?"🏆 Match terminé":"⏱ "+clock(remaining)}</strong>
      <span>{mode==="draw"?"À TOUR DE RÔLE":"ENSEMBLE"}</span>
     </div>
     {draw?<div className="lr-duo-panel lr-duo-draw-panel">
@@ -213,7 +214,8 @@ export default function DuoArcade({mode,token,myName,partnerName,onExit,onOpenCh
       <div><small>{partnerName||"Mon amour"}</small><strong>{otherScore}</strong></div>
      </div>
      <div className="lr-duo-status" role="status">
-      {ended?draw.status==="timeout"?"⏰ Temps écoulé !": "🎉 Mot découvert !":
+      {draw.status==="finished"?"🏆 Le premier joueur a atteint 10 points !":
+       ended?draw.status==="timeout"?"⏰ Temps écoulé !":"🎉 Mot découvert !":
        isDrawer?"À toi de dessiner. Ton partenaire doit deviner !":
        (partnerName||"Ton partenaire")+" dessine. À toi de deviner !"}
      </div>
@@ -251,7 +253,12 @@ export default function DuoArcade({mode,token,myName,partnerName,onExit,onOpenCh
        value={draft} onChange={e=>setDraft(e.target.value)} disabled={!!busy}/>
       <button type="submit" disabled={!draft.trim()||!!busy}>Deviner</button>
      </form>:null}
-     {ended?<div className="lr-duo-finish"><strong>{draw.status==="revealed"?"Bravo ! ❤️":"Une autre chance ? 💕"}</strong>
+     {draw.status==="finished"?<div className="lr-duo-finish lr-duo-draw-victory" role="status">
+      <span className="lr-duo-large-icon" aria-hidden="true">🏆</span>
+      <strong>{draw.matchWinner===seat?"Tu as gagné le match !":(partnerName||"Ton partenaire")+" a gagné le match !"}</strong>
+      <p>Le premier à {draw.winScore} points remporte la victoire. Score final : {drawScore} – {otherScore}.</p>
+      <button type="button" className="lr-duo-primary" onClick={()=>void act("restart")} disabled={!!busy}>↻ Rejouer un match</button>
+     </div>:ended?<div className="lr-duo-finish"><strong>{draw.status==="revealed"?"Bravo ! ❤️":"Une autre chance ? 💕"}</strong>
       <p>Le mot était : <b>{draw.word}</b>. À la prochaine manche, vous échangez les rôles.</p>
       <button type="button" className="lr-duo-primary" onClick={()=>void act("next")} disabled={!!busy}>Manche suivante →</button>
      </div>:null}
