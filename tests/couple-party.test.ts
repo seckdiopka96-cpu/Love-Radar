@@ -401,3 +401,88 @@ test("both new games are accessible, authenticated, and erased with room deletio
  assert.ok(ui.includes('onClick={()=>void post("pass")}'));
  assert.ok(ui.includes('kind:"surprise"'),"the balanced surprise draw is accessible");
 });
+
+test("a partner who explicitly leaves Questions rapides forfeits: 5–3 becomes a victory",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {sqlite,request}=harness();
+ const initial=(await request("rapid","a")).data.game;
+ await request("rapid","b");
+ sqlite.prepare("UPDATE couple_party_games SET phase='question',round=11,score_0=5,score_1=3,started_at=?,deadline_at=? WHERE room_id='room-A' AND mode='rapid'")
+  .run(Date.now()-1000,Date.now()+18000);
+ const quit=await request("rapid","b","quit",{gameId:initial.id,round:11});
+ assert.equal(quit.status,200);
+ assert.equal(quit.data.game.phase,"finished");
+ assert.equal(quit.data.game.matchWinner,0,"the partner who stayed wins");
+ assert.equal(quit.data.game.winByForfeit,true);
+ assert.deepEqual(quit.data.game.scores,[5,3],"abandonment cannot fabricate ten points");
+ assert.equal(quit.data.game.round,11);
+ const winner=await request("rapid","a");
+ assert.equal(winner.data.game.phase,"finished");
+ assert.equal(winner.data.game.matchWinner,0);
+ assert.equal(winner.data.game.winByForfeit,true);
+ assert.equal(winner.data.partnerHere,false,"quit immediately clears game presence");
+ assert.equal((await request("rapid","b","answer",{gameId:initial.id,round:11,choice:0})).status,409);
+ const rematch=await request("rapid","a","restart",{gameId:initial.id,round:11});
+ assert.equal(rematch.status,200);
+ assert.equal(rematch.data.game.phase,"ready");
+ assert.deepEqual(rematch.data.game.scores,[0,0]);
+ assert.notEqual(rematch.data.game.id,initial.id);
+ assert.equal((await request("rapid","b","quit",{gameId:initial.id,round:11})).status,409,
+  "a delayed quit must never end a newer rematch");
+});
+test("if player A leaves, B wins; quitting before the very first round is not a defeat",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {sqlite,request}=harness();
+ const initial=(await request("rapid","a")).data.game;
+ await request("rapid","b");
+ const waiting=await request("rapid","a","quit",{gameId:initial.id,round:1});
+ assert.equal(waiting.status,200);
+ assert.equal(waiting.data.game.phase,"ready","no forfeit before the match has started");
+ assert.equal(waiting.data.game.matchWinner,null);
+ await request("rapid","a");
+ sqlite.prepare("UPDATE couple_party_games SET phase='result',round=4,score_0=2,score_1=4 WHERE room_id='room-A' AND mode='rapid'").run();
+ const left=await request("rapid","a","quit",{gameId:initial.id,round:4});
+ assert.equal(left.status,200);
+ const other=(await request("rapid","b")).data.game;
+ assert.equal(other.phase,"finished");
+ assert.equal(other.matchWinner,1,"B wins because A left");
+ assert.equal(other.winByForfeit,true);
+ assert.deepEqual(other.scores,[2,4]);
+ assert.equal((await request("rapid","a","quit",{gameId:initial.id,round:4})).data.game.matchWinner,1,
+  "repeat quit cannot swap winner");
+});
+test("a prolonged disconnect forfeits after grace, but a brief phone call never does",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {sqlite,request}=harness();
+ await request("rapid","a");await request("rapid","b");
+ sqlite.prepare("UPDATE couple_party_games SET phase='question',round=5,score_0=5,score_1=3,started_at=?,deadline_at=? WHERE room_id='room-A' AND mode='rapid'")
+  .run(Date.now()-1000,Date.now()+18000);
+ const update=sqlite.prepare("UPDATE couple_party_presence SET last_seen_at=? WHERE room_id='room-A' AND mode='rapid' AND member_id='Benoît'");
+ update.run(Date.now()-35000);
+ let current=(await request("rapid","a")).data;
+ assert.equal(current.partnerHere,false,"35-second absence is visible");
+ assert.equal(current.game.phase,"question","temporary absence does not give a win");
+ update.run(Date.now()-8000);
+ current=(await request("rapid","a")).data;
+ assert.equal(current.game.phase,"question","rejoining resumes rather than forfeiting");
+ update.run(Date.now()-75000);
+ current=(await request("rapid","a")).data;
+ assert.equal(current.game.phase,"finished");
+ assert.equal(current.game.matchWinner,0,"confirmed absence awards win to connected player");
+ assert.equal(current.game.winByForfeit,true);
+ assert.deepEqual(current.game.scores,[5,3]);
+ const returning=(await request("rapid","b")).data.game;
+ assert.equal(returning.phase,"finished","the losing player cannot rejoin a finished match");
+ assert.equal(returning.matchWinner,0);
+ const otherRoom=(await request("rapid","c")).data.game;
+ assert.equal(otherRoom.phase,"ready","another couple's game is not affected");
+});
+test("the quiz exit and winner screen are wired up in the client",()=>{
+ const ui=readFileSync("src/CoupleParty.tsx","utf8");
+ assert.ok(ui.includes('async function leaveMatch(destination:()=>void)'));
+ assert.ok(ui.includes('action:"quit",gameId:current.id,round:current.round'));
+ assert.ok(ui.includes('onClick={()=>void leaveMatch(onExit)}'));
+ assert.ok(ui.includes('onClick={()=>void leaveMatch(onOpenChat)}'));
+ assert.ok(ui.includes('rapid.winByForfeit'));
+ assert.ok(ui.includes('gagne par abandon'));
+});
