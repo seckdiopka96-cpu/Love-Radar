@@ -126,7 +126,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
     later(()=>{if(loaded.current)setCaptureBack([])},240+longest*50);
    }
    else if(move.to.zone==="enemy"){setReaction("😈");}
-   else if(move.action==="reverse"){setReaction("↩️");}
+   else if(move.action==="exit"){setReaction("➡️");}
    else if(move.to.zone==="finished"){setReaction("🏠");}
    else if(move.action==="home")setReaction("🏠");
    later(()=>{if(loaded.current){setReaction("");setLanding(null)}},1300);
