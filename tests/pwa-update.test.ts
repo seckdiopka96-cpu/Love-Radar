@@ -5,7 +5,7 @@ import {readFileSync,existsSync} from "node:fs";
 test("PWA refreshes its offline shell and always validates Cloudflare Pages HTML",()=>{
  const worker=readFileSync("public/sw.js","utf8");
  const headers=readFileSync("public/_headers","utf8");
- assert.match(worker,/const CACHE="love-radar-static-v148";/);
+ assert.match(worker,/const CACHE="love-radar-static-v149";/);
  assert.ok(worker.includes('"/ludo-effects.css"'),"offline shell includes the new Solo/Duo effects");
  assert.match(worker,/key\.startsWith\("love-radar-static-"\)/);
  assert.match(worker,/cache\.put\("\/",response\.clone\(\)\)/);

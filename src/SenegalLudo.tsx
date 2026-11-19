@@ -52,6 +52,18 @@ function load(scope:string):SenegalGame{
 function haptic(){try{navigator.vibrate?.(20)}catch{/* iOS unsupported. */}}
 export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storageKey,onExit}:Props){
  const solo=mode==="solo";
+ // The four modes load the exact same shared public board stylesheet.
+ useEffect(()=>{
+  const id="lr-one-board-dark-style";
+  let link=document.getElementById(id) as HTMLLinkElement|null;
+  if(!link){
+   link=document.createElement("link");link.id=id;link.rel="stylesheet";
+   link.href="/ludo-unified-stage.css?v=one-board-dark-20261119-v2";
+  }else if(!link.href.includes("one-board-dark-20261119-v2")){
+   link.href="/ludo-unified-stage.css?v=one-board-dark-20261119-v2";
+  }
+  document.head.appendChild(link); // After legacy CSS in the cascade.
+ },[]);
  const seat:Seat=solo?0:mySeat===1?1:0;
  const enemy:Seat=(1-seat) as Seat;
  const [game,setGame]=useState<SenegalGame>(()=>solo?load(storageKey):newSenegalGame());
@@ -357,20 +369,20 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   {error?<div className="ludo-senegal-error" role="alert">{error}</div>:null}
   <div className="ludo-play-area">
    <div className="ludo-stage" ref={stage}>
-    <div className="ludo-board-wrap ludo-board-wrap-immersive" style={boardSize?{width:boardSize,height:boardSize}:undefined}>
-     <div className={"ludo-board"+(motion?" ludo-board-animating":"")} role="group" aria-label="Plateau Ludo Sénégal">
+    <div className="ludo-board-wrap ludo-board-wrap-immersive lr-unified-ludo-frame" style={boardSize?{width:boardSize,height:boardSize}:undefined}>
+     <div className={"ludo-board lr-unified-ludo-board"+(motion?" ludo-board-animating":"")} role="group" aria-label="Plateau Ludo Sénégal">
       {CELL.map(([r,c])=>{
        const k=key(r,c),track=routeMap.get(k),pawns=occupancy.get(k)||[];
        const red=r<6&&c<6,gold=r>8&&c>8,green=r<6&&c>8,blue=r>8&&c<6;
        const redLane=homeMap[0].has(k),goldLane=homeMap[1].has(k);
        const greenLane=c===7&&r>=1&&r<=5,blueLane=c===7&&r>=9&&r<=13;
        const center=r>=6&&r<=8&&c>=6&&c<=8;
-       const classes="ludo-cell"+(red?" ludo-red-base":gold?" ludo-gold-base":blue?" ludo-blue-base":green?" ludo-green-base":"")+
+       const classes="ludo-cell lr-ludo-cell"+(red||gold||blue||green?" in-yard":"")+(red?" ludo-red-base":gold?" ludo-gold-base":blue?" ludo-blue-base":green?" ludo-green-base":"")+
         (track!==undefined?" ludo-path":"")+(redLane?" ludo-red-lane":"")+(goldLane?" ludo-gold-lane":"")+
         (blueLane?" ludo-blue-lane":"")+(greenLane?" ludo-green-lane":"")+
         (center?" ludo-center":"")+(track===0?" ludo-red-start":"")+(track===26?" ludo-gold-start":"");
        return <div className={classes+(pawns.length?" has-pawns":"")+
-        (landing?.[0]===r&&landing?.[1]===c?" ludo-landed":"")} key={k}>
+        (landing?.[0]===r&&landing?.[1]===c?" ludo-landed":"")} key={k} style={{gridRow:r+1,gridColumn:c+1}}>
         {track!==undefined&&SAFE.has(track)?<span className="ludo-star" aria-hidden="true">★</span>:null}
         {pawns.length?<div className={"ludo-cell-pawns ludo-stack-"+Math.min(pawns.length,5)}>
          {pawns.map((item,i)=>{
@@ -387,11 +399,30 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
         {pawns.length>1?<span className="ludo-stack-count" aria-hidden="true">×{pawns.length}</span>:null}
        </div>;
       })}
-      <div className={"ludo-yard ludo-yard-red"+(game.status==="playing"&&game.turn===0?" is-current-turn":"")} aria-hidden="true"/>
-      <div className="ludo-yard ludo-yard-upper" aria-hidden="true"/>
-      <div className="ludo-yard ludo-yard-lower" aria-hidden="true"/>
-      <div className={"ludo-yard ludo-yard-gold"+(game.status==="playing"&&game.turn===1?" is-current-turn":"")} aria-hidden="true"/>
-      <div className="ludo-board-center" aria-hidden="true"><span>🇸🇳</span></div>
+      {([
+       ["red",1,1,0],["green",1,10,null],
+       ["blue",10,1,null],["yellow",10,10,1]
+      ] as const).map(([color,row,col,owner])=>
+       <div key={color}
+        className={"base lr-ludo-base base--"+color+
+         (owner!==null&&game.status==="playing"&&game.turn===owner?" is-current-turn":"")+
+         (owner===seat&&game.status==="playing"&&game.turn===seat?" is-my-turn":"")}
+        style={{gridRow:row+" / span 6",gridColumn:col+" / span 6"}}
+        aria-hidden="true">
+        <div className="base-inner">
+         {[0,1,2,3].map(index=><span className="base-spot" key={index}/>)}
+        </div>
+       </div>
+      )}
+      <div className="ludo-board-center lr-shared-center" aria-hidden="true">
+       <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polygon points="0,0 100,0 50,50" fill="#006b4b"/>
+        <polygon points="100,0 100,100 50,50" fill="#ae831a"/>
+        <polygon points="100,100 0,100 50,50" fill="#11518b"/>
+        <polygon points="0,100 0,0 50,50" fill="#a72342"/>
+        <circle cx="50" cy="50" r="11" fill="#fff7e7"/>
+       </svg>
+      </div>
       {captureBack.map(row=><div key={"capture-"+row.seat+"-"+row.pawn}
        className={"ludo-captured-pawn ludo-pawn-"+(row.seat===0?"red":"gold")+" is-returning"}
        style={{left:((row.point[1]+.5)/15*100)+"%",top:((row.point[0]+.5)/15*100)+"%"}} aria-hidden="true">

@@ -16,14 +16,14 @@ const headers=readFileSync("public/_headers","utf8");
 const sw=readFileSync("public/sw.js","utf8");
 
 test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()=>{
- const start='<div class="board" id="ludo-board"';
+ const start='<div class="board lr-unified-ludo-board" id="ludo-board"';
  const end='<div id="pieces-layer"';
  const boardSlice=s=>(s.slice(s.indexOf(start),s.indexOf(end))).replace(/^\s+|\s+$/g,"");
  assert.ok(duoHTML.includes(start));
  assert.equal(boardSlice(duoHTML),boardSlice(soloHTML));
- assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261119-v23"'));
- assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261119-v23"'));
- assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261119-v23" defer'));
+ assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261119-v24"'));
+ assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261119-v24"'));
+ assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261119-v24" defer'));
  assert.ok(duoHTML.includes('LUDO <span>♥</span> DUO'));
  assert.ok(duoHTML.includes('id="roll-dice"'));
  assert.ok(duoCSS.includes('.duo-side-actions'));
@@ -67,7 +67,7 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
  'function duoFrameAction(','signRules()', 'giftAction(','ludo-agreement-backdrop','ludo-gift-dialog','ludo-modal-backdrop']){
   assert.ok(parent.includes(unchanged),unchanged);
  }
- assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261119-v23"'));
+ assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261119-v24"'));
  assert.ok(bridge.includes('event.source!==frame'));
  assert.ok(bridge.includes('event.origin!==window.location.origin'));
  assert.ok(!bridge.includes("token:"));
@@ -93,7 +93,7 @@ test("Duo iframe works offline and uses only a same-origin parent, never replaci
   assert.ok(sw.includes('"'+path+'"'),path);
  }
  assert.ok(sw.includes('url.pathname.startsWith("/ludo-duo/")'));
- assert.ok(sw.includes("love-radar-static-v148"),"new PWA release must invalidate old shell");
+ assert.ok(sw.includes("love-radar-static-v149"),"new PWA release must invalidate old shell");
 });
 
 
@@ -368,8 +368,8 @@ test("Solo and Duo share a stable stage, and dice respond in under a half-second
   "Duo does not overwrite Solo's stable blue theme");
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .game-screen{"),
   "Duo does not move or resize the game stage with a different theme");
- assert.ok(soloFrame.includes("ludo-room-20261119-v23"));
- assert.ok(bridge.includes("ludo-room-20261119-v23"));
+ assert.ok(soloFrame.includes("ludo-room-20261119-v24"));
+ assert.ok(bridge.includes("ludo-room-20261119-v24"));
 });
 
 test("one playable pawn exits its base on tap and die gives clear turn feedback",()=>{
@@ -447,8 +447,8 @@ test("Solo and Duo keep the board centered, roll quickly and play different orig
  assert.ok(sound.includes('createBufferSource()'),"clacking is made from noise impacts, not sequential musical notes");
  assert.ok(soloJS.includes('sfx?.play("step")'),"each solo square triggers one footstep");
  assert.ok(duoJS.includes('window.LudoSfx?.play("step")'),"only a new authoritative duo progress step triggers a footstep");
- assert.ok(soloHTML.includes('../ludo-sfx.js?v=ludo-room-20261119-v23'));
- assert.ok(duoHTML.includes('../ludo-sfx.js?v=ludo-room-20261119-v23'));
+ assert.ok(soloHTML.includes('../ludo-sfx.js?v=ludo-room-20261119-v24'));
+ assert.ok(duoHTML.includes('../ludo-sfx.js?v=ludo-room-20261119-v24'));
  assert.ok(sw.includes('"/ludo-sfx.js"'),"audio stays available to installed PWAs offline");
  assert.ok(soloJS.includes('new ResizeObserver(centerBoard).observe(boardArea)'));
  assert.ok(soloCSS.includes('align-items:center!important;justify-content:center!important'));
