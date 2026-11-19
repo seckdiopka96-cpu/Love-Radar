@@ -153,3 +153,30 @@
  /* Main application scroller already reserves the iPhone dock's safe area. */
  .lr-party{padding-bottom:22px}
 }
+
+/* Truth and Action must read as distinctly different experiences. */
+.lr-party-truth-board.is-truth{
+ background:radial-gradient(circle at 75% 0,rgba(247,145,191,.21),transparent 58%),
+ linear-gradient(150deg,#352f48,#172736 85%);
+}
+.lr-party-truth-board.is-action{
+ background:radial-gradient(circle at 75% 0,rgba(123,225,219,.21),transparent 58%),
+ linear-gradient(150deg,#213d48,#142c36 85%);
+ border-color:rgba(118,204,202,.48);
+}
+.lr-party-truth-board.is-action .lr-party-challenge-symbol{
+ background:linear-gradient(145deg,#397b80,#255563);border-color:#9adad7;color:#e6fffc;
+ box-shadow:0 8px 25px #0004;
+}
+.lr-party-truth-board.is-action .lr-party-challenge-category{color:#a4e5e0}
+.lr-party-truth-board.is-action .lr-party-primary{
+ background:linear-gradient(135deg,#4c9d9f,#347987);border-color:#98dddc
+}
+.lr-party-surprise{
+ width:100%;min-height:46px;border:1px solid #c79cba;border-radius:14px;
+ background:linear-gradient(145deg,#3a425c,#2a4051);
+ color:#ffdeeb;font-weight:800!important;font-size:12px!important;
+ box-shadow:inset 0 1px #ffffff18;
+}
+.lr-party-surprise:active:not(:disabled){transform:scale(.985)}
+.lr-party-truth-board .lr-party-challenge-text{overflow-wrap:anywhere}
