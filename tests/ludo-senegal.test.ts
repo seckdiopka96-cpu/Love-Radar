@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+import {Script} from "node:vm";
 import {newSenegalGame,movesForPawn,applySenegalMove,rollSenegal,pointForPawn,
  movementPath,autoplayTurn,TURN_MS,chooseSenegalBotMove,type Pawn,type SenegalGame} from "../src/ludo-senegal-engine";
 const pawn=(zone:Pawn["zone"],step:number,depth=0,gate=0,dir:1|-1=1):Pawn=>({zone,step,depth,gate,dir});
@@ -106,4 +108,43 @@ test("AI may raid the cage when an opposing pawn is there to capture",()=>{
  const result=applySenegalMove(game,selected!);
  assert.equal(result?.move.captures.length,1);
  assert.equal(result?.game.positions[1][0].zone,"base");
+});
+
+test("the SAME Classic renderer honours Senegal legal moves rather than Classic six-only maths",()=>{
+ const code=readFileSync("public/ludo-duo/script.js","utf8");
+ const start=code.indexOf(" function legalPawns(){");
+ const end=code.indexOf(" function createPawn(",start);
+ assert.ok(start>=0&&end>start);
+ const logic=code.slice(start,end);
+ const execute=(variant:"classic"|"senegal",dice:number,legal:number[],overlay=false)=>{
+  const state={variant,mySeat:0,game:{status:"playing",turn:0,dice,positions:[[-1,-1,-1,-1],[-1,-1,-1,-1]]},
+   legalPawns:legal,busy:false,rolling:false,overlayOpen:overlay};
+  return Array.from(new Script(
+   "const state="+JSON.stringify(state)+";const FINISH_PROGRESS=56;"+logic+";legalPawns()"
+  ).runInNewContext() as number[]);
+ };
+ // Senegal allows choices that Classic's base-only 'six' rule would reject.
+ assert.deepEqual(execute("senegal",5,[0]),[0],"server/local Senegal rules are authoritative");
+ assert.deepEqual(execute("senegal",5,[0],true),[],"a required path-choice modal blocks old buttons");
+ assert.deepEqual(execute("classic",5,[0]),[],"Classic keeps its own exit-six rule");
+ assert.deepEqual(execute("classic",6,[]),[0,1,2,3],"Classic does not inherit Senegal moves");
+});
+test("Senegal shares the physical Classic 3D die and preserves its special paths",()=>{
+ const ui=readFileSync("src/SenegalLudo.tsx","utf8");
+ const bridge=readFileSync("src/LudoDuoFrame.tsx","utf8");
+ const classic=readFileSync("public/ludo-duo/script.js","utf8");
+ assert.ok(ui.includes('<LudoDuoFrame variant="senegal" opponent={solo?"solo":"duo"}'));
+ assert.ok(ui.includes('boardPoints={boardPoints} legalPawns={legalPawns}'));
+ assert.ok(ui.includes("pointForPawn(side as Seat,index,pawn)"));
+ assert.ok(ui.includes('case "move":if(Number.isInteger(pawn))choose(pawn as number);'));
+ assert.ok(ui.includes('sendAction({action:"move",pawn:option.pawn,moveKind:option.action'));
+ assert.ok(ui.includes('game.dice??(lastFace?Number(lastFace[1]):face)'),
+  "dice result comes from the rules engine or saved action");
+ assert.ok(!ui.includes("setInterval(()=>setFace("),"no fake rolling numbers");
+ assert.ok(!ui.includes("<LudoDie3D"),"Senegal does not render an independent die");
+ assert.ok(bridge.includes("boardPoints:props.boardPoints"));
+ assert.ok(bridge.includes("legalPawns:props.legalPawns"));
+ assert.ok(classic.includes('if(state.variant==="senegal")return Array.isArray(state.legalPawns)'));
+ assert.ok(classic.includes('state.variant==="senegal"?state.boardPoints'));
+ assert.ok(classic.includes("animateRealDieRoll()"),"same physical throw animation");
 });
