@@ -297,12 +297,16 @@ function captureTargets(positions:[Pawn[],Pawn[]],seat:Seat,to:Pawn):Capture[]{
  const enemy=other(seat),captured:Capture[]=[];
  for(let pawn=0;pawn<4;pawn++){
   const target=positions[enemy][pawn];
+  // A pawn already home (its own colored finishing lane or the center)
+  // is untouchable. Launch squares and stars on the outer track are safe.
+  // An invader in someone else's lane is NOT home and can be caught
+  // by the home owner; the home owner's pawn is never sent to base.
+  if(target.zone==="home"||target.zone==="finished"||target.zone==="base")continue;
   let caught=false;
   if(to.zone==="track"&&target.zone==="track"){
    const square=trackIndex(seat,to.step);
    caught=!SAFE.has(square)&&square===trackIndex(enemy,target.step);
   }
-  if(to.zone==="enemy"&&target.zone==="home")caught=to.depth===target.depth;
   if(to.zone==="home"&&target.zone==="enemy")caught=to.depth===target.depth;
   if(caught){
    captured.push({seat:enemy,pawn,from:target});
@@ -338,22 +342,18 @@ export function applySenegalMove(game:SenegalGame,option:MoveOption):{game:Seneg
 export function chooseSenegalBotMove(game:SenegalGame):MoveOption|null{
  const options=movesForSeat(game,game.turn);
  if(!options.length)return null;
- const seat=game.turn,enemy=other(seat);
- const enemyHomePawns=game.positions[enemy].filter(p=>p.zone==="home");
+ const seat=game.turn;
  const score=(option:MoveOption)=>{
   const to=option.to;
-  // Entering an EMPTY enemy lane traps this pawn until another six.
-  // A human may still choose the risky move, but the computer must not
-  // sacrifice a pawn for nothing (including during Duo inactivity turns).
-  if(option.action==="enemy"&&game.positions[seat][option.pawn].zone==="track"&&enemyHomePawns.length===0){
+  // Defenders in their own home lane are protected. The computer must
+  // not invade that lane merely to chase an impossible capture.
+  // Humans may still choose an opponent-lane raid as a house rule.
+  if(option.action==="enemy"&&game.positions[seat][option.pawn].zone==="track"){
    return Number.NEGATIVE_INFINITY;
   }
   let s=to.zone==="finished"?20000:to.zone==="home"?2000+to.depth*60:to.zone==="enemy"?260:to.zone==="track"?to.step:0;
   if(option.action==="exit")s+=400;
   if(option.action==="jump")s+=525;
-  if(option.action==="enemy"&&to.zone==="enemy"){
-   s+=enemyHomePawns.length*275;
-  }
   const probe:[Pawn[],Pawn[]]=[[...game.positions[0]],[...game.positions[1]]];
   s+=captureTargets(probe,seat,to).length*1800;
   if(to.zone==="track"&&SAFE.has(trackIndex(seat,to.step)))s+=60;
