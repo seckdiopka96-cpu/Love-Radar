@@ -197,6 +197,12 @@ export function movesForPawn(game:SenegalGame,seat:Seat,pawn:number):MoveOption[
   // At each own entrance the player chooses between home and another lap.
   // The opponent's entrance allows a deliberate home-lane raid.
   for(const gate of gatesBetween(from.step,dest,51,dir)){
+   // A fresh pawn can reverse on a six near its starting square. The nearest
+   // home gate (-1) is physically beside that start, but is NOT a completed
+   // lap: entering there previously teleported a just-released pawn home.
+   // The legitimate gates are +51 (one full forward circuit), -53 (one
+   // full reverse circuit), and their subsequent 52-square repetitions.
+   if(gate>-53&&gate<51)continue;
    const own=laneOption(pawn,from,dest,dir,gate,"home");
    if(own)options.push(own);
   }
