@@ -182,7 +182,7 @@ export default function DuoArcade({mode,token,myName,partnerName,onExit,onOpenCh
  }
  const drawScore=draw?(draw.scores[seat]??0):0;
  const otherScore=draw?(draw.scores[seat===0?1:0]??0):0;
- return <section className={"lr-duo"+(mode==="draw"?" lr-duo-draw":"")} aria-label={mode==="draw"?"Devine ce que je dessine":"Escape Room Duo"}>
+ return <section className={"lr-duo"+(mode==="draw"?" lr-duo-draw":" lr-duo-escape-game")} aria-label={mode==="draw"?"Devine ce que je dessine":"Escape Room Duo"}>
   <header className="lr-duo-nav">
    <button type="button" onClick={onExit} className="lr-duo-back" aria-label="Retour à la salle de jeux">‹ <span>Jeux</span></button>
    <span className="lr-duo-live"><span/> DUO EN DIRECT</span>
@@ -256,7 +256,7 @@ export default function DuoArcade({mode,token,myName,partnerName,onExit,onOpenCh
       <button type="button" className="lr-duo-primary" onClick={()=>void act("next")} disabled={!!busy}>Manche suivante →</button>
      </div>:null}
     </div>:null}
-    {escape?<div className="lr-duo-panel lr-duo-escape">
+    {escape?<div className={"lr-duo-panel lr-duo-escape"+(ended?" is-ended":" is-solving")}>
      <div className="lr-duo-scene">
       <span aria-hidden="true">{escape.sceneEmoji}</span>
       <small>SCÉNARIO {escape.scenario+1} / 3</small>
