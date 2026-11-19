@@ -248,7 +248,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
     setGame(prev=>{
      if(prev.dice!==null)return prev;
      const next=rollSenegal(prev,face);
-     return automatic&&prev.turn===0?{...next,lastAction:"🤖 L’ordinateur a lancé le dé pour toi. "+next.lastAction}:next;
+     return automatic&&prev.turn===0?{...next,lastAction:"L’ordinateur a lancé le dé pour toi. "+next.lastAction}:next;
     });
     setRolling(false);
    },560);
@@ -270,7 +270,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    const result=applySenegalMove(game,legal);
    if(!result)return;
    setGame(automatic&&game.turn===0?
-    {...result.game,lastAction:"🤖 L’ordinateur a déplacé ton pion. "+result.game.lastAction}:result.game);
+    {...result.game,lastAction:"L’ordinateur a déplacé ton pion. "+result.game.lastAction}:result.game);
    animate(result.move);
   }else{
    const data=await sendAction({action:"move",pawn:option.pawn,moveKind:option.action,gate:option.to.gate,dest:option.to.step});
@@ -315,9 +315,9 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const shownDie=rolling?face:game.dice??(lastFace?Number(lastFace[1]):face);
  const status=game.status==="won"?(game.winner===seat?"🏆 Tu as gagné !":"🏆 Ton adversaire a gagné !"):
   !solo&&members!==2?"En attente de ton partenaire…":rolling?"Le dé roule…":motion?"Le pion avance…":
-  solo&&assisted&&game.turn===0?"🤖 L’ordinateur joue pour toi…":
+  solo&&assisted&&game.turn===0?"L’ordinateur joue pour toi…":
   turnOwner?game.dice===null?"🎲 À toi de lancer le dé":"Touche un pion sur le plateau":
-  solo?"🤖 L’ordinateur réfléchit…":"Ton partenaire joue…";
+  solo?"L’ordinateur réfléchit…":"Ton partenaire joue…";
  // All four games now use the original Classic renderer. Senegal is ONLY
  // the rules adapter: its own game engine still decides every move and die.
  const boardPoints:(Point|null)[][]=game.positions.map((row,side)=>row.map((pawn,index)=>
