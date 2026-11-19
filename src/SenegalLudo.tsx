@@ -52,17 +52,18 @@ function load(scope:string):SenegalGame{
 function haptic(){try{navigator.vibrate?.(20)}catch{/* iOS unsupported. */}}
 export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storageKey,onExit}:Props){
  const solo=mode==="solo";
- // The four modes load the exact same shared public board stylesheet.
+ // Important: the Senegal screen must paint the SAME SVG art as both
+ // Classic iframes. Put the final shared CSS after all bundled legacy styles.
  useEffect(()=>{
-  const id="lr-one-board-dark-style";
+  const id="lr-single-canonical-ludo-board";
   let link=document.getElementById(id) as HTMLLinkElement|null;
   if(!link){
    link=document.createElement("link");link.id=id;link.rel="stylesheet";
-   link.href="/ludo-unified-stage.css?v=one-board-dark-20261119-v2";
-  }else if(!link.href.includes("one-board-dark-20261119-v2")){
-   link.href="/ludo-unified-stage.css?v=one-board-dark-20261119-v2";
+   link.href="/ludo-board-single.css?v=canonical-20261119-v3";
+  }else if(!link.href.includes("canonical-20261119-v3")){
+   link.href="/ludo-board-single.css?v=canonical-20261119-v3";
   }
-  document.head.appendChild(link); // After legacy CSS in the cascade.
+  document.head.appendChild(link);
  },[]);
  const seat:Seat=solo?0:mySeat===1?1:0;
  const enemy:Seat=(1-seat) as Seat;

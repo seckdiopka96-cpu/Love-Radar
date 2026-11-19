@@ -1,4 +1,3 @@
-import {CELL,TRACK,SAFE,HOME,key} from "./ludo-visuals";
 import "./ludo-room.css";
 
 export type LudoMode="ludo"|"ludo-solo"|"ludo-senegal"|"ludo-senegal-solo";
@@ -10,34 +9,13 @@ const MODES=[
  {id:"ludo-solo",title:"Classique · Solo",subtitle:"Contre l’ordinateur",kind:"classic-solo",icon:"🎲"},
  {id:"ludo-senegal-solo",title:"Sénégal · Solo",subtitle:"Contre l’ordinateur",kind:"senegal-solo",icon:"★"},
 ] as const;
-const TRACK_KEYS=new Map(TRACK.map((p,i)=>[key(p[0],p[1]),i]));
-const RED_HOME=new Set(HOME[0].map(p=>key(p[0],p[1])));
-const YELLOW_HOME=new Set(HOME[1].map(p=>key(p[0],p[1])));
 
+/** Exact same board artwork, from the shared SVG, in the lobby and in play. */
 function SingleLudoBoard(){
  return <div className="lr-ludo-unified-board-wrap">
-  <div className="lr-ludo-unified-board" aria-hidden="true">
-   {CELL.map(([row,col])=>{
-    const spot=key(row,col),track=TRACK_KEYS.get(spot);
-    const red=row<6&&col<6;
-    const green=row<6&&col>8;
-    const blue=row>8&&col<6;
-    const yellow=row>8&&col>8;
-    const center=row>=6&&row<=8&&col>=6&&col<=8;
-    const redLane=RED_HOME.has(spot),yellowLane=YELLOW_HOME.has(spot);
-    const greenLane=col===7&&row>0&&row<6;
-    const blueLane=col===7&&row>8&&row<14;
-    const kind=red?" red":green?" green":blue?" blue":yellow?" yellow":
-     redLane?" red-lane":yellowLane?" yellow-lane":greenLane?" green-lane":blueLane?" blue-lane":
-     center?" center":" path";
-    return <span className={"lr-ludo-preview-cell"+kind} key={spot}>
-     {track!==undefined&&SAFE.has(track)?<b>★</b>:null}
-    </span>;
-   })}
-   {["red","green","blue","yellow"].map(color=><div key={color} className={"lr-ludo-preview-home lr-ludo-preview-home-"+color}>
-    {[0,1,2,3].map(i=><span key={i}/>)}
-   </div>)}
-   <div className="lr-ludo-preview-center"><span>♥</span></div>
+  <div className="lr-ludo-unified-board-frame">
+   <div className="lr-ludo-unified-board" role="img"
+    aria-label="Plateau Ludo unique à 15 colonnes, quatre zones foncées et huit étoiles"/>
   </div>
  </div>;
 }
