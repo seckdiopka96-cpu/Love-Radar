@@ -18,7 +18,15 @@ import "./fun-camera.css";
 type Call = {id:string;status:"ringing"|"active";direction:"incoming"|"outgoing";createdAt:number;updatedAt:number;expiresAt:number;mode?:"audio"|"video"};
 type Signal = {id:number;kind:"offer"|"answer"|"candidate"|"restart";payload:string};
 type Result = {ok:boolean;error?:string;call?:Call|null;signals?:Signal[]};
-type Props = {token:string;partner:string;avatarSrc?:string;hasPartner:boolean;showButton:boolean;onOpenChat:()=>void;focusCallId?:string|null};
+type CallDestination="home"|"memories"|"together"|"games"|"chat";
+const CALL_DESTINATIONS:{id:CallDestination;label:string;glyph:string}[]=[
+ {id:"home",label:"Accueil",glyph:"⌂"},
+ {id:"memories",label:"Souvenirs",glyph:"▧"},
+ {id:"together",label:"Nous deux",glyph:"♡"},
+ {id:"games",label:"Jeux",glyph:"♟"},
+ {id:"chat",label:"Messages",glyph:"✉"}
+];
+type Props = {token:string;partner:string;avatarSrc?:string;hasPartner:boolean;showButton:boolean;onOpenChat:()=>void;onNavigate:(destination:CallDestination)=>void;focusCallId?:string|null};
 
 const networkIsOffline=()=>navigator.onLine===false;
 const peerHasLocalOffer=(peer:RTCPeerConnection)=>peer.signalingState==="have-local-offer";
@@ -26,10 +34,11 @@ const STUN_SERVERS:RTCIceServer[]=[
  {urls:"stun:stun.cloudflare.com:3478"},
  {urls:"stun:stun.l.google.com:19302"}
 ];
-export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton,onOpenChat,focusCallId}:Props){
+export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton,onOpenChat,onNavigate,focusCallId}:Props){
  const [anchor,setAnchor]=useState<HTMLElement|null>(null);
  const [active,setActive]=useState<Call|null>(null);
  const [minimized,setMinimized]=useState(false);
+ const [callNavigationOpen,setCallNavigationOpen]=useState(false);
  const [videoControlsVisible,setVideoControlsVisible]=useState(true);
  const [floatingAt,setFloatingAt]=useState<{x:number;y:number}|null>(null);
  const [draggingVideo,setDraggingVideo]=useState(false);
@@ -67,6 +76,10 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
    setCallPanel("none");
   }
  },[focusCallId,active?.id]);
+ useEffect(()=>{
+  // The explorer is a temporary overlay; the peer connection is untouched.
+  if(!active||!minimized)setCallNavigationOpen(false);
+ },[active?.id,minimized]);
  const pc=useRef<RTCPeerConnection|null>(null);
  const iceServers=useRef<RTCIceServer[]>(STUN_SERVERS);
  const local=useRef<MediaStream|null>(null);
@@ -953,6 +966,13 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   setCallPanel("none");setVideoControlsVisible(true);setMinimized(true);
   onOpenChat();
  }
+ function navigateDuringCall(destination:CallDestination){
+  // Navigating changes only the SPA tab. The mounted VoiceCall/WebRTC session
+  // and remote audio element stay active until either participant hangs up.
+  setCallNavigationOpen(false);
+  setMinimized(true);
+  onNavigate(destination);
+ }
  function pressKey(digit:string){
   setDialed(previous=>(previous+digit).slice(-24));
   // DTMF is optional for peer-to-peer WebRTC and never dials a phone number.
@@ -1166,6 +1186,10 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
      </div>
     </div>
     <div className="lr-call-floating-actions">
+     <button type="button" className="lr-call-floating-explore"
+      onClick={()=>setCallNavigationOpen(true)}
+      aria-label="Explorer Love Radar sans raccrocher" aria-haspopup="dialog"
+      aria-expanded={callNavigationOpen} title="Explorer">▦</button>
      {needsPlay?<button type="button" onClick={enableAudio} aria-label="Activer le son">🔊</button>:null}
      <button type="button" className={muted?"is-muted":""} onClick={toggleMute}
       disabled={!local.current} aria-label={muted?"Réactiver le micro":"Couper le micro"}>{muted?"🔇":"🎙️"}</button>
@@ -1182,12 +1206,39 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
      <span className="lr-call-mini-up" aria-hidden="true">⌃</span>
     </button>
     <div className="lr-call-mini-actions">
+     <button type="button" className="lr-call-mini-explore"
+      onClick={()=>setCallNavigationOpen(true)}
+      aria-label="Explorer Love Radar sans raccrocher" aria-haspopup="dialog"
+      aria-expanded={callNavigationOpen} title="Explorer l’application">
+      <span aria-hidden="true">▦</span><span>Explorer</span>
+     </button>
      {needsPlay?<button type="button" onClick={enableAudio} className="lr-call-mini-sound" aria-label="Activer le son">🔊</button>:null}
      <button type="button" className={"lr-call-mini-speaker "+(speakerSelected?"active":"")} onClick={selectSpeaker} disabled={speakerBusy} aria-pressed={speakerSelected} aria-label={speakerSelected?"Désactiver le haut-parleur":"Activer le haut-parleur"}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zM16 9a5 5 0 0 1 0 6M19 5a10 10 0 0 1 0 14"/></svg></button>
      <button type="button" className={"lr-call-mini-mute "+(muted?"active":"")} onClick={toggleMute} disabled={!local.current} aria-label={muted?"Réactiver le micro":"Couper le micro"} aria-pressed={muted}>{muted?"🔇":"🎙️"}</button>
      <button type="button" className="lr-call-mini-end" onClick={hangup} disabled={busy} aria-label="Raccrocher">✕</button>
     </div>
    </div>,document.body):null;
+ const callNavigation=active&&minimized&&callNavigationOpen?createPortal(
+  <div className="lr-call-navigation-backdrop" onClick={event=>{
+   if(event.target===event.currentTarget)setCallNavigationOpen(false);
+  }}>
+   <section className="lr-call-navigation-sheet" role="dialog" aria-modal="true"
+    aria-label="Explorer Love Radar sans terminer l’appel">
+    <div className="lr-call-navigation-heading">
+     <div><strong>Explorer Love Radar</strong><small>Ton appel avec {partner} continue.</small></div>
+     <button type="button" className="lr-call-navigation-close"
+      aria-label="Fermer la navigation" onClick={()=>setCallNavigationOpen(false)}>×</button>
+    </div>
+    <nav className="lr-call-navigation-grid" aria-label="Sections de l’application">
+     {CALL_DESTINATIONS.map(destination=><button type="button" key={destination.id}
+      onClick={()=>navigateDuringCall(destination.id)}>
+      <span aria-hidden="true">{destination.glyph}</span>
+      <strong>{destination.label}</strong>
+     </button>)}
+    </nav>
+    <p>L’appel ne sera pas raccroché en changeant de section.</p>
+   </section>
+  </div>,document.body):null;
  const videoOptions=active&&isVideo&&callPanel!=="none"?createPortal(
   <div className="lr-video-options-backdrop" onClick={event=>{if(event.target===event.currentTarget)setCallPanel("none")}}>
    <section className="lr-video-options-sheet" role="dialog" aria-modal="true" aria-label={callPanel==="info"?"Informations de l’appel vidéo":"Options de l’appel vidéo"}>
@@ -1232,6 +1283,7 @@ export default function VoiceCall({token,partner,avatarSrc,hasPartner,showButton
   <audio ref={remote} data-lr-call-audio="true" autoPlay playsInline aria-label="Voix de ton partenaire"/>
   {display}
   {mini}
+  {callNavigation}
   {videoOptions}
  </>;
 }
