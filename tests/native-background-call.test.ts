@@ -85,6 +85,9 @@ test("generated Android and iOS background-call installation is repeatable and p
   assert.ok(activity.includes("registerPlugin(NativeCallPlugin.class)"));
   assert.ok(activity.indexOf("registerPlugin(NativeCallPlugin.class)")<activity.indexOf("super.onCreate(savedInstanceState)"));
   assert.ok(nativePlugin.includes('@CapacitorPlugin(name = "NativeCall")'));
+  assert.ok(nativePlugin.includes("WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON"));
+  assert.ok(nativePlugin.includes("setScreenAwake(true)"));
+  assert.ok(nativePlugin.includes("setScreenAwake(false)"));
   assert.ok(nativePlugin.includes("getContext().startForegroundService(service)"));
   assert.ok(nativePlugin.includes("Manifest.permission.RECORD_AUDIO"));
   assert.ok(service.includes("FOREGROUND_SERVICE_TYPE_MICROPHONE"));
@@ -109,6 +112,8 @@ test("generated Android and iOS background-call installation is repeatable and p
   assert.ok(delegate.includes("AVAudioSession.sharedInstance()"));
   assert.ok(delegate.includes("mode: .voiceChat"));
   assert.ok(delegate.includes("bridge?.registerPluginInstance(LoveRadarNativeCall())"));
+  assert.ok(delegate.includes("UIApplication.shared.isIdleTimerDisabled = true"));
+  assert.ok(delegate.includes("UIApplication.shared.isIdleTimerDisabled = false"));
   assert.ok(storyboard.includes('customClass="LoveRadarBridgeViewController"'));
   assert.ok(!storyboard.includes('customClass="CAPBridgeViewController"'));
   const before=[...Object.values(files),
