@@ -1,6 +1,6 @@
 import type {D1Database} from "@cloudflare/workers-types";
 import {RAPID_QUESTIONS} from "../../src/couple-party-engine";
-import {newTeamMatch,repairTeamClassic,teamRoll,teamMove,teamQuizAnswer,teamQuizTick,teamForfeit,teamOf,
+import {newTeamMatch,repairTeamClassic,teamIdleTurn,teamRoll,teamMove,teamQuizAnswer,teamQuizTick,teamForfeit,teamOf,
  type TeamSeat,type TeamId,type TeamKind,type TeamGame,type TeamMove
 } from "../../src/team-games-engine";
 
@@ -136,6 +136,10 @@ async function sync(db:D1Database,row:Row):Promise<Row>{
  }
  if(game.kind==="quiz"&&game.status==="playing"){
   const updated=teamQuizTick(game);
+  if(updated!==game)return await save(db,row,updated)||await get(db,row.id)||row;
+ }
+ if(game.kind!=="quiz"&&game.status==="playing"){
+  const updated=teamIdleTurn(game);
   if(updated!==game)return await save(db,row,updated)||await get(db,row.id)||row;
  }
  return row;
