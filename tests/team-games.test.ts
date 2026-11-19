@@ -203,3 +203,35 @@ test("the 2v2 mode exposes only three game variants, with original private games
  assert.ok(deletion.includes("DELETE FROM team_games WHERE host_room=? OR guest_room=?"));
  assert.ok(deletion.includes("DELETE FROM team_game_presence WHERE game_id IN"));
 });
+
+test("2v2 Senegal inherits opponent-corridor captures while leaving finished pawns untouchable",()=>{
+ for(const seat of [0,1] as TeamSeat[]){
+  const opponent=(1-seat) as TeamSeat;
+  const game=newTeamMatch("senegal","playing");
+  game.turn=seat;game.dice=1;
+  game.positions[seat][0]={zone:"enemy",step:78,depth:2,gate:77,owner:opponent};
+  game.positions[opponent][0]={zone:"home",step:53,depth:3,gate:51,owner:opponent};
+  const move=movesForTeamPawn(game,seat,0).find(o=>o.action==="enemy"&&o.to.depth===3);
+  assert.ok(move);
+  assert.equal(move!.captures.length,1);
+  const played=teamMove(game,seat,0,"enemy");
+  assert.equal(played?.positions[opponent][0].zone,"base");
+  assert.equal(played?.turn,seat,"capture keeps the moving seat's turn");
+  const protectedGame=newTeamMatch("senegal","playing");
+  protectedGame.turn=seat;protectedGame.dice=1;
+  protectedGame.positions[seat][0]={zone:"enemy",step:78,depth:2,gate:77,owner:opponent};
+  protectedGame.positions[opponent][0]={zone:"finished",step:56,depth:6,gate:51,owner:opponent};
+  const safe=movesForTeamPawn(protectedGame,seat,0).find(o=>o.action==="enemy");
+  assert.deepEqual(safe?.captures,[]);
+ }
+});
+test("the couples lobby header remains below the iPhone status bar and centers both buttons",()=>{
+ const css=readFileSync("src/team-games.css","utf8");
+ assert.ok(css.includes("grid-template-columns:54px minmax(0,1fr) 54px"),
+  "the two buttons are symmetrically aligned around the title");
+ assert.ok(css.includes("max(env(safe-area-inset-top,0px),44px)"),
+  "reserve the real iPhone safe area plus fallback when reported as zero");
+ assert.ok(css.includes("min-height:72px;padding:0 0 8px"),
+  "controls sit in a centered header row rather than under the clock");
+ assert.ok(css.includes("align-self:center;white-space:nowrap"));
+});
