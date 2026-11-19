@@ -16,7 +16,7 @@ const headers=readFileSync("public/_headers","utf8");
 const sw=readFileSync("public/sw.js","utf8");
 
 test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()=>{
- const start='<div class="board" id="ludo-board"';
+ const start='<div class="board lr-unified-ludo-board" id="ludo-board"';
  const end='<div id="pieces-layer"';
  const boardSlice=s=>(s.slice(s.indexOf(start),s.indexOf(end))).replace(/^\s+|\s+$/g,"");
  assert.ok(duoHTML.includes(start));
