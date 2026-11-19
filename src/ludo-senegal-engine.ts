@@ -27,9 +27,10 @@ export const freshPawn=():Pawn=>({zone:"base",step:-1,depth:0,gate:0,dir:1});
 const other=(seat:Seat):Seat=>(1-seat) as Seat;
 const mod=(n:number,m:number)=>((n%m)+m)%m;
 const homePoint=(owner:Seat,depth:number):Point=>HOME[owner][depth-1]||[7,7];
-// Opponent's colored corridor has five cells. The sixth step would be the
-// central finish: that destination belongs ONLY to the pawn's own home lane.
+// Both colored corridors have five visible cells. Only the owner's sixth
+// home step is the central finish; enemy invaders can never enter it.
 export const ENEMY_LANE_LENGTH=HOME[0].length;
+export const SENEGAL_FINISH_DEPTH=ENEMY_LANE_LENGTH+1;
 export const trackIndex=(seat:Seat,step:number)=>mod(seat*26+step,52);
 export const pointForPawn=(seat:Seat,index:number,pawn:Pawn):Point=>{
  if(pawn.zone==="base")return BASE[seat][index];
@@ -59,11 +60,12 @@ export function stopSenegalGame(game:SenegalGame,playerName:string):SenegalGame{
 export function repairSenegalHomeShortcut(game:SenegalGame):SenegalGame{
  let changed=false,invalidHome=false;
  const positions=game.positions.map(row=>row.map(piece=>{
-  // An older game may visually have reached the center while still storing
-  // zone "home". A depth-7 home pawn is completed, not a movable pawn.
-  if(piece.zone==="home"&&piece.depth===7&&piece.gate>=51){
+  // Previous builds represented the centre as "home" at depth 6 and
+  // required one invisible extra step before winning. Finish those pawns
+  // when reopening the saved Solo/Duo game, without losing progress.
+  if(piece.zone==="home"&&piece.depth>=SENEGAL_FINISH_DEPTH&&piece.gate>=51){
    changed=true;
-   return {...piece,zone:"finished" as const};
+   return {...piece,zone:"finished" as const,depth:SENEGAL_FINISH_DEPTH};
   }
   if((piece.zone==="home"||piece.zone==="finished")&&piece.gate===-1){
    changed=true;invalidHome=true;
@@ -88,7 +90,7 @@ export function repairSenegalHomeShortcut(game:SenegalGame):SenegalGame{
   }
   if(piece.zone==="finished"&&piece.dir===-1){
    changed=true;
-   return {...piece,step:57,gate:51,dir:1 as const};
+   return {...piece,step:56,depth:SENEGAL_FINISH_DEPTH,gate:51,dir:1 as const};
   }
   return piece;
  })) as [Pawn[],Pawn[]];
@@ -155,8 +157,8 @@ export function senegalGateChoice(game:SenegalGame,seat:Seat,pawn:number):"home"
 }
 function laneOption(pawn:number,from:Pawn,dest:number,dir:1|-1,gate:number,zone:"home"|"enemy"):MoveOption|null{
  const depth=1+dir*(dest-gate);
- if(depth<1||depth>(zone==="home"?7:ENEMY_LANE_LENGTH))return null;
- const to:Pawn={zone:zone==="home"&&depth===7?"finished":zone,
+ if(depth<1||depth>(zone==="home"?SENEGAL_FINISH_DEPTH:ENEMY_LANE_LENGTH))return null;
+ const to:Pawn={zone:zone==="home"&&depth===SENEGAL_FINISH_DEPTH?"finished":zone,
   step:dest,depth,gate,dir};
  return {pawn,action:zone,to,label:zone==="home"?"🏠 Entrer chez moi":"😈 Attaquer la cage adverse"};
 }
@@ -215,9 +217,9 @@ function guardedOptions(game:SenegalGame,seat:Seat,pawn:number,from:Pawn,roll:nu
    if(step>=-MAX_STEPS&&step<=MAX_STEPS)landing={zone:"track",step,depth:0,gate:0,dir};
   }else if(to.zone!=="track"){
    const depth=blocked.depth+1,own=blocked.owner===seat;
-   if(depth<=(own?7:ENEMY_LANE_LENGTH)){
+   if(depth<=(own?SENEGAL_FINISH_DEPTH:ENEMY_LANE_LENGTH)){
     const gate=from.zone==="home"?from.gate:to.gate;
-    landing={zone:own&&depth===7?"finished":own?"home":"enemy",
+    landing={zone:own&&depth===SENEGAL_FINISH_DEPTH?"finished":own?"home":"enemy",
      step:gate+dir*(depth-1),depth,gate,dir};
    }
   }
@@ -241,9 +243,9 @@ export function movesForPawn(game:SenegalGame,seat:Seat,pawn:number):MoveOption[
   roll===6?[{pawn,action:"track",to:{zone:"track",step:0,depth:0,gate:0,dir:1},label:"Sortir de la base"}]:[]);
  if(from.zone==="home"){
   const depth=from.depth+roll;
-  if(depth>7)return [];
+  if(depth>SENEGAL_FINISH_DEPTH)return [];
   return guardedOptions(game,seat,pawn,from,roll,
-   [{pawn,action:"home",to:{...from,depth,zone:depth===7?"finished":"home"},label:depth===7?"🏆 Arriver au centre":"Avancer vers le centre"}]);
+   [{pawn,action:"home",to:{...from,depth,zone:depth===SENEGAL_FINISH_DEPTH?"finished":"home"},label:depth===SENEGAL_FINISH_DEPTH?"🏆 Arriver au centre":"Avancer vers le centre"}]);
  }
  if(from.zone==="enemy"){
   if(roll===6){
