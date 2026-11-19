@@ -5,7 +5,7 @@ import {DatabaseSync} from "node:sqlite";
 import {createHash,webcrypto} from "node:crypto";
 import type {D1Database} from "@cloudflare/workers-types";
 import {RAPID_QUESTIONS} from "../src/couple-party-engine";
-import {newTeamMatch,teamOf,TEAM_COLORS,TEAM_BASE,TEAM_HOME,movesForTeamPawn,
+import {newTeamMatch,repairTeamClassic,teamOf,TEAM_COLORS,TEAM_BASE,TEAM_HOME,movesForTeamPawn,
  teamRoll,teamMove,teamQuizAnswer,teamQuizTick,teamForfeit,teamPiecePoint,
  type TeamSeat
 } from "../src/team-games-engine";
@@ -92,6 +92,80 @@ test("Classic protects teammate pawns and victory requires BOTH teammates' eight
  assert.equal(victory.winner,0);
  assert.equal(victory.winReason,"pieces");
  assert.equal(teamRoll(victory,0,6),victory,"game is frozen after championship victory");
+});
+test("Classic 2v2 never uses Senegal barricades; regular dice move past a two-pawn stack",()=>{
+ const game=newTeamMatch("classic","playing");
+ game.turn=0;game.dice=3;
+ game.positions[0][0]={zone:"track",step:4,depth:0,gate:0,owner:0};
+ game.positions[1][0]={zone:"track",step:45,depth:0,gate:0,owner:1};
+ game.positions[1][1]={zone:"track",step:45,depth:0,gate:0,owner:1};
+ const choices=movesForTeamPawn(game,0,0);
+ assert.deepEqual(choices.map(o=>o.action),["track"]);
+ assert.equal(choices[0].to.step,7,"Classic is not blocked by Senegal rules");
+ const played=teamMove(game,0,0,"track");
+ assert.equal(played?.positions[0][0].step,7);
+ assert.equal(played?.positions[1][0].zone,"track","passing over a stack does not capture");
+ game.dice=6;
+ const six=movesForTeamPawn(game,0,0);
+ assert.deepEqual(six.map(o=>o.action),["track"],
+  "Classic must never offer a jump over an opponent stack");
+ assert.equal(six[0].to.step,10);
+});
+test("Classic 2v2 cannot run a second lap or bypass its five-square finishing corridor",()=>{
+ for(const seat of [0,1,2,3] as TeamSeat[]){
+  const g=newTeamMatch("classic","playing");
+  g.turn=seat;
+  g.dice=6;
+  g.positions[seat][0]={zone:"track",step:50,depth:0,gate:0,owner:seat};
+  const nearFinish=movesForTeamPawn(g,seat,0);
+  assert.deepEqual(nearFinish.map(o=>o.action),["home"]);
+  assert.equal(nearFinish[0].to.zone,"finished");
+  assert.equal(nearFinish[0].to.depth,6);
+  assert.deepEqual(teamPiecePoint(seat,0,nearFinish[0].to),[7,7]);
+  g.dice=2;
+  const home=movesForTeamPawn(g,seat,0);
+  assert.deepEqual(home.map(o=>o.action),["home"]);
+  assert.equal(home[0].to.depth,2);
+  g.dice=6;
+  g.positions[seat][0]={zone:"track",step:48,depth:0,gate:0,owner:seat};
+  const approach=movesForTeamPawn(g,seat,0);
+  assert.deepEqual(approach.map(o=>o.action),["home"]);
+  assert.equal(approach[0].to.depth,4);
+  g.positions[seat][0]={zone:"track",step:46,depth:0,gate:0,owner:seat};
+  const stillTrack=movesForTeamPawn(g,seat,0);
+  assert.deepEqual(stillTrack.map(o=>o.action),["home"]);
+  assert.equal(stillTrack[0].to.depth,2);
+ }
+ const senegal=newTeamMatch("senegal","playing");
+ senegal.turn=0;senegal.dice=6;
+ senegal.positions[0][0]={zone:"track",step:50,depth:0,gate:0,owner:0};
+ assert.ok(movesForTeamPawn(senegal,0,0).some(o=>o.action==="track"),
+  "Sénégal alone retains the deliberate continue-lapping choice");
+ assert.ok(movesForTeamPawn(senegal,0,0).some(o=>o.action==="home"));
+});
+test("previous Classic 2v2 saves with overrun tracks migrate without resetting pawns",()=>{
+ const game=newTeamMatch("classic","playing");
+ game.positions[0][0]={zone:"track",step:51,depth:0,gate:0,owner:0};
+ game.positions[1][0]={zone:"track",step:54,depth:0,gate:0,owner:1};
+ game.positions[2][0]={zone:"track",step:71,depth:0,gate:0,owner:2};
+ const repaired=repairTeamClassic(game);
+ assert.notEqual(repaired,game);
+ assert.equal(repaired.positions[0][0].zone,"home");
+ assert.equal(repaired.positions[0][0].depth,1);
+ assert.equal(repaired.positions[1][0].depth,4);
+ assert.equal(repaired.positions[2][0].depth,5,
+  "extra laps cap at the fifth physical square; no unearned victory");
+ assert.deepEqual(repaired.positions[3],game.positions[3]);
+ assert.equal(repaired.status,"playing");
+ assert.equal(repaired.winner,null);
+ assert.equal(repairTeamClassic(repaired),repaired);
+ const senegal=newTeamMatch("senegal","playing");
+ senegal.positions[0][0]={zone:"track",step:71,depth:0,gate:0,owner:0};
+ assert.equal(repairTeamClassic(senegal),senegal,"Sénégal must keep multiple laps");
+ const api=readFileSync("functions/api/team-games.ts","utf8");
+ assert.ok(api.includes("const repaired=repairTeamClassic(game)"));
+ assert.ok(api.includes("row=await save(db,row,repaired)"),
+  "migration is version-guarded on the server");
 });
 test("Senegal enemy lane is not a shortcut to winning, and six retreats one square",()=>{
  const g=newTeamMatch("senegal","playing");
