@@ -335,6 +335,7 @@ export function die():number{
 }
 /** Complete a single absent player's turn; automatic bonus throws are included. */
 export function autoplayTurn(game:SenegalGame):{game:SenegalGame;move:SenegalMove|null}{
+ if(game.status!=="playing")return {game,move:null};
  let current=game,move:SenegalMove|null=null,seat=game.turn;
  for(let n=0;n<20&&current.status==="playing"&&current.turn===seat;n++){
   if(current.dice===null)current=rollSenegal(current,die());
