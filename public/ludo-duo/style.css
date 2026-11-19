@@ -312,13 +312,13 @@ html.lr-ludo-duo-ui .dice-3d.is-rolling{
  will-change:transform;
 }
 html.lr-ludo-duo-ui .dice-3d.is-rolling[data-toss="0"]{
- animation:lr-duo-throw-a .52s cubic-bezier(.21,.55,.28,1) both!important;
+ animation:lr-duo-throw-a .26s cubic-bezier(.21,.55,.28,1) both!important;
 }
 html.lr-ludo-duo-ui .dice-3d.is-rolling[data-toss="1"]{
- animation:lr-duo-throw-b .52s cubic-bezier(.16,.64,.30,1) both!important;
+ animation:lr-duo-throw-b .26s cubic-bezier(.16,.64,.30,1) both!important;
 }
 html.lr-ludo-duo-ui .dice-3d.is-rolling[data-toss="2"]{
- animation:lr-duo-throw-c .52s cubic-bezier(.18,.59,.27,1) both!important;
+ animation:lr-duo-throw-c .26s cubic-bezier(.18,.59,.27,1) both!important;
 }
 @keyframes lr-duo-throw-a{
  0%{transform:translate3d(0,0,0) rotateX(-16deg) rotateY(-23deg) rotateZ(0) scale(1)}
@@ -343,4 +343,9 @@ html.lr-ludo-duo-ui .dice-3d.is-rolling[data-toss="2"]{
 }
 @media(prefers-reduced-motion:reduce){
  html.lr-ludo-duo-ui .dice-3d.is-rolling[data-toss]{animation:none!important}
+}
+
+/* Ludo v20: center the stationary board in the available area. */
+html.lr-ludo-duo-ui #plateau .board-area{
+ align-items:center!important;justify-content:center!important;
 }
