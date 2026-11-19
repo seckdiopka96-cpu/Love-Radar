@@ -64,12 +64,15 @@
  const colorButton=document.getElementById("change-color-after-win");
  let lastBoardKey="";
  let lastAnimatedRoll="",receivedState=false;
+ let previousSoundGame="",previousSoundPositions=null,soundWinGame="";
+ let activeCaptureSounds=new Set(),pendingCaptureSounds=new Set();
  let dieVisualTimer=null,dieVisualUntil=0;
  let lastTossVariant=-1;
- const DIE_TUMBLE_MS=520;
+ const DIE_TUMBLE_MS=260;
  // The backend alone decides the result. Show a physical 3D tumble even when
  // it answers in less than 170 ms, without holding back legal pawn moves.
  function animateRealDieRoll(){
+  window.LudoSfx?.play("roll");
   dieVisualUntil=Date.now()+DIE_TUMBLE_MS;
   if(dieVisualTimer!==null)clearTimeout(dieVisualTimer);
   // Vary the PHYSICAL animation only. Never generate or alter the dice value:
@@ -345,6 +348,36 @@
  function render(){
   if(!state?.game)return;
   const g=state.game,colors=state.palette.colors;
+  if(previousSoundGame!==g.id){
+   previousSoundGame=g.id;
+   previousSoundPositions=g.positions.map(row=>row.slice());
+   activeCaptureSounds=new Set();pendingCaptureSounds=new Set();soundWinGame="";
+  }else if(previousSoundPositions){
+   let captured=false,exited=false;
+   const active=new Set((state.capturedMotions||[]).map(m=>m.seat+":"+m.pawn));
+   for(const key of active)if(!activeCaptureSounds.has(key)){
+    captured=true;pendingCaptureSounds.add(key);
+   }
+   activeCaptureSounds=active;
+   for(let seat=0;seat<2;seat++)for(let pawn=0;pawn<4;pawn++){
+    const key=seat+":"+pawn;
+    const before=previousSoundPositions[seat]?.[pawn],after=g.positions[seat]?.[pawn];
+    if(typeof before!=="number"||typeof after!=="number")continue;
+    if(before>=0&&after===-1){
+     if(!pendingCaptureSounds.has(key))captured=true;
+     pendingCaptureSounds.delete(key);
+    }
+    if(before===-1&&after>=0&&after<FINISH_PROGRESS){
+     exited=true;pendingCaptureSounds.delete(key);
+    }
+   }
+   if(captured)window.LudoSfx?.play("capture");
+   else if(exited)window.LudoSfx?.play("exit");
+   previousSoundPositions=g.positions.map(row=>row.slice());
+  }
+  if(g.status==="won"&&g.winner===state.mySeat&&soundWinGame!==g.id){
+   soundWinGame=g.id;window.LudoSfx?.play("win");
+  }
   app.dataset.player=colors[state.mySeat];
   app.dataset.diceColor=colors[g.turn];
   app.dataset.computer=colors[1-state.mySeat];
