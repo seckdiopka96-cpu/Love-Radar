@@ -349,3 +349,7 @@ html.lr-ludo-duo-ui .dice-3d.is-rolling[data-toss="2"]{
 html.lr-ludo-duo-ui #plateau .board-area{
  align-items:center!important;justify-content:center!important;
 }
+
+/* Computer label only in either Solo mode; Duo partner photos remain intact. */
+.lr-ludo-duo-ui .players-rail .player--cpu.is-solo .avatar{display:none!important}
+.lr-ludo-duo-ui .players-rail .player--cpu.is-solo{justify-content:flex-end}
