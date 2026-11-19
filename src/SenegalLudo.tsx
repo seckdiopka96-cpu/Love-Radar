@@ -377,7 +377,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
        const redLane=homeMap[0].has(k),goldLane=homeMap[1].has(k);
        const greenLane=c===7&&r>=1&&r<=5,blueLane=c===7&&r>=9&&r<=13;
        const center=r>=6&&r<=8&&c>=6&&c<=8;
-       const classes="ludo-cell lr-ludo-cell"+(red?" ludo-red-base":gold?" ludo-gold-base":blue?" ludo-blue-base":green?" ludo-green-base":"")+
+       const classes="ludo-cell lr-ludo-cell"+(red||gold||blue||green?" in-yard":"")+(red?" ludo-red-base":gold?" ludo-gold-base":blue?" ludo-blue-base":green?" ludo-green-base":"")+
         (track!==undefined?" ludo-path":"")+(redLane?" ludo-red-lane":"")+(goldLane?" ludo-gold-lane":"")+
         (blueLane?" ludo-blue-lane":"")+(greenLane?" ludo-green-lane":"")+
         (center?" ludo-center":"")+(track===0?" ludo-red-start":"")+(track===26?" ludo-gold-start":"");
