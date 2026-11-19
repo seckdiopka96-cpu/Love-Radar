@@ -66,4 +66,10 @@ test("game screen synchronizes both clients, supports replay and is reachable fr
  const css=readFileSync("src/rps-duo.css","utf8");
  assert.ok(css.includes("@media(max-width:450px)"));
  assert.ok(css.includes("prefers-reduced-motion:reduce"));
+ assert.ok(app.includes('tab==="rps"&&room?"lr-rps-mode "'),"only RPS opts into fixed layout");
+ assert.ok(css.includes(".lr-app.lr-app-locked.lr-rps-mode .lr-main"),"the RPS page has its own non-scrolling main area");
+ assert.ok(css.includes("overflow:hidden!important;overscroll-behavior:none!important"),"the game cannot scroll behind the dock");
+ assert.ok(css.includes("grid-template-rows:minmax(0,1fr) auto auto auto"),"arena, options, and actions fit on one screen");
+ assert.ok(css.includes(".lr-rps-mode .lr-rps-bottom-actions button"),"invite and message controls stay visible");
+ assert.ok(css.includes(".lr-rps-mode .lr-rps-modal{max-height:"),"rules remain independently scrollable");
 });
