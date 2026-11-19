@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from "react";
 import {apiFetch} from "./api";
+import {teamSnapshotPolicy} from "./team-game-sync";
 import {TRACK,SAFE} from "./ludo-visuals";
 import {movesForTeamPawn,teamPiecePoint,TEAM_BASE,TEAM_HOME,TEAM_COLORS,teamOf,
  type TeamSeat,type TeamGame,type TeamKind,type TeamMove
@@ -88,35 +89,60 @@ export default function TeamGames({token,onExit}:Props){
  const mounted=useRef(true);
  const ref=useRef<GameView|null>(null);
  const lock=useRef(false);
+ const pollInFlight=useRef(false);
+ const pollAgain=useRef(false);
  const leaving=useRef(false);
- const receive=useCallback((value:GameView|null)=>{
-  ref.current=value;
-  setGame(value);
-  setChoices(null);
+ const receive=useCallback((value:GameView|null,allowRoomSwitch=false)=>{
+  if(!mounted.current)return;
+  if(!value){
+   ref.current=null;setGame(null);setChoices(null);return;
+  }
+  const previous=ref.current;
+  const policy=teamSnapshotPolicy(previous,value,allowRoomSwitch);
+  if(policy==="ignore")return;
+  if(policy==="presence-only"&&previous){
+   // Presence is refreshed independently from turns. Keep the newer board.
+   const merged={...previous,players:value.players,presence:value.presence};
+   ref.current=merged;setGame(merged);
+   return;
+  }
+  ref.current=value;setGame(value);setChoices(null);
  },[]);
  const refresh=useCallback(async()=>{
+  if(!mounted.current||document.visibilityState==="hidden")return;
+  if(pollInFlight.current||lock.current){pollAgain.current=true;return;}
+  pollInFlight.current=true;
   try{
-   const id=ref.current?.id;
-   const url="/api/team-games"+(id?"?id="+encodeURIComponent(id):"");
+   const requestedId=ref.current?.id;
+   const url="/api/team-games"+(requestedId?"?id="+encodeURIComponent(requestedId):"");
    const response=await apiFetch(url,{headers:{Authorization:"Bearer "+token},cache:"no-store"});
    const data=await response.json() as Result;
    if(!response.ok||!data.ok)throw Error(data.error||"Connexion au tournoi impossible.");
-   if(mounted.current&&data.game){
-    if(!ref.current||data.game.version!==ref.current.version||data.game.state.status!==ref.current.state.status){
-     receive(data.game);
-    }else{
-     ref.current=data.game;
-     setGame(data.game);
-    }
+   // A create/join can occur while a previous GET is in flight.
+   if(mounted.current&&data.game&&(!requestedId||ref.current?.id===requestedId)){
+    receive(data.game);
+    setError("");
    }
   }catch(e){if(mounted.current)setError(e instanceof Error?e.message:"Erreur de connexion.");}
-  finally{if(mounted.current)setLoading(false);}
+  finally{
+   pollInFlight.current=false;
+   if(mounted.current)setLoading(false);
+   if(pollAgain.current&&mounted.current&&document.visibilityState==="visible"){
+    pollAgain.current=false;
+    // A one-shot queued poll is deliberately serialized, not overlapping.
+    void refresh();
+   }
+  }
  },[token,receive]);
  useEffect(()=>{
   mounted.current=true;
   void refresh();
-  const heartbeat=window.setInterval(()=>{if(document.visibilityState==="visible")void refresh()},1600);
+  const heartbeat=window.setInterval(()=>{if(document.visibilityState==="visible")void refresh()},900);
   const clock=window.setInterval(()=>setNow(Date.now()),160);
+  const onResume=()=>{if(document.visibilityState==="visible")void refresh()};
+  document.addEventListener("visibilitychange",onResume);
+  window.addEventListener("focus",onResume);
+  window.addEventListener("online",onResume);
   const onLeave=()=>{
    const last=ref.current;
    if(!last||last.state.status!=="playing"||leaving.current)return;
@@ -129,6 +155,9 @@ export default function TeamGames({token,onExit}:Props){
   };
   window.addEventListener("lr-team-leave",onLeave);
   return()=>{mounted.current=false;clearInterval(heartbeat);clearInterval(clock);
+   document.removeEventListener("visibilitychange",onResume);
+   window.removeEventListener("focus",onResume);
+   window.removeEventListener("online",onResume);
    window.removeEventListener("lr-team-leave",onLeave)};
  },[refresh,token]);
  async function act(action:string,extra:Record<string,unknown>={}){
@@ -142,15 +171,23 @@ export default function TeamGames({token,onExit}:Props){
     body:JSON.stringify({action,...(current?{id:current.id,version:current.version}:{}),...extra})
    });
    const payload=await response.json() as Result;
+   // Even a 409 can contain the current authoritative board. Reconcile it
+   // before prompting the user so a stale turn never remains visible.
+   if(payload.game)receive(payload.game,action==="create"||action==="join");
    if(!response.ok||!payload.ok)throw Error(payload.error||"Impossible de synchroniser le jeu.");
-   if(payload.game)receive(payload.game);
    setConfirmLeave(false);
    return true;
   }catch(e){
-   setError(e instanceof Error?e.message:"Erreur de connexion.");
-   void refresh();
+   if(mounted.current)setError(e instanceof Error?e.message:"Erreur de connexion.");
+   pollAgain.current=true;
    return false;
-  }finally{lock.current=false;setWorking(false);}
+  }finally{
+   lock.current=false;
+   if(mounted.current)setWorking(false);
+   if(pollAgain.current&&document.visibilityState==="visible"){
+    pollAgain.current=false;void refresh();
+   }
+  }
  }
  const leave=async()=>{
   const active=ref.current;
