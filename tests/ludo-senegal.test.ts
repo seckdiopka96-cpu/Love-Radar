@@ -313,6 +313,10 @@ test("capture return animation is bounded and cleared even after iOS callback su
   "a stuck capture has a fixed cleanup deadline");
  assert.ok(component.includes("now>=captureDeadline.current"),
   "250ms UI clock recovers after suspended iOS timers");
+ assert.ok(component.includes("now>=motionDeadline.current"),
+  "a suspended pawn movement cannot block the next turn");
+ assert.ok(component.includes("motionGeneration.current++"),
+  "late animation callbacks cannot resurrect an already cleared pawn");
  assert.ok(component.includes("setCaptureBack([]);captureDeadline.current=0"),
   "capture overlay and input lock are always released");
  const board=readFileSync("public/ludo-duo/script.js","utf8");
