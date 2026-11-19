@@ -28,14 +28,14 @@ type CaptureBack={seat:Seat;pawn:number;point:Point};
 type CapturedSenegalPawn=SenegalMove["captures"][number];
 /** Return a legally captured pawn backwards to its real base.
  * Bound the visual route to avoid 52+ queued timers freezing a turn on
- * iPhones (especially while a voice call is active). Own-home pawns are
- * never passed here because they are protected by the rules engine. */
+ * iPhones (especially while a voice call is active). A pawn still within
+ * its colored arrival lane is capturable; only finished center pawns are safe. */
 function captureReversePoints(capture:CapturedSenegalPawn):Point[]{
  const {seat,pawn,from}=capture;
  const path:Point[]=[];
  const track=(step:number):Point=>TRACK[((seat*26+step)%52+52)%52];
- if(from.zone==="enemy"){
-  const owner=(1-seat) as Seat;
+ if(from.zone==="enemy"||from.zone==="home"){
+  const owner=from.zone==="home"?seat:(1-seat) as Seat;
   for(let d=from.depth-1;d>=1;d--)path.push(HOME[owner][d-1]);
   const remaining=Math.min(8,Math.max(0,from.gate));
   for(let i=0;i<remaining;i++)path.push(track(from.gate-1-i));
@@ -399,7 +399,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   option.to.zone==="home"||option.to.zone==="finished":option.to.zone==="enemy")||[];
  const continueRoutes=chosen?.filter(option=>option.to.zone==="track")||[];
  const enemyCagePawns=game.positions[enemy].filter(p=>p.zone==="home");
- // Own-home pawns are protected: invading a lane can never capture them.
+ // An invader can capture unfinished home-lane pawns by exact landing.
  const lastFace=game.lastAction.match(/Dé ([1-6])/);
  const shownDie=rolling?face:game.dice??(lastFace?Number(lastFace[1]):face);
  const status=game.status==="won"?(game.winner===seat?"🏆 Tu as gagné !":"🏆 Ton adversaire a gagné !"):
@@ -462,6 +462,14 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    <p>Le plateau Classique est prêt. Vous jouerez avec les règles sénégalaises.</p>
    <button type="button" onClick={()=>void quitGame()} disabled={quitting}>Arrêter et retourner aux jeux</button>
   </div>:null}
+  {game.status==="won"?<div className="ludo-senegal-overlay" role="dialog" aria-modal="true" aria-label="Victoire au Ludo Sénégal">
+   <div className="ludo-senegal-shared-dialog">
+    <strong>🏆 {game.winner===seat?"Victoire !":"Partie terminée !"}</strong>
+    <p>{game.winner===seat?"Tu as terminé tes quatre pions !":"Ton adversaire a terminé ses quatre pions !"} Le match est arrêté pour vous deux.</p>
+    <button type="button" onClick={reset} disabled={busy||quitting}>↻ Nouvelle partie</button>
+    <button type="button" className="ludo-senegal-shared-cancel" onClick={onExit}>← Retour aux Ludos</button>
+   </div>
+  </div>:null}
   {!solo&&game.status==="ended"?<div className="ludo-senegal-overlay" role="dialog" aria-modal="true" aria-label="Partie arrêtée">
    <div className="ludo-senegal-shared-dialog">
     <strong>Partie arrêtée</strong>
@@ -480,7 +488,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
      Ce choix concerne uniquement le pion {chosen[0].pawn+1}. Tu devras choisir à nouveau pour chaque autre pion.
     </p>:null}
     {gateDecision==="enemy"?<p>{enemyCagePawns.length===0?"La cage adverse est vide.":
-     "Les pions déjà dans leur maison sont protégés. Tu peux entrer ou continuer."}</p>:null}
+     "Les pions dans ce couloir peuvent être capturés sur leur case. Ceux au centre sont protégés."}</p>:null}
     {gateDecision?<>
      {continueRoutes.length?continueRoutes.map((option,index)=><button type="button"
       key={"continue-"+option.pawn+"-"+option.to.step+"-"+index}
