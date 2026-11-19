@@ -114,12 +114,34 @@ test("server keeps quiz answers secret, scores once, rejects unauthorized moves 
  const follow=await request("rapid","a","next",{gameId:game.id,round:game.round});
  assert.equal(follow.status,200);
  assert.equal(follow.data.game.round,2);
- assert.equal(follow.data.game.phase,"ready","the next question requires both players ready again");
- assert.equal(follow.data.game.question,null);
+ assert.equal(follow.data.game.phase,"question","the room stays active without another ready prompt");
+ assert.ok(follow.data.game.question,"the next question is prepared automatically");
+ assert.ok(follow.data.game.startAt>Date.now(),"both partners get a fresh countdown");
+ assert.equal(follow.data.game.myChoice,null,"the new question accepts a fresh answer");
+ const partnerFollow=(await request("rapid","b")).data.game;
+ assert.equal(partnerFollow.id,game.id,"the original duo room remains fixed");
+ assert.equal(partnerFollow.round,2);
+ assert.equal(partnerFollow.startAt,follow.data.game.startAt,"both partners share the same countdown");
+ assert.equal((await request("rapid","b","ready",{gameId:game.id,round:2})).status,409,"ready is only allowed before round one");
  assert.equal(follow.data.game.correct,null,"new answer is hidden again");
  assert.equal(follow.data.game.scores[0]+follow.data.game.scores[1],1);
  const replay=await request("rapid","b","next",{gameId:game.id,round:game.round});
  assert.equal(replay.status,409,"old-round replay must be ignored");
+});
+test("legacy active rooms no longer get stuck on a ready screen after round one",async()=>{
+ if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+ const {sqlite,request}=harness();
+ const initial=(await request("rapid","a")).data.game;
+ sqlite.prepare("UPDATE couple_party_games SET round=11,phase='ready',picked_0=1,picked_1=NULL,started_at=0,deadline_at=0 WHERE room_id='room-A' AND mode='rapid'").run();
+ const resumed=(await request("rapid","a")).data.game;
+ const partner=(await request("rapid","b")).data.game;
+ assert.equal(resumed.id,initial.id,"the existing room must be preserved");
+ assert.equal(resumed.round,11);
+ assert.equal(resumed.phase,"question");
+ assert.equal(partner.phase,"question");
+ assert.equal(partner.startAt,resumed.startAt,"refreshes cannot create separate countdowns");
+ assert.equal(resumed.correct,null);
+ assert.equal(resumed.scores[0]+resumed.scores[1],0);
 });
 test("when the timer expires without a correct answer, both partners see the same result",async()=>{
  if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
