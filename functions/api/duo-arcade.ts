@@ -6,8 +6,9 @@ type Ctx={request:Request;env:PushEnv;waitUntil?:(p:Promise<unknown>)=>void};
 type Member={id:string;name:string;room_id:string;seat:number};
 type DrawRow={
  room_id:string;game_id:string;round:number;drawer:number;word_index:number;strokes_json:string;
- scores_0:number;scores_1:number;status:"playing"|"revealed";expires_at:number;version:number;updated_at:number;last_invite_at:number
+ scores_0:number;scores_1:number;status:"playing"|"revealed"|"finished";expires_at:number;version:number;updated_at:number;last_invite_at:number
 };
+const DRAW_WIN_SCORE=10;
 type EscapeRow={
  room_id:string;game_id:string;scenario:number;stage:number;status:"playing"|"escaped";
  started_at:number;expires_at:number;version:number;attempts:number;updated_at:number;last_invite_at:number
@@ -61,9 +62,11 @@ function drawPublic(row:DrawRow,member:Member){
  try{const stored:unknown=JSON.parse(row.strokes_json);if(Array.isArray(stored))strokes=stored.filter(validStroke)}catch{/* Ignore corrupted historical strokes. */}
  return {
   mode:"draw",id:row.game_id,round:row.round,version:row.version,drawer:row.drawer,
-  word:isDrawer||row.status==="revealed"||timedOut?word.word:null,category:word.category,
+  word:isDrawer||row.status==="revealed"||row.status==="finished"||timedOut?word.word:null,category:word.category,
   strokes,status:timedOut?"timeout":row.status,expiresAt:row.expires_at,
-  scores:[row.scores_0,row.scores_1],updatedAt:row.updated_at
+  scores:[row.scores_0,row.scores_1],winScore:DRAW_WIN_SCORE,
+  matchWinner:row.status==="finished"?(row.scores_0>=DRAW_WIN_SCORE?0:1):null,
+  updatedAt:row.updated_at
  };
 }
 function escapePublic(row:EscapeRow,member:Member){
@@ -80,7 +83,19 @@ function escapePublic(row:EscapeRow,member:Member){
 }
 async function view(db:D1Database,member:Member,mode:"draw"|"escape",members:number,extra:Record<string,unknown>={}){
  if(members!==2)return {mode,members,seat:member.seat,serverNow:Date.now(),game:null,...extra};
- const row=mode==="draw"?await drawRow(db,member.room_id):await escapeRow(db,member.room_id);
+ let row=mode==="draw"?await drawRow(db,member.room_id):await escapeRow(db,member.room_id);
+ if(mode==="draw"&&row){
+  const old=row as DrawRow;
+  // Saved drawing games from before the 10-point championship should also
+  // finish rather than continue scoring indefinitely after a winner exists.
+  if(old.status!=="finished"&&(old.scores_0>=DRAW_WIN_SCORE||old.scores_1>=DRAW_WIN_SCORE)){
+   await db.prepare(
+    "UPDATE duo_draw_games SET status='finished',version=version+1,updated_at=?"+
+    " WHERE room_id=? AND game_id=? AND version=? AND status<>'finished'"
+   ).bind(Date.now(),member.room_id,old.game_id,old.version).run();
+   row=await drawRow(db,member.room_id);
+  }
+ }
  const game=row?(mode==="draw"?drawPublic(row as DrawRow,member):escapePublic(row as EscapeRow,member)):null;
  return {mode,members,seat:member.seat,serverNow:Date.now(),game,...extra};
 }
@@ -116,7 +131,20 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
   const now=Date.now();
   if(mode==="draw"){
    const game=row as DrawRow;
+   if(data.action==="restart"){
+    if(game.status!=="finished")return fail("Le match n'est pas encore gagné.",409);
+    const changed=await db.prepare(
+     "UPDATE duo_draw_games SET game_id=?,round=1,drawer=?,word_index=?,"+
+     "strokes_json='[]',scores_0=0,scores_1=0,status='playing',expires_at=?,"+
+     "version=version+1,updated_at=?"+
+     " WHERE room_id=? AND game_id=? AND version=? AND status='finished'"
+    ).bind(crypto.randomUUID(),game.drawer===0?1:0,randomIndex(DRAW_WORDS.length),
+      now+75000,now,member.room_id,game.game_id,game.version).run();
+    if(changed.meta.changes!==1)return fail("Nouvelle partie déjà créée.",409);
+    return ok(await view(db,member,mode,members));
+   }
    if(data.action==="next"){
+    if(game.status==="finished")return fail("Le match est gagné. Lance une nouvelle partie.",409);
     if(game.status!=="revealed"&&now<game.expires_at)return fail("Terminez cette manche avant de continuer.",409);
     const updated=await db.prepare("UPDATE duo_draw_games SET round=round+1,drawer=?,word_index=?,strokes_json='[]',status='playing',expires_at=?,updated_at=?,version=version+1 WHERE room_id=? AND game_id=? AND round=?")
      .bind(game.drawer===0?1:0,randomIndex(DRAW_WORDS.length),now+75000,now,member.room_id,game.game_id,game.round).run();
@@ -151,8 +179,12 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
     const answer=normalizeGuess(DRAW_WORDS[game.word_index]?.word||"");
     if(guess!==answer)return ok(await view(db,member,mode,members,{correct:false}));
     const column=member.seat===0?"scores_0":"scores_1";
-    const updated=await db.prepare("UPDATE duo_draw_games SET "+column+"="+column+"+1,status='revealed',version=version+1,updated_at=? WHERE room_id=? AND game_id=? AND round=? AND status='playing' AND expires_at>?")
-     .bind(now,member.room_id,game.game_id,game.round,now).run();
+    const updated=await db.prepare(
+     "UPDATE duo_draw_games SET "+column+"="+column+"+1,"+
+     "status=CASE WHEN "+column+">=? THEN 'finished' ELSE 'revealed' END,"+
+     "version=version+1,updated_at=?"+
+     " WHERE room_id=? AND game_id=? AND round=? AND status='playing' AND expires_at>?"
+    ).bind(DRAW_WIN_SCORE-1,now,member.room_id,game.game_id,game.round,now).run();
     if(updated.meta.changes!==1)return fail("La manche vient de se terminer.",409);
     return ok(await view(db,member,mode,members,{correct:true}));
    }
