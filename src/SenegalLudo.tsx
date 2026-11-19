@@ -43,8 +43,6 @@ function captureReversePoints(capture:CapturedSenegalPawn):Point[]{
  path.push(BASE[seat][pawn]);
  return path;
 }
-const routeMap=new Map(TRACK.map((p,i)=>[key(p[0],p[1]),i]));
-const homeMap=HOME.map(lane=>new Set(lane.map(p=>key(p[0],p[1]))));
 const storage=(scope:string)=>"love-radar-senegal-v1:"+scope;
 function load(scope:string):SenegalGame{
  try{const raw=localStorage.getItem(storage(scope));if(raw){const game:unknown=JSON.parse(raw);if(isSenegalGame(game))return game;}}
@@ -306,19 +304,9 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const turnOwner=game.turn===seat;
  const seconds=game.status==="playing"&&(solo?game.turn===0&&!assisted:members===2)?
   Math.max(0,Math.ceil((game.updatedAt+TURN_MS+(solo?0:serverOffset)-now)/1000)):null;
- const remaining=game.positions.map(row=>row.filter(p=>p.zone==="finished").length);
  const invasionChoice=Boolean(chosen?.some(option=>option.action==="enemy"&&game.positions[seat][option.pawn].zone==="track"));
  const enemyCagePawns=game.positions[enemy].filter(p=>p.zone==="home");
  const directCapture=Boolean(chosen?.some(option=>option.action==="enemy"&&enemyCagePawns.some(p=>p.depth===option.to.depth)));
- const occupancy=new Map<string,{seat:Seat;pawn:number;active:boolean;zone:Pawn["zone"]}[]>();
- for(const side of [0,1] as Seat[])for(let pawn=0;pawn<4;pawn++){
-  const current=game.positions[side][pawn];
-  if(current.zone==="finished"||(motion?.seat===side&&motion.pawn===pawn)||captureBack.some(row=>row.seat===side&&row.pawn===pawn))continue;
-  const [r,c]=pointForPawn(side,pawn,current),k=key(r,c);
-  const members=occupancy.get(k)||[];
-  members.push({seat:side,pawn,active:canPick&&seat===side&&movesForPawn(game,side,pawn).length>0,zone:current.zone});
-  occupancy.set(k,members);
- }
  const lastFace=game.lastAction.match(/Dé ([1-6])/);
  const shownDie=rolling?face:game.dice??(lastFace?Number(lastFace[1]):face);
  const status=game.status==="won"?(game.winner===seat?"🏆 Tu as gagné !":"🏆 Ton adversaire a gagné !"):
@@ -326,149 +314,91 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   solo&&assisted&&game.turn===0?"🤖 L’ordinateur joue pour toi…":
   turnOwner?game.dice===null?"🎲 À toi de lancer le dé":"Touche un pion sur le plateau":
   solo?"🤖 L’ordinateur réfléchit…":"Ton partenaire joue…";
- const leftName=solo?myName:mySeat===0?myName:partnerName||"Ton partenaire";
- const rightName=solo?"Ordinateur":mySeat===1?myName:partnerName||"Ton partenaire";
- return <section className={"ludo-experience ludo-senegal "+(solo?"ludo-senegal-solo":"ludo-senegal-duo")} aria-label={"Ludo Sénégal "+(solo?"solo":"à deux")}>
-  <header className="ludo-topbar">
-   <button type="button" className="ludo-leave" onClick={onExit}><span aria-hidden="true">‹</span> Jeux</button>
-   <div className="ludo-brand"><img className="ludo-head-logo" src="/ludo-mark.svg" alt="Logo Ludo"/><strong>LUDO <span>🇸🇳</span> SÉNÉGAL</strong><small>{solo?"DÉFIE L’ORDINATEUR":"EN DUO · RÈGLES SÉNÉGALAISES"}</small></div>
-   <div className="ludo-top-actions">
-    <button type="button" className="ludo-sound" onClick={toggleSound} aria-label={soundOn?"Désactiver le son":"Activer le son"} aria-pressed={soundOn}>{soundOn?"🔊":"🔇"}</button>
-    <button type="button" className="ludo-solo-restart" onClick={()=>setConfirmReset(true)} aria-label="Recommencer">↻</button>
+ // All four games now use the original Classic renderer. Senegal is ONLY
+ // the rules adapter: its own game engine still decides every move and die.
+ const boardPoints:(Point|null)[][]=game.positions.map((row,side)=>row.map((pawn,index)=>
+  pawn.zone==="base"?null:pointForPawn(side as Seat,index,pawn)));
+ const numericPositions=game.positions.map(row=>row.map(pawn=>
+  pawn.zone==="base"?-1:pawn.zone==="finished"?56:
+  pawn.zone==="home"?Math.min(55,50+pawn.depth):Math.abs(pawn.step)%52));
+ const snapshot={
+  id:solo?sessionId.current:idRef.current||"senegal-connexion",
+  version:solo?game.updatedAt:versionRef.current,
+  turn:game.turn,dice:game.dice,positions:numericPositions,
+  status:game.status,winner:game.winner,autoCounts:[0,0] as [number,number],
+  lastAction:game.lastAction,
+  deadlineAt:game.status==="playing"?game.updatedAt+TURN_MS:null
+ };
+ const visibleMotion=motion?{
+  seat:motion.seat,pawn:motion.pawn,from:0,to:motion.length,
+  progress:motion.index,point:motion.point,index:motion.index,length:motion.length
+ }:null;
+ const visibleCaptures=captureBack.map(pawn=>({
+  seat:pawn.seat,pawn:pawn.pawn,from:0,progress:0,returning:true,point:pawn.point
+ }));
+ const legalPawns=canPick?game.positions[seat].flatMap((_,pawn)=>
+  movesForPawn(game,seat,pawn).length?[pawn]:[]):[];
+ const handleFrameAction=(action:"roll"|"move"|"restart"|"exit"|"leave"|"gift"|"menu",pawn?:number)=>{
+  switch(action){
+   case "roll":void roll();break;
+   case "move":if(Number.isInteger(pawn))choose(pawn as number);break;
+   case "restart":setConfirmReset(true);break;
+   case "exit":case "leave":case "menu":onExit();break;
+   case "gift":setEmotes(true);break;
+  }
+ };
+ return <section className={"ludo-experience ludo-duo-arena ludo-senegal ludo-senegal-classic "+(solo?"ludo-senegal-solo":"ludo-senegal-duo")}
+  aria-label={"Ludo Sénégal "+(solo?"Solo":"Duo")+", le plateau Classique réutilisé"}>
+  <LudoDuoFrame variant="senegal" opponent={solo?"solo":"duo"}
+   game={snapshot} palette={{colors:["red","yellow"],chosenBy:null}}
+   lastRoll={lastRoll} mySeat={seat} myName={myName}
+   partnerName={solo?"Ordinateur":partnerName}
+   myAvatar={myAvatar} partnerAvatar={solo?undefined:partnerAvatar}
+   remaining={seconds} rolling={rolling} rollingFace={shownDie}
+   busy={busy||Boolean(motion)||captureBack.length>0||Boolean(chosen)||confirmReset}
+   animationBusy={Boolean(motion)||captureBack.length>0}
+   motion={visibleMotion} capturedMotions={visibleCaptures}
+   boardPoints={boardPoints} legalPawns={legalPawns}
+   statusText={status+(seconds!==null?" · "+seconds+" s":"")}
+   canRoll={canRoll} error={error}
+   overlayOpen={Boolean(chosen)||confirmReset||emotes||(!solo&&(!online||members!==2))}
+   onAction={handleFrameAction}/>
+  {!solo&&members<2?<div className="ludo-senegal-overlay ludo-senegal-wait-shared" role="status">
+   <span>💌</span><strong>En attente de ton partenaire</strong>
+   <p>Le plateau Classique est prêt. Vous jouerez avec les règles sénégalaises.</p>
+   <button type="button" onClick={onExit}>Retour aux jeux</button>
+  </div>:null}
+  {chosen&&chosen.length?<div className="ludo-senegal-overlay" role="dialog" aria-modal="true" aria-label="Choisir le chemin sénégalais">
+   <div className="ludo-senegal-shared-dialog">
+    <strong>{invasionChoice?"😈 Attaquer la cage ou continuer ?":"🇸🇳 Choisis ton chemin"}</strong>
+    <p>Pion {chosen[0].pawn+1} · dé {game.dice}</p>
+    {invasionChoice?<p>{enemyCagePawns.length===0?"La cage adverse est vide.":
+     directCapture?"Une capture est possible.":"Tu peux attaquer ou continuer le tour."}</p>:null}
+    {chosen.map((option,index)=><button type="button" key={option.action+"-"+option.to.gate+"-"+index}
+     onClick={()=>void move(option)} disabled={busy||rolling}>
+     {option.action==="track"&&invasionChoice?"➡️ Continuer le tour":
+      option.action==="enemy"&&invasionChoice?"😈 Entrer dans sa cage":option.label}
+    </button>)}
+    <button type="button" className="ludo-senegal-shared-cancel" onClick={()=>setChosen(null)}>Annuler</button>
    </div>
-  </header>
-  <div className="ludo-players">
-   <div className={"ludo-player ludo-player-red"+(game.turn===0&&game.status==="playing"?" is-active":"")}>
-    <span className="ludo-player-avatar">{(leftName||"R").charAt(0).toUpperCase()}</span>
-    <div className="ludo-player-info"><strong>{leftName}</strong><span>{remaining[0]} / 4 · ROUGE</span></div>
-   </div>
-   <div className={"ludo-player ludo-player-gold"+(game.turn===1&&game.status==="playing"?" is-active":"")}>
-    <span className="ludo-player-avatar">{solo?"🤖":(rightName||"J").charAt(0).toUpperCase()}</span>
-    <div className="ludo-player-info"><strong>{rightName}</strong><span>{remaining[1]} / 4 · JAUNE</span></div>
-   </div>
-  </div>
-  <div className={"ludo-turn-banner"+(playerCanAct?" its-mine":"")} role="status" aria-live="polite">
-   <span className="ludo-turn-icon">🇸🇳</span><strong>{status}</strong>
-   {seconds!==null?<span className={"ludo-countdown"+(seconds<=5?" urgent":"")} aria-label={"Temps restant : "+seconds+" secondes"}><span className="ludo-time-ring">{seconds}</span><small>s</small></span>:null}
-  </div>
-  {error?<div className="ludo-senegal-error" role="alert">{error}</div>:null}
-  <div className="ludo-play-area">
-   <div className="ludo-stage" ref={stage}>
-    <div className="ludo-board-wrap ludo-board-wrap-immersive lr-unified-ludo-frame" style={boardSize?{width:boardSize,height:boardSize}:undefined}>
-     <div className={"ludo-board lr-unified-ludo-board"+(motion?" ludo-board-animating":"")} role="group" aria-label="Plateau Ludo Sénégal">
-      {CELL.map(([r,c])=>{
-       const k=key(r,c),track=routeMap.get(k),pawns=occupancy.get(k)||[];
-       const red=r<6&&c<6,gold=r>8&&c>8,green=r<6&&c>8,blue=r>8&&c<6;
-       const redLane=homeMap[0].has(k),goldLane=homeMap[1].has(k);
-       const greenLane=c===7&&r>=1&&r<=5,blueLane=c===7&&r>=9&&r<=13;
-       const center=r>=6&&r<=8&&c>=6&&c<=8;
-       const classes="ludo-cell lr-ludo-cell"+(red||gold||blue||green?" in-yard":"")+(red?" ludo-red-base":gold?" ludo-gold-base":blue?" ludo-blue-base":green?" ludo-green-base":"")+
-        (track!==undefined?" ludo-path":"")+(redLane?" ludo-red-lane":"")+(goldLane?" ludo-gold-lane":"")+
-        (blueLane?" ludo-blue-lane":"")+(greenLane?" ludo-green-lane":"")+
-        (center?" ludo-center":"")+(track===0?" ludo-red-start":"")+(track===26?" ludo-gold-start":"");
-       return <div className={classes+(pawns.length?" has-pawns":"")+
-        (landing?.[0]===r&&landing?.[1]===c?" ludo-landed":"")} key={k} style={{gridRow:r+1,gridColumn:c+1}}>
-        {track!==undefined&&SAFE.has(track)?<span className="ludo-star" aria-hidden="true">★</span>:null}
-        {pawns.length?<div className={"ludo-cell-pawns ludo-stack-"+Math.min(pawns.length,5)}>
-         {pawns.map((item,i)=>{
-          return <button type="button" key={item.seat+"-"+item.pawn} disabled={!item.active}
-           className={"ludo-pawn ludo-pawn-stacked ludo-pawn-"+(item.seat===0?"red":"gold")+(item.active?" can-move":"")+(game.status==="playing"&&game.turn===seat&&item.seat===seat?" is-own-turn":"")+(item.zone==="enemy"?" is-invading":"")}
-           onClick={()=>choose(item.pawn)}
-           title={"Pion "+(item.pawn+1)+(item.zone==="enemy"?" · cage adverse":"")}
-           aria-label={"Pion "+(item.pawn+1)+(item.zone==="enemy"?" dans la cage adverse":"")}
-           style={{...stackCellStyle(pawns.length,i),zIndex:5+i}}>
-            <PawnShape index={item.pawn}/>
-           </button>;
-         })}
-        </div>:null}
-        {pawns.length>1?<span className="ludo-stack-count" aria-hidden="true">×{pawns.length}</span>:null}
-       </div>;
-      })}
-      {([
-       ["red",1,1,0],["green",1,10,null],
-       ["blue",10,1,null],["yellow",10,10,1]
-      ] as const).map(([color,row,col,owner])=>
-       <div key={color}
-        className={"base lr-ludo-base base--"+color+
-         (owner!==null&&game.status==="playing"&&game.turn===owner?" is-current-turn":"")+
-         (owner===seat&&game.status==="playing"&&game.turn===seat?" is-my-turn":"")}
-        style={{gridRow:row+" / span 6",gridColumn:col+" / span 6"}}
-        aria-hidden="true">
-        <div className="base-inner">
-         {[0,1,2,3].map(index=><span className="base-spot" key={index}/>)}
-        </div>
-       </div>
-      )}
-      <div className="ludo-board-center lr-shared-center" aria-hidden="true">
-       <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-        <polygon points="0,0 100,0 50,50" fill="#006b4b"/>
-        <polygon points="100,0 100,100 50,50" fill="#ae831a"/>
-        <polygon points="100,100 0,100 50,50" fill="#11518b"/>
-        <polygon points="0,100 0,0 50,50" fill="#a72342"/>
-        <circle cx="50" cy="50" r="11" fill="#fff7e7"/>
-       </svg>
-      </div>
-      {captureBack.map(row=><div key={"capture-"+row.seat+"-"+row.pawn}
-       className={"ludo-captured-pawn ludo-pawn-"+(row.seat===0?"red":"gold")+" is-returning"}
-       style={{left:((row.point[1]+.5)/15*100)+"%",top:((row.point[0]+.5)/15*100)+"%"}} aria-hidden="true">
-       <PawnShape index={row.pawn}/>
-      </div>)}
-      {motion?<div className={"ludo-moving-pawn ludo-pawn-"+(motion.seat===0?"red":"gold")}
-       style={{left:((motion.point[1]+.5)/15*100)+"%",top:((motion.point[0]+.5)/15*100)+"%"}} aria-hidden="true">
-       <i className="ludo-motion-aura"/>
-       <span key={motion.index} className="ludo-moving-bounce"><PawnShape index={motion.pawn}/></span>
-       <span className="ludo-senegal-step">{motion.index}/{motion.length}</span>
-      </div>:null}
-     </div>
+  </div>:null}
+  {emotes?<div className="ludo-senegal-overlay" role="dialog" aria-modal="true" aria-label="Envoyer une réaction">
+   <div className="ludo-senegal-shared-dialog">
+    <strong>Réagir à la partie</strong>
+    <div className="ludo-senegal-shared-reactions">
+     {["😂","😜","😱","😭","🥰","👏","🔥","🎁"].map(emoji=><button type="button" key={emoji}
+      onClick={()=>void sendSticker(emoji,"Ta réaction")}>{emoji}</button>)}
     </div>
-    {game.status==="won"&&!motion?<div className="ludo-victory ludo-solo-win" role="dialog" aria-label="Victoire Ludo Sénégal">
-     <div className="ludo-celebrate">🏆🇸🇳</div>
-     <strong>{game.winner===seat?"Tu as gagné !":"Ton adversaire a gagné !"}</strong>
-     <p>Les quatre pions ont atteint le centre du Ludo Sénégal !</p>
-     <button type="button" onClick={()=>setConfirmReset(true)}>Rejouer</button>
-     <button type="button" className="ludo-secondary" onClick={onExit}>Retour aux jeux</button>
-    </div>:null}
-    {!solo&&members<2?<div className="ludo-senegal-wait" role="status">
-     <span>💌</span><strong>En attente de ton partenaire</strong>
-     <small>Quand votre espace aura deux membres, le Ludo Sénégal à deux démarrera.</small>
-    </div>:null}
+    <button type="button" className="ludo-senegal-shared-cancel" onClick={()=>setEmotes(false)}>Fermer</button>
    </div>
-   <div className="ludo-game-footer">
-    {chosen&&chosen.length?<div className={"ludo-senegal-choice"+(invasionChoice?" is-raid-decision":"")} role="dialog" aria-label={invasionChoice?"Entrer dans la cage adverse ou continuer le tour":"Choisis ton chemin"}>
-     <div><strong>{invasionChoice?"😈 Entrer dans sa cage ou continuer ?":"🇸🇳 Où veux-tu aller ?"}</strong><span>Pion {chosen[0].pawn+1} · dé {game.dice}</span></div>
-     {invasionChoice?<p className="ludo-senegal-cage-hint" role="status">
-      {enemyCagePawns.length===0
-       ?"⚠️ Cage adverse vide : aucun pion à capturer. Tu peux continuer le tour. Si tu entres, il faudra un 6 pour en sortir."
-       :directCapture
-        ?"🎯 Capture possible ! Tu peux entrer pour attraper un pion, ou continuer ton chemin."
-        :"Il y a "+enemyCagePawns.length+" pion(s) adverse(s) dans la cage. À toi de choisir : entrer pour attaquer ou continuer."}
-     </p>:null}
-     {chosen.map(option=><button key={option.action+"-"+option.to.gate+"-"+option.to.step}
-      type="button" disabled={busy||rolling||Boolean(motion)} onClick={()=>void move(option)}
-      className={invasionChoice&&option.action==="track"?"ludo-senegal-continue":invasionChoice&&option.action==="enemy"?"ludo-senegal-enter":""}>
-      {invasionChoice&&option.action==="track"?"➡️ Continuer le tour":invasionChoice&&option.action==="enemy"?"😈 Entrer dans la cage adverse":option.label}
-     </button>)}
-     <button type="button" className="ludo-senegal-dismiss" onClick={()=>setChosen(null)}>Annuler</button>
-    </div>:null}
-    <div className="ludo-bottom-actions">
-     <button type="button" className={"ludo-die-holder"+(rolling?" is-rolling":"")} disabled={!canRoll}
-      onClick={()=>void roll()} aria-label="Lancer le dé">
-      <LudoDie3D value={shownDie} color={game.turn===0?"red":"gold"} rolling={rolling}/>
-     </button>
-     <button type="button" className="ludo-main-action" disabled={!canRoll} onClick={()=>void roll()}>
-      {!solo&&!online?"CONNEXION…":rolling?"LE DÉ ROULE…":motion?"DÉPLACEMENT…":
-       !turnOwner?"⏳ TOUR ADVERSE":game.dice!==null?"TOUCHE UN PION":assisted?"🤖 COUP AUTOMATIQUE":"🎲 LANCER LE DÉ"}
-     </button>
-    </div>
-
-    <div className="ludo-last-move" role="status">{game.lastAction}</div>
-   </div>
-  </div>
-  {confirmReset?<div className="ludo-modal-backdrop" role="dialog" aria-modal="true" aria-label="Nouvelle partie">
-   <div className="ludo-modal"><span className="ludo-modal-symbol">🇸🇳</span><h2>Nouvelle partie ?</h2>
-    <p>{solo?"La partie contre l’ordinateur sera remise à zéro.":"Le plateau sera réinitialisé pour les deux joueurs."}</p>
-    <button className="ludo-modal-primary" disabled={busy} onClick={reset}>Oui, recommencer</button>
-    <button className="ludo-modal-text" onClick={()=>setConfirmReset(false)}>Continuer</button>
+  </div>:null}
+  {sticker?<span className="ludo-senegal-shared-sticker" key={sticker.id} role="status">{sticker.emoji}</span>:null}
+  {confirmReset?<div className="ludo-senegal-overlay" role="dialog" aria-modal="true" aria-label="Nouvelle partie">
+   <div className="ludo-senegal-shared-dialog">
+    <strong>🇸🇳 Nouvelle partie ?</strong>
+    <p>{solo?"Recommencer contre l’ordinateur ?":"Réinitialiser la partie des deux joueurs ?"}</p>
+    <button type="button" onClick={reset} disabled={busy}>Oui, recommencer</button>
+    <button type="button" className="ludo-senegal-shared-cancel" onClick={()=>setConfirmReset(false)}>Continuer</button>
    </div>
   </div>:null}
  </section>;
