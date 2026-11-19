@@ -4,9 +4,9 @@ import {RPS_MOVES,rpsEmoji,rpsName,type RpsMove} from "./rps-engine";
 import "./rps-duo.css";
 
 type Game={
- id:string;round:number;version:number;status:"choosing"|"revealed";
+ id:string;round:number;version:number;status:"choosing"|"revealed"|"finished";
  mine:RpsMove|null;partnerPicked:boolean;partnerMove:RpsMove|null;
- scores:[number,number];ties:number;winner:0|1|null;ready:[boolean,boolean];
+ scores:[number,number];ties:number;winner:0|1|null;matchWinner:0|1|null;winScore:number;ready:[boolean,boolean];
  updatedAt:number;revealedAt:number|null
 };
 type Data={ok:boolean;error?:string;members?:number;seat?:number;game?:Game|null;invited?:boolean;serverNow?:number};
@@ -19,7 +19,7 @@ function outcomeMessage(game:Game,seat:number){
 export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Props){
  const [data,setData]=useState<Data|null>(null);
  const [loading,setLoading]=useState(true);
- const [busy,setBusy]=useState<"choose"|"invite"|null>(null);
+ const [busy,setBusy]=useState<"choose"|"invite"|"restart"|null>(null);
  const [optimistic,setOptimistic]=useState<RpsMove|null>(null);
  const [error,setError]=useState("");
  const [celebrate,setCelebrate]=useState(false);
@@ -34,7 +34,7 @@ export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Prop
   const previous=latest.current;
   if(previous&&incoming&&incoming.id===previous.id&&incoming.version<previous.version)return;
   if(incoming){
-   if(previous&&incoming.id===previous.id&&incoming.round===previous.round&&previous.status==="choosing"&&incoming.status==="revealed"){
+   if(previous&&incoming.id===previous.id&&incoming.round===previous.round&&previous.status==="choosing"&&(incoming.status==="revealed"||incoming.status==="finished")){
     haptic();setCelebrate(true);
     if(clearEffect.current!==null)window.clearTimeout(clearEffect.current);
     clearEffect.current=window.setTimeout(()=>{if(active.current)setCelebrate(false)},1800);
@@ -43,7 +43,7 @@ export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Prop
   }
   setData(next);
   setLoading(false);
-  if(incoming?.mine||incoming?.status==="revealed")setOptimistic(null);
+  if(incoming?.mine||incoming?.status==="revealed"||incoming?.status==="finished")setOptimistic(null);
  },[]);
  const refresh=useCallback(async()=>{
   if(!token||inFlight.current||document.visibilityState==="hidden")return;
@@ -71,7 +71,7 @@ export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Prop
    if(clearEffect.current!==null)window.clearTimeout(clearEffect.current);
   };
  },[refresh]);
- async function act(action:"choose"|"invite",move?:RpsMove){
+ async function act(action:"choose"|"invite"|"restart",move?:RpsMove){
   const game=latest.current||data?.game;
   if(!game||busy)return;
   if(action==="choose"){
@@ -87,6 +87,7 @@ export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Prop
    const result=await response.json() as Data;
    if(!response.ok||!result.ok)throw Error(result.error||"Action impossible.");
    if(result.game)apply(result);
+   if(action==="restart"){setOptimistic(null);setCelebrate(false);}
    if(action==="invite")setToast("Invitation demandée. Ton partenaire peut rejoindre le jeu.");
    void refresh();
   }catch(err){setError(err instanceof Error?err.message:"Action impossible.");setOptimistic(null);void refresh()}
@@ -103,7 +104,7 @@ export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Prop
  const myScore=game?.scores[seat]??0;
  const partnerScore=game?.scores[seat===0?1:0]??0;
  const myChoice=game?.mine||optimistic;
- const partnerChoice=game?.status==="revealed"?game.partnerMove:null;
+ const partnerChoice=game?.status==="revealed"||game?.status==="finished"?game.partnerMove:null;
  return <section className="lr-rps" aria-label="Pierre Papier Ciseaux en temps réel">
   <div className="lr-rps-topbar">
    <button type="button" className="lr-rps-back" onClick={onExit} aria-label="Retour aux jeux">
@@ -114,14 +115,14 @@ export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Prop
   </div>
   <div className="lr-rps-hero"><div className="lr-rps-badge"><span className="lr-rps-live-dot"/> SYNCHRONISÉ ENTRE VOUS DEUX</div>
    <h1>Pierre <em>Papier</em> Ciseaux</h1>
-   <p>Choisis sans montrer ta main. Découvrez vos choix ensemble !</p>
+   <p>Premier à 10 points = champion ! Choisissez vos mains secrètement.</p>
   </div>
   <div className="lr-rps-score" aria-label="Score du match">
    <div className="lr-rps-player"><span className="lr-rps-avatar">{myName.trim().charAt(0).toUpperCase()}</span><strong>Toi</strong><b>{myScore}</b></div>
    <span className="lr-rps-vs">VS</span>
    <div className="lr-rps-player"><span className="lr-rps-avatar is-other">{(partnerName||"?").trim().charAt(0).toUpperCase()}</span><strong>{partnerName||"Ton partenaire"}</strong><b>{partnerScore}</b></div>
   </div>
-  <div className="lr-rps-progress"><span>Manche <strong>{game?.round||1}</strong></span><span>Égalités <strong>{game?.ties||0}</strong></span></div>
+  <div className="lr-rps-progress"><span>Manche <strong>{game?.round||1}</strong></span><span>Premier à <strong>10</strong> points · Égalités {game?.ties||0}</span></div>
   {loading?<div className="lr-rps-center" role="status">Connexion au jeu…</div>:!game||data?.members!==2?
    <div className="lr-rps-center">
     <div className="lr-rps-wait-icon">💌</div>
@@ -136,14 +137,20 @@ export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Prop
       <div className={"lr-rps-hand-disc"+(myChoice?" is-picked":"")}>{rpsEmoji(myChoice)}</div>
       <strong>{rpsName(myChoice)}</strong>
      </div>
-     <span className="lr-rps-arena-middle">{game.status==="revealed"?"VS":"✦"}</span>
+     <span className="lr-rps-arena-middle">{game.status==="revealed"||game.status==="finished"?"VS":"✦"}</span>
      <div className="lr-rps-hand">
       <span className="lr-rps-hand-caption">{partnerName||"L’AUTRE"}</span>
-      <div className={"lr-rps-hand-disc is-other"+(game.partnerPicked?" is-picked":"")}>{game.status==="revealed"?rpsEmoji(partnerChoice):"❔"}</div>
-      <strong>{game.status==="revealed"?rpsName(partnerChoice):game.partnerPicked?"Choix enregistré":"Choix secret"}</strong>
+      <div className={"lr-rps-hand-disc is-other"+(game.partnerPicked?" is-picked":"")}>{game.status==="revealed"||game.status==="finished"?rpsEmoji(partnerChoice):"❔"}</div>
+      <strong>{game.status==="revealed"||game.status==="finished"?rpsName(partnerChoice):game.partnerPicked?"Choix enregistré":"Choix secret"}</strong>
      </div>
     </div>
-    {game.status==="choosing"?<>
+    {game.status==="finished"?<div className="lr-rps-match-finished" role="status">
+     <span aria-hidden="true">{game.matchWinner===seat?"🏆🎉":"🏆💗"}</span>
+     <strong>{game.matchWinner===seat?"Tu as gagné le match !":(partnerName||"Ton partenaire")+" a gagné le match !"}</strong>
+     <p>Premier à {game.winScore} points. Score final : {myScore} – {partnerScore}.</p>
+     <button type="button" className="lr-rps-rematch" disabled={busy!==null}
+      onClick={()=>void act("restart")}>↻ Rejouer un match</button>
+    </div>:game.status==="choosing"?<>
      <div className="lr-rps-status" role="status">
       {myChoice?(game.partnerPicked?"Vos deux choix arrivent…":"Ton choix est enregistré. En attente de l’autre joueur…"):"À toi de choisir ta main !"}
      </div>
@@ -172,7 +179,7 @@ export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Prop
    <h2>Comment jouer ?</h2>
    <p>Les deux joueurs choisissent une main secrètement. Les choix sont révélés seulement lorsque les deux sont prêts.</p>
    <div>{RPS_MOVES.map(option=><p key={option.id}><span aria-hidden="true">{option.emoji}</span> {option.detail}</p>)}</div>
-   <p>Une victoire rapporte 1 point. En cas d’égalité, aucun des deux ne marque. La prochaine manche commence automatiquement après les résultats.</p>
+   <p>Une victoire rapporte 1 point. Une égalité ne rapporte rien. Le premier joueur à 10 points gagne le match. Après la victoire, une nouvelle partie doit être relancée volontairement.</p>
    <button type="button" onClick={()=>setShowRules(false)}>J’ai compris</button>
   </div></div>:null}
   {celebrate?<div className="lr-rps-celebration" aria-hidden="true">{REACTION_EMOJI.map((emoji,index)=><span key={index} style={{left:(index*20+7)+"%",animationDelay:(index*.12)+"s"}}>{emoji}</span>)}</div>:null}
