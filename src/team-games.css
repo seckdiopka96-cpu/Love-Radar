@@ -4,9 +4,9 @@
  color:#fff2f8;min-height:0;padding:8px 3px 24px}
 .lr-team-screen button{cursor:pointer;touch-action:manipulation}
 .lr-team-screen button:disabled{opacity:.52;cursor:default}
-.lr-team-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:0 0 auto}
+.lr-team-header{display:grid;grid-template-columns:68px minmax(0,1fr) 68px;align-items:center;gap:12px;flex:0 0 auto;min-height:84px;padding:4px 0 10px}
 .lr-team-header>button,.lr-team-header-mark{display:flex;justify-content:center;align-items:center;
- min-width:60px;min-height:46px;border:1px solid #b17d9a;border-radius:17px;background:#253c52;color:#ffe2ed;font-size:20px}
+ width:100%;min-width:0;min-height:46px;border:1px solid #b17d9a;border-radius:17px;background:#253c52;color:#ffe2ed;font-size:20px}
 .lr-team-header>div{text-align:center;min-width:0}
 .lr-team-header small{letter-spacing:.16em;font-size:10px;font-weight:750;color:#ec9ec3}
 .lr-team-header h1{font:700 clamp(22px,6vw,32px)/1.12 Georgia,serif;margin:4px 0}
@@ -100,10 +100,15 @@
 .lr-team-route button:last-child{background:#2b4558}
 @media(max-width:700px){
  .lr-app.lr-team-mode .lr-main{min-height:0}
- .lr-team-screen{gap:8px;padding:0 2px 8px}
- .lr-team-header{gap:6px}
- .lr-team-header>button,.lr-team-header-mark{min-width:44px;min-height:41px;font-size:15px}
- .lr-team-header h1{font-size:23px}
+ /* Keep the header below the iOS Dynamic Island, including in PWAs where
+    safe-area-inset-top may unexpectedly report zero. */
+ .lr-team-screen{gap:8px;padding:calc(max(env(safe-area-inset-top,0px),44px) + 12px) 2px 8px}
+ .lr-team-header{grid-template-columns:54px minmax(0,1fr) 54px;gap:8px;
+  min-height:72px;padding:0 0 8px;align-items:center}
+ .lr-team-header>div{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px}
+ .lr-team-header>button,.lr-team-header-mark{width:100%;min-width:0;min-height:43px;
+  font-size:15px;align-self:center;white-space:nowrap}
+ .lr-team-header h1{font-size:clamp(19px,5.6vw,25px);line-height:1.12}
  .lr-team-header small{font-size:9px}
  .lr-team-score{min-height:61px;padding:6px}
  .lr-team-score>div strong{font-size:10px}
