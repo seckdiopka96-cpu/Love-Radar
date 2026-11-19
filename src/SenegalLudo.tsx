@@ -73,6 +73,8 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const [sticker,setSticker]=useState<LudoSticker|null>(null);
  const [reactionBusy,setReactionBusy]=useState(false);
  const [confirmReset,setConfirmReset]=useState(false);
+ const [quitting,setQuitting]=useState(false);
+ const quittingRef=useRef(false);
  const sessionId=useRef("senegal-"+storageKey+"-"+Date.now());
  const [lastRoll,setLastRoll]=useState<{seat:number;face:number;at:number}|null>(null);
  const {enabled:soundOn,unlock:unlockSound,play:playSound,toggle:toggleSound}=useLudoSounds();
@@ -91,6 +93,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  useEffect(()=>{loaded.current=true;return ()=>{loaded.current=false;clearTimers();};},[]);
  useEffect(()=>{
   if(!solo)return;
+  if(quittingRef.current)return; // Do not restore a discarded Solo game on exit.
   try{localStorage.setItem(storage(storageKey),JSON.stringify(game))}catch{/* Offline play remains available. */}
  },[solo,storageKey,game]);
  useEffect(()=>{
@@ -161,6 +164,11 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   }
   if(next.id!==oldId){lastAnimated.current="";setMotion(null);setCaptureBack([]);clearTimers();setChosen(null);}
   versionRef.current=next.version;idRef.current=next.id;
+  if(next.status==="ended"){
+   for(const id of timers.current)window.clearTimeout(id);
+   timers.current=[];
+   setMotion(null);setCaptureBack([]);setChosen(null);setRolling(false);
+  }
   setGame({
    positions:next.positions,turn:next.turn,dice:next.dice,streak:next.streak,
    status:next.status,winner:next.winner,updatedAt:next.updatedAt,lastAction:next.lastAction
@@ -296,6 +304,32 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   },game.dice===null?790:570);
   return ()=>window.clearTimeout(timer);
  },[solo,game,rolling,motion,busy,chosen,confirmReset,assisted]);
+ async function quitGame(){
+  if(quittingRef.current)return;
+  quittingRef.current=true;
+  setQuitting(true);
+  // Solo: discard the saved match, cancel every pending die/pawn animation,
+  // and return to the game room. Reopening starts a fresh match.
+  if(solo){
+   clearTimers();
+   try{localStorage.removeItem(storage(storageKey))}catch{/* Private browsing may block local storage. */}
+   onExit();
+   return;
+  }
+  // A finished or previously ended match no longer needs a second quit call.
+  if(game.status!=="playing"||members<2){clearTimers();onExit();return;}
+  if(!online||!idRef.current){
+   setError("Impossible d’arrêter la partie sans connexion. Réessaie.");
+   quittingRef.current=false;setQuitting(false);return;
+  }
+  // Duo: server stops the shared match for BOTH partners before leaving.
+  // A game ID prevents an older request from closing a new match.
+  const result=await sendAction({action:"quit",gameId:idRef.current});
+  if(result?.game?.status==="ended"||result?.game?.status==="won"){
+   clearTimers();onExit();return;
+  }
+  quittingRef.current=false;setQuitting(false);
+ }
  function reset(){
   setConfirmReset(false);setChosen(null);setAssisted(false);
   clearTimers();setMotion(null);setCaptureBack([]);setReaction("");setSticker(null);setEmotes(false);setRolling(false);
@@ -344,11 +378,12 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const legalPawns=canPick?game.positions[seat].flatMap((_,pawn)=>
   movesForPawn(game,seat,pawn).length?[pawn]:[]):[];
  const handleFrameAction=(action:"roll"|"move"|"restart"|"exit"|"leave"|"gift"|"menu",pawn?:number)=>{
+  if(quittingRef.current)return;
   switch(action){
    case "roll":void roll();break;
    case "move":if(Number.isInteger(pawn))choose(pawn as number);break;
    case "restart":reset();break;
-   case "exit":case "leave":case "menu":onExit();break;
+   case "exit":case "leave":case "menu":void quitGame();break;
    case "gift":void sendSticker("🎁","Cadeau");break;
   }
  };
@@ -360,7 +395,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    partnerName={solo?"Ordinateur":partnerName}
    myAvatar={myAvatar} partnerAvatar={solo?undefined:partnerAvatar}
    remaining={seconds} rolling={rolling} rollingFace={shownDie}
-   busy={busy||Boolean(motion)||captureBack.length>0||Boolean(chosen)||confirmReset}
+   busy={busy||quitting||Boolean(motion)||captureBack.length>0||Boolean(chosen)||confirmReset}
    animationBusy={Boolean(motion)||captureBack.length>0}
    motion={visibleMotion} capturedMotions={visibleCaptures}
    boardPoints={boardPoints} legalPawns={legalPawns}
@@ -371,7 +406,16 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   {!solo&&members<2?<div className="ludo-senegal-overlay ludo-senegal-wait-shared" role="status">
    <span>💌</span><strong>En attente de ton partenaire</strong>
    <p>Le plateau Classique est prêt. Vous jouerez avec les règles sénégalaises.</p>
-   <button type="button" onClick={onExit}>Retour aux jeux</button>
+   <button type="button" onClick={()=>void quitGame()} disabled={quitting}>Arrêter et retourner aux jeux</button>
+  </div>:null}
+  {!solo&&game.status==="ended"?<div className="ludo-senegal-overlay" role="dialog" aria-modal="true" aria-label="Partie arrêtée">
+   <div className="ludo-senegal-shared-dialog">
+    <strong>Partie arrêtée</strong>
+    <p>{game.lastAction} Le plateau est maintenant arrêté pour vous deux.</p>
+    {error?<p role="alert">{error}</p>:null}
+    <button type="button" onClick={reset} disabled={busy||quitting}>↻ Nouvelle partie</button>
+    <button type="button" className="ludo-senegal-shared-cancel" onClick={onExit}>← Retour aux Ludos</button>
+   </div>
   </div>:null}
   {chosen&&chosen.length?<div className="ludo-senegal-overlay" role="dialog" aria-modal="true" aria-label="Choisir le chemin sénégalais">
    <div className="ludo-senegal-shared-dialog">
