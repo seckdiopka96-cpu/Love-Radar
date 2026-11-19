@@ -36,7 +36,7 @@ export const freshPiece=(seat:TeamSeat):TeamPiece=>({zone:"base",step:-1,depth:0
  * finishing entrance and circle endlessly. Preserve progress when possible,
  * without awarding an unearned central finish or resetting the match. */
 export function repairTeamClassic(game:TeamGame):TeamGame{
- if(game.kind!=="classic")return game;
+ if(game.kind!=="classic"||game.status!=="playing")return game;
  let changed=false;
  const positions=game.positions.map((row,seat)=>row.map(piece=>{
   if(piece.zone!=="track"||piece.step<=50)return piece;
