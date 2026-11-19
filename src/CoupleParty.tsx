@@ -123,8 +123,8 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
    </div>:
    rapid?.phase==="ready"?<div className="lr-party-panel lr-party-wait lr-party-ready">
     <span className="lr-party-big-icon" aria-hidden="true">⚡</span>
-    <strong>Prêts pour la manche {rapid.round} ?</strong>
-    <p>Le chrono ne démarre que lorsque vous êtes tous les deux prêts. Répondez le plus vite possible après 3, 2, 1…</p>
+    <strong>Prêts à commencer la partie ?</strong>
+    <p>Validez une seule fois tous les deux. Ensuite, vous restez dans la même salle et les manches s'enchaînent sans nouvelle confirmation.</p>
     <div className="lr-party-ready-status" role="status">
      <span className={rapid.myReady?"is-ready":""}>Toi {rapid.myReady?"✓ Prêt(e)":"· En attente"}</span>
      <span className={rapid.partnerReady?"is-ready":""}>{name} {rapid.partnerReady?"✓ Prêt(e)":"· En attente"}</span>
