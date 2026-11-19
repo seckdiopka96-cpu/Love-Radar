@@ -461,3 +461,13 @@ test("Solo and Duo keep the board centered, roll quickly and play different orig
  assert.ok(duoJS.includes('window.LudoSfx?.play("exit")'));
  assert.ok(duoJS.includes('window.LudoSfx?.play("win")'));
 });
+
+test("one approval starts future Ludo Duo rematches without renewing gifts",()=>{
+ assert.ok(backend.includes("gift_0=0,gift_1=0"),"new rounds must not inherit gift consent");
+ assert.ok(backend.includes("ludo_agreements.signed_0_at IS NOT NULL AND ludo_agreements.signed_1_at IS NOT NULL"),
+  "both players must have approved before an automatic rematch");
+ assert.ok(backend.includes("THEN excluded.updated_at ELSE NULL END"),"rematch starts with retained approvals");
+ assert.ok(backend.includes("ON CONFLICT(room_id) DO UPDATE SET game_id=excluded.game_id,updated_at=excluded.updated_at"),
+  "partner colors persist");
+ assert.ok(parent.includes("Un seul accord pour vos prochaines parties"),"UI explains one-time approval");
+});
