@@ -1,4 +1,5 @@
 import {useCallback,useEffect,useRef,useState} from "react";
+import {createPortal} from "react-dom";
 import "./ludo-duo-frame.css";
 
 type DuoColor="blue"|"red"|"green"|"yellow";
@@ -37,6 +38,7 @@ export default function LudoDuoFrame(props:Props){
  const [ready,setReady]=useState(false);
  const [failed,setFailed]=useState(false);
  const [retry,setRetry]=useState(0);
+ const [quitSlot,setQuitSlot]=useState<HTMLElement|null>(null);
  const actionRef=useRef(props.onAction);
  actionRef.current=props.onAction;
  const readyRef=useRef(props.onReady);
@@ -99,9 +101,35 @@ export default function LudoDuoFrame(props:Props){
   window.addEventListener("message",message);
   return()=>window.removeEventListener("message",message);
  },[]);
+ // A same-origin React portal makes "Quitter" a real parent-app action.
+ // In iOS WKWebView, relying only on an iframe postMessage may silently fail.
+ // Keep the original iframe button as a fallback when direct DOM access is unavailable.
+ useEffect(()=>{
+  if(!ready||props.variant!=="senegal")return;
+  let original:HTMLElement|null=null;
+  let placeholder:HTMLSpanElement|null=null;
+  try{
+   const documentInFrame=ref.current?.contentDocument;
+   original=documentInFrame?.querySelector<HTMLElement>(".duo-quit-match")||null;
+   if(!original)return;
+   placeholder=documentInFrame!.createElement("span");
+   placeholder.className="duo-quit-slot";
+   original.replaceWith(placeholder);
+   setQuitSlot(placeholder);
+  }catch{
+   // Non-standard embedded origins still use the original postMessage button.
+   return;
+  }
+  return()=>{
+   if(placeholder?.isConnected&&original)placeholder.replaceWith(original);
+  };
+ },[ready,retry,props.variant]);
  return <section className="ludo-duo-shared-frame" aria-label={"Plateau Ludo "+(props.variant==="senegal"?"Sénégal ":"Classique ")+(props.opponent==="solo"?"Solo":"Duo")+" partagé"}>
+  {quitSlot?createPortal(
+   <button type="button" className="duo-quit-match" aria-label="Quitter le Ludo Sénégal"
+    onClick={()=>actionRef.current("exit")}>↩ Quitter</button>,quitSlot):null}
   <iframe key={retry} ref={ref} className="ludo-duo-shared-iframe"
-   src="/ludo-duo/index.html?v=ludo-room-20261119-v29" title={"Ludo "+(props.variant==="senegal"?"Sénégal ":"Classique ")+(props.opponent==="solo"?"Solo":"Duo")+" : même plateau, mêmes animations"}
+   src="/ludo-duo/index.html?v=ludo-room-20261119-v30" title={"Ludo "+(props.variant==="senegal"?"Sénégal ":"Classique ")+(props.opponent==="solo"?"Solo":"Duo")+" : même plateau, mêmes animations"}
    referrerPolicy="same-origin" loading="eager" onError={()=>setFailed(true)}/>
   {failed&&!ready?<div className="ludo-duo-frame-error" role="alert">
    <strong>Impossible de charger le nouveau plateau Duo.</strong>
