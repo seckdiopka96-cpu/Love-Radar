@@ -10,6 +10,7 @@ import {newTeamMatch,teamOf,TEAM_COLORS,TEAM_BASE,TEAM_HOME,movesForTeamPawn,
  type TeamSeat
 } from "../src/team-games-engine";
 import {onRequestGet,onRequestPost} from "../functions/api/team-games";
+import {teamSnapshotPolicy} from "../src/team-game-sync";
 
 function testDB(){
  if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
@@ -234,4 +235,50 @@ test("the couples lobby header remains below the iPhone status bar and centers b
  assert.ok(css.includes("min-height:72px;padding:0 0 8px"),
   "controls sit in a centered header row rather than under the clock");
  assert.ok(css.includes("align-self:center;white-space:nowrap"));
+});
+
+test("out-of-order polling cannot roll back newer game version, current turn or completed match",()=>{
+ const base={id:"game-A",version:14};
+ assert.equal(teamSnapshotPolicy(null,base),"replace");
+ assert.equal(teamSnapshotPolicy({id:"game-A",version:15},base),"ignore",
+  "a slow response from a previous poll cannot revert the current board");
+ assert.equal(teamSnapshotPolicy(base,{id:"game-A",version:14}),"presence-only",
+  "equal-version polling may refresh presence without replacing pawn positions");
+ assert.equal(teamSnapshotPolicy(base,{id:"game-A",version:16}),"replace");
+ assert.equal(teamSnapshotPolicy(base,{id:"game-B",version:1}),"ignore",
+  "a delayed room switch request must not resurrect a prior lobby");
+ assert.equal(teamSnapshotPolicy(base,{id:"game-B",version:1},true),"replace",
+  "a deliberate create/join is allowed to switch rooms");
+ const ui=readFileSync("src/TeamGames.tsx","utf8");
+ assert.ok(ui.includes("teamSnapshotPolicy(previous,value,allowRoomSwitch)"));
+ assert.ok(ui.includes('const merged={...previous,players:value.players,presence:value.presence}'),
+  "equal-version presence refresh keeps the authoritative board");
+ assert.ok(ui.includes("pollInFlight.current||lock.current"),"GET polls never overlap with actions");
+ assert.ok(ui.includes('window.addEventListener("focus",onResume)'));
+ assert.ok(ui.includes('window.addEventListener("online",onResume)'));
+ assert.ok(ui.includes("if(payload.game)receive(payload.game"),"409 snapshots reconcile without stale inputs");
+});
+test("two simultaneous players with a stale revision receive the newest authoritative board",async()=>{
+ const {sqlite,request}=testDB();
+ try{
+  const host=(await request("a","create",{kind:"classic"})).data.game;
+  await request("c","join",{code:host.code});
+  await request("b",undefined,{},host.id);
+  await request("d",undefined,{},host.id);
+  const started=(await request("a",undefined,{},host.id)).data.game;
+  assert.equal(started.state.status,"playing");
+  const rolled=await request("a","roll",{id:host.id,version:started.version});
+  assert.equal(rolled.status,200);
+  assert.ok(rolled.data.game.version>started.version);
+  const outdated=await request("a","roll",{id:host.id,version:started.version});
+  assert.equal(outdated.status,409);
+  assert.equal(outdated.data.ok,false);
+  assert.equal(outdated.data.game.id,host.id);
+  assert.equal(outdated.data.game.version,rolled.data.game.version);
+  assert.deepEqual(outdated.data.game.state,rolled.data.game.state,
+   "the conflicting phone must see the same dice and positions as the winning request");
+  const other=(await request("c",undefined,{},host.id)).data.game;
+  assert.equal(other.version,rolled.data.game.version);
+  assert.deepEqual(other.state,rolled.data.game.state);
+ }finally{sqlite.close()}
 });
