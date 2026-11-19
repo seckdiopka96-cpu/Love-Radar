@@ -17,7 +17,7 @@ export type Action="track"|"home"|"enemy"|"exit"|"turn"|"jump";
 export type MoveOption={pawn:number;action:Action;to:Pawn;label:string};
 export type SenegalGame={
  positions:[Pawn[],Pawn[]];turn:Seat;dice:number|null;streak:number;
- status:"playing"|"won";winner:Seat|null;updatedAt:number;lastAction:string;
+ status:"playing"|"won"|"ended";winner:Seat|null;updatedAt:number;lastAction:string;
 };
 export type Capture={seat:Seat;pawn:number;from:Pawn};
 export type SenegalMove={seat:Seat;pawn:number;action:Action;from:Pawn;to:Pawn;captures:Capture[];path:Point[]};
@@ -40,6 +40,14 @@ export function newSenegalGame():SenegalGame{
   turn:0,dice:null,streak:0,status:"playing",winner:null,updatedAt:Date.now(),
   lastAction:"Ludo Sénégal 🇸🇳 : à toi de lancer le dé !"};
 }
+/** Quitting ends the match for both players without awarding a false victory.
+ * The ended match stays ended on reconnect until a deliberate new game. */
+export function stopSenegalGame(game:SenegalGame,playerName:string):SenegalGame{
+ if(game.status!=="playing")return game;
+ const name=playerName.trim().slice(0,25)||"Un joueur";
+ return {...game,status:"ended",winner:null,dice:null,streak:0,updatedAt:Date.now(),
+  lastAction:name+" a arrêté la partie."};
+}
 function validPawn(p:unknown):p is Pawn{
  if(!p||typeof p!=="object")return false;
  const x=p as Partial<Pawn>;
@@ -57,7 +65,7 @@ export function isSenegalGame(v:unknown):v is SenegalGame{
   &&(x.turn===0||x.turn===1)
   &&(x.dice===null||(Number.isInteger(x.dice)&&Number(x.dice)>=1&&Number(x.dice)<=6))
   &&Number.isInteger(x.streak)&&Number(x.streak)>=0&&Number(x.streak)<=2
-  &&(x.status==="playing"||x.status==="won")
+  &&(x.status==="playing"||x.status==="won"||x.status==="ended")
   &&(x.winner===null||x.winner===0||x.winner===1)
   &&typeof x.lastAction==="string"&&x.lastAction.length<=250
   &&Number.isFinite(x.updatedAt)&&Number(x.updatedAt)>0;
