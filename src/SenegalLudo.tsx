@@ -342,7 +342,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   switch(action){
    case "roll":void roll();break;
    case "move":if(Number.isInteger(pawn))choose(pawn as number);break;
-   case "restart":setConfirmReset(true);break;
+   case "restart":reset();break;
    case "exit":case "leave":case "menu":onExit();break;
    case "gift":setEmotes(true);break;
   }
