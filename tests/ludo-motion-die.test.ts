@@ -63,7 +63,7 @@ test("four pawns are chosen by touching the board, never from a second numbered 
  assert.ok(!senegal.includes('className="ludo-pick-row"'));
  assert.ok(senegal.includes('onClick={()=>choose(item.pawn)}'),
   "Senegal pawns remain touchable while the necessary path-choice dialog stays intact");
- assert.ok(senegal.includes('className={"ludo-senegal-choice"'));
+ assert.ok(senegal.includes('ludo-senegal-shared-dialog'));
  assert.ok(solo.includes('choices.length>1 ? "Touche le pion à déplacer"'));
  assert.ok(!duoHTML.includes('class="turn-banner"'),"the redundant Duo waiting HUD is gone");
  assert.ok(duo.includes('el.classList.toggle("is-current-turn",active)'),"the active turn is still indicated on the player's house");
@@ -228,7 +228,7 @@ test("React Solo, Duo and Senegal use a single-face die and readable movement",(
  assert.ok(senegal.includes('STEP_MS=move.from.zone==="base"?520:540,START_MS=250'));
  assert.ok(senegal.includes('path.forEach((point,i)=>later('));
  assert.ok(senegal.includes('START_MS+i*STEP_MS'));
- assert.ok(senegal.includes('<LudoDie3D value={shownDie}'));
+ assert.ok(senegal.includes('<LudoDuoFrame variant="senegal"'),"Senegal uses the Classic physical die in its iframe");
  assert.ok(!senegal.includes('<DiceFace'));
  assert.ok(arenaCSS.includes('.ludo-moving-pawn{transition:left .40s'));
  assert.ok(senegalCSS.includes('.ludo-senegal .ludo-moving-pawn{'));
@@ -288,7 +288,7 @@ test("player dice color, fixed board and reverse captures are wired in every mod
  assert.ok(soloCSS.includes(".game-screen .board-area{"));
  assert.ok(solo.includes("for(let step=progress-1;step>=0;step--)"));
  assert.ok(reactDuo.includes("for(let step=p.from-1;step>=0;step--)"));
- assert.ok(duo.includes("getPosition(c,nextProgress,m.pawn)"));
+ assert.ok(duo.includes("getPosition(c,Number(nextProgress),m.pawn)"));
  assert.ok(reactSolo.includes("function reverseCaptured("));
  assert.ok(senegal.includes("function captureReversePoints("));
 });
