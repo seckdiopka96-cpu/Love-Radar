@@ -85,6 +85,24 @@
   let movingToken = null;
   let lastRoll = 1;
   let rulesPause = false;
+  // Love Radar already renders the main "LUDO SOLO" header above this iframe.
+  // In embedded mode, retain the functional color/rules controls but place
+  // them in the existing turn banner instead of painting a second header.
+  if(window.parent!==window && new URLSearchParams(window.location.search).has("scope")){
+    document.documentElement.classList.add("lr-ludo-solo-in-app");
+    const turnBanner=playScreen.querySelector(".turn-banner");
+    const colorButton=document.getElementById("choose-again");
+    const rulesButton=document.getElementById("show-rules");
+    if(turnBanner&&colorButton&&rulesButton){
+      colorButton.classList.add("ludo-compact-colors");
+      colorButton.textContent="↺";
+      colorButton.title="Changer de couleur";
+      colorButton.setAttribute("aria-label","Changer de couleur");
+      turnBanner.prepend(colorButton);
+      rulesButton.classList.add("ludo-compact-rules");
+      turnBanner.append(rulesButton);
+    }
+  }
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
   const sfx=window.LudoSfx;
   const boardArea=board.closest(".board-area");
