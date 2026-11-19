@@ -34,6 +34,7 @@ public class LoveRadarNativeCall: CAPPlugin, CAPBridgedPlugin {
                     self.activeToken = token
                     self.startTimer()
                 }
+                UIApplication.shared.isIdleTimerDisabled = true
                 call.resolve(["active": true])
             } catch {
                 call.reject("Impossible de préparer l'audio de cet iPhone.", nil, error)
@@ -85,6 +86,7 @@ public class LoveRadarNativeCall: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func finishCall() {
+        UIApplication.shared.isIdleTimerDisabled = false
         stopTimer()
         let previous = activeCallId
         activeCallId = nil
