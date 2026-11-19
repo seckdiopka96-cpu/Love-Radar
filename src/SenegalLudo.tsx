@@ -5,7 +5,7 @@ import {type LudoSticker} from "./LudoReactions";
 import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,BASE,type Point} from "./ludo-visuals";
 import {
- TURN_MS,newSenegalGame,isSenegalGame,movesForPawn,rollSenegal,
+ TURN_MS,newSenegalGame,isSenegalGame,repairSenegalHomeShortcut,movesForPawn,rollSenegal,
  applySenegalMove,chooseSenegalBotMove,pointForPawn,die,
  type SenegalGame,type SenegalMove,type MoveOption,type Seat,type Pawn
 } from "./ludo-senegal-engine";
@@ -45,7 +45,7 @@ function captureReversePoints(capture:CapturedSenegalPawn):Point[]{
 }
 const storage=(scope:string)=>"love-radar-senegal-v1:"+scope;
 function load(scope:string):SenegalGame{
- try{const raw=localStorage.getItem(storage(scope));if(raw){const game:unknown=JSON.parse(raw);if(isSenegalGame(game))return game;}}
+ try{const raw=localStorage.getItem(storage(scope));if(raw){const game:unknown=JSON.parse(raw);if(isSenegalGame(game))return repairSenegalHomeShortcut(game);}}
  catch{/* Solo works when local storage is restricted. */}
  return newSenegalGame();
 }
