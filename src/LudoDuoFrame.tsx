@@ -101,7 +101,7 @@ export default function LudoDuoFrame(props:Props){
  },[]);
  return <section className="ludo-duo-shared-frame" aria-label={"Plateau Ludo "+(props.variant==="senegal"?"Sénégal ":"Classique ")+(props.opponent==="solo"?"Solo":"Duo")+" partagé"}>
   <iframe key={retry} ref={ref} className="ludo-duo-shared-iframe"
-   src="/ludo-duo/index.html?v=ludo-room-20261119-v27" title={"Ludo "+(props.variant==="senegal"?"Sénégal ":"Classique ")+(props.opponent==="solo"?"Solo":"Duo")+" : même plateau, mêmes animations"}
+   src="/ludo-duo/index.html?v=ludo-room-20261119-v28" title={"Ludo "+(props.variant==="senegal"?"Sénégal ":"Classique ")+(props.opponent==="solo"?"Solo":"Duo")+" : même plateau, mêmes animations"}
    referrerPolicy="same-origin" loading="eager" onError={()=>setFailed(true)}/>
   {failed&&!ready?<div className="ludo-duo-frame-error" role="alert">
    <strong>Impossible de charger le nouveau plateau Duo.</strong>
