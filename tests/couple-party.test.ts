@@ -485,4 +485,9 @@ test("the quiz exit and winner screen are wired up in the client",()=>{
  assert.ok(ui.includes('onClick={()=>void leaveMatch(onOpenChat)}'));
  assert.ok(ui.includes('rapid.winByForfeit'));
  assert.ok(ui.includes('gagne par abandon'));
+ assert.ok(ui.includes('window.addEventListener("lr-rapid-leave",onNavigateAway)'));
+ assert.ok(ui.includes('keepalive:true'),"navigation forfeits without a canceled request");
+ const app=readFileSync("src/App.tsx","utf8");
+ assert.ok(app.includes('currentTab.current==="rapid"&&tab!=="rapid"'),"other tabs count as leaving");
+ assert.ok(app.includes('window.dispatchEvent(new Event("lr-rapid-leave"))'));
 });
