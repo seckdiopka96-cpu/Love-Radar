@@ -239,3 +239,30 @@ test("call signaling and microphone initialize in parallel to reduce time before
  assert.ok(!call.includes('await microphone(); // Called immediately after the tap'));
  assert.ok(!call.includes('Love Radar audio'));
 });
+
+
+test("minimized calls can open every main Love Radar tab without hanging up",()=>{
+ const app=readFileSync("src/App.tsx","utf8");
+ const css=readFileSync("src/voice-call.css","utf8");
+ const floating=readFileSync("src/floating-video.css","utf8");
+ for(const section of ['home','memories','together','games','chat']){
+  assert.ok(call.includes('id:"'+section+'"'),"in-call navigation exposes "+section);
+ }
+ assert.ok(call.includes('onNavigate:(destination:CallDestination)=>void'));
+ assert.ok(app.includes('onNavigate={destination=>navigate(destination)}'));
+ assert.ok(app.includes('<VoiceCall key={room.roomId+room.user.id}'),"call remains mounted outside the tab-specific pages");
+ assert.ok(call.includes('function navigateDuringCall(destination:CallDestination)'));
+ const navAction=call.slice(call.indexOf('function navigateDuringCall('),call.indexOf('function pressKey('));
+ assert.ok(navAction.includes('setMinimized(true)'),"in-call page changes keep the call miniaturized");
+ assert.ok(navAction.includes('onNavigate(destination)'),"destination stays inside the SPA");
+ assert.ok(!navAction.includes('hangup('),"navigation must never end the call");
+ assert.ok(!navAction.includes('endNativeCallSession('),"navigation must not terminate the native call session");
+ assert.ok(call.includes('className="lr-call-mini-explore"'),"audio calls expose Explorer in the mini bar");
+ assert.ok(call.includes('className="lr-call-floating-explore"'),"floating video calls expose Explorer as well");
+ assert.ok(call.includes('className="lr-call-navigation-sheet"'));
+ assert.ok(call.includes('setCallNavigationOpen(false)'),"the menu can close without leaving the app");
+ assert.ok(css.includes('.lr-call-navigation-backdrop'),"menu is visible above the app");
+ assert.ok(css.includes('env(safe-area-inset-bottom)'),"navigation respects iPhone safe areas");
+ assert.ok(floating.includes('.lr-call-floating-actions'),"video window retains controls while browsing");
+ assert.ok(call.includes('<audio ref={remote}'),"remote audio remains mounted during in-app navigation");
+});
