@@ -278,3 +278,12 @@
  .lr-rps-mode .lr-rps-option-emoji{font-size:23px}
  .lr-rps-mode .lr-rps-option strong{font-size:10px}
 }
+
+/* Full match trophy. Keep it inside the existing no-scroll iPhone board. */
+.lr-rps-match-finished{display:flex;flex:1 1 0;min-height:0;flex-direction:column;justify-content:center;align-items:center;gap:9px;width:100%;text-align:center;padding:16px 10px;border:1px solid #efd39a7a;border-radius:17px;background:linear-gradient(160deg,#56475d,#293c4c)}
+.lr-rps-match-finished>span{font-size:clamp(33px,7vw,53px)}
+.lr-rps-match-finished>strong{font:700 clamp(18px,4.9vw,25px)/1.2 Georgia,serif;color:#fff3cf}
+.lr-rps-match-finished>p{margin:0;font-size:12px;color:#f2deeb}
+.lr-rps-rematch{min-height:44px;border:1px solid #f3bbd2;border-radius:13px;padding:10px 16px;background:linear-gradient(135deg,#e887b1,#b65487);color:#fff;font-weight:850;cursor:pointer}
+.lr-rps-rematch:disabled{opacity:.55}
+@media(max-width:700px){.lr-rps-mode .lr-rps-match-finished{padding:8px;gap:6px}.lr-rps-mode .lr-rps-match-finished>span{font-size:35px}.lr-rps-mode .lr-rps-rematch{min-height:37px;padding:7px 12px}}
