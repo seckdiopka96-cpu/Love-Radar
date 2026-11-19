@@ -86,6 +86,22 @@
   let lastRoll = 1;
   let rulesPause = false;
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
+  const sfx=window.LudoSfx;
+  const boardArea=board.closest(".board-area");
+  let pinnedBoardSize=0;
+  function centerBoard(){
+    if(!boardArea)return;
+    const width=boardArea.clientWidth,height=boardArea.clientHeight;
+    if(width<140||height<140)return;
+    const size=Math.floor(Math.min(width-8,height-8,660));
+    if(Math.abs(size-pinnedBoardSize)<12)return;
+    pinnedBoardSize=size;
+    boardArea.style.setProperty("--lr-solo-board-size",size+"px");
+  }
+  if(boardArea&&typeof ResizeObserver!=="undefined"){
+    new ResizeObserver(centerBoard).observe(boardArea);
+  }
+  window.addEventListener("resize",centerBoard,{passive:true});
 
   const validColor = value => Object.hasOwn(CPU_COLOR,value);
   const opponent = side => side === "human" ? "cpu" : "human";
@@ -376,7 +392,7 @@
     selection.classList.toggle("is-hidden",showGame);
     playScreen.setAttribute("aria-hidden",String(!showGame));
     selection.setAttribute("aria-hidden",String(showGame));
-    if (showGame && game) render();
+    if (showGame && game) {render();requestAnimationFrame(centerBoard);}
   }
 
   function openGame() {
@@ -511,6 +527,7 @@
     const face=game.die;
     const target=from===HOME?0:from+face;
     busy=true;game.phase="moving";game.moving={side,index:pawnIndex};render();
+    if(from===HOME)sfx?.play("exit");
     const success=await animatePawn(side,pawnIndex,from,target,tokenGeneration);
     if (!success || !isCurrent(tokenGeneration)) return;
     game.pieces[side][pawnIndex]=target;
@@ -518,6 +535,7 @@
     renderPawns();
     const captured=opponentBlockAtDestination(side,target);
     const otherSide=opponent(side);
+    if(captured.length)sfx?.play("capture");
     if(captured.length){
       const oldPositions=captured.map(i=>game.pieces[otherSide][i]);
       const completed=await Promise.all(captured.map((i,j)=>
@@ -534,6 +552,7 @@
     game.die=null;
     busy=false;
     if (hasWon) {
+      if(side==="human")sfx?.play("win");
       game.result=side;game.phase="finished";
       game.message=side==="human"?"🏆 Bravo ! Tes quatre pions sont arrivés !":"L’ordinateur a amené ses quatre pions au centre.";
       persist();render();showVictory();return;
@@ -552,10 +571,11 @@
   async function rollDie(side) {
     if (!game || busy || rulesPause || game.turn!==side || game.phase!=="roll") return;
     const tokenGeneration=generation;
+    sfx?.unlock();sfx?.play("roll");
     busy=true;game.phase="rolling";
     game.message=(side==="human"?"Tu lances":"L’ordinateur lance")+" le dé…";
     render();
-    await sleep(reducedMotion?120:330);
+    await sleep(reducedMotion?80:240);
     if (!isCurrent(tokenGeneration)) return;
     const value=getRoll();
     lastRoll=value;
