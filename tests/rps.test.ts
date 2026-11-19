@@ -48,7 +48,10 @@ test("game screen synchronizes both clients, supports replay and is reachable fr
  assert.ok(screen.includes('apiFetch("/api/rps"'));
  assert.ok(screen.includes("aria-label=\"Choisir Pierre Papier ou Ciseaux\""));
  assert.ok(screen.includes('act("choose",option.id)'));
- assert.ok(screen.includes('act("next")'));
+ assert.ok(!screen.includes('act("next")'),"no repeated ready button every round");
+ assert.ok(screen.includes("Nouvelle manche automatique"));
+ assert.ok(api.includes("const RESULT_DISPLAY_MS=4500"));
+ assert.ok(api.includes("revealed_at<=?"));
  assert.ok(screen.includes('act("invite")'));
  assert.ok(screen.includes('game.partnerPicked?"Choix enregistré":"Choix secret"'));
  assert.ok(hub.includes('onOpenGame("rps")'));
