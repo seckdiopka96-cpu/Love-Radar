@@ -90,6 +90,12 @@ async function publicView(db:D1Database,row:Row,member:Member){
    correct:q&&(state.phase==="result"||state.status==="finished")?q.answer:null
   }};
 }
+async function conflict(db:D1Database,row:Row,member:Member,message:string){
+ // Send the authoritative server snapshot with a 409 so the phone can
+ // reconcile immediately instead of waiting for a later background poll.
+ const latest=await get(db,row.id)||row;
+ return reply({ok:false,error:message,game:await publicView(db,latest,member)},409);
+}
 async function save(db:D1Database,row:Row,state:TeamGame):Promise<Row|null>{
  const result=await db.prepare(
   "UPDATE team_games SET state_json=?,version=version+1,updated_at=? WHERE id=? AND version=?"
@@ -214,8 +220,8 @@ export async function onRequestPost({request,env}:Context):Promise<Response>{
    return reply({ok:true,game:await publicView(db,saved,member)});
   }
   const fresh=await sync(db,row);
-  if(fresh.version!==row.version)return bad("La partie a changé, actualise-la.",409);
-  if(!Number.isInteger(data.version)||data.version!==row.version)return bad("Le jeu a été mis à jour, réessaie.",409);
+  if(fresh.version!==row.version)return conflict(db,fresh,member,"La partie a changé, actualise-la.");
+  if(!Number.isInteger(data.version)||data.version!==row.version)return conflict(db,row,member,"Le jeu a été mis à jour, réessaie.");
   if(state.status!=="playing")return bad("Attends les quatre joueurs ou relance une partie.",409);
   const now=Date.now();
   if(action==="roll"){
@@ -236,7 +242,7 @@ export async function onRequestPost({request,env}:Context):Promise<Response>{
    state=next;
   }else return bad("Action inconnue.");
   const saved=await save(db,row,state);
-  if(!saved)return bad("Un autre joueur a déjà agi. Actualise la salle.",409);
+  if(!saved)return conflict(db,row,member,"Un autre joueur a déjà agi. Plateau synchronisé.");
   return reply({ok:true,game:await publicView(db,saved,member)});
  }catch{return bad("Impossible de synchroniser ce jeu actuellement.",503)}
 }
