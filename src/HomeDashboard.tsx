@@ -11,7 +11,7 @@ type Room={user:{id:string;name:string;seat:number};partner:string|null;code:str
 type Props={
  room:Room;token:string;media:Record<string,string>;privacyEnabled:boolean;
  mineAvatar?:string;partnerAvatar?:string;onEditProfile:()=>void;onInvite:()=>void;
- onNavigate:(tab:"chat"|"ludo"|"memory"|"memories"|"moment"|"together"|"watch"|"reconcile"|"puzzle"|"story"|"reunion"|"games")=>void;
+ onNavigate:(tab:"chat"|"ludo"|"memories"|"moment"|"together"|"watch"|"reconcile"|"puzzle"|"story"|"reunion"|"games")=>void;
 };
 export default function HomeDashboard({room,token,mineAvatar,partnerAvatar,onEditProfile,onInvite,onNavigate}:Props){
  const [daily,setDaily]=useState<DailyOverview|null>(null);
