@@ -353,3 +353,28 @@ html.lr-ludo-duo-ui #plateau .board-area{
 /* Computer label only in either Solo mode; Duo partner photos remain intact. */
 .lr-ludo-duo-ui .players-rail .player--cpu.is-solo .avatar{display:none!important}
 .lr-ludo-duo-ui .players-rail .player--cpu.is-solo{justify-content:flex-end}
+
+/* Keep the exit button touchable on iPhone even when the compact HUD
+   previously placed the bottom actions beyond its 130px hit-test box. */
+html.lr-ludo-duo-ui #plateau .game-bottom{
+ flex-basis:160px!important;height:160px!important;
+ min-height:160px!important;max-height:160px!important;
+ overflow:visible!important;
+}
+html.lr-ludo-duo-ui .duo-side-actions,
+html.lr-ludo-duo-ui .duo-quit-slot{
+ position:relative;display:flex;align-items:center;justify-content:center;
+ z-index:70;pointer-events:auto!important;
+}
+html.lr-ludo-duo-ui .duo-quit-slot .duo-quit-match{
+ position:relative;z-index:71;pointer-events:auto!important;
+ touch-action:manipulation!important;cursor:pointer;
+ min-height:42px;min-width:99px;
+ -webkit-tap-highlight-color:transparent;
+}
+@media(max-height:650px){
+ html.lr-ludo-duo-ui #plateau .game-bottom{
+  flex-basis:145px!important;height:145px!important;
+  min-height:145px!important;max-height:145px!important;
+ }
+}
