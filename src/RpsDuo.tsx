@@ -19,7 +19,7 @@ function outcomeMessage(game:Game,seat:number){
 export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Props){
  const [data,setData]=useState<Data|null>(null);
  const [loading,setLoading]=useState(true);
- const [busy,setBusy]=useState<"choose"|"next"|"invite"|null>(null);
+ const [busy,setBusy]=useState<"choose"|"invite"|null>(null);
  const [optimistic,setOptimistic]=useState<RpsMove|null>(null);
  const [error,setError]=useState("");
  const [celebrate,setCelebrate]=useState(false);
@@ -71,7 +71,7 @@ export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Prop
    if(clearEffect.current!==null)window.clearTimeout(clearEffect.current);
   };
  },[refresh]);
- async function act(action:"choose"|"next"|"invite",move?:RpsMove){
+ async function act(action:"choose"|"invite",move?:RpsMove){
   const game=latest.current||data?.game;
   if(!game||busy)return;
   if(action==="choose"){
@@ -88,7 +88,6 @@ export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Prop
    if(!response.ok||!result.ok)throw Error(result.error||"Action impossible.");
    if(result.game)apply(result);
    if(action==="invite")setToast("Invitation demandée. Ton partenaire peut rejoindre le jeu.");
-   if(action==="next")setToast("Prêt pour la prochaine manche !");
    void refresh();
   }catch(err){setError(err instanceof Error?err.message:"Action impossible.");setOptimistic(null);void refresh()}
   finally{if(active.current)setBusy(null)}
@@ -105,8 +104,6 @@ export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Prop
  const partnerScore=game?.scores[seat===0?1:0]??0;
  const myChoice=game?.mine||optimistic;
  const partnerChoice=game?.status==="revealed"?game.partnerMove:null;
- const iAmReady=Boolean(game?.ready[seat]);
- const partnerReady=Boolean(game?.ready[seat===0?1:0]);
  return <section className="lr-rps" aria-label="Pierre Papier Ciseaux en temps réel">
   <div className="lr-rps-topbar">
    <button type="button" className="lr-rps-back" onClick={onExit} aria-label="Retour aux jeux">
@@ -162,8 +159,7 @@ export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Prop
       <strong>{outcomeMessage(game,seat)}</strong>
       <span>{rpsName(game.mine)} contre {rpsName(game.partnerMove)}</span>
      </div>
-     <div className="lr-rps-ready-status">{iAmReady?(partnerReady?"Nouvelle manche en préparation…":"Tu es prêt(e). En attente de ton partenaire…"):"Prêt(e) à rejouer ?"} </div>
-     <button type="button" className="lr-rps-next" onClick={()=>void act("next")} disabled={iAmReady||busy!==null}>{iAmReady?"✓ En attente…":"Manche suivante"}</button>
+     <div className="lr-rps-ready-status" role="status">Nouvelle manche automatique dans quelques secondes…</div>
     </>}
     <div className="lr-rps-bottom-actions">
      <button type="button" onClick={()=>void act("invite")} disabled={busy!==null}>✉ Inviter mon partenaire</button>
@@ -176,7 +172,7 @@ export default function RpsDuo({token,myName,partnerName,onExit,onOpenChat}:Prop
    <h2>Comment jouer ?</h2>
    <p>Les deux joueurs choisissent une main secrètement. Les choix sont révélés seulement lorsque les deux sont prêts.</p>
    <div>{RPS_MOVES.map(option=><p key={option.id}><span aria-hidden="true">{option.emoji}</span> {option.detail}</p>)}</div>
-   <p>Une victoire rapporte 1 point. En cas d’égalité, aucun des deux ne marque. Chacun confirme avant la prochaine manche.</p>
+   <p>Une victoire rapporte 1 point. En cas d’égalité, aucun des deux ne marque. La prochaine manche commence automatiquement après les résultats.</p>
    <button type="button" onClick={()=>setShowRules(false)}>J’ai compris</button>
   </div></div>:null}
   {celebrate?<div className="lr-rps-celebration" aria-hidden="true">{REACTION_EMOJI.map((emoji,index)=><span key={index} style={{left:(index*20+7)+"%",animationDelay:(index*.12)+"s"}}>{emoji}</span>)}</div>:null}
