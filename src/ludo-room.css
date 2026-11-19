@@ -112,8 +112,8 @@
 
 /* Unified Ludo launch: ONE board in view, then four compact modes. */
 .lr-ludo-room.lr-ludo-room-unified{
- --lr-board-red:#f25d78;--lr-board-green:#32bb88;
- --lr-board-blue:#4aafe9;--lr-board-yellow:#ffd46c;
+ --lr-board-red:#a91e3e;--lr-board-green:#08734e;
+ --lr-board-blue:#155593;--lr-board-yellow:#ad7916;
  display:flex;flex-direction:column;align-items:center;gap:12px;
  padding:12px 12px 18px;max-width:620px;
 }
