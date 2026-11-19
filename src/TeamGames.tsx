@@ -283,7 +283,7 @@ export default function TeamGames({token,onExit}:Props){
     </div>:
     <div className="lr-team-ludo">
      <div className="lr-team-turn"><span>{game.players[active!.turn]?.name||"Joueur"} joue</span>
-      <strong>{active!.turn===seat?"🎯 À TOI":"Tour adverse"}</strong>
+      <strong>{active!.turn===seat?"🎯 À TOI":"Tour adverse"} · {turnLeft}s</strong>
       <span>{game.kind==="senegal"?"🇸🇳 Règles sénégalaises":"🎲 Classique"}</span></div>
      <TeamBoard game={game} onChoose={choose}/>
      <div className="lr-team-dice">
