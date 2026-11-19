@@ -124,6 +124,22 @@ function gatesBetween(start:number,end:number,base:number,dir:1|-1):number[]{
  }
  return gates.sort((a,b)=>dir*(a-b));
 }
+/** Each pawn gets a NEW route decision when its CURRENT throw crosses a
+ * colored entrance. Nothing here is stored on the player or shared between
+ * pawns: accepting an entry for one token cannot choose for another token.
+ * This also detects an entrance when a full die overshoots its five squares,
+ * so the UI can explain why "Entrer" is unavailable instead of silently
+ * selecting "Continuer". */
+export function senegalGateChoice(game:SenegalGame,seat:Seat,pawn:number):"home"|"enemy"|null{
+ if(game.status!=="playing"||game.turn!==seat||game.dice===null||pawn<0||pawn>3)return null;
+ const from=game.positions[seat][pawn];
+ if(!from||from.zone!=="track")return null;
+ const dest=from.step+game.dice;
+ if(dest>MAX_STEPS)return null;
+ if(gatesBetween(from.step,dest,51,1).some(gate=>gate>=51))return "home";
+ if(gatesBetween(from.step,dest,77,1).some(gate=>gate>=25))return "enemy";
+ return null;
+}
 function laneOption(pawn:number,from:Pawn,dest:number,dir:1|-1,gate:number,zone:"home"|"enemy"):MoveOption|null{
  const depth=1+dir*(dest-gate);
  if(depth<1||depth>(zone==="home"?7:ENEMY_LANE_LENGTH))return null;
