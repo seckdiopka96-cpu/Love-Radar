@@ -2,7 +2,7 @@ import type {D1Database} from "@cloudflare/workers-types";
 import {notifyPartner,type PushEnv} from "../lib/push";
 import {
  RAPID_QUESTIONS,TRUTH_PROMPTS,ACTION_PROMPTS,RAPID_SECONDS,RAPID_COUNTDOWN_MS,
- nextPartyIndex,partyQuestion,partyChallenge,validChoice,validPartyMode,
+ nextPartyIndex,nextUnseenPartyIndex,partyQuestion,partyChallenge,validChoice,validPartyMode,
  validChallengeKind,type PartyMode,type ChallengeKind
 } from "../../src/couple-party-engine";
 
@@ -32,7 +32,10 @@ async function ensure(db:D1Database){
   "picked_0 INTEGER,picked_1 INTEGER,score_0 INTEGER NOT NULL DEFAULT 0,"+
   "score_1 INTEGER NOT NULL DEFAULT 0,winner INTEGER,started_at INTEGER NOT NULL,"+
   "deadline_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,"+
-  "last_invite_at INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(room_id,mode))"
+  "last_invite_at INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(room_id,mode));"+
+  "CREATE TABLE IF NOT EXISTS couple_party_prompt_history("+
+  "room_id TEXT NOT NULL,game_id TEXT NOT NULL,kind TEXT NOT NULL,"+
+  "prompt_index INTEGER NOT NULL,PRIMARY KEY(room_id,game_id,kind,prompt_index))"
  ).then(()=>{}).catch(e=>{ready=null;throw e});
  await ready;
 }
@@ -48,6 +51,17 @@ function randomNumber():number{
  const values=new Uint32Array(1);crypto.getRandomValues(values);return values[0]/4294967296;
 }
 const newIndex=(count:number,previous:number)=>nextPartyIndex(count,previous,randomNumber());
+async function nextChallenge(db:D1Database,row:Row,kind:ChallengeKind){
+ const count=kind==="truth"?TRUTH_PROMPTS.length:ACTION_PROMPTS.length;
+ const seen=await db.prepare(
+  "SELECT prompt_index FROM couple_party_prompt_history WHERE room_id=? AND game_id=? AND kind=?"
+ ).bind(row.room_id,row.game_id,kind).all<{prompt_index:number}>();
+ const indices=(seen.results||[]).map(x=>x.prompt_index);
+ return {
+  index:nextUnseenPartyIndex(count,indices,row.question_index,randomNumber()),
+  reshuffle:indices.length>=count
+ };
+}
 async function init(db:D1Database,room:string,mode:PartyMode){
  const now=Date.now(),rapid=mode==="rapid";
  await db.prepare(
@@ -203,16 +217,27 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    return fail("Action de quiz inconnue.");
   }
   if(data.action==="pick"){
-   if(row.phase!=="choose"||(row.round>1&&row.turn!==member.seat))return fail("C'est au tour de ton partenaire.",409);
-   if(!validChallengeKind(data.kind))return fail("Choisis Action ou Vérité.");
-   const n=data.kind==="truth"?TRUTH_PROMPTS.length:ACTION_PROMPTS.length;
-   const index=newIndex(n,row.question_index);
+   if(row.phase!=="choose"||row.turn!==member.seat)return fail("C'est au tour de ton partenaire.",409);
+   if(data.kind!=="surprise"&&!validChallengeKind(data.kind))return fail("Choisis Action ou Vérité.");
+   // Surprise alternates categories while explicit picks remain the player's choice.
+   const kind:ChallengeKind=data.kind==="surprise"?
+    (row.prompt_kind==="truth"?"action":row.prompt_kind==="action"?"truth":randomNumber()<.5?"truth":"action"):
+    data.kind as ChallengeKind;
+   const {index,reshuffle}=await nextChallenge(db,row,kind);
    const changed=await db.prepare(
     "UPDATE couple_party_games SET phase='challenge',prompt_kind=?,question_index=?,turn=?,"+
     "version=version+1,updated_at=? WHERE room_id=? AND mode='truth' AND game_id=?"+
-    " AND round=? AND phase='choose' AND (round=1 OR turn=?)"
-   ).bind(data.kind,index,member.seat,now,member.room_id,row.game_id,row.round,member.seat).run();
+    " AND round=? AND phase='choose' AND turn=?"
+   ).bind(kind,index,member.seat,now,member.room_id,row.game_id,row.round,member.seat).run();
    if(changed.meta.changes!==1)return fail("Une carte vient d'être tirée.",409);
+   if(reshuffle){
+    await db.prepare(
+     "DELETE FROM couple_party_prompt_history WHERE room_id=? AND game_id=? AND kind=?"
+    ).bind(member.room_id,row.game_id,kind).run();
+   }
+   await db.prepare(
+    "INSERT OR IGNORE INTO couple_party_prompt_history(room_id,game_id,kind,prompt_index) VALUES(?,?,?,?)"
+   ).bind(member.room_id,row.game_id,kind,index).run();
    return send(await publicState(db,member,mode,members));
   }
   if(data.action==="finish"||data.action==="pass"){
@@ -220,7 +245,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    const scoreCol=member.seat===0?"score_0":"score_1";
    const credit=data.action==="finish"?1:0;
    const changed=await db.prepare(
-    "UPDATE couple_party_games SET phase='choose',prompt_kind=NULL,round=round+1,"+
+    "UPDATE couple_party_games SET phase='choose',round=round+1,"+
     "turn=?,version=version+1,updated_at=?,"+scoreCol+"="+scoreCol+"+?"+
     " WHERE room_id=? AND mode='truth' AND game_id=? AND round=?"+
     " AND phase='challenge' AND turn=?"
