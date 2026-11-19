@@ -18,7 +18,7 @@ test("all real notification kinds open the correct Love Radar content",()=>{
  const id="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
  const expected:Record<string,string>={
   "message":"chat","photo":"chat","audio":"chat","call":"chat",
-  "ludo-challenge":"ludo","ludo-joined":"ludo","memory-challenge":"memory","rps-challenge":"rps",
+  "ludo-challenge":"ludo","ludo-joined":"ludo","memory-challenge":"games","rps-challenge":"rps",
   "daily-question":"moment","love-signal":"together",
   "love-letter":"memories","album-memory":"memories",
   "couple-date":"life","couple-mood":"life","couple-dream":"life",
@@ -370,4 +370,23 @@ test("Ludo joined notification navigates the existing iPhone straight into the s
  assert.equal(messages[0].tab,"ludo");
  assert.equal(opened,false,"reuse the installed iPhone application");
  assert.equal(stored.size,1,"retain tapped route until mounted game acknowledges");
+});
+
+test("Memory Love game is retired without deleting the Souvenirs album",()=>{
+ const hub=readFileSync("src/GamesHub.tsx","utf8");
+ const push=readFileSync("functions/lib/push.ts","utf8");
+ const sw=readFileSync("public/sw.js","utf8");
+ assert.ok(!hub.includes("Memory Love"));
+ assert.ok(!hub.includes('onOpenGame("memory")'));
+ assert.ok(!hub.includes('game="memory"'));
+ assert.ok(!app.includes('import MemoryLove from "./MemoryLove"'));
+ assert.ok(!app.includes('tab==="memory"?<MemoryLove'));
+ assert.ok(!app.includes('lr-memory-mode'));
+ assert.ok(app.includes('if(tab==="memory"||q.get("kind")==="memory-challenge")return {tab:"games",kind:null,id:null}'),
+  "existing Memory challenge deep links must redirect to the games hub");
+ assert.ok(!push.includes('|"memory"'));
+ assert.ok(!push.includes('|"memory-challenge"'));
+ assert.ok(sw.includes('"memory-challenge":"games"'));
+ assert.ok(!sw.includes('"memory","rps"'));
+ assert.ok(app.includes('tab==="memories"?'),"couples' photo album must remain available");
 });
