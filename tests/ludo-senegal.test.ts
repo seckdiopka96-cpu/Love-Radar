@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {Script} from "node:vm";
 import {newSenegalGame,stopSenegalGame,isSenegalGame,repairSenegalHomeShortcut,ENEMY_LANE_LENGTH,senegalGateChoice,movesForPawn,applySenegalMove,rollSenegal,pointForPawn,trackIndex,
- movementPath,autoplayTurn,TURN_MS,chooseSenegalBotMove,type Pawn,type SenegalGame} from "../src/ludo-senegal-engine";
+ movementPath,autoplayTurn,TURN_MS,movesForSeat,chooseSenegalBotMove,type Pawn,type SenegalGame} from "../src/ludo-senegal-engine";
 const pawn=(zone:Pawn["zone"],step:number,depth=0,gate=0,dir:1|-1=1):Pawn=>({zone,step,depth,gate,dir});
 const withTurn=(red:Pawn,yellow:Pawn,face:number,seat:0|1=0):SenegalGame=>{
  const g=newSenegalGame();g.positions[0][0]=red;g.positions[1][0]=yellow;g.dice=face;g.turn=seat;return g;
@@ -458,6 +458,35 @@ test("Senegal shares the physical Classic 3D die and preserves its special paths
  assert.ok(classic.includes("animateRealDieRoll()"),"same physical throw animation");
 });
 
+
+test("Solo AI recovers after a capture animation and plays its bonus six",()=>{
+ // Yellow captures red with its first six on a non-star square.
+ const g=newSenegalGame();
+ g.turn=1;g.dice=6;g.streak=1;
+ g.positions[0][0]=pawn("track",33);
+ g.positions[1][0]=pawn("track",1);
+ g.positions[1][1]=pawn("track",11);
+ const capture=movesForPawn(g,1,0).find(x=>x.action==="track"&&x.to.step===7);
+ assert.ok(capture);
+ const caught=applySenegalMove(g,capture!);
+ assert.ok(caught);
+ assert.equal(caught!.move.captures.length,1);
+ assert.equal(caught!.game.positions[0][0].zone,"base");
+ assert.equal(caught!.game.turn,1,"capturing player keeps the next turn");
+ assert.equal(caught!.game.dice,null);
+ const next=rollSenegal(caught!.game,6);
+ assert.equal(next.turn,1,"yellow keeps playing after its next six");
+ assert.equal(next.dice,6);
+ assert.ok(movesForSeat(next,1).length>0,"a six always offers a legal yellow move");
+ const botChoice=chooseSenegalBotMove(next);
+ assert.ok(botChoice,"computer must choose a pawn instead of stalling");
+ assert.ok(applySenegalMove(next,botChoice!),"computer can legally complete the turn");
+ const ui=readFileSync("src/SenegalLudo.tsx","utf8");
+ assert.ok(ui.includes('},[solo,game,rolling,motion,captureBack.length,busy,chosen,confirmReset,assisted]);'),
+  "capture overlay clearing must rerun the Solo computer effect");
+ assert.ok(ui.includes("now>=captureDeadline.current"),
+  "iPhone suspended capture cleanup must also trigger this effect");
+});
 test("capture return animation is bounded and cleared even after iOS callback suspension",()=>{
  const component=readFileSync("src/SenegalLudo.tsx","utf8");
  assert.ok(component.includes("const count=Math.min(10,Math.abs(from.step))"),
