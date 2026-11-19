@@ -91,7 +91,7 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
  const motto=isRapid?"La première bonne réponse marque le point.":"Vos secrets, vos rires, vos défis.";
  const rapid=game?.mode==="rapid"?game:null;
  const truth=game?.mode==="truth"?game:null;
- const truthMyTurn=Boolean(truth&&((truth.phase==="choose"&&truth.round===1)||truth.turn===seat));
+ const truthMyTurn=Boolean(truth&&truth.turn===seat);
  const secondsToStart=rapid?Math.max(0,Math.ceil((rapid.startAt-now)/1000)):0;
  const secondsLeft=rapid?Math.max(0,Math.ceil((rapid.deadlineAt-now)/1000)):0;
  const canAnswer=Boolean(rapid&&rapid.phase==="question"&&secondsToStart===0&&secondsLeft>0&&rapid.myChoice===null&&!busy);
@@ -162,33 +162,37 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
      rapid.myChoice!==null?"Ta réponse est enregistrée. Une seule tentative par manche.":
      rapid.partnerPicked?"Ton partenaire a déjà tenté sa chance. À toi !":"Réponds avant la fin du chrono pour marquer."}</p>}
    </div>:
-   truth?<div className="lr-party-panel lr-party-truth-board">
-    <span className="lr-party-turn">{truth.phase==="choose"&&truth.round===1?"À VOUS DE COMMENCER":truth.turn===seat?"C’EST TON TOUR":"AU TOUR DE "+name.toUpperCase()}</span>
+   truth?<div className={"lr-party-panel lr-party-truth-board"+(truth.phase==="challenge"?" is-"+truth.kind:"")}>
+    <span className="lr-party-turn">{truth.turn===seat?"C’EST TON TOUR":"AU TOUR DE "+name.toUpperCase()}</span>
     {truth.phase==="choose"?<>
-     <h2>{truthMyTurn?"Que choisis-tu ?":"En attente du choix…"}</h2>
-     <p>{truthMyTurn?"Prends une carte et relève ton défi. Tu peux toujours passer.":name+" choisit sa carte. Tu verras la même question sur ton téléphone."}</p>
+     <h2>{truthMyTurn?"Action ou Vérité ?":"En attente du choix…"}</h2>
+     <p>{truthMyTurn?"Choisis une question à laquelle répondre ou un véritable défi à réaliser. Tu peux aussi laisser le hasard décider.":name+" choisit une carte. Vous verrez tous les deux le même défi en direct."}</p>
      <div className="lr-party-deck">
       <button type="button" className="lr-party-deck-truth" disabled={busy||!truthMyTurn} onClick={()=>void post("pick",{kind:"truth"})}>
-       <span>♥</span><strong>Vérité</strong><small>Une question sincère</small>
+       <span>♥</span><strong>Vérité</strong><small>Réponds à une question</small>
       </button>
       <button type="button" className="lr-party-deck-action" disabled={busy||!truthMyTurn} onClick={()=>void post("pick",{kind:"action"})}>
-       <span>✦</span><strong>Action</strong><small>Un défi complice</small>
+       <span>✦</span><strong>Action</strong><small>Réalise un vrai défi</small>
       </button>
      </div>
+     {truthMyTurn?<button type="button" className="lr-party-surprise" disabled={busy}
+      onClick={()=>void post("pick",{kind:"surprise"})}>🎲 Surprise : laisse le hasard choisir</button>:null}
     </>:<>
      <span className="lr-party-challenge-symbol">{truth.kind==="truth"?"♥":"✦"}</span>
-     <span className="lr-party-challenge-category">{truth.kind==="truth"?"VÉRITÉ":"ACTION"}</span>
+     <span className="lr-party-challenge-category">{truth.kind==="truth"?"VÉRITÉ · À RÉPONDRE":"ACTION · À RÉALISER"}</span>
      <h2 className="lr-party-challenge-text">{truth.prompt}</h2>
-     <p>{truth.turn===seat?"Raconte ou réalise ce défi avec ton partenaire.":"Écoute ou regarde ton amour relever le défi !"}</p>
+     <p>{truth.turn===seat?
+      (truth.kind==="truth"?"Réponds sincèrement, ou passe si tu préfères.":"Fais vraiment cette action, en appel ou par message si elle s'y prête. Tu peux passer.") :
+      (truth.kind==="truth"?"Écoute la réponse de ton partenaire.":"Regarde ou écoute ton partenaire réaliser son défi !")}</p>
      {truth.turn===seat?<div className="lr-party-challenge-actions">
-      <button type="button" className="lr-party-primary" disabled={busy} onClick={()=>void post("finish")}>✓ Défi relevé</button>
+      <button type="button" className="lr-party-primary" disabled={busy} onClick={()=>void post("finish")}>{truth.kind==="truth"?"✓ J’ai répondu":"✓ Action réalisée"}</button>
       <button type="button" className="lr-party-secondary" disabled={busy} onClick={()=>void post("pass")}>Passer sans point</button>
      </div>:<p className="lr-party-hint">En attente de {name}…</p>}
     </>}
    </div>:null
   }
   <div className="lr-party-footer">
-   <p>{isRapid?"18 secondes par question · Un point pour la première réponse correcte.":"Un tour chacun · Un point par défi relevé · Aucun défi obligatoire."}</p>
+   <p>{isRapid?"18 secondes par question · Un point pour la première réponse correcte.":"À tour de rôle · Vérité = répondre, Action = agir · Tu peux toujours passer."}</p>
    <button type="button" onClick={onOpenChat}>💬 Discuter ensemble</button>
   </div>
   {error?<div className="lr-party-alert" role="alert">{error}<button type="button" onClick={()=>{setError("");void refresh()}}>Réessayer</button></div>:null}
