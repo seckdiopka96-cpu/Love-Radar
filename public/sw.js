@@ -97,11 +97,11 @@ async function notificationAvatar(memberId){
 }
 
 /* Notifications open their exact content, not just the app's welcome page. */
-const SUPPORTED_TABS=new Set(["home","settings","chat","games","ludo-room","ludo","memory","rps","draw","escape","rapid","truth","memories","moment","together","life","watch","watch-tiktok","puzzle","reconcile","story","reunion","care"]);
+const SUPPORTED_TABS=new Set(["home","settings","chat","games","ludo-room","ludo","rps","draw","escape","rapid","truth","memories","moment","together","life","watch","watch-tiktok","puzzle","reconcile","story","reunion","care"]);
 /* Every kind sent by Cloudflare has an explicit landing page. */
 const KIND_TABS={
  "message":"chat","photo":"chat","audio":"chat","call":"chat",
- "ludo-challenge":"ludo","ludo-joined":"ludo","memory-challenge":"memory","rps-challenge":"rps",
+ "ludo-challenge":"ludo","ludo-joined":"ludo","memory-challenge":"games","rps-challenge":"rps",
  "daily-question":"moment","love-signal":"together",
  "love-letter":"memories","album-memory":"memories",
  "couple-date":"life","couple-mood":"life","couple-dream":"life",
