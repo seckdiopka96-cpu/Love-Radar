@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {Script} from "node:vm";
-import {newSenegalGame,stopSenegalGame,isSenegalGame,repairSenegalHomeShortcut,movesForPawn,applySenegalMove,rollSenegal,pointForPawn,trackIndex,
+import {newSenegalGame,stopSenegalGame,isSenegalGame,repairSenegalHomeShortcut,ENEMY_LANE_LENGTH,movesForPawn,applySenegalMove,rollSenegal,pointForPawn,trackIndex,
  movementPath,autoplayTurn,TURN_MS,chooseSenegalBotMove,type Pawn,type SenegalGame} from "../src/ludo-senegal-engine";
 const pawn=(zone:Pawn["zone"],step:number,depth=0,gate=0,dir:1|-1=1):Pawn=>({zone,step,depth,gate,dir});
 const withTurn=(red:Pawn,yellow:Pawn,face:number,seat:0|1=0):SenegalGame=>{
@@ -119,6 +119,81 @@ test("Senegal captured pawn returns to its base when landing on the ordinary tra
  assert.equal(captured?.move.captures.length,1);
  assert.equal(captured?.game.positions[1][0].zone,"base");
  assert.equal(captured?.game.positions[1][0].step,-1);
+});
+test("enemy corridor cannot qualify a pawn at the center after a three",()=>{
+ assert.equal(ENEMY_LANE_LENGTH,5,"only five colored enemy corridor squares exist");
+ for(const seat of [0,1] as const){
+  const opponent=(1-seat) as 0|1;
+  const g=newSenegalGame();g.turn=seat;g.dice=3;
+  g.positions[seat][0]=pawn("enemy",79,3,77);
+  const options=movesForPawn(g,seat,0);
+  assert.equal(options.length,0,"3 from enemy depth 3 would land on the forbidden center");
+  assert.equal(applySenegalMove(g,{pawn:0,action:"enemy",
+    to:pawn("enemy",82,6,77),label:"Invalid finish"}),null,
+   "an illegal move cannot grant victory or show a false qualification");
+  const rolled=rollSenegal({...g,dice:null},3);
+  assert.equal(rolled.turn,opponent,"unplayable roll passes the turn");
+  assert.equal(rolled.positions[seat][0].zone,"enemy");
+  assert.equal(rolled.positions[seat][0].depth,3);
+  assert.equal(rolled.status,"playing");
+  assert.equal(rolled.winner,null);
+  const next={...g,dice:6};
+  const retreat=movesForPawn(next,seat,0).find(o=>o.action==="exit");
+  assert.equal(retreat?.to.zone,"enemy","6 retreats one step; it is not a qualification");
+  assert.equal(retreat?.to.depth,2);
+ }
+});
+test("enemy corridor stops on its fifth cell; the sixth is never a win",()=>{
+ for(const seat of [0,1] as const){
+  const g=newSenegalGame();g.turn=seat;g.dice=3;
+  g.positions[seat][0]=pawn("enemy",78,2,77);
+  const next=movesForPawn(g,seat,0);
+  assert.equal(next.length,1);
+  assert.equal(next[0].to.zone,"enemy");
+  assert.equal(next[0].to.depth,5);
+  const played=applySenegalMove(g,next[0]);
+  assert.ok(played);
+  assert.equal(played!.game.status,"playing");
+  assert.equal(played!.game.winner,null);
+  assert.equal(played!.game.positions[seat][0].zone,"enemy");
+  assert.notDeepEqual(pointForPawn(seat,0,played!.game.positions[seat][0]),[7,7],
+   "the opponent's finishing center is not accessible");
+  assert.equal(played!.move.path.at(-1)?.join(","),pointForPawn(seat,0,played!.game.positions[seat][0]).join(","));
+  const one={...played!.game,dice:1,turn:seat};
+  assert.equal(movesForPawn(one,seat,0).length,0,
+   "the pawn cannot advance a sixth step into the finish");
+  const six={...played!.game,dice:6,turn:seat};
+  const back=movesForPawn(six,seat,0).find(o=>o.action==="exit");
+  assert.equal(back?.to.zone,"enemy");
+  assert.equal(back?.to.depth,4,"6 moves exactly one cell back in the enemy corridor");
+  const justBefore=newSenegalGame();justBefore.turn=seat;justBefore.dice=6;
+  justBefore.positions[seat][0]=pawn("track",76);
+  assert.ok(movesForPawn(justBefore,seat,0).every(o=>o.action!=="enemy"),
+   "cannot enter an opposing corridor at depth six from the outer track");
+  assert.ok(movesForPawn(justBefore,seat,0).some(o=>o.action==="track"),
+   "moving forward on the outer track remains legal");
+ }
+});
+test("old Solo and Duo enemy-depth-six saves are repaired away from the finish",()=>{
+ for(const seat of [0,1] as const){
+  const g=newSenegalGame();
+  g.positions[seat][0]=pawn("enemy",82,6,77);
+  assert.notDeepEqual(pointForPawn(seat,0,g.positions[seat][0]),[7,7],
+   "even before migration the visual position must never be the central finish");
+  const repaired=repairSenegalHomeShortcut(g);
+  assert.notEqual(repaired,g);
+  assert.equal(repaired.positions[seat][0].zone,"enemy");
+  assert.equal(repaired.positions[seat][0].depth,5);
+  assert.equal(repaired.positions[seat][0].step,81);
+  assert.equal(repaired.status,"playing");
+  assert.equal(repaired.winner,null);
+  assert.equal(repairSenegalHomeShortcut(repaired),repaired,"only one migration is needed");
+  assert.ok(isSenegalGame(repaired));
+ }
+ const solo=readFileSync("src/SenegalLudo.tsx","utf8");
+ const duo=readFileSync("functions/api/ludo-senegal.ts","utf8");
+ assert.ok(solo.includes("repairSenegalHomeShortcut(game)"),"solo migrates old save");
+ assert.ok(duo.includes("repairSenegalHomeShortcut(state)"),"duo migrates server save");
 });
 test("a six retreats exactly one square inside the enemy cage for Solo and Duo",()=>{
  for(const seat of [0,1] as const){
