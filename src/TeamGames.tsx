@@ -267,7 +267,7 @@ export default function TeamGames({token,onExit}:Props){
         "Déplacer le pion"}</button>)}
       <button type="button" onClick={()=>setChoices(null)}>Annuler</button>
      </div>:null}
-    </div>)):null}
+    </div>):null}
    {status==="playing"?<button className="lr-team-quit" type="button" onClick={()=>setConfirmLeave(true)}>Quitter le match</button>:null}
   </div>}
   {confirmLeave?<div className="lr-team-route" role="dialog" aria-modal="true" aria-label="Confirmer l'abandon">
