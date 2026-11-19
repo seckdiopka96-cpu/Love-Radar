@@ -162,7 +162,7 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
    }else if(action==="move"){
     if(!Number.isInteger(data.pawn)||Number(data.pawn)<0||Number(data.pawn)>3||
        typeof data.moveKind!=="string")return fail("Pion ou déplacement invalide.",400);
-    const allowedKinds=["track","home","enemy","exit","turn","jump"];
+    const allowedKinds=["track","home","enemy","exit","jump"];
     if(!allowedKinds.includes(data.moveKind))return fail("Déplacement inconnu.",400);
     const options=movesForPawn(current,player.seat as 0|1,Number(data.pawn));
     const picked=options.find(o=>o.action===data.moveKind&&
