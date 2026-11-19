@@ -42,15 +42,15 @@ test("a pending wake lock gets released when the call ends",async()=>{
 
 test("a system-released lock is requested again when returning to foreground",async()=>{
  const {page,hide,show}=fakePage();
- let requested=0,releaseEvent:(()=>void)|null=null;
+ let requested=0; const releaseEvent:{current:(()=>void)|null}={current:null};
  const stop=keepCallScreenAwake(page,{wakeLock:{request:async()=>{
   requested++;
-  return {release:async()=>{},addEventListener:(_type:"release",fn:()=>void)=>{releaseEvent=fn}};
+  return {release:async()=>{},addEventListener:(_type:"release",fn:()=>void)=>{releaseEvent.current=fn}};
  }}});
  await flush();
  assert.equal(requested,1);
  hide();
- if(releaseEvent)releaseEvent();
+ releaseEvent.current?.();
  show();
  await flush();
  assert.equal(requested,2);
