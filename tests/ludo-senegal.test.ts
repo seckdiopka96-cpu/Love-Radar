@@ -198,11 +198,12 @@ test("ordinary roll without legal move immediately passes the turn",()=>{
  assert.equal(next.dice,null);
  assert.equal(TURN_MS,15000);
 });
-test("bot picks a legal strategic option and cannot alter classic game state",()=>{
- const g=withTurn(pawn("track",74),pawn("home",77,3,51),5);
+test("bot picks a legal forward move instead of attacking protected home pawns",()=>{
+ const g=withTurn(pawn("track",74),pawn("home",53,3,51),5);
  const option=chooseSenegalBotMove(g);
  assert.ok(option);
- assert.equal(option?.action,"enemy");
+ assert.equal(option?.action,"track","AI must respect protected home pawns");
+ assert.equal(option?.to.step,79);
  const result=autoplayTurn({...newSenegalGame(),turn:1});
  assert.equal(result.game.turn,0);
 });
