@@ -9,7 +9,6 @@
 .lr-games-choice{display:flex;flex-direction:column;gap:15px;align-items:flex-start;min-width:0;min-height:280px;border:1px solid #c191b4;border-radius:22px;padding:24px;text-align:left;background:linear-gradient(145deg,#66405e,#382a4a);color:#ffedf7;box-shadow:0 8px 25px #0f081c63;cursor:pointer;transition:transform .18s,border-color .18s}
 .lr-games-choice:focus-visible{outline:3px solid #e8b1d1;outline-offset:3px}
 .lr-games-choice:active{transform:scale(.99)}
-.lr-games-memory{background:linear-gradient(145deg,#534372,#342a53);border-color:#af9ac7}
 .lr-games-symbol{font-size:47px;line-height:1.25;filter:drop-shadow(0 5px 9px #0b061354)}
 .lr-games-copy{display:flex;flex-direction:column;gap:9px;flex:1}
 .lr-games-copy small{font-size:10px;letter-spacing:1px;font-weight:900;color:#dfbacd}
