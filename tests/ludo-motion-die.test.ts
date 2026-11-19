@@ -61,8 +61,8 @@ test("four pawns are chosen by touching the board, never from a second numbered 
  assert.ok(!reactSolo.includes('className="ludo-pick-row"'));
  assert.ok(!reactDuo.includes('className="ludo-pick-row"'));
  assert.ok(!senegal.includes('className="ludo-pick-row"'));
- assert.ok(senegal.includes('onClick={()=>choose(item.pawn)}'),
-  "Senegal pawns remain touchable while the necessary path-choice dialog stays intact");
+ assert.ok(senegal.includes('case "move":if(Number.isInteger(pawn))choose(pawn as number);'),
+  "Sénégal pawns receive touch events from the reused Classic frame");
  assert.ok(senegal.includes('ludo-senegal-shared-dialog'));
  assert.ok(solo.includes('choices.length>1 ? "Touche le pion à déplacer"'));
  assert.ok(!duoHTML.includes('class="turn-banner"'),"the redundant Duo waiting HUD is gone");
@@ -194,7 +194,7 @@ test("Duo captures visibly return through a stable animation overlay",()=>{
  assert.ok(duo.includes('captureLayer.className="pieces-layer ludo-duo-capture-overlay"'));
  assert.ok(duo.includes("const capturePins=new Map()"));
  assert.ok(duo.includes("function drawCaptured()"));
- assert.ok(duo.includes('getPosition(c,nextProgress,m.pawn)'));
+ assert.ok(duo.includes('getPosition(c,Number(nextProgress),m.pawn)'));
  assert.ok(duo.includes('pawn.classList.add("is-returning")'));
  assert.ok(duo.includes('pawn.style.left=dest.x'));
  assert.ok(duo.includes('pawn.style.top=dest.y'));
