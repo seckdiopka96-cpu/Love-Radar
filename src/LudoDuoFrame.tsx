@@ -92,7 +92,7 @@ export default function LudoDuoFrame(props:Props){
  },[]);
  return <section className="ludo-duo-shared-frame" aria-label="Plateau Ludo Duo identique au Ludo Solo">
   <iframe key={retry} ref={ref} className="ludo-duo-shared-iframe"
-   src="/ludo-duo/index.html?v=ludo-room-20261118-v21" title="Ludo Duo : plateau et dé synchronisés avec ton partenaire"
+   src="/ludo-duo/index.html?v=ludo-room-20261119-v23" title="Ludo Duo : plateau et dé synchronisés avec ton partenaire"
    referrerPolicy="same-origin" loading="eager" onError={()=>setFailed(true)}/>
   {failed&&!ready?<div className="ludo-duo-frame-error" role="alert">
    <strong>Impossible de charger le nouveau plateau Duo.</strong>
