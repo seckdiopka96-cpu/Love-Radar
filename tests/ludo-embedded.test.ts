@@ -120,3 +120,18 @@ test("CSP permits only same-origin embedded games and the service worker cannot 
  assert.ok(sw.includes('if(url.pathname!=="/"&&url.pathname!=="/index.html")return'));
  assert.ok(sw.includes('if(url.origin!==self.location.origin||url.pathname.startsWith("/api/"))return'));
 });
+
+
+test("embedded Solo has only one visible title header and keeps controls usable",()=>{
+ assert.ok(host.includes('className="lr-ludo-embedded-header"'),"the app owns the single Solo header");
+ assert.ok(js.includes('window.parent!==window && new URLSearchParams(window.location.search).has("scope")'));
+ assert.ok(js.includes('classList.add("lr-ludo-solo-in-app")'));
+ assert.ok(gameCSS.includes('html.lr-ludo-solo-in-app #plateau .game-header{display:none!important}'));
+ assert.ok(js.includes('turnBanner.prepend(colorButton)'),"change-color remains functional");
+ assert.ok(js.includes('turnBanner.append(rulesButton)'),"rules remain visible");
+ assert.ok(page.includes('id="choose-again"'));
+ assert.ok(page.includes('id="show-rules"'));
+ assert.ok(host.includes('onClick={onExit}'),"host back button still returns to games");
+ assert.ok(!gameCSS.includes('html.lr-ludo-solo-ui #plateau .game-header{display:none!important}'),
+  "standalone Solo retains its original heading");
+});
