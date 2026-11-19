@@ -1,122 +1,243 @@
-/* One canonical 15x15 board skin across Ludo Classique Solo/Duo
-   and Senegal Solo/Duo. The four rule engines remain independent;
-   gameplay geometry, scoring, touch targets and synchronization are untouched. */
-:root{
- --lr-ludo-red:#ef5974;
- --lr-ludo-green:#28b78b;
- --lr-ludo-blue:#43abe9;
- --lr-ludo-yellow:#ffd36a;
- --lr-ludo-white:#fffaf1;
- --lr-ludo-rim:#f3dcaa;
+/* LOVE RADAR — THE ONE BOARD (v2)
+   This is the sole visual definition of the 15×15 board, its four bases,
+   spots, stars and center in Classic Solo/Duo and Senegal Solo/Duo.
+   Game engines remain independent. Do not restyle these parts per mode. */
+:root {
+ --lr-ludo-red:#a91e3e;
+ --lr-ludo-green:#08734e;
+ --lr-ludo-blue:#155593;
+ --lr-ludo-yellow:#ad7916;
+ --lr-ludo-rim:#a98542;
+ --lr-ludo-ivory:#f5f0e5;
+ --lr-ludo-line:#baaE9b;
+ --lr-ludo-bg:#0e2030;
+ --red:var(--lr-ludo-red);
+ --green:var(--lr-ludo-green);
+ --blue:var(--lr-ludo-blue);
+ --yellow:var(--lr-ludo-yellow);
 }
-/* Exactly the same warm ivory frame, corner treatment and shadows
-   in the iframe boards and the Senegal React board. */
+/* A single dark surface replaces the independent blue, teal and rose skins. */
+html.lr-ludo-solo-ui .game-screen,
+html.lr-ludo-duo-ui .game-screen,
+#root .ludo-experience.ludo-senegal-solo,
+#root .ludo-experience.ludo-senegal-duo {
+ background:radial-gradient(ellipse at 50% 47%,#18505a5c,transparent 73%),
+  linear-gradient(160deg,#112a38 0%,#0b1d2c 60%,#142b3b 100%)!important;
+ border-color:#8c714c!important;
+}
 html.lr-ludo-solo-ui .game-screen .board-frame,
 html.lr-ludo-duo-ui .game-screen .board-frame,
-#root .ludo-experience.ludo-senegal .ludo-board-wrap-immersive {
+#root .ludo-experience.ludo-senegal .lr-unified-ludo-frame {
+ box-sizing:border-box!important;
+ padding:5px!important;
  border:3px solid var(--lr-ludo-rim)!important;
- border-radius:16px!important;
- background:linear-gradient(155deg,#fff6db,#bd9872)!important;
- box-shadow:0 14px 32px #001124bb,0 0 0 2px #71908fa8,
- 0 0 21px #fbd77c42!important;
- transform:none!important;
-}
-html.lr-ludo-solo-ui .game-screen .board,
-html.lr-ludo-duo-ui .game-screen .board,
-#root .ludo-experience.ludo-senegal .ludo-board {
- background:var(--lr-ludo-white)!important;
- border:1px solid #fdf3dc!important;
- border-radius:10px!important;
+ border-radius:17px!important;
+ background:linear-gradient(150deg,#f1dda9,#85612e)!important;
+ box-shadow:0 12px 34px #00111edd,0 0 0 2px #514425,
+  inset 0 1px 1px #fff5ca!important;
  transform:none!important;
  animation:none!important;
 }
-html.lr-ludo-solo-ui .board .cell,
-html.lr-ludo-duo-ui .board .cell,
-#root .ludo-senegal .ludo-cell{
- border:.5px solid #b9b1a59e;
+/* Both static iframe boards and the React Senegal board have the same grid. */
+html.lr-ludo-solo-ui .lr-unified-ludo-board,
+html.lr-ludo-duo-ui .lr-unified-ludo-board,
+#root .ludo-experience.ludo-senegal .lr-unified-ludo-board{
+ position:relative!important;
+ display:grid!important;
+ grid-template-columns:repeat(15,minmax(0,1fr))!important;
+ grid-template-rows:repeat(15,minmax(0,1fr))!important;
+ width:100%!important;height:100%!important;
+ min-width:0!important;min-height:0!important;
+ overflow:hidden!important;
+ background:var(--lr-ludo-ivory)!important;
+ border:1px solid #fff7e9!important;
+ border-radius:10px!important;
+ box-shadow:inset 0 0 10px #382b171e!important;
+ transform:none!important;animation:none!important;
 }
-/* The same four corners, in the same order:
-   red upper-left, green upper-right, blue lower-left, yellow lower-right.
-   In Senegal the decorative green/blue corners have no active pawn engine. */
-html.lr-ludo-solo-ui .board .base--red,
-html.lr-ludo-duo-ui .board .base--red,
-#root .ludo-senegal .ludo-red-base{
- background:linear-gradient(145deg,#fa8295,var(--lr-ludo-red))!important;
+/* All 225 squares use the SAME neutral color and the SAME border.
+   Colored track cells below are the only exception. */
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-ludo-cell,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-ludo-cell,
+#root .ludo-experience.ludo-senegal .lr-unified-ludo-board .lr-ludo-cell {
+ min-width:0!important;min-height:0!important;
+ border:.5px solid #b2a997a8!important;
+ background:var(--lr-ludo-ivory)!important;
+ border-radius:0!important;
+ color:#fff4cf;
 }
-html.lr-ludo-solo-ui .board .base--green,
-html.lr-ludo-duo-ui .board .base--green,
-#root .ludo-senegal .ludo-green-base{
- background:linear-gradient(145deg,#80e4c2,var(--lr-ludo-green))!important;
+/* The same four DARK home lanes + launch squares in all four modes. */
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-ludo-cell:is(.cell--red),
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-ludo-cell:is(.cell--red),
+#root .ludo-experience.ludo-senegal .lr-unified-ludo-board .lr-ludo-cell:is(.ludo-red-lane,.ludo-red-start) {
+ background:var(--lr-ludo-red)!important;
+ border-color:#e194a38c!important;
 }
-html.lr-ludo-solo-ui .board .base--blue,
-html.lr-ludo-duo-ui .board .base--blue,
-#root .ludo-senegal .ludo-blue-base{
- background:linear-gradient(145deg,#91d6fa,var(--lr-ludo-blue))!important;
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-ludo-cell:is(.cell--green),
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-ludo-cell:is(.cell--green),
+#root .ludo-experience.ludo-senegal .lr-unified-ludo-board .lr-ludo-cell:is(.ludo-green-lane) {
+ background:var(--lr-ludo-green)!important;
+ border-color:#9bcfba86!important;
 }
-html.lr-ludo-solo-ui .board .base--yellow,
-html.lr-ludo-duo-ui .board .base--yellow,
-#root .ludo-senegal .ludo-gold-base{
- background:linear-gradient(145deg,#fff1ab,var(--lr-ludo-yellow))!important;
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-ludo-cell:is(.cell--blue),
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-ludo-cell:is(.cell--blue),
+#root .ludo-experience.ludo-senegal .lr-unified-ludo-board .lr-ludo-cell:is(.ludo-blue-lane) {
+ background:var(--lr-ludo-blue)!important;
+ border-color:#a4c5df85!important;
 }
-/* Senegal uses red/yellow as its two active lanes. Other lanes are
-   purely decorative and now agree with the common colored board. */
-#root .ludo-senegal .ludo-red-lane,
-#root .ludo-senegal .ludo-red-start{background:#f18298!important}
-#root .ludo-senegal .ludo-gold-lane,
-#root .ludo-senegal .ludo-gold-start{background:#ffe08d!important}
-#root .ludo-senegal .ludo-green-lane{background:#82dfbf!important}
-#root .ludo-senegal .ludo-blue-lane{background:#8bcbf5!important}
-#root .ludo-senegal .ludo-path{background:#fffaf0!important;border:.5px solid #c8bfae!important}
-#root .ludo-senegal .ludo-path.ludo-red-start,
-#root .ludo-senegal .ludo-path.ludo-red-lane{background:#f18298!important}
-#root .ludo-senegal .ludo-path.ludo-gold-start,
-#root .ludo-senegal .ludo-path.ludo-gold-lane{background:#ffe08d!important}
-#root .ludo-senegal .ludo-path.ludo-green-lane{background:#82dfbf!important}
-#root .ludo-senegal .ludo-path.ludo-blue-lane{background:#8bcbf5!important}
-#root .ludo-senegal .ludo-yard-upper{--yard-outline:#258464}
-#root .ludo-senegal .ludo-yard-lower{--yard-outline:#267faf}
-#root .ludo-senegal .ludo-yard::before{
- background:linear-gradient(140deg,#fffefd,#f7f0e7)!important;
- border:2px solid #fff!important;
- box-shadow:0 4px 10px #172a3545,inset 0 1px #fff!important;
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-ludo-cell:is(.cell--yellow),
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-ludo-cell:is(.cell--yellow),
+#root .ludo-experience.ludo-senegal .lr-unified-ludo-board .lr-ludo-cell:is(.ludo-gold-lane,.ludo-gold-start) {
+ background:var(--lr-ludo-yellow)!important;
+ border-color:#fae2ad80!important;
 }
-html.lr-ludo-solo-ui .board .base-inner,
-html.lr-ludo-duo-ui .board .base-inner {
- background:linear-gradient(145deg,#fffefd,#f7f0e7)!important;
- border:2px solid #fff!important;
- box-shadow:0 4px 10px #172a3545!important;
- border-radius:8px!important;
+/* React has extra colored corner classes on its 225 cells. The four base
+   elements themselves cover those corners, exactly as in the classic DOM. */
+html.lr-ludo-solo-ui .lr-unified-ludo-board .star,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .star,
+#root .ludo-experience.ludo-senegal .lr-unified-ludo-board .ludo-star{
+ color:#354256!important;
+ font-size:clamp(8px,2.5vw,17px)!important;
+ text-shadow:0 1px 1px #fff8e2,0 0 3px #ffffffd0!important;
+ line-height:1!important;
 }
-/* No new transforms on the whole board. Only the CURRENT house flashes. */
-#root .ludo-senegal .ludo-yard.is-current-turn::before {
- border:3px solid #fffde7!important;
- animation:lr-unified-house-beacon .85s ease-in-out infinite!important;
+html.lr-ludo-solo-ui .lr-unified-ludo-board .cell--entry .star,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .cell--entry .star,
+#root .ludo-experience.ludo-senegal .lr-unified-ludo-board .ludo-cell:is(.ludo-red-start,.ludo-gold-start) .ludo-star{
+ color:#fff6d4!important;
+ text-shadow:0 0 5px #2c2832!important;
 }
-@keyframes lr-unified-house-beacon {
- 0%,100%{box-shadow:0 2px 7px #06132677,0 0 0 1px #ffe2a4,0 0 8px #fff5c5}
- 45%{box-shadow:0 2px 7px #06132677,0 0 0 3px #fff,0 0 21px #fff5b4}
+/* SINGLE BASE STRUCTURE. Four six-by-six base overlays, same grid placement
+   and same 2×2 house spots for React Senegal and HTML Classic. */
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-ludo-base,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-ludo-base,
+#root .ludo-experience.ludo-senegal .lr-unified-ludo-board .lr-ludo-base{
+ grid-row:var(--row,auto) / span 6;
+ grid-column:var(--col,auto) / span 6;
+ position:relative!important;
+ display:grid!important;place-items:center!important;
+ z-index:3!important;
+ border:0!important;border-radius:0!important;
+ pointer-events:none;
+ box-shadow:inset 0 0 14px #00000012!important;
 }
-/* White stroke = pawn belongs to the player whose turn it is.
-   Legally movable pawns get an extra warm spotlight. */
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-ludo-base.base--red,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-ludo-base.base--red,
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-base.base--red{
+ --base-color:var(--lr-ludo-red);
+ background:linear-gradient(142deg,#bf3452,var(--lr-ludo-red) 80%)!important;
+}
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-ludo-base.base--green,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-ludo-base.base--green,
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-base.base--green{
+ --base-color:var(--lr-ludo-green);
+ background:linear-gradient(142deg,#168b63,var(--lr-ludo-green) 80%)!important;
+}
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-ludo-base.base--blue,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-ludo-base.base--blue,
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-base.base--blue{
+ --base-color:var(--lr-ludo-blue);
+ background:linear-gradient(142deg,#2b6ca9,var(--lr-ludo-blue) 80%)!important;
+}
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-ludo-base.base--yellow,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-ludo-base.base--yellow,
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-base.base--yellow{
+ --base-color:var(--lr-ludo-yellow);
+ background:linear-gradient(142deg,#c79536,var(--lr-ludo-yellow) 80%)!important;
+}
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-ludo-base .base-inner,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-ludo-base .base-inner,
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-base .base-inner{
+ position:absolute!important;
+ inset:16%!important;
+ display:grid!important;
+ grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ grid-template-rows:repeat(2,minmax(0,1fr))!important;
+ place-items:center!important;
+ padding:4%!important;
+ border:2px solid #fff8ed!important;
+ border-radius:12px!important;
+ background:linear-gradient(155deg,#fffdf4,#eae6dc)!important;
+ box-shadow:0 6px 14px #0413225a,inset 0 2px 3px #ffffffbf!important;
+}
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-ludo-base .base-spot,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-ludo-base .base-spot,
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-base .base-spot{
+ display:grid!important;place-items:center!important;
+ position:relative!important;
+ width:65%!important;aspect-ratio:1!important;height:auto!important;
+ border:2px solid var(--base-color)!important;
+ border-radius:50%!important;
+ background:#fffdf5!important;
+ box-shadow:inset 0 1px 4px #10253121,0 1px 4px #031b2b47!important;
+}
+/* Real pawns remain clickable above bases. No overlay can intercept a touch. */
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-cell.has-pawns{
+ position:relative!important;z-index:14!important;overflow:visible!important;
+ background:transparent!important;border-color:transparent!important;
+}
+#root .ludo-senegal .lr-unified-ludo-board .lr-ludo-cell.has-pawns:has(.ludo-pawn) {
+ pointer-events:auto!important;
+}
+#root .ludo-senegal .lr-unified-ludo-board .ludo-cell-pawns{
+ position:absolute!important;inset:0!important;z-index:17!important;pointer-events:none!important;
+}
+#root .ludo-senegal .lr-unified-ludo-board .ludo-cell-pawns button{
+ pointer-events:auto!important;
+}
+/* Both engines use exactly the same SVG center (4 triangles + ivory dot). */
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-shared-center,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-shared-center,
+#root .ludo-senegal .lr-unified-ludo-board .lr-shared-center{
+ position:relative!important;
+ display:block!important;
+ grid-row:7 / span 3!important;
+ grid-column:7 / span 3!important;
+ left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
+ width:100%!important;height:100%!important;
+ z-index:5!important;
+ border:0!important;border-radius:0!important;
+ clip-path:none!important;background:none!important;
+ pointer-events:none!important;
+ filter:none!important;
+}
+html.lr-ludo-solo-ui .lr-unified-ludo-board .lr-shared-center svg,
+html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-shared-center svg,
+#root .ludo-senegal .lr-unified-ludo-board .lr-shared-center svg{
+ display:block!important;width:100%!important;height:100%!important;
+}
+.lr-unified-ludo-board .lr-shared-center polygon:nth-child(1){fill:var(--lr-ludo-green)!important}
+.lr-unified-ludo-board .lr-shared-center polygon:nth-child(2){fill:var(--lr-ludo-yellow)!important}
+.lr-unified-ludo-board .lr-shared-center polygon:nth-child(3){fill:var(--lr-ludo-blue)!important}
+.lr-unified-ludo-board .lr-shared-center polygon:nth-child(4){fill:var(--lr-ludo-red)!important}
+.lr-unified-ludo-board .lr-shared-center circle{fill:#fff9e6!important}
+/* Same subtle pulse on the active player's HOUSE, not the entire board. */
+.lr-unified-ludo-board .lr-ludo-base.is-current-turn .base-inner{
+ border-color:#fff!important;
+ animation:lr-one-board-turn .9s ease-in-out infinite!important;
+}
+@keyframes lr-one-board-turn{
+ 0%,100%{box-shadow:0 5px 12px #001b27a3,0 0 0 1px #fff1c2}
+ 50%{box-shadow:0 5px 12px #001b27a3,0 0 0 3px #fff,0 0 19px #ffeaac}
+}
 #root .ludo-senegal .ludo-pawn.is-own-turn svg{
  filter:drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff)
-  drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff)
-  drop-shadow(0 3px 3px #031b2c9c)!important;
+ drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff)
+ drop-shadow(0 3px 3px #031b2c9c)!important;
 }
 #root .ludo-senegal .ludo-pawn.is-own-turn.can-move svg{
  filter:drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff)
-  drop-shadow(0 -1px 0 #fff) drop-shadow(0 0 8px #ffe7a1)!important;
+ drop-shadow(0 -1px 0 #fff) drop-shadow(0 0 8px #ffe7a1)!important;
 }
-#root .ludo-senegal .ludo-board-center{
- background:conic-gradient(from 45deg,var(--lr-ludo-yellow) 0 25%,
- var(--lr-ludo-blue) 25% 50%,var(--lr-ludo-red) 50% 75%,
- var(--lr-ludo-green) 75% 100%)!important;
+/* The mode picker uses the SAME deeper pigments as the real board. */
+.lr-ludo-room.lr-ludo-room-unified{
+ --lr-board-red:var(--lr-ludo-red);
+ --lr-board-green:var(--lr-ludo-green);
+ --lr-board-blue:var(--lr-ludo-blue);
+ --lr-board-yellow:var(--lr-ludo-yellow);
 }
-/* Senegal still keeps the authentic flag and its own gameplay rules. */
-#root .ludo-senegal .ludo-board-center>span{font-size:clamp(12px,3vw,25px)}
 @media(prefers-reduced-motion:reduce){
- #root .ludo-senegal .ludo-yard.is-current-turn::before{
-  animation:none!important;
-  box-shadow:0 0 0 2px #fff7d4!important;
+ .lr-unified-ludo-board .lr-ludo-base.is-current-turn .base-inner{
+  animation:none!important;box-shadow:0 0 0 2px #fff!important;
  }
 }
