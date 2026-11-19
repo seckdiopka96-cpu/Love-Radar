@@ -59,7 +59,9 @@ test("red and yellow move forward after leaving base, including on six, in Solo 
   assert.deepEqual(choices.map(o=>o.action),["track"],"six cannot reverse the outer path");
   assert.equal(choices[0].to.step,6);
   assert.equal(choices[0].to.dir,1);
-  assert.equal(chooseSenegalBotMove(firstSix)?.to.step,6,"the computer moves forward too");
+  const bot=chooseSenegalBotMove(firstSix);
+  assert.equal(bot?.action,"track","computer selects only a forward track move");
+  assert.equal(bot?.to.dir,1,"computer never reverses, even if it releases another pawn");
   const played=applySenegalMove(firstSix,choices[0]);
   assert.equal(played?.game.positions[seat][0].step,6);
   assert.equal(played?.move.path.length,6);
@@ -168,7 +170,7 @@ test("even old backward saved track directions cannot reverse the next roll",()=
  assert.equal(three[0].to.step,76);
  assert.equal(three[0].to.dir,1);
  const six=movesForPawn({...g,dice:6},0,0);
- assert.deepEqual(six.map(x=>x.action),["track"]);
+ assert.deepEqual(six.map(x=>x.action),["track","enemy"],"opponent cage is optional, never a U-turn");
  assert.equal(six[0].to.step,79);
  assert.equal(six[0].to.dir,1);
 });
