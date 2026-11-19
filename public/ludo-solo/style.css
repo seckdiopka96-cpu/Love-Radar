@@ -1055,3 +1055,40 @@ button:focus-visible { outline: 3px solid #ffe078; outline-offset: 3px; }
 @media(max-width:390px){
  .game-title .ludo-header-logo{width:27px;height:27px;left:-27px}
 }
+
+/* Ludo v20: reserve a fixed, centered square in the available viewport. */
+html.lr-ludo-solo-ui,html.lr-ludo-solo-ui body{
+ height:100%!important;max-height:100%!important;overflow:hidden!important;
+}
+html.lr-ludo-solo-ui > body > main.app{
+ height:100%!important;min-height:0!important;max-height:100%!important;overflow:hidden!important;
+}
+html.lr-ludo-solo-ui #plateau.game-screen.is-active{
+ height:100%!important;min-height:0!important;max-height:100%!important;
+ overflow:hidden!important;justify-content:flex-start!important;
+ gap:clamp(4px,1svh,9px)!important;padding:clamp(6px,1svh,12px) 9px!important;
+}
+html.lr-ludo-solo-ui #plateau .game-header,
+html.lr-ludo-solo-ui #plateau .turn-banner,
+html.lr-ludo-solo-ui #plateau .game-bottom{flex-shrink:0!important}
+html.lr-ludo-solo-ui #plateau .board-area{
+ flex:1 1 0!important;width:100%!important;min-height:0!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ margin:0!important;overflow:hidden!important;
+}
+html.lr-ludo-solo-ui #plateau .board-frame{
+ flex:none!important;position:relative!important;
+ width:var(--lr-solo-board-size,min(100%,60svh))!important;
+ height:var(--lr-solo-board-size,auto)!important;
+ max-width:100%!important;max-height:100%!important;
+ aspect-ratio:1!important;margin:0 auto!important;
+ transform:none!important;transition:none!important;animation:none!important;
+}
+html.lr-ludo-solo-ui #plateau .board{
+ height:100%!important;width:100%!important;transform:none!important;animation:none!important;
+}
+html.lr-ludo-solo-ui #plateau .game-bottom{min-height:0!important;gap:4px!important}
+/* Fast toss: the physical die settles before the 240ms roll completes. */
+html.lr-ludo-solo-ui .dice-3d.is-rolling{
+ animation:dice-tumble-real .22s ease-out 1 both!important;
+}
