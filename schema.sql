@@ -158,6 +158,16 @@ CREATE TABLE IF NOT EXISTS couple_party_games (
  PRIMARY KEY(room_id,mode)
 );
 
+-- Played prompts are private to each couple and each game session.
+-- Keep a separate deck for Action and Vérité until every card has been used.
+CREATE TABLE IF NOT EXISTS couple_party_prompt_history (
+ room_id TEXT NOT NULL,
+ game_id TEXT NOT NULL,
+ kind TEXT NOT NULL,
+ prompt_index INTEGER NOT NULL,
+ PRIMARY KEY(room_id,game_id,kind,prompt_index)
+);
+
 -- Native iOS PushKit VoIP tokens (never Apple signing keys). Each record is
 -- linked to an authenticated room member and physical installation.
 CREATE TABLE IF NOT EXISTS native_voip_devices (
