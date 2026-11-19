@@ -51,8 +51,8 @@ test("one visible Ludo entrance opens the room with all four games",()=>{
 });
 
 test("classic Duo loads the newest shared board, never a cached legacy iframe",()=>{
- const duoVersion="ludo-room-20261119-v24";
- const soloVersion="ludo-room-20261119-v24";
+ const duoVersion="ludo-room-20261119-v25";
+ const soloVersion="ludo-room-20261119-v25";
  assert.ok(duoFrame.includes('/ludo-duo/index.html?v='+duoVersion));
  assert.ok(soloFrame.includes('&v='+soloVersion));
  assert.ok(duoHTML.includes('../ludo-solo/style.css?v='+duoVersion));
@@ -62,7 +62,7 @@ test("classic Duo loads the newest shared board, never a cached legacy iframe",(
  assert.ok(duoHTML.includes("../ludo-effects.css"));
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .app{"),"Duo must not replace the stable Solo stage with a purple skin");
  assert.ok(duoCSS.includes("Same blue background, board border"),"Duo inherits Solo board/frame and rail styles");
- assert.ok(read("public/sw.js").includes('love-radar-static-v149'));
+ assert.ok(read("public/sw.js").includes('love-radar-static-v150'));
 });
 
 test("the eight classic safe cells each have a visible star on both boards",()=>{
@@ -133,5 +133,36 @@ test("all four modes render the SAME dark grid, four base spots and SVG center",
   assert.ok(html.includes('one-board-dark-20261119-v2'),"force the same fresh board CSS");
  }
  assert.ok(read("src/LudoRoom.tsx").includes("<SingleLudoBoard/>"),"mode selection remains unified");
- assert.ok(read("public/sw.js").includes("love-radar-static-v149"),"installed PWA gets a new cache");
+ assert.ok(read("public/sw.js").includes("love-radar-static-v150"),"installed PWA gets a new cache");
+});
+
+test("one canonical vector board is literally the same artwork on all four screens and the lobby",()=>{
+ const svg=read("public/ludo-board-art.svg");
+ const single=read("public/ludo-board-single.css");
+ const senegal=read("src/SenegalLudo.tsx");
+ const room=read("src/LudoRoom.tsx");
+ const sw=read("public/sw.js");
+ assert.ok(svg.includes('viewBox="0 0 1500 1500"'),"the one board has a fixed square geometry");
+ assert.equal((svg.match(/<rect x="/g)||[]).length,233,"225 cells plus 8 house panels");
+ assert.equal((svg.match(/<polygon points="/g)||[]).length,12,"8 safe stars plus 4 center triangles");
+ assert.ok(svg.includes("#a91e3e")&&svg.includes("#08734e")&&
+  svg.includes("#155593")&&svg.includes("#ad7916"),"one common DARK palette");
+ assert.ok(!room.includes("CELL.map"),"lobby no longer renders a separate grid");
+ assert.ok(!room.includes("lr-ludo-preview-home"),"lobby no longer renders separate houses");
+ assert.ok(room.includes("lr-ludo-unified-board-frame"),"lobby has the same framing as the game");
+ assert.ok(single.includes('url("/ludo-board-art.svg?v=canonical-20261119-v3")'),
+  "one SVG file is the source of all five boards");
+ assert.ok(single.includes(".lr-unified-ludo-board > .lr-ludo-cell"),
+  "old tile colors are transparent overlays");
+ assert.ok(single.includes(".lr-ludo-base .base-spot"),"clickable pawn spots align with the art");
+ assert.ok(single.includes(".lr-shared-center svg"),"legacy centers are hidden");
+ assert.ok(senegal.includes('lr-single-canonical-ludo-board')&&senegal.includes('ludo-board-single.css'),
+  "Sénégal explicitly loads the final board art after the bundled legacy CSS");
+ for(const file of [soloHTML,duoHTML]){
+  assert.ok(file.includes('../ludo-board-single.css?v=canonical-20261119-v3'),
+   "both HTML frames load exactly the same CSS/asset");
+ }
+ assert.ok(read("index.html").includes('/ludo-board-single.css?v=canonical-20261119-v3'));
+ assert.ok(sw.includes('"/ludo-board-art.svg"')&&sw.includes('"/ludo-board-single.css"'),
+  "offline installations receive the one shared board");
 });
