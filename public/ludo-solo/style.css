@@ -1092,3 +1092,40 @@ html.lr-ludo-solo-ui #plateau .game-bottom{min-height:0!important;gap:4px!import
 html.lr-ludo-solo-ui .dice-3d.is-rolling{
  animation:dice-tumble-real .22s ease-out 1 both!important;
 }
+
+
+/* Solo displayed inside Love Radar already has a fixed header above the iframe.
+   Suppress the redundant inner title bar, but keep colors/rules reachable. */
+html.lr-ludo-solo-in-app #plateau .game-header{display:none!important}
+html.lr-ludo-solo-in-app #plateau .turn-banner{
+ display:flex!important;
+ align-items:center!important;
+ justify-content:space-between!important;
+ gap:7px!important;
+ min-height:48px!important;
+ padding:6px 8px!important;
+}
+html.lr-ludo-solo-in-app #plateau .turn-banner>span:first-of-type{display:none!important}
+html.lr-ludo-solo-in-app #plateau .turn-banner>#turn-message{
+ display:block!important;flex:1 1 auto!important;min-width:0!important;
+ text-align:center!important;font-size:clamp(11px,3.1vw,14px)!important;
+ line-height:1.3!important;
+}
+html.lr-ludo-solo-in-app #plateau .turn-banner .ludo-compact-colors,
+html.lr-ludo-solo-in-app #plateau .turn-banner .ludo-compact-rules{
+ display:grid!important;place-items:center!important;flex:0 0 35px!important;
+ width:35px!important;height:35px!important;min-height:35px!important;
+ margin:0!important;padding:0!important;
+ border:1px solid #ffe09899!important;border-radius:11px!important;
+ background:#153e78!important;color:#fff2bd!important;
+ box-shadow:none!important;line-height:1!important;
+ font-size:21px!important;font-weight:800!important;
+ touch-action:manipulation!important;cursor:pointer!important;
+}
+html.lr-ludo-solo-in-app #plateau .turn-banner .ludo-compact-rules{
+ font-size:18px!important;
+}
+html.lr-ludo-solo-in-app #plateau .turn-banner .ludo-compact-colors:focus-visible,
+html.lr-ludo-solo-in-app #plateau .turn-banner .ludo-compact-rules:focus-visible{
+ outline:2px solid #fff!important;outline-offset:2px!important;
+}
