@@ -2,12 +2,90 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {Script} from "node:vm";
-import {newSenegalGame,stopSenegalGame,isSenegalGame,repairSenegalHomeShortcut,ENEMY_LANE_LENGTH,movesForPawn,applySenegalMove,rollSenegal,pointForPawn,trackIndex,
+import {newSenegalGame,stopSenegalGame,isSenegalGame,repairSenegalHomeShortcut,ENEMY_LANE_LENGTH,senegalGateChoice,movesForPawn,applySenegalMove,rollSenegal,pointForPawn,trackIndex,
  movementPath,autoplayTurn,TURN_MS,chooseSenegalBotMove,type Pawn,type SenegalGame} from "../src/ludo-senegal-engine";
 const pawn=(zone:Pawn["zone"],step:number,depth=0,gate=0,dir:1|-1=1):Pawn=>({zone,step,depth,gate,dir});
 const withTurn=(red:Pawn,yellow:Pawn,face:number,seat:0|1=0):SenegalGame=>{
  const g=newSenegalGame();g.positions[0][0]=red;g.positions[1][0]=yellow;g.dice=face;g.turn=seat;return g;
 };
+test("each pawn must make its OWN entrance choice on the same throw (Solo and Duo)",()=>{
+ for(const seat of [0,1] as const){
+  const original=newSenegalGame();original.turn=seat;original.dice=3;
+  // Pawn 1 is approaching the opponent's entrance; pawn 2 its OWN entrance.
+  original.positions[seat][0]=pawn("track",24);
+  original.positions[seat][1]=pawn("track",49);
+  assert.equal(senegalGateChoice(original,seat,0),"enemy");
+  assert.equal(senegalGateChoice(original,seat,1),"home");
+  const first=movesForPawn(original,seat,0);
+  const second=movesForPawn(original,seat,1);
+  assert.deepEqual(first.map(x=>x.action),["track","enemy"]);
+  assert.deepEqual(second.map(x=>x.action),["track","home"]);
+  assert.equal(first.every(option=>option.pawn===0),true);
+  assert.equal(second.every(option=>option.pawn===1),true);
+  // Choosing Enter for pawn 1 changes only that pawn. Pawn 2 must STILL
+  // be offered both Continue and Enter next time it is selected.
+  const entered=applySenegalMove(original,first.find(x=>x.action==="enemy")!);
+  assert.ok(entered);
+  assert.equal(entered!.game.positions[seat][0].zone,"enemy");
+  assert.equal(entered!.game.positions[seat][1].zone,"track");
+  const secondTurn={...entered!.game,turn:seat,dice:3,streak:0};
+  assert.equal(senegalGateChoice(secondTurn,seat,1),"home");
+  assert.deepEqual(movesForPawn(secondTurn,seat,1).map(o=>o.action),["track","home"]);
+  const continued=applySenegalMove(secondTurn,movesForPawn(secondTurn,seat,1).find(x=>x.action==="track")!);
+  assert.ok(continued);
+  assert.equal(continued!.game.positions[seat][1].zone,"track");
+  assert.equal(continued!.game.positions[seat][0].zone,"enemy",
+   "continued pawn 2 must not alter pawn 1");
+  assert.equal(continued!.game.positions[seat][1].step,52);
+ }
+});
+test("a later entrance of the same pawn must ask again instead of remembering the choice",()=>{
+ for(const seat of [0,1] as const){
+  const game=newSenegalGame();game.turn=seat;game.dice=3;
+  game.positions[seat][0]=pawn("track",24);
+  assert.equal(senegalGateChoice(game,seat,0),"enemy");
+  const continued=applySenegalMove(game,movesForPawn(game,seat,0).find(o=>o.action==="track")!);
+  assert.equal(continued?.game.positions[seat][0].zone,"track");
+  // A later lap reaches the next entrance; previous Continue was not saved.
+  const next={...continued!.game,turn:seat,dice:3};
+  next.positions=[[...next.positions[0]],[...next.positions[1]]];
+  next.positions[seat][0]=pawn("track",76);
+  assert.equal(senegalGateChoice(next,seat,0),"enemy");
+  assert.deepEqual(movesForPawn(next,seat,0).map(o=>o.action),["track","enemy"]);
+ }
+});
+test("entrance choice remains visible even when the die makes Enter unavailable",()=>{
+ for(const seat of [0,1] as const){
+  const g=newSenegalGame();g.turn=seat;g.dice=6;
+  g.positions[seat][0]=pawn("track",24);
+  // A six would overshoot the five opponent home squares, so Enter is not
+  // legal, but the human should still be explicitly told the choice exists.
+  assert.equal(senegalGateChoice(g,seat,0),"enemy");
+  assert.deepEqual(movesForPawn(g,seat,0).map(o=>o.action),["track"]);
+  g.positions[seat][1]=pawn("track",49);
+  assert.equal(senegalGateChoice(g,seat,1),"home");
+  assert.ok(movesForPawn(g,seat,1).some(o=>o.action==="home"));
+  const untouched=newSenegalGame();untouched.turn=seat;untouched.dice=2;
+  untouched.positions[seat][0]=pawn("track",10);
+  assert.equal(senegalGateChoice(untouched,seat,0),null);
+ }
+});
+test("Senegal UI never silently applies another pawn's route choice",()=>{
+ const component=readFileSync("src/SenegalLudo.tsx","utf8");
+ assert.ok(component.includes("const gate=senegalGateChoice(game,seat,pawn)"));
+ assert.ok(component.includes("if(options.length===1&&!gate)"),"route gate prompts even for one legal path");
+ assert.ok(component.includes("if(options.length)setChosen(options)"),"decision belongs to selected pawn");
+ assert.ok(component.includes("if(chosen||busy||rolling"),"other pawn taps cannot overwrite the current prompt");
+ assert.ok(component.includes("Ce choix concerne uniquement le pion"),"make scope clear");
+ assert.ok(component.includes("Tu devras choisir à nouveau pour chaque autre pion"));
+ assert.ok(component.includes('gateDecision==="home"?"🏠 Entrer dans ma maison"'));
+ assert.ok(component.includes('gateDecision==="enemy"?"😈 Entrer dans sa cage ou continuer ?"'));
+ assert.ok(component.includes('if(!solo||game.status!=="playing"||game.turn!==0||assisted||busy||rolling||motion||captureBack.length||chosen'),
+  "Solo cannot auto-choose while the user is answering the route prompt");
+ const css=readFileSync("src/ludo-senegal-shared.css","utf8");
+ assert.ok(css.includes(".ludo-senegal-route-enter"));
+ assert.ok(css.includes(".ludo-senegal-route-continue"));
+});
 test("Senegal pawn can skip its own home and keep going around second and third laps",()=>{
  const g=withTurn(pawn("track",49),pawn("base",-1),4);
  const options=movesForPawn(g,0,0);
