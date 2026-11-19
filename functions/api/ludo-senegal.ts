@@ -1,7 +1,7 @@
 import type {D1Database} from "@cloudflare/workers-types";
 import type {PushEnv} from "../lib/push";
 import {
- newSenegalGame,isSenegalGame,rollSenegal,applySenegalMove,movesForPawn,
+ newSenegalGame,stopSenegalGame,isSenegalGame,rollSenegal,applySenegalMove,movesForPawn,
  autoplayTurn,TURN_MS,type SenegalGame,type SenegalMove,type Action
 } from "../../src/ludo-senegal-engine";
 
@@ -115,6 +115,18 @@ async function handle(ctx:Ctx,method:"GET"|"POST"){
     .bind(crypto.randomUUID(),player.room_id,game.id,player.seat,data.emoji,now,
       player.room_id,game.id,player.seat,now-700).run();
    return send({ok:true,reactions:await recentReactions(db,player.room_id,game.id),serverNow:now});
+  }
+  // Quit is independent of whose turn it is, including an animation or an
+  // automatic computer turn. Require the exact game ID to prevent a late quit
+  // from terminating a newer match. A repeat quit is idempotent.
+  if(action==="quit"){
+   if(typeof data.gameId!=="string"||data.gameId!==game.id)return fail("Cette partie a déjà changé.",409);
+   if(game.state.status!=="playing")return send({ok:true,members,seat:player.seat,game:expose(game),move:null,moveVersion:null,reactions:[],serverNow:Date.now()});
+   const ended=stopSenegalGame(game.state,player.name);
+   const stopped=await save(db,player.room_id,game,ended);
+   if(!stopped)return fail("La partie a changé. Actualise le plateau et réessaie.",409);
+   await db.prepare("DELETE FROM ludo_senegal_moves WHERE room_id=?").bind(player.room_id).run();
+   return send({ok:true,members,seat:player.seat,game:expose(stopped),move:null,moveVersion:null,reactions:[],serverNow:Date.now()});
   }
   if(!Number.isInteger(data.version)||data.version!==game.version)return fail("Le plateau a changé, actualisation nécessaire.",409);
   const current=game.state;
