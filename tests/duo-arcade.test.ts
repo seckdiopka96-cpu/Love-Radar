@@ -114,6 +114,19 @@ function duoHarness(){
  const sqlite=new DatabaseSync(":memory:");
  sqlite.exec("CREATE TABLE members(id TEXT PRIMARY KEY,name TEXT NOT NULL,room_id TEXT NOT NULL,"+
   "seat INTEGER NOT NULL,token_hash TEXT NOT NULL)");
+ // The production module caches D1 schema initialization across requests.
+ // Each SQLite test creates an independent database, so precreate the exact
+ // same tables instead of depending on the first test's cached migration.
+ sqlite.exec("CREATE TABLE duo_draw_games("+
+  "room_id TEXT PRIMARY KEY,game_id TEXT NOT NULL,round INTEGER NOT NULL,drawer INTEGER NOT NULL,"+
+  "word_index INTEGER NOT NULL,strokes_json TEXT NOT NULL,scores_0 INTEGER NOT NULL DEFAULT 0,"+
+  "scores_1 INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL,expires_at INTEGER NOT NULL,"+
+  "version INTEGER NOT NULL DEFAULT 1,updated_at INTEGER NOT NULL,last_invite_at INTEGER NOT NULL DEFAULT 0);"+
+  "CREATE TABLE duo_escape_games("+
+  "room_id TEXT PRIMARY KEY,game_id TEXT NOT NULL,scenario INTEGER NOT NULL,stage INTEGER NOT NULL,"+
+  "status TEXT NOT NULL,started_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,"+
+  "version INTEGER NOT NULL DEFAULT 1,attempts INTEGER NOT NULL DEFAULT 0,"+
+  "updated_at INTEGER NOT NULL,last_invite_at INTEGER NOT NULL DEFAULT 0);");
  for(const [letter,seat,room] of [["a",0,"room-A"],["b",1,"room-A"],["c",0,"room-B"],["d",1,"room-B"]] as const){
   sqlite.prepare("INSERT INTO members VALUES(?,?,?,?,?)").run(
    letter,letter.toUpperCase(),room,seat,createHash("sha256").update(letter.repeat(64)).digest("hex"));
