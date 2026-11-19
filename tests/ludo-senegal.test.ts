@@ -20,7 +20,7 @@ test("Senegal pawn can skip its own home and keep going around second and third 
  const another=withTurn(pawn("track",101),pawn("base",-1),5);
  assert.ok(movesForPawn(another,0,0).some(o=>o.action==="home"));
 });
-test("old saved premature home entries are repaired without losing a legitimate home",()=>{
+test("old reversed pawns are repaired to forward movement without losing legal homes",()=>{
  for(const seat of [0,1] as const){
   const old=newSenegalGame();
   old.positions[seat][0]=pawn("home",-5,5,-1,-1);
@@ -30,25 +30,23 @@ test("old saved premature home entries are repaired without losing a legitimate 
   const repaired=repairSenegalHomeShortcut(old);
   assert.notEqual(repaired,old);
   assert.equal(repaired.positions[seat][0].zone,"track");
-  assert.equal(repaired.positions[seat][0].step,-5);
-  assert.equal(repaired.positions[seat][0].dir,-1);
-  assert.equal(repaired.positions[seat][3].zone,"track");
-  assert.equal(repaired.positions[seat][1].zone,"home","full clockwise lap remains valid");
-  assert.equal(repaired.positions[seat][2].zone,"home","full anticlockwise lap remains valid");
+  assert.equal(repaired.positions[seat][0].step,5,"old distance is preserved going forward");
+  assert.equal(repaired.positions[seat][0].dir,1);
+  assert.equal(repaired.positions[seat][3].zone,"track","illegitimate old finish is repaired");
+  assert.equal(repaired.positions[seat][1].zone,"home","legitimate full lap remains valid");
+  assert.equal(repaired.positions[seat][2].zone,"home","old full reverse lap stays earned");
+  assert.equal(repaired.positions[seat][2].dir,1,"all saved directions are forward");
   assert.equal(repaired.dice,null);
   assert.ok(isSenegalGame(repaired));
-  assert.equal(repairSenegalHomeShortcut(repaired),repaired,"migration runs at most once");
+  assert.equal(repairSenegalHomeShortcut(repaired),repaired);
  }
  const persisted=readFileSync("functions/api/ludo-senegal.ts","utf8");
  const screen=readFileSync("src/SenegalLudo.tsx","utf8");
- assert.ok(screen.includes("return repairSenegalHomeShortcut(game)"),"Solo repairs cached matches");
- assert.ok(persisted.includes("const repaired=repairSenegalHomeShortcut(state)"),
-  "Duo repairs the same authoritative server state");
- assert.ok(persisted.includes("WHERE room_id=? AND game_id=? AND version=?"),
-  "Duo migration cannot overwrite simultaneous partner moves");
+ assert.ok(screen.includes("return repairSenegalHomeShortcut(game)"));
+ assert.ok(persisted.includes("const repaired=repairSenegalHomeShortcut(state)"));
+ assert.ok(persisted.includes("WHERE room_id=? AND game_id=? AND version=?"));
 });
-test("a pawn cannot enter its home immediately after leaving base and reversing on six",()=>{
- // Both red (seat 0) and yellow (seat 1) use these rules in Solo and Duo.
+test("red and yellow move forward after leaving base, including on six, in Solo and Duo",()=>{
  for(const seat of [0,1] as const){
   const game=newSenegalGame();
   game.turn=seat;game.dice=6;
@@ -58,45 +56,38 @@ test("a pawn cannot enter its home immediately after leaving base and reversing 
   assert.equal(outside?.game.positions[seat][0].step,0);
   const firstSix={...outside!.game,turn:seat,dice:6,streak:0};
   const choices=movesForPawn(firstSix,seat,0);
-  assert.ok(choices.some(o=>o.action==="turn"&&o.to.step===-6),
-   "turning around is still allowed on six");
-  assert.ok(choices.every(o=>o.action!=="home"),
-   "no immediate home shortcut through the -1 gate");
-  assert.ok(choices.every(o=>o.to.zone!=="home"&&o.to.zone!=="finished"));
-  assert.equal(chooseSenegalBotMove(firstSix)?.to.zone,"track",
-   "the AI cannot enter its home without a lap");
-  const reverse=choices.find(o=>o.action==="turn")!;
-  const reversed=applySenegalMove(firstSix,reverse);
-  assert.ok(reversed);
-  assert.equal(reversed!.game.positions[seat][0].zone,"track");
-  const next={...reversed!.game,turn:seat,dice:3,streak:0};
-  assert.ok(movesForPawn(next,seat,0).every(o=>o.action!=="home"),
-   "a later roll cannot enter home before the first complete circuit");
-  const crossover={...next,dice:6};
-  crossover.positions=[[...next.positions[0]],[...next.positions[1]]];
-  crossover.positions[seat][0]=pawn("track",-3,0,0,1);
-  assert.ok(movesForPawn(crossover,seat,0).every(o=>o.action!=="home"),
-   "passing the -1 shortcut again is not a lap");
+  assert.deepEqual(choices.map(o=>o.action),["track"],"six cannot reverse the outer path");
+  assert.equal(choices[0].to.step,6);
+  assert.equal(choices[0].to.dir,1);
+  assert.equal(chooseSenegalBotMove(firstSix)?.to.step,6,"the computer moves forward too");
+  const played=applySenegalMove(firstSix,choices[0]);
+  assert.equal(played?.game.positions[seat][0].step,6);
+  assert.equal(played?.move.path.length,6);
+  const follow={...played!.game,turn:seat,dice:3,streak:0};
+  const onward=movesForPawn(follow,seat,0);
+  assert.deepEqual(onward.map(o=>o.action),["track"]);
+  assert.equal(onward[0].to.step,9);
+  assert.equal(onward[0].to.dir,1);
  }
 });
-test("own home remains accessible only after a full forward or reverse circuit",()=>{
+test("own home opens only after a full forward lap",()=>{
  for(const seat of [0,1] as const){
   const forward=newSenegalGame();forward.turn=seat;forward.dice=4;
   forward.positions[seat][0]=pawn("track",49);
-  assert.ok(movesForPawn(forward,seat,0).some(o=>o.action==="home"&&o.to.depth===3),
-   "full forward lap can still reach home");
-  const reverse=newSenegalGame();reverse.turn=seat;reverse.dice=6;
-  reverse.positions[seat][0]=pawn("track",-50,0,0,-1);
-  assert.ok(movesForPawn(reverse,seat,0).some(o=>o.action==="home"&&o.to.depth===4),
-   "full backwards lap can still reach home");
+  assert.ok(movesForPawn(forward,seat,0).some(o=>o.action==="home"&&o.to.depth===3));
+  const backwards=newSenegalGame();backwards.turn=seat;backwards.dice=6;
+  backwards.positions[seat][0]=pawn("track",-50,0,0,-1);
+  const repaired=repairSenegalHomeShortcut(backwards);
+  assert.equal(repaired.positions[seat][0].step,50);
+  assert.equal(repaired.positions[seat][0].dir,1);
+  assert.ok(movesForPawn({...repaired,dice:6},seat,0).some(o=>o.action==="home"));
+  assert.ok(movesForPawn({...repaired,dice:6},seat,0).every(o=>o.action!=="turn"));
   const notYet=newSenegalGame();notYet.turn=seat;notYet.dice=6;
-  notYet.positions[seat][0]=pawn("track",-2,0,0,-1);
-  assert.ok(movesForPawn(notYet,seat,0).every(o=>o.action!=="home"),
-   "a partial reverse lap must not enter home");
+  notYet.positions[seat][0]=pawn("track",2);
+  assert.ok(movesForPawn(notYet,seat,0).every(o=>o.action!=="home"));
   const later=newSenegalGame();later.turn=seat;later.dice=4;
   later.positions[seat][0]=pawn("track",101);
-  assert.ok(movesForPawn(later,seat,0).some(o=>o.action==="home"),
-   "second and later laps still work");
+  assert.ok(movesForPawn(later,seat,0).some(o=>o.action==="home"));
  }
 });
 test("player can choose invading enemy home on crossing step 77",()=>{
@@ -155,25 +146,31 @@ test("a six retreats exactly one square inside the enemy cage for Solo and Duo",
    "the next dice advances normally");
  }
 });
-test("retreat also respects a pawn that entered the opponent lane in reverse direction",()=>{
+test("six retreats one square in opponent cage, then normal travel is forward",()=>{
  const game=withTurn(pawn("enemy",76,2,77,-1),pawn("base",-1),6);
- const retreat=movesForPawn(game,0,0).find(o=>o.action==="exit");
+ const repaired=repairSenegalHomeShortcut(game);
+ const retreat=movesForPawn({...repaired,dice:6},0,0).find(o=>o.action==="exit");
  assert.equal(retreat?.to.step,77);
  assert.equal(retreat?.to.depth,1);
- assert.equal(retreat?.to.dir,-1);
- const gate={...game,positions:[[retreat!.to,...game.positions[0].slice(1)],game.positions[1]] as SenegalGame["positions"]};
+ assert.equal(retreat?.to.dir,1);
+ const gate={...repaired,dice:6,positions:[[retreat!.to,...repaired.positions[0].slice(1)],repaired.positions[1]] as SenegalGame["positions"]};
  const exit=movesForPawn(gate,0,0).find(o=>o.action==="exit");
- assert.equal(exit?.to.step,78);
- assert.equal(exit?.to.dir,-1);
+ assert.equal(exit?.to.step,76);
+ assert.equal(exit?.to.dir,1);
  assert.equal(movementPath(0,gate.positions[0][0],exit!.to,exit!.action).length,1);
  const normal={...gate,positions:[[exit!.to,...gate.positions[0].slice(1)],gate.positions[1]] as SenegalGame["positions"],dice:3};
- assert.equal(movesForPawn(normal,0,0).find(o=>o.action==="track")?.to.step,75);
+ assert.equal(movesForPawn(normal,0,0).find(o=>o.action==="track")?.to.step,79);
 });
-test("every new u-turn requires six, can run backwards on track then choose another reversal",()=>{
+test("even old backward saved track directions cannot reverse the next roll",()=>{
  const g=withTurn(pawn("track",73,0,0,-1),pawn("base",-1),3);
- assert.deepEqual(movesForPawn(g,0,0).map(x=>x.action),["track"]);
- const six={...g,dice:6};
- assert.ok(movesForPawn(six,0,0).some(x=>x.action==="turn"&&x.to.dir===1&&x.to.step===79));
+ const three=movesForPawn(g,0,0);
+ assert.deepEqual(three.map(x=>x.action),["track"]);
+ assert.equal(three[0].to.step,76);
+ assert.equal(three[0].to.dir,1);
+ const six=movesForPawn({...g,dice:6},0,0);
+ assert.deepEqual(six.map(x=>x.action),["track"]);
+ assert.equal(six[0].to.step,79);
+ assert.equal(six[0].to.dir,1);
 });
 test("home entry then exact home finish still wins with four pawns",()=>{
  const g=withTurn(pawn("home",55,6,51),pawn("base",-1),1);
@@ -269,7 +266,7 @@ test("Senegal shares the physical Classic 3D die and preserves its special paths
 test("Sénégal exit movement is accepted by the server and shown in the board rules",()=>{
  const api=readFileSync("functions/api/ludo-senegal.ts","utf8");
  const sharedBoard=readFileSync("public/ludo-duo/script.js","utf8");
- assert.ok(api.includes('"track","home","enemy","exit","turn","jump"'));
+ assert.ok(api.includes('"track","home","enemy","exit","jump"'));
  assert.ok(sharedBoard.includes("un 6 fait reculer d’une seule case"));
  assert.ok(sharedBoard.includes("Barrage : deux pions"));
 });
