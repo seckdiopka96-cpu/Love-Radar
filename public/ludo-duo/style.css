@@ -378,3 +378,13 @@ html.lr-ludo-duo-ui .duo-quit-slot .duo-quit-match{
   min-height:145px!important;max-height:145px!important;
  }
 }
+
+/* Sénégal Solo and Duo share the same bottom, touchable Quitter button.
+   The Classic board keeps its original top navigation. Preserve the top
+   button's flex width invisibly so the title and help stay symmetrically
+   aligned without an overlapping logo. */
+html.lr-ludo-duo-ui.lr-senegal-one-quit #plateau #choose-again{
+ visibility:hidden!important;
+ pointer-events:none!important;
+ user-select:none!important;
+}
