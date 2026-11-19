@@ -1,7 +1,7 @@
 import type {D1Database} from "@cloudflare/workers-types";
 import type {PushEnv} from "../lib/push";
 import {
- newSenegalGame,stopSenegalGame,isSenegalGame,rollSenegal,applySenegalMove,movesForPawn,
+ newSenegalGame,stopSenegalGame,isSenegalGame,repairSenegalHomeShortcut,rollSenegal,applySenegalMove,movesForPawn,
  autoplayTurn,TURN_MS,type SenegalGame,type SenegalMove,type Action
 } from "../../src/ludo-senegal-engine";
 
@@ -38,6 +38,19 @@ async function get(db:D1Database,room:string):Promise<Match|null>{
  if(!row)return null;
  const state:unknown=JSON.parse(row.state_text);
  if(!isSenegalGame(state))throw Error("Invalid Senegal game persisted state");
+ const repaired=repairSenegalHomeShortcut(state);
+ if(repaired!==state){
+  // Atomically migrate an existing Solo/Duo-era broken pawn placement.
+  // Version guard prevents an old read from overwriting a newer legal move.
+  const update=await db.prepare(
+   "UPDATE ludo_senegal_games SET state_text=?,version=version+1,updated_at=?"+
+   " WHERE room_id=? AND game_id=? AND version=?"
+  ).bind(JSON.stringify(repaired),Date.now(),room,row.game_id,row.version).run();
+  if(update.meta.changes!==1)return await get(db,room);
+  await db.prepare("DELETE FROM ludo_senegal_moves WHERE room_id=? AND game_id=?")
+   .bind(room,row.game_id).run();
+  return {id:row.game_id,version:row.version+1,state:repaired};
+ }
  return {id:row.game_id,version:row.version,state};
 }
 async function init(db:D1Database,room:string){
