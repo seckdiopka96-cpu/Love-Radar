@@ -26,19 +26,26 @@ type ServerResponse={ok:boolean;error?:string;members?:number;seat?:number;game?
 type Moving={seat:Seat;pawn:number;point:Point;index:number;length:number};
 type CaptureBack={seat:Seat;pawn:number;point:Point};
 type CapturedSenegalPawn=SenegalMove["captures"][number];
-/** Walk backwards through the track (one lap at most on a repeating track)
- * or out of a home lane before settling into the original base slot. */
+/** Return a legally captured pawn backwards to its real base.
+ * Bound the visual route to avoid 52+ queued timers freezing a turn on
+ * iPhones (especially while a voice call is active). Own-home pawns are
+ * never passed here because they are protected by the rules engine. */
 function captureReversePoints(capture:CapturedSenegalPawn):Point[]{
  const {seat,pawn,from}=capture;
  const path:Point[]=[];
  const track=(step:number):Point=>TRACK[((seat*26+step)%52+52)%52];
- if(from.zone==="home"||from.zone==="enemy"){
-  const owner=from.zone==="enemy"?(1-seat) as Seat:seat;
+ if(from.zone==="enemy"){
+  const owner=(1-seat) as Seat;
   for(let d=from.depth-1;d>=1;d--)path.push(HOME[owner][d-1]);
-  for(let i=0;i<Math.min(52,Math.abs(from.gate));i++)path.push(track(from.gate-1-i));
+  const remaining=Math.min(8,Math.max(0,from.gate));
+  for(let i=0;i<remaining;i++)path.push(track(from.gate-1-i));
  }else if(from.zone==="track"){
+  const count=Math.min(10,Math.abs(from.step));
   const sign=from.step<0?1:-1;
-  for(let i=1;i<=Math.min(52,Math.abs(from.step));i++)path.push(track(from.step+i*sign));
+  for(let i=1;i<=count;i++){
+   const step=from.step+sign*Math.ceil(i*Math.abs(from.step)/count);
+   path.push(track(step));
+  }
  }
  path.push(BASE[seat][pawn]);
  return path;
@@ -80,6 +87,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const {enabled:soundOn,unlock:unlockSound,play:playSound,toggle:toggleSound}=useLudoSounds();
 
  const timers=useRef<number[]>([]);
+ const captureDeadline=useRef(0);
  const loaded=useRef(true);
  const versionRef=useRef(0);
  const idRef=useRef("");
@@ -100,12 +108,23 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   const interval=window.setInterval(()=>setNow(Date.now()),250);
   return ()=>window.clearInterval(interval);
  },[]);
+ // iOS may suspend callbacks during a phone call. A captured pawn must not
+ // leave the game blocked after the app becomes responsive again.
+ useEffect(()=>{
+  if(captureBack.length&&captureDeadline.current>0&&now>=captureDeadline.current){
+   setCaptureBack([]);captureDeadline.current=0;
+  }
+ },[now,captureBack.length]);
  // Only authentic Senegal dice results are passed to the existing Classic 3D die.
  const animate=useCallback((move:SenegalMove)=>{
   const path=move.path;
   if(!path.length)return;
   const captured=move.captures.map(p=>({...p,point:pointForPawn(p.seat,p.pawn,p.from)}));
-  if(captured.length)setCaptureBack(captured.map(({seat,pawn,point})=>({seat,pawn,point})));
+  if(captured.length){
+   // Enforce an absolute deadline independent of every animation callback.
+   captureDeadline.current=Date.now()+250+path.length*540+1800;
+   setCaptureBack(captured.map(({seat,pawn,point})=>({seat,pawn,point})));
+  }
   setMotion({seat:move.seat,pawn:move.pawn,point:pointForPawn(move.seat,move.pawn,move.from),index:0,length:path.length});
   const STEP_MS=move.from.zone==="base"?520:540,START_MS=250;
   path.forEach((point,i)=>later(()=>{
@@ -126,7 +145,9 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
      setCaptureBack(rows=>rows.map(row=>row.seat===item.seat&&row.pawn===item.pawn?{...row,point}:row));
     },70+index*50)));
     const longest=Math.max(...returns.map(item=>item.path.length));
-    later(()=>{if(loaded.current)setCaptureBack([])},240+longest*50);
+    const returnMs=240+longest*50;
+    captureDeadline.current=Date.now()+returnMs+350;
+    later(()=>{if(loaded.current){setCaptureBack([]);captureDeadline.current=0}},returnMs);
    }
    else if(move.action==="exit"){setReaction("↩️");}
    else if(move.action==="jump"){setReaction("⤴️");}
@@ -162,12 +183,12 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
    setLastRoll(previous=>previous?.at===next.updatedAt&&previous.face===actualFace&&previous.seat===roller?
     previous:{seat:roller,face:actualFace,at:next.updatedAt});
   }
-  if(next.id!==oldId){lastAnimated.current="";setMotion(null);setCaptureBack([]);clearTimers();setChosen(null);}
+  if(next.id!==oldId){lastAnimated.current="";setMotion(null);setCaptureBack([]);captureDeadline.current=0;clearTimers();setChosen(null);}
   versionRef.current=next.version;idRef.current=next.id;
   if(next.status==="ended"){
    for(const id of timers.current)window.clearTimeout(id);
    timers.current=[];
-   setMotion(null);setCaptureBack([]);setChosen(null);setRolling(false);
+   setMotion(null);setCaptureBack([]);captureDeadline.current=0;setChosen(null);setRolling(false);
   }
   setGame({
    positions:next.positions,turn:next.turn,dice:next.dice,streak:next.streak,
@@ -345,7 +366,8 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   Math.max(0,Math.ceil((game.updatedAt+TURN_MS+(solo?0:serverOffset)-now)/1000)):null;
  const invasionChoice=Boolean(chosen?.some(option=>option.action==="enemy"&&game.positions[seat][option.pawn].zone==="track"));
  const enemyCagePawns=game.positions[enemy].filter(p=>p.zone==="home");
- const directCapture=Boolean(chosen?.some(option=>option.action==="enemy"&&enemyCagePawns.some(p=>p.depth===option.to.depth)));
+ // Own-home pawns are protected: invading a lane can never capture them.
+ const directCapture=false;
  const lastFace=game.lastAction.match(/Dé ([1-6])/);
  const shownDie=rolling?face:game.dice??(lastFace?Number(lastFace[1]):face);
  const status=game.status==="won"?(game.winner===seat?"🏆 Tu as gagné !":"🏆 Ton adversaire a gagné !"):
@@ -422,7 +444,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
     <strong>{invasionChoice?"😈 Attaquer la cage ou continuer ?":"🇸🇳 Choisis ton chemin"}</strong>
     <p>Pion {chosen[0].pawn+1} · dé {game.dice}</p>
     {invasionChoice?<p>{enemyCagePawns.length===0?"La cage adverse est vide.":
-     directCapture?"Une capture est possible.":"Tu peux attaquer ou continuer le tour."}</p>:null}
+     "Les pions déjà dans leur maison sont protégés. Tu peux entrer ou continuer."}</p>:null}
     {chosen.map((option,index)=><button type="button" key={option.action+"-"+option.to.gate+"-"+index}
      onClick={()=>void move(option)} disabled={busy||rolling}>
      {option.action==="track"&&invasionChoice?"➡️ Continuer le tour":
