@@ -55,10 +55,24 @@ export default function CoupleParty({mode,token,myName,partnerName,onExit,onOpen
   const refreshTimer=window.setInterval(()=>void refresh(true),900);
   const clockTimer=window.setInterval(()=>setClock(Date.now()),175);
   const visible=()=>{if(document.visibilityState==="visible")void refresh()};
+  // Leaving via bottom navigation sends a keepalive forfeiture before
+  // React unmounts. An ordinary phone call does not count as quitting.
+  const onNavigateAway=()=>{
+   const activeMatch=last.current;
+   if(mode!=="rapid"||!activeMatch||activeMatch.phase==="finished"||leavingRef.current)return;
+   leavingRef.current=true;
+   void apiFetch(requestUrl("rapid"),{
+    method:"POST",cache:"no-store",keepalive:true,
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    body:JSON.stringify({action:"quit",gameId:activeMatch.id,round:activeMatch.round})
+   }).catch(()=>{});
+  };
+  window.addEventListener("lr-rapid-leave",onNavigateAway);
   document.addEventListener("visibilitychange",visible);
   window.addEventListener("focus",visible);
   return()=>{alive.current=false;window.clearInterval(refreshTimer);window.clearInterval(clockTimer);
-   document.removeEventListener("visibilitychange",visible);window.removeEventListener("focus",visible)};
+   document.removeEventListener("visibilitychange",visible);window.removeEventListener("focus",visible);
+   window.removeEventListener("lr-rapid-leave",onNavigateAway)};
  },[refresh]);
  useEffect(()=>{
   if(!notice)return;
