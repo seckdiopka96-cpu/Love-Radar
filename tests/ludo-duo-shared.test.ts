@@ -21,9 +21,9 @@ test("multiplayer uses the same full board HTML, pions and cube dice as Solo",()
  const boardSlice=s=>(s.slice(s.indexOf(start),s.indexOf(end))).replace(/^\s+|\s+$/g,"");
  assert.ok(duoHTML.includes(start));
  assert.equal(boardSlice(duoHTML),boardSlice(soloHTML));
- assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261119-v30"'));
- assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261119-v30"'));
- assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261119-v30" defer'));
+ assert.ok(duoHTML.includes('href="../ludo-solo/style.css?v=ludo-room-20261119-v31"'));
+ assert.ok(duoHTML.includes('href="./style.css?v=ludo-room-20261119-v31"'));
+ assert.ok(duoHTML.includes('src="./script.js?v=ludo-room-20261119-v31" defer'));
  assert.ok(duoHTML.includes('LUDO <span>♥</span> DUO'));
  assert.ok(duoHTML.includes('id="roll-dice"'));
  assert.ok(duoCSS.includes('.duo-side-actions'));
@@ -67,7 +67,7 @@ test("React authenticated Ludo backend is preserved and paints the shared frame"
  'function duoFrameAction(','signRules()', 'giftAction(','ludo-agreement-backdrop','ludo-gift-dialog','ludo-modal-backdrop']){
   assert.ok(parent.includes(unchanged),unchanged);
  }
- assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261119-v30"'));
+ assert.ok(bridge.includes('src="/ludo-duo/index.html?v=ludo-room-20261119-v31"'));
  assert.ok(bridge.includes('event.source!==frame'));
  assert.ok(bridge.includes('event.origin!==window.location.origin'));
  assert.ok(!bridge.includes("token:"));
@@ -307,6 +307,17 @@ test("Duo keeps synchronized takeover counters without awarding timeout victorie
   "concurrent client polls must not double-count the same timeout");
 });
 
+test("Sénégal has exactly one accessible Quitter below the board; Classic keeps its top navigation",()=>{
+ assert.ok(duoJS.includes('document.documentElement.classList.toggle("lr-senegal-one-quit",senegal)'));
+ assert.ok(duoJS.includes('headerQuit.disabled=senegal'),"no second active Senegal quit button");
+ assert.ok(duoJS.includes('headerQuit.tabIndex=senegal?-1:0'),"hidden button is not focusable");
+ assert.ok(duoJS.includes('headerQuit.setAttribute("aria-hidden",String(senegal))'),"screen readers see one Quitter");
+ assert.ok(duoCSS.includes('html.lr-ludo-duo-ui.lr-senegal-one-quit #plateau #choose-again'));
+ assert.ok(duoCSS.includes('visibility:hidden!important'),"only bottom quit button is visible");
+ assert.ok(duoJS.includes('leaveButton.addEventListener("click",()=>send("exit"))'));
+ assert.ok(bridge.includes('onClick={()=>actionRef.current("exit")}'),"touchable direct React action survives");
+ assert.ok(duoHTML.includes('id="choose-again"'),"Classic still has its own top button");
+});
 test("Sénégal quit is a direct parent click and cannot be swallowed by the iframe",()=>{
  const senegal=readFileSync("src/SenegalLudo.tsx","utf8");
  assert.ok(bridge.includes('import {createPortal} from "react-dom"'));
@@ -388,7 +399,7 @@ test("Solo and Duo share a stable stage, and dice respond in under a half-second
  assert.ok(!duoCSS.includes(".lr-ludo-duo-ui .game-screen{"),
   "Duo does not move or resize the game stage with a different theme");
  assert.ok(soloFrame.includes("ludo-room-20261119-v25"));
- assert.ok(bridge.includes("ludo-room-20261119-v30"));
+ assert.ok(bridge.includes("ludo-room-20261119-v31"));
 });
 
 test("one playable pawn exits its base on tap and die gives clear turn feedback",()=>{
@@ -467,7 +478,7 @@ test("Solo and Duo keep the board centered, roll quickly and play different orig
  assert.ok(soloJS.includes('sfx?.play("step")'),"each solo square triggers one footstep");
  assert.ok(duoJS.includes('window.LudoSfx?.play("step")'),"only a new authoritative duo progress step triggers a footstep");
  assert.ok(soloHTML.includes('../ludo-sfx.js?v=ludo-room-20261119-v25'));
- assert.ok(duoHTML.includes('../ludo-sfx.js?v=ludo-room-20261119-v30'));
+ assert.ok(duoHTML.includes('../ludo-sfx.js?v=ludo-room-20261119-v31'));
  assert.ok(sw.includes('"/ludo-sfx.js"'),"audio stays available to installed PWAs offline");
  assert.ok(soloJS.includes('new ResizeObserver(centerBoard).observe(boardArea)'));
  assert.ok(soloCSS.includes('align-items:center!important;justify-content:center!important'));
