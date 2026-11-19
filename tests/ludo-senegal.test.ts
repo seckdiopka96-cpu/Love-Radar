@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {Script} from "node:vm";
-import {newSenegalGame,movesForPawn,applySenegalMove,rollSenegal,pointForPawn,
+import {newSenegalGame,movesForPawn,applySenegalMove,rollSenegal,pointForPawn,trackIndex,
  movementPath,autoplayTurn,TURN_MS,chooseSenegalBotMove,type Pawn,type SenegalGame} from "../src/ludo-senegal-engine";
 const pawn=(zone:Pawn["zone"],step:number,depth=0,gate=0,dir:1|-1=1):Pawn=>({zone,step,depth,gate,dir});
 const withTurn=(red:Pawn,yellow:Pawn,face:number,seat:0|1=0):SenegalGame=>{
@@ -41,39 +41,54 @@ test("Senegal captured pawn returns to its base when landing on the ordinary tra
  assert.equal(captured?.game.positions[1][0].zone,"base");
  assert.equal(captured?.game.positions[1][0].step,-1);
 });
-test("six exits enemy cage and continues forward without retracing the lane",()=>{
+test("a six retreats exactly one square inside the enemy cage for Solo and Duo",()=>{
  for(const seat of [0,1] as const){
   const game=newSenegalGame();
   game.turn=seat;
-  game.dice=2;
-  game.positions[seat][0]=pawn("enemy",79,3,77,1);
-  assert.ok(movesForPawn(game,seat,0).every(o=>o.action!=="exit"),"only a six allows the exit");
   game.dice=6;
-  const exit=movesForPawn(game,seat,0).find(o=>o.action==="exit");
-  assert.ok(exit);
-  assert.equal(exit!.to.zone,"track");
-  assert.equal(exit!.to.step,85,"retain previous track progress and advance six");
-  assert.equal(exit!.to.dir,1,"do not reverse direction");
-  const path=movementPath(seat,game.positions[seat][0],exit!.to,exit!.action);
-  assert.equal(path.length,7,"one lane exit transition plus exactly six forward cells");
-  assert.deepEqual(path[0],pointForPawn(seat,0,pawn("track",79)));
-  assert.deepEqual(path[1],pointForPawn(seat,0,pawn("track",80)));
-  assert.deepEqual(path.at(-1),pointForPawn(seat,0,exit!.to));
-  const completed=applySenegalMove(game,exit!);
-  assert.ok(completed);
-  assert.deepEqual(completed!.move.path,path);
-  assert.equal(completed!.game.positions[seat][0].zone,"track");
-  const followup={...completed!.game,dice:2,turn:seat};
-  assert.equal(movesForPawn(followup,seat,0).find(o=>o.action==="track")?.to.step,87,
-   "later turns keep advancing forwards");
+  game.positions[seat][0]=pawn("enemy",79,3,77,1);
+  const retreat=movesForPawn(game,seat,0).find(o=>o.action==="exit");
+  assert.ok(retreat);
+  assert.equal(retreat!.to.zone,"enemy","one six does not immediately leave a deep cage");
+  assert.equal(retreat!.to.depth,2,"only one cell backwards");
+  assert.equal(retreat!.to.step,78);
+  assert.equal(retreat!.to.dir,1);
+  const move=applySenegalMove(game,retreat!);
+  assert.ok(move);
+  assert.equal(move!.move.path.length,1,"animate exactly one retreat step");
+  assert.deepEqual(move!.move.path[0],pointForPawn(seat,0,retreat!.to));
+  assert.equal(move!.game.positions[seat][0].depth,2);
+  const anotherSix={...move!.game,dice:6,streak:0,turn:seat};
+  const next=movesForPawn(anotherSix,seat,0).find(o=>o.action==="exit");
+  assert.equal(next?.to.depth,1);
+  assert.equal(next?.to.zone,"enemy");
+  const atGate={...anotherSix,positions:anotherSix.positions.map((row,side)=>side===seat?
+   row.map((p,i)=>i===0?next!.to:p):row) as SenegalGame["positions"]};
+  const last=movesForPawn(atGate,seat,0).find(o=>o.action==="exit");
+  assert.equal(last?.to.zone,"track");
+  assert.equal(last?.to.step,76,"exit by one backwards square, not by six");
+  assert.equal(last?.to.dir,1,"restore ordinary forward motion outside");
+  const outside=applySenegalMove(atGate,last!);
+  assert.equal(outside?.move.path.length,1);
+  assert.equal(outside?.game.positions[seat][0].step,76);
+  const normal={...outside!.game,turn:seat,dice:2};
+  assert.equal(movesForPawn(normal,seat,0).find(o=>o.action==="track")?.to.step,78,
+   "the next dice advances normally");
  }
 });
-test("exit keeps the current direction when the pawn entered the enemy lane backwards",()=>{
+test("retreat also respects a pawn that entered the opponent lane in reverse direction",()=>{
  const game=withTurn(pawn("enemy",76,2,77,-1),pawn("base",-1),6);
- const exit=movesForPawn(game,0,0).find(o=>o.action==="exit");
- assert.equal(exit?.to.step,70);
- assert.equal(exit?.to.dir,-1,"existing chosen direction must not flip on exit");
- assert.equal(movementPath(0,game.positions[0][0],exit!.to,exit!.action).length,7);
+ const retreat=movesForPawn(game,0,0).find(o=>o.action==="exit");
+ assert.equal(retreat?.to.step,77);
+ assert.equal(retreat?.to.depth,1);
+ assert.equal(retreat?.to.dir,-1);
+ const gate={...game,positions:[[retreat!.to,...game.positions[0].slice(1)],game.positions[1]] as SenegalGame["positions"]};
+ const exit=movesForPawn(gate,0,0).find(o=>o.action==="exit");
+ assert.equal(exit?.to.step,78);
+ assert.equal(exit?.to.dir,-1);
+ assert.equal(movementPath(0,gate.positions[0][0],exit!.to,exit!.action).length,1);
+ const normal={...gate,positions:[[exit!.to,...gate.positions[0].slice(1)],gate.positions[1]] as SenegalGame["positions"],dice:3};
+ assert.equal(movesForPawn(normal,0,0).find(o=>o.action==="track")?.to.step,75);
 });
 test("every new u-turn requires six, can run backwards on track then choose another reversal",()=>{
  const g=withTurn(pawn("track",73,0,0,-1),pawn("base",-1),3);
@@ -175,6 +190,88 @@ test("Senegal shares the physical Classic 3D die and preserves its special paths
 test("Sénégal exit movement is accepted by the server and shown in the board rules",()=>{
  const api=readFileSync("functions/api/ludo-senegal.ts","utf8");
  const sharedBoard=readFileSync("public/ludo-duo/script.js","utf8");
- assert.ok(api.includes('"track","home","enemy","exit","turn"'));
- assert.ok(sharedBoard.includes("sans refaire le chemin inverse"));
+ assert.ok(api.includes('"track","home","enemy","exit","turn","jump"'));
+ assert.ok(sharedBoard.includes("un 6 fait reculer d’une seule case"));
+ assert.ok(sharedBoard.includes("Barrage : deux pions"));
+});
+
+const trackPair=(game:SenegalGame,mover:0|1,start:number,blockedDistance:number)=>{
+ const enemy=(1-mover) as 0|1;
+ const target=trackIndex(mover,start+blockedDistance);
+ const enemyStep=target-enemy*26;
+ game.positions[enemy][0]=pawn("track",enemyStep);
+ game.positions[enemy][1]=pawn("track",enemyStep);
+ return {enemy,enemyStep};
+};
+test("two pawns make a real barricade that cannot be crossed without a six",()=>{
+ for(const seat of [0,1] as const){
+  const g=newSenegalGame();
+  g.turn=seat;g.dice=3;
+  g.positions[seat][0]=pawn("track",10);
+  const {enemy,enemyStep}=trackPair(g,seat,10,1);
+  assert.equal(movesForPawn(g,seat,0).find(o=>o.action==="track"),undefined);
+  assert.equal(movesForPawn(g,seat,0).find(o=>o.action==="jump"),undefined);
+  const blockedRoll=rollSenegal({...g,dice:null},3);
+  assert.equal(blockedRoll.turn,enemy,"cannot simply pass an enemy barricade");
+  g.dice=6;
+  const jump=movesForPawn(g,seat,0).find(o=>o.action==="jump");
+  assert.ok(jump,"six enables one barricade hop");
+  assert.equal(jump!.to.step,12,"only one square beyond the barricade, not six");
+  const path=movementPath(seat,g.positions[seat][0],jump!.to,jump!.action);
+  assert.deepEqual(path,[pointForPawn(seat,0,pawn("track",12))],"skip the occupied square");
+  const applied=applySenegalMove(g,jump!);
+  assert.ok(applied);
+  assert.equal(applied!.game.positions[seat][0].step,12);
+  assert.equal(applied!.move.captures.length,0,"do not capture either barricade pawn");
+  assert.equal(applied!.game.positions[enemy][0].step,enemyStep);
+  assert.equal(applied!.game.positions[enemy][1].step,enemyStep);
+  assert.equal(applied!.game.turn,seat,"a six keeps the normal bonus roll");
+  g.positions[enemy][1]=pawn("base",-1);
+  g.dice=3;
+  assert.ok(movesForPawn(g,seat,0).some(o=>o.action==="track"&&o.to.step===13),
+   "the blockade disappears as soon as one pawn leaves");
+ }
+});
+test("jump stops one square after a distant barrage, not at the full six distance",()=>{
+ const g=withTurn(pawn("track",10),pawn("base",-1),6);
+ trackPair(g,0,10,3);
+ const hop=movesForPawn(g,0,0).find(o=>o.action==="jump");
+ assert.equal(hop?.to.step,14,"no remaining pips after crossing the wall");
+ assert.deepEqual(movementPath(0,g.positions[0][0],hop!.to,hop!.action),
+  [pointForPawn(0,0,pawn("track",11)),pointForPawn(0,0,pawn("track",12)),pointForPawn(0,0,pawn("track",14))]);
+ const collision=withTurn(pawn("track",10),pawn("base",-1),6);
+ trackPair(collision,0,10,3);
+ const next=trackIndex(0,14)-26;
+ collision.positions[1][2]=pawn("track",next);
+ collision.positions[1][3]=pawn("track",next);
+ assert.equal(movesForPawn(collision,0,0).find(o=>o.action==="jump"),undefined,
+  "cannot jump onto a second adjacent barricade");
+});
+test("a barricade works on a safe star, whereas a single pawn never forms one",()=>{
+ const g=withTurn(pawn("track",7),pawn("base",-1),6);
+ trackPair(g,0,7,1); // track square 8 is protected by a star
+ const jump=movesForPawn(g,0,0).find(o=>o.action==="jump");
+ assert.equal(jump?.to.step,9,"safe squares may still hold a barricade");
+ g.positions[1][1]=pawn("base",-1);
+ g.dice=1;
+ assert.ok(movesForPawn(g,0,0).some(o=>o.action==="track"&&o.to.step===8));
+});
+test("a defending pair in its own lane also blocks a raider",()=>{
+ const g=withTurn(pawn("track",74),pawn("home",78,2,51),5);
+ g.positions[1][1]=pawn("home",78,2,51);
+ assert.equal(movesForPawn(g,0,0).find(o=>o.action==="enemy"),undefined,
+  "cannot enter and capture both home defenders");
+ g.dice=6;
+ const hop=movesForPawn(g,0,0).find(o=>o.action==="jump"&&o.to.zone==="enemy");
+ assert.equal(hop?.to.depth,3);
+ const applied=applySenegalMove(g,hop!);
+ assert.ok(applied);
+ assert.equal(applied?.move.captures.length,0);
+ assert.equal(applied?.game.positions[1][0].depth,2);
+ assert.equal(applied?.game.positions[1][1].depth,2);
+});
+test("a double stack in your own home can still stop the opposing raider",()=>{
+ const g=withTurn(pawn("enemy",78,2,77,1),pawn("home",78,2,51),5);
+ g.positions[1][1]=pawn("home",78,2,51);
+ assert.equal(movesForPawn(g,0,0).find(o=>o.action==="enemy"),undefined);
 });
