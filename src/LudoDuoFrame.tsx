@@ -129,7 +129,7 @@ export default function LudoDuoFrame(props:Props){
    <button type="button" className="duo-quit-match" aria-label="Quitter le Ludo Sénégal"
     onClick={()=>actionRef.current("exit")}>↩ Quitter</button>,quitSlot):null}
   <iframe key={retry} ref={ref} className="ludo-duo-shared-iframe"
-   src="/ludo-duo/index.html?v=ludo-room-20261119-v30" title={"Ludo "+(props.variant==="senegal"?"Sénégal ":"Classique ")+(props.opponent==="solo"?"Solo":"Duo")+" : même plateau, mêmes animations"}
+   src="/ludo-duo/index.html?v=ludo-room-20261119-v31" title={"Ludo "+(props.variant==="senegal"?"Sénégal ":"Classique ")+(props.opponent==="solo"?"Solo":"Duo")+" : même plateau, mêmes animations"}
    referrerPolicy="same-origin" loading="eager" onError={()=>setFailed(true)}/>
   {failed&&!ready?<div className="ludo-duo-frame-error" role="alert">
    <strong>Impossible de charger le nouveau plateau Duo.</strong>
