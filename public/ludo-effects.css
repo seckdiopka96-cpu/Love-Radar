@@ -67,15 +67,9 @@ html.lr-ludo-duo-ui .board .base.is-my-turn::after{
   animation-duration:.72s!important;
 }
 @keyframes lr-ludo-house-beacon {
-  0%,100%{
-    opacity:.68;
-    box-shadow:inset 0 0 0 1px #112f52,0 0 0 2px #ffe27a,0 0 9px #fff4ba;
-  }
-  35%{
-    opacity:1;
-    box-shadow:inset 0 0 0 2px #17324b,0 0 0 4px #fff5ac,0 0 24px #fff9d7,0 0 32px #fff1a266;
-  }
-  65%{opacity:.86;box-shadow:inset 0 0 0 1px #112f52,0 0 0 3px #ffe486,0 0 15px #fff5c8}
+  0%,100%{filter:brightness(.9) drop-shadow(0 0 3px #fffae0)}
+  35%{filter:brightness(1.2) drop-shadow(0 0 11px #fff) drop-shadow(0 0 12px #ffe18e)}
+  65%{filter:brightness(1.05) drop-shadow(0 0 6px #fff8d4)}
 }
 
 /* White sculpted pin silhouettes on MY turn. No token changes its position
@@ -89,21 +83,29 @@ html.lr-ludo-duo-ui .game-screen .piece--owned-turn .piece-svg{
    drop-shadow(0 -1.35px 0 #fff)
    drop-shadow(0 2px 4px #06142cc0)!important;
 }
-html.lr-ludo-solo-ui .game-screen .piece--owned-turn.piece--selectable,
-html.lr-ludo-duo-ui .game-screen .piece--owned-turn.piece--selectable{
+html.lr-ludo-solo-ui .game-screen .piece--owned-turn.piece--selectable::before,
+html.lr-ludo-duo-ui .game-screen .piece--owned-turn.piece--selectable::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  z-index:1;
+  pointer-events:none!important;
+  border:2px solid #fffce9;
+  border-radius:45% 45% 42% 42%;
+  box-shadow:0 0 5px #fff,0 0 9px #ffe9a9;
   animation:lr-ludo-legal-white-glow .90s ease-in-out infinite!important;
 }
 @keyframes lr-ludo-legal-white-glow{
-  0%,100%{filter:drop-shadow(0 0 3px #fff6d0)}
-  50%{filter:drop-shadow(0 0 11px #fff) drop-shadow(0 0 5px #ffe9a9)}
+  0%,100%{opacity:.58;filter:drop-shadow(0 0 2px #fff6d0)}
+  50%{opacity:1;filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 5px #ffe9a9)}
 }
 @media(prefers-reduced-motion:reduce){
  html.lr-ludo-solo-ui .game-screen .dice-3d.is-rolling[data-toss],
  html.lr-ludo-duo-ui .game-screen .dice-3d.is-rolling[data-toss],
  html.lr-ludo-solo-ui .board .base.is-current-turn::after,
  html.lr-ludo-duo-ui .board .base.is-current-turn::after,
- html.lr-ludo-solo-ui .game-screen .piece--owned-turn.piece--selectable,
- html.lr-ludo-duo-ui .game-screen .piece--owned-turn.piece--selectable{
+ html.lr-ludo-solo-ui .game-screen .piece--owned-turn.piece--selectable::before,
+ html.lr-ludo-duo-ui .game-screen .piece--owned-turn.piece--selectable::before{
   animation:none!important;
  }
 }
