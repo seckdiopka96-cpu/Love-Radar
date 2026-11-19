@@ -6,7 +6,7 @@ import {useLudoSounds} from "./ludo-sounds";
 import {TRACK,HOME,BASE,type Point} from "./ludo-visuals";
 import {
  TURN_MS,newSenegalGame,isSenegalGame,repairSenegalHomeShortcut,movesForPawn,rollSenegal,
- applySenegalMove,chooseSenegalBotMove,pointForPawn,die,
+ applySenegalMove,chooseSenegalBotMove,senegalGateChoice,pointForPawn,die,
  type SenegalGame,type SenegalMove,type MoveOption,type Seat,type Pawn
 } from "./ludo-senegal-engine";
 import "./ludo.css";
@@ -229,7 +229,7 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  },[solo,refresh]);
  // Solo player has 15 seconds for each action. AI takes over if the timer expires.
  useEffect(()=>{
-  if(!solo||game.status!=="playing"||game.turn!==0||assisted||busy||rolling||motion||captureBack.length||confirmReset)return;
+  if(!solo||game.status!=="playing"||game.turn!==0||assisted||busy||rolling||motion||captureBack.length||chosen||confirmReset)return;
   const id=window.setTimeout(()=>setAssisted(true),Math.max(0,game.updatedAt+TURN_MS-Date.now()));
   return ()=>window.clearTimeout(id);
  },[solo,game,assisted,busy,rolling,motion,chosen,confirmReset]);
@@ -317,12 +317,28 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   }
  }
  function choose(pawn:number){
-  if(busy||rolling||motion||captureBack.length||game.status!=="playing"||game.turn!==seat||(solo&&assisted)||
+  if(chosen||busy||rolling||motion||captureBack.length||game.status!=="playing"||game.turn!==seat||(solo&&assisted)||
    (!solo&&(!online||members!==2)))return;
   const options=movesForPawn(game,seat,pawn);
-  if(options.length===1){void move(options[0]);return;}
-  if(options.length>1)setChosen(options);
+  // A route decision is for THIS token and THIS throw only. Even when just
+  // one route remains legal (e.g. the other is too long or blocked), show
+  // the entrance choice instead of silently using a previous pawn's choice.
+  const gate=senegalGateChoice(game,seat,pawn);
+  if(options.length===1&&!gate){void move(options[0]);return;}
+  if(options.length)setChosen(options);
  }
+ useEffect(()=>{
+  if(!chosen?.length)return;
+  const current=movesForPawn(game,seat,chosen[0].pawn);
+  if(current.length!==chosen.length||chosen.some(option=>!current.some(next=>
+   next.action===option.action&&next.to.zone===option.to.zone&&
+   next.to.step===option.to.step&&next.to.gate===option.to.gate&&
+   next.to.depth===option.to.depth))){
+   // In particular, another dice throw or a partner move must not reuse the
+   // answer that was waiting for a different pawn or turn.
+   setChosen(null);
+  }
+ },[game,seat,chosen]);
  useEffect(()=>{
   if(!solo||game.status!=="playing"||rolling||motion||captureBack.length||busy||chosen||confirmReset)return;
   if(game.turn!==1&&!(game.turn===0&&assisted))return;
@@ -375,7 +391,10 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
  const turnOwner=game.turn===seat;
  const seconds=game.status==="playing"&&(solo?game.turn===0&&!assisted:members===2)?
   Math.max(0,Math.ceil((game.updatedAt+TURN_MS+(solo?0:serverOffset)-now)/1000)):null;
- const invasionChoice=Boolean(chosen?.some(option=>option.action==="enemy"&&game.positions[seat][option.pawn].zone==="track"));
+ const gateDecision=chosen?.length?senegalGateChoice(game,seat,chosen[0].pawn):null;
+ const entryRoutes=chosen?.filter(option=>gateDecision==="home"?
+  option.to.zone==="home"||option.to.zone==="finished":option.to.zone==="enemy")||[];
+ const continueRoutes=chosen?.filter(option=>option.to.zone==="track")||[];
  const enemyCagePawns=game.positions[enemy].filter(p=>p.zone==="home");
  // Own-home pawns are protected: invading a lane can never capture them.
  const lastFace=game.lastAction.match(/Dé ([1-6])/);
@@ -451,15 +470,29 @@ export default function SenegalLudo({mode,token,mySeat,myName,partnerName,storag
   </div>:null}
   {chosen&&chosen.length?<div className="ludo-senegal-overlay" role="dialog" aria-modal="true" aria-label="Choisir le chemin sénégalais">
    <div className="ludo-senegal-shared-dialog">
-    <strong>{invasionChoice?"😈 Attaquer la cage ou continuer ?":"🇸🇳 Choisis ton chemin"}</strong>
+    <strong>{gateDecision==="enemy"?"😈 Entrer dans sa cage ou continuer ?":
+     gateDecision==="home"?"🏠 Entrer chez toi ou continuer ?":"🇸🇳 Choisis ton chemin"}</strong>
     <p>Pion {chosen[0].pawn+1} · dé {game.dice}</p>
-    {invasionChoice?<p>{enemyCagePawns.length===0?"La cage adverse est vide.":
+    {gateDecision?<p className="ludo-senegal-per-pawn-hint">
+     Ce choix concerne uniquement le pion {chosen[0].pawn+1}. Tu devras choisir à nouveau pour chaque autre pion.
+    </p>:null}
+    {gateDecision==="enemy"?<p>{enemyCagePawns.length===0?"La cage adverse est vide.":
      "Les pions déjà dans leur maison sont protégés. Tu peux entrer ou continuer."}</p>:null}
-    {chosen.map((option,index)=><button type="button" key={option.action+"-"+option.to.gate+"-"+index}
-     onClick={()=>void move(option)} disabled={busy||rolling}>
-     {option.action==="track"&&invasionChoice?"➡️ Continuer le tour":
-      option.action==="enemy"&&invasionChoice?"😈 Entrer dans sa cage":option.label}
-    </button>)}
+    {gateDecision?<>
+     {continueRoutes.length?continueRoutes.map((option,index)=><button type="button"
+      key={"continue-"+option.pawn+"-"+option.to.step+"-"+index}
+      className="ludo-senegal-route-continue" disabled={busy||rolling}
+      onClick={()=>void move(option)}>➡️ Continuer sur le parcours</button>):
+      <button type="button" className="ludo-senegal-route-continue" disabled>➡️ Continuer · trajet bloqué</button>}
+     {entryRoutes.length?entryRoutes.map((option,index)=><button type="button"
+      key={"enter-"+option.pawn+"-"+option.to.step+"-"+index}
+      className="ludo-senegal-route-enter" disabled={busy||rolling}
+      onClick={()=>void move(option)}>{gateDecision==="home"?"🏠 Entrer dans ma maison":"😈 Entrer dans la cage adverse"}</button>):
+      <button type="button" className="ludo-senegal-route-enter" disabled>
+       {gateDecision==="home"?"🏠 Entrer chez moi · impossible avec ce dé":"😈 Entrer dans sa cage · impossible avec ce dé"}
+      </button>}
+    </>:chosen.map((option,index)=><button type="button" key={option.pawn+"-"+option.action+"-"+option.to.gate+"-"+index}
+     onClick={()=>void move(option)} disabled={busy||rolling}>{option.label}</button>)}
     <button type="button" className="ludo-senegal-shared-cancel" onClick={()=>setChosen(null)}>Annuler</button>
    </div>
   </div>:null}
