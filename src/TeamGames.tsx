@@ -209,6 +209,7 @@ export default function TeamGames({token,onExit}:Props){
  };
  const seconds=Math.max(0,Math.ceil(((active?.deadlineAt||0)-now)/1000));
  const readyIn=Math.max(0,Math.ceil(((active?.startsAt||0)-now)/1000));
+ const turnLeft=Math.max(0,Math.ceil(((active?.updatedAt||0)+15000-now)/1000));
  const inQuiz=game?.kind==="quiz";
  return <section className="lr-team-screen" aria-label="Défis entre couples, deux contre deux">
   <header className="lr-team-header">
