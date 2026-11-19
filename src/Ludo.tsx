@@ -90,7 +90,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
  const [challengeHint,setChallengeHint]=useState("");
  const [signBusy,setSignBusy]=useState(false);
  const [giftOptIn,setGiftOptIn]=useState(false);
- // A new match always requires a fresh read, choice and signature.
+ // The original agreement carries over to later rounds; gifts never do.
  useEffect(()=>{
   setGiftOpen(false);
   setGiftOptIn(false);
@@ -761,7 +761,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
       <input type="checkbox" checked={giftOptIn} onChange={e=>setGiftOptIn(e.target.checked)}/>
       <span><strong>🎁 Défi cadeau (facultatif)</strong><small>Seulement si vous l’acceptez tous les deux. Aucun paiement automatique.</small></span>
      </label>
-     <p className="ludo-ready-consent">En appuyant sur le bouton, tu acceptes les règles pour cette partie. Tu peux jouer sans cadeau.</p>
+     <p className="ludo-ready-consent">Ton accord pour jouer sera conservé pour les prochaines parties ensemble. Les défis cadeaux ne seront jamais reconduits automatiquement.</p>
      <button type="button" className="ludo-agreement-submit" disabled={signBusy||colorBusy||palette?.chosenBy==null} onClick={()=>void signRules()}>
       {signBusy?"Validation en cours…":"✓ J’accepte et je joue"}
      </button>
@@ -785,7 +785,7 @@ export default function Ludo({token,mySeat,myName,partnerName,myAvatar,partnerAv
     {challengeHint?<p className="ludo-challenge-hint" role="status">{challengeHint}</p>:null}
     {error?<div className="ludo-agreement-error" role="alert">{error}</div>:null}
     <button type="button" className="ludo-agreement-exit" onClick={onExit}>← Quitter la partie</button>
-    <p className="ludo-agreement-footnote">Accord valable uniquement pour cette manche.</p>
+    <p className="ludo-agreement-footnote">Un seul accord pour vos prochaines parties. Cadeaux facultatifs et non reconduits.</p>
    </div>
   </div>:null}
   {giftOpen?<div className="ludo-modal-backdrop" role="presentation">
