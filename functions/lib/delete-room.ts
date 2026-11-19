@@ -17,7 +17,7 @@ export const ROOM_DATA_TABLES=[
  "ludo_challenges","ludo_presence","ludo_last_rolls","ludo_palette","ludo_agreements","ludo_gifts","ludo_reactions",
  "ludo_reaction_events","ludo_move_events","ludo_games",
  "ludo_senegal_reactions","ludo_senegal_moves","ludo_senegal_games",
- "rps_games","couple_party_games","couple_party_prompt_history","couple_puzzles","couple_puzzle_presence",
+ "rps_games","couple_party_games","couple_party_prompt_history","couple_party_presence","couple_puzzles","couple_puzzle_presence",
  "duo_draw_games","duo_escape_games",
  "couple_watch_presence","couple_watch_sessions",
  "couple_tiktok_presence","couple_tiktok_watch",
