@@ -163,3 +163,18 @@
  .lr-team-share-actions button{font-size:12px}
  .lr-team-share-actions .lr-team-primary{width:100%}
 }
+
+/* Offline recovery does not replace or reset the last authoritative board. */
+.lr-team-connection{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;
+ background:#39485c;border:1px solid #d3ac75;border-radius:13px;padding:9px 10px;
+ font-size:12px;color:#ffe9c3}
+.lr-team-connection>span{font-weight:800;white-space:nowrap}
+.lr-team-connection>small{flex:1 1 170px;font-size:11px;line-height:1.25;color:#e1dece}
+.lr-team-connection>button{border:1px solid #e2be88;background:#5b5264;color:#fff5dd;
+ border-radius:9px;padding:6px 10px;font-size:11px;font-weight:750}
+.lr-team-reconnected{background:#224a42;border:1px solid #8cd6b6;border-radius:12px;
+ padding:9px 12px;color:#ddffed;font-size:12px;text-align:center;font-weight:700}
+@media(max-width:700px){
+ .lr-team-connection{font-size:11px;gap:5px;padding:7px}
+ .lr-team-connection>small{flex-basis:120px;font-size:10px}
+}
