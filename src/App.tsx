@@ -91,6 +91,7 @@ import "./clean-home-chat.css";
 import "./delivery-status-ui.css";
 import "./chat-themes.css";
 import "./party-viewport.css";
+import "./mobile-stability.css";
 
 type AndroidInstallEvent = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 type Tab = "home" | "together" | "camera" | "life" | "watch" | "watch-tiktok" | "puzzle" | "reconcile" | "moment" | "reunion" | "care" | "games" | "team-games" | "ludo-room" | "rps" | "draw" | "escape" | "rapid" | "truth" | "ludo" | "ludo-solo" | "ludo-senegal" | "ludo-senegal-solo" | "chat" | "memories" | "story" | "settings";
