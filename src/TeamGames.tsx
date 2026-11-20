@@ -230,8 +230,11 @@ export default function TeamGames({token,onExit}:Props){
  };
  const leave=async()=>{
   const active=ref.current;
-  if(active&&(active.state.status==="playing"||active.state.status==="waiting")){
+  if(active?.state.status==="playing"){
    const ok=await act("quit");if(!ok)return;
+  }else if(active?.state.status==="waiting"){
+   // Opening chat or going back from a pending invite is not a surrender.
+   const ok=await act("leave-lobby");if(!ok)return;
   }
   onExit();
  };
