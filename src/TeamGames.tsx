@@ -2,6 +2,8 @@ import {useCallback,useEffect,useRef,useState} from "react";
 import {apiFetch,API_ORIGIN,isNativeApp} from "./api";
 import {cleanTeamCode,parseTeamInvite,teamInviteUrl} from "./team-invite";
 import {teamSnapshotPolicy} from "./team-game-sync";
+import {teamBoardAnimation,teamCaptureHome,type TeamAnimationPin} from "./team-game-animation";
+import {useLudoSounds} from "./ludo-sounds";
 import {setTeamResumeHint} from "./team-resume";
 import {TRACK,SAFE} from "./ludo-visuals";
 import {movesForTeamPawn,teamPiecePoint,TEAM_BASE,TEAM_HOME,TEAM_COLORS,teamOf,
@@ -45,7 +47,20 @@ function stageColor(r:number,c:number){
  if(trackCells.has(cellKey(r,c)))return startCells.has(cellKey(r,c))?colorHex[startCells.get(cellKey(r,c))!]: "#f8f2e7";
  return "#ede7d8";
 }
-function TeamBoard({game,onChoose}:{game:GameView;onChoose:(pawn:number)=>void}){
+type BoardFx={mover:TeamAnimationPin|null;captures:TeamAnimationPin[];impact:boolean};
+const dicePips:Record<number,number[]>={
+ 1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]
+};
+function TeamDie({face,rolling,seat}:{face:number;rolling:boolean;seat:TeamSeat}){
+ const faces=[1,2,3,4,5,6];
+ return <span className={"lr-team-die "+(rolling?"is-tumbling":"lr-team-die-face-"+face)}
+  style={{"--team-die-color":colorHex[seat]} as React.CSSProperties} aria-hidden="true">
+  <span className="lr-team-die-cube">{faces.map(n=><span key={n} className={"lr-team-die-side lr-team-die-side-"+n}>
+   {Array.from({length:9},(_,i)=><i key={i} className={dicePips[n].includes(i)?"is-pip":""}/>)}
+  </span>)}</span>
+ </span>;
+}
+function TeamBoard({game,onChoose,fx}:{game:GameView;onChoose:(pawn:number)=>void;fx:BoardFx|null}){
  const board=game.state;
  const own=game.seat;
  const canChoose=board.status==="playing"&&board.dice!==null&&board.turn===own;
@@ -68,10 +83,12 @@ function TeamBoard({game,onChoose}:{game:GameView;onChoose:(pawn:number)=>void})
   }))).filter(x=>x.key===cellKey(...point));
   const ownIndex=colliders.findIndex(x=>x.seat===seat&&x.index===index);
   const shift=(ownIndex-(colliders.length-1)/2)*2.4;
-  const movable=canChoose&&seat===own&&movesForTeamPawn(board,own,index).length>0;
+  const animating=(fx?.mover?.seat===seat&&fx.mover.pawn===index)||
+   Boolean(fx?.captures.some(c=>c.seat===seat&&c.pawn===index));
+  const movable=canChoose&&!fx&&seat===own&&movesForTeamPawn(board,own,index).length>0;
   return <button key={seat+"-"+index} type="button"
     aria-label={"Pion "+(index+1)+" de "+(game.players[seat]?.name||"joueur")}
-    className={"lr-team-pin"+(movable?" can-move":"")+(pawn.zone==="finished"?" is-finished":"")}
+    className={"lr-team-pin"+(movable?" can-move":"")+(pawn.zone==="finished"?" is-finished":"")+(animating?" is-effect-hidden":"")}
     style={{left:((point[1]+.5)/15*100+shift/3)+"%",top:((point[0]+.5)/15*100+shift/3)+"%",
       backgroundColor:colorHex[seat],borderColor:seat===own?"#fff0c7":"#f6f8ff"}}
     onClick={()=>{if(movable)onChoose(index)}} disabled={!movable}><span/></button>;
@@ -80,7 +97,15 @@ function TeamBoard({game,onChoose}:{game:GameView;onChoose:(pawn:number)=>void})
   role="group" aria-label="Plateau partagé 15 par 15 à quatre couleurs">
    {pips}
    <span className="lr-team-board-center" aria-hidden="true">♥</span>
-   <div className="lr-team-pieces">{pieces}</div>
+   <div className="lr-team-pieces">{pieces}
+    {fx?.mover?<span className="lr-team-effect-pin is-travelling"
+     style={{left:((fx.mover.point[1]+.5)/15*100)+"%",top:((fx.mover.point[0]+.5)/15*100)+"%",
+       backgroundColor:colorHex[fx.mover.seat]}} aria-hidden="true"><i/></span>:null}
+    {fx?.captures.map(c=><span key={c.seat+"-"+c.pawn} className="lr-team-effect-pin is-captured"
+     style={{left:((c.point[1]+.5)/15*100)+"%",top:((c.point[0]+.5)/15*100)+"%",
+       backgroundColor:colorHex[c.seat]}} aria-hidden="true"><i/></span>)}
+    {fx?.impact?<span className="lr-team-impact" aria-hidden="true">💥</span>:null}
+   </div>
   </div></div>;
 }
 export default function TeamGames({token,onExit}:Props){
@@ -95,6 +120,12 @@ export default function TeamGames({token,onExit}:Props){
  const [confirmLeave,setConfirmLeave]=useState(false);
  const [hiddenResult,setHiddenResult]=useState(false);
  const [shareFeedback,setShareFeedback]=useState("");
+ const [boardFx,setBoardFx]=useState<BoardFx|null>(null);
+ const [dieTumbling,setDieTumbling]=useState(false);
+ const {unlock:unlockSound,play:playSound}=useLudoSounds();
+ const effectTimers=useRef<number[]>([]);
+ const diceTimer=useRef<number|null>(null);
+ const reduceMotion=useRef(false);
  const [statsOpen,setStatsOpen]=useState(false);
  const [stats,setStats]=useState<CoupleStats|null>(null);
  const [statsLoading,setStatsLoading]=useState(false);
@@ -109,6 +140,19 @@ export default function TeamGames({token,onExit}:Props){
  const pollAgain=useRef(false);
  const leaving=useRef(false);
  const wasOffline=useRef(false);
+ const stopEffects=useCallback(()=>{
+  effectTimers.current.forEach(window.clearTimeout);
+  effectTimers.current=[];
+  setBoardFx(null);
+ },[]);
+ const scheduleEffect=(cb:()=>void,ms:number)=>{
+  effectTimers.current.push(window.setTimeout(cb,ms));
+ };
+ const rollDieVisual=useCallback(()=>{
+  if(diceTimer.current!==null)window.clearTimeout(diceTimer.current);
+  setDieTumbling(true);
+  diceTimer.current=window.setTimeout(()=>{setDieTumbling(false);diceTimer.current=null},470);
+ },[]);
  const receive=useCallback((value:GameView|null,allowRoomSwitch=false)=>{
   if(!mounted.current)return;
   if(!value){
@@ -124,8 +168,44 @@ export default function TeamGames({token,onExit}:Props){
    ref.current=merged;setGame(merged);
    return;
   }
+  // Never infer a result from the animation. First accept the verified
+  // server snapshot; then derive only cosmetic motion from its difference.
+  if(previous&&previous.id===value.id&&
+    (previous.state.matchNo||1)===(value.state.matchNo||1)&&
+    previous.version<value.version){
+   const freshRoll=value.state.lastRoll;
+   if(freshRoll&&freshRoll.at!==previous.state.lastRoll?.at){
+    rollDieVisual();
+    playSound("roll");
+   }
+   const effect=teamBoardAnimation(previous.state,value.state);
+   stopEffects();
+   if(effect&&document.visibilityState==="visible"&&!reduceMotion.current){
+    setBoardFx({mover:effect.mover,captures:effect.captures,impact:false});
+    effect.path.forEach((point,i)=>scheduleEffect(()=>{
+     setBoardFx(current=>current?.mover?
+      {...current,mover:{...current.mover,point}}:current);
+     playSound("step");
+    },150*(i+1)));
+    const landed=150*(effect.path.length+1);
+    scheduleEffect(()=>{
+     setBoardFx(current=>current?{
+      mover:null,
+      captures:current.captures.map(c=>({...c,point:teamCaptureHome(c.seat,c.pawn)})),
+      impact:effect.captures.length>0
+     }:current);
+     if(effect.captures.length){playSound("capture");navigator.vibrate?.(35);}
+    },landed);
+    scheduleEffect(()=>setBoardFx(null),landed+(effect.captures.length?520:130));
+   }
+   if(previous.state.status!=="finished"&&value.state.status==="finished"&&value.state.winner!==null){
+    playSound("win");navigator.vibrate?.([50,60,100]);
+   }
+  }else{
+   stopEffects();
+  }
   ref.current=value;setGame(value);setChoices(null);
- },[]);
+ },[rollDieVisual,playSound,stopEffects]);
  const refresh=useCallback(async()=>{
   if(!mounted.current||document.visibilityState==="hidden")return;
   if(pollInFlight.current||lock.current){pollAgain.current=true;return;}
@@ -163,6 +243,7 @@ export default function TeamGames({token,onExit}:Props){
  },[token,receive]);
  useEffect(()=>{
   mounted.current=true;
+  reduceMotion.current=window.matchMedia?.("(prefers-reduced-motion: reduce)").matches||false;
   void refresh();
   const heartbeat=window.setInterval(()=>{if(document.visibilityState==="visible")void refresh()},900);
   const clock=window.setInterval(()=>setNow(Date.now()),160);
@@ -183,6 +264,8 @@ export default function TeamGames({token,onExit}:Props){
   };
   window.addEventListener("lr-team-leave",onLeave);
   return()=>{mounted.current=false;clearInterval(heartbeat);clearInterval(clock);
+   effectTimers.current.forEach(window.clearTimeout);effectTimers.current=[];
+   if(diceTimer.current!==null)window.clearTimeout(diceTimer.current);
    document.removeEventListener("visibilitychange",onResume);
    window.removeEventListener("focus",onResume);
    window.removeEventListener("online",onResume);
@@ -298,7 +381,7 @@ export default function TeamGames({token,onExit}:Props){
  const myTeam=game?.team??0;
  const names=(team:0|1)=>game?.players.filter(x=>x?.team===team).map(x=>x!.name).join(" + ")||"Couple en attente";
  const choose=(pawn:number)=>{
-  if(!game||seat!==active?.turn||!active?.dice)return;
+  if(!game||boardFx||seat!==active?.turn||!active?.dice)return;
   const legal=movesForTeamPawn(active,seat,pawn);
   if(legal.length===1)void act("move",{pawn,move:legal[0].action});
   else if(legal.length>1)setChoices(legal);
@@ -405,6 +488,9 @@ export default function TeamGames({token,onExit}:Props){
     <p>{game.presence.filter(Boolean).length} joueur(s) sur 4 · Démarrage automatique quand tous sont présents.</p>
    </div>:null}
    {status==="finished"?<div className="lr-team-victory">
+    {active!.winner!==null?<div className="lr-team-confetti" aria-hidden="true">
+      {Array.from({length:18},(_,i)=><i key={i} style={{"--confetti-i":i} as React.CSSProperties}/>)}
+     </div>:null}
     <span className="lr-team-trophy">{active!.winner===null?"🔒":"🏆"}</span>
     <h2>{active!.winner===null?"Salon fermé":("Victoire de l'équipe "+(active!.winner===0?"❤️":"💙")+" !")}</h2>
     <p>{active!.lastAction}</p>
@@ -432,13 +518,16 @@ export default function TeamGames({token,onExit}:Props){
      <div className="lr-team-turn"><span>{game.players[active!.turn]?.name||"Joueur"} joue</span>
       <strong>{active!.turn===seat?"🎯 À TOI":"Tour adverse"} · {turnLeft}s</strong>
       <span>{game.kind==="senegal"?"🇸🇳 Règles sénégalaises":"🎲 Classique"}</span></div>
-     <TeamBoard game={game} onChoose={choose}/>
+     <TeamBoard game={game} onChoose={choose} fx={boardFx}/>
      <div className="lr-team-dice">
       <span>{active!.lastAction}</span>
-      <button type="button" className="lr-team-dice-button"
-       disabled={working||active!.turn!==seat||active!.dice!==null}
-       onClick={()=>void act("roll")} aria-label="Lancer le dé">
-       {active!.dice||"🎲"}</button>
+      <button type="button" className={"lr-team-dice-button"+(dieTumbling?" is-tumbling":"")}
+       disabled={working||Boolean(boardFx)||dieTumbling||active!.turn!==seat||active!.dice!==null}
+       onClick={()=>{unlockSound();playSound("roll");rollDieVisual();void act("roll")}}
+       aria-label="Lancer le dé">
+       <TeamDie rolling={dieTumbling} face={active!.dice||active!.lastRoll?.face||1}
+        seat={active!.dice!==null?active!.turn:active!.lastRoll?.seat??active!.turn}/>
+      </button>
       <span>{active!.turn===seat?active!.dice===null?"Lance le dé":"Touche un pion disponible":"En attente du joueur"}</span>
      </div>
      <div className="lr-team-color-key">{TEAM_COLORS.map((col,i)=>
