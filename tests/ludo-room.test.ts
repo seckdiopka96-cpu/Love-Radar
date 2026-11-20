@@ -51,8 +51,8 @@ test("one visible Ludo entrance opens the room with all four games",()=>{
 });
 
 test("classic Duo loads the newest shared board, never a cached legacy iframe",()=>{
- const duoVersion="ludo-room-20261119-v31";
- const soloVersion="ludo-room-20261119-v25";
+ const duoVersion="ludo-room-20261119-v32";
+ const soloVersion="ludo-room-20261119-v26";
  assert.ok(duoFrame.includes('/ludo-duo/index.html?v='+duoVersion));
  assert.ok(soloFrame.includes('&v='+soloVersion));
  assert.ok(duoHTML.includes('../ludo-solo/style.css?v='+duoVersion));
