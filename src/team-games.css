@@ -216,3 +216,101 @@
  .lr-team-ranking-entry>strong{font-size:11px}
  .lr-team-ranking-toggle button{min-height:34px}
 }
+
+/* 2v2 premium dice: six physical faces, one authoritative server result. */
+.lr-team-dice-button{perspective:420px;overflow:visible;display:grid;place-items:center;
+ -webkit-tap-highlight-color:transparent;isolation:isolate}
+.lr-team-dice-button:disabled{opacity:1}
+.lr-team-die{--die-size:46px;--die-depth:23px;
+ width:var(--die-size);height:var(--die-size);display:block;position:relative;
+ transform-style:preserve-3d;perspective:330px}
+.lr-team-die-cube{position:absolute;inset:0;transform-style:preserve-3d;
+ transition:transform .25s cubic-bezier(.19,.72,.27,1.1)}
+.lr-team-die-face-1 .lr-team-die-cube{transform:rotateX(0deg) rotateY(0deg)}
+.lr-team-die-face-2 .lr-team-die-cube{transform:rotateX(-90deg) rotateY(0deg)}
+.lr-team-die-face-3 .lr-team-die-cube{transform:rotateX(0deg) rotateY(-90deg)}
+.lr-team-die-face-4 .lr-team-die-cube{transform:rotateX(0deg) rotateY(90deg)}
+.lr-team-die-face-5 .lr-team-die-cube{transform:rotateX(90deg) rotateY(0deg)}
+.lr-team-die-face-6 .lr-team-die-cube{transform:rotateX(0deg) rotateY(180deg)}
+.lr-team-die-side{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);
+ grid-template-rows:repeat(3,1fr);gap:2px;padding:7px;backface-visibility:hidden;
+ border:1.5px solid #ffffffbb;border-radius:9px;
+ background:linear-gradient(145deg,#ffffffb0,var(--team-die-color,#ce6a9a) 43%,#172c60);
+ box-shadow:inset 2px 2px 5px #ffffff80,inset -3px -3px 5px #09162e70,0 2px 3px #0005}
+.lr-team-die-side-1{transform:translateZ(var(--die-depth))}
+.lr-team-die-side-6{transform:rotateY(180deg) translateZ(var(--die-depth))}
+.lr-team-die-side-3{transform:rotateY(90deg) translateZ(var(--die-depth))}
+.lr-team-die-side-4{transform:rotateY(-90deg) translateZ(var(--die-depth))}
+.lr-team-die-side-2{transform:rotateX(90deg) translateZ(var(--die-depth))}
+.lr-team-die-side-5{transform:rotateX(-90deg) translateZ(var(--die-depth))}
+.lr-team-die-side i{display:block;border-radius:50%;min-width:0;min-height:0}
+.lr-team-die-side i.is-pip{background:radial-gradient(circle at 36% 32%,#fff 0 36%,#d0e0f7 72%,#7d9dbd 100%);
+ box-shadow:0 1px 2px #082036b0}
+.lr-team-die.is-tumbling{animation:lr-team-die-hop .47s cubic-bezier(.18,.56,.32,1) both}
+.lr-team-die.is-tumbling .lr-team-die-cube{animation:lr-team-die-roll .47s cubic-bezier(.15,.35,.42,.89) both}
+@keyframes lr-team-die-hop{
+ 0%{transform:translateY(1px) scale(.93)}35%{transform:translateY(-12px) scale(1.09)}
+ 70%{transform:translateY(-6px) scale(1.04)}100%{transform:translateY(0) scale(1)}
+}
+@keyframes lr-team-die-roll{
+ 0%{transform:rotateX(0deg) rotateY(0deg) rotateZ(0)}
+ 42%{transform:rotateX(190deg) rotateY(240deg) rotateZ(18deg)}
+ 80%{transform:rotateX(420deg) rotateY(490deg) rotateZ(-12deg)}
+ 100%{transform:rotateX(680deg) rotateY(700deg) rotateZ(0)}
+}
+/* Movement overlay never changes the authoritative square layout. */
+.lr-team-pin.is-effect-hidden{visibility:hidden}
+.lr-team-effect-pin{position:absolute;z-index:12;display:grid;place-items:center;
+ width:6%;height:6%;transform:translate(-50%,-50%) rotate(-45deg);
+ border:2px solid #fff6c3;border-radius:50% 50% 50% 12%;
+ box-shadow:0 3px 7px #000a,0 0 10px #ffe7aa88;
+ pointer-events:none;transition:left .14s cubic-bezier(.25,.7,.24,1),
+ top .14s cubic-bezier(.25,.7,.24,1)}
+.lr-team-effect-pin i{width:35%;height:35%;background:#fff9e9;border-radius:50%}
+.lr-team-effect-pin.is-travelling{filter:drop-shadow(0 2px 2px #0008)}
+.lr-team-effect-pin.is-captured{z-index:11;transition:left .40s cubic-bezier(.20,.55,.32,1),
+ top .40s cubic-bezier(.20,.55,.32,1)}
+.lr-team-impact{position:absolute;z-index:15;left:50%;top:49%;pointer-events:none;
+ transform:translate(-50%,-50%);font-size:clamp(20px,7vw,42px);
+ filter:drop-shadow(0 3px 5px #1d1326);
+ animation:lr-team-impact .52s ease-out both}
+@keyframes lr-team-impact{
+ 0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+ 20%{opacity:1;transform:translate(-50%,-50%) scale(1.35)}
+ 100%{opacity:0;transform:translate(-50%,-60%) scale(.9)}
+}
+.lr-team-victory{position:relative;overflow:hidden}
+.lr-team-victory>.lr-team-trophy{position:relative;z-index:2;display:inline-block;
+ animation:lr-team-trophy-entrance .8s cubic-bezier(.2,.9,.24,1.2) both;
+ filter:drop-shadow(0 7px 8px #080c22b0)}
+.lr-team-victory>h2,.lr-team-victory>p,.lr-team-victory>button{position:relative;z-index:2}
+.lr-team-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1}
+.lr-team-confetti i{--confetti-i:0;position:absolute;left:calc(4% + var(--confetti-i)*5%);
+ top:-14%;width:7px;height:13px;border-radius:2px;
+ background:hsl(calc(var(--confetti-i)*39) 88% 70%);
+ animation:lr-team-confetti-drop calc(1.8s + var(--confetti-i)*.05s) ease-in both;
+ animation-delay:calc(var(--confetti-i)*.045s)}
+@keyframes lr-team-trophy-entrance{
+ 0%{opacity:0;transform:translateY(20px) scale(.3) rotate(-16deg)}
+ 60%{opacity:1;transform:translateY(-10px) scale(1.16) rotate(7deg)}
+ 100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}
+}
+@keyframes lr-team-confetti-drop{
+ 0%{opacity:0;transform:translateY(-10px) rotate(0)}
+ 14%{opacity:1}
+ 100%{opacity:0;transform:translateY(340px) rotate(590deg)}
+}
+@media(max-width:700px){
+ .lr-team-die{--die-size:39px;--die-depth:19.5px}
+ .lr-team-die-side{padding:6px;gap:2px}
+}
+@media(max-height:730px) and (max-width:700px){
+ .lr-team-die{--die-size:31px;--die-depth:15.5px}
+ .lr-team-die-side{padding:4px;gap:1px;border-radius:7px}
+}
+@media(prefers-reduced-motion:reduce){
+ .lr-team-die.is-tumbling,.lr-team-die.is-tumbling .lr-team-die-cube,
+ .lr-team-effect-pin,.lr-team-victory>.lr-team-trophy,.lr-team-confetti i,
+ .lr-team-impact{animation:none!important;transition:none!important}
+ .lr-team-confetti{display:none}
+}
