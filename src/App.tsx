@@ -32,6 +32,7 @@ import SettingsPage from "./SettingsPage";
 import RecoveryCodeDialog from "./RecoveryCodeDialog";
 import GamesHub from "./GamesHub";
 import TeamGames from "./TeamGames";
+import {hasTeamResumeHint,setTeamResumeHint} from "./team-resume";
 import LudoRoom from "./LudoRoom";
 import RpsDuo from "./RpsDuo";
 import DuoArcade from "./DuoArcade";
@@ -228,7 +229,50 @@ export default function LoveRadar(){
  const [pendingNoticeRouteId,setPendingNoticeRouteId]=useState("");
  // A resumed iPhone can briefly report its old chat URL after a push tap.
  const activeTappedRoute=useRef<{routeId:string;target:NoticeTarget}|null>(null);
+ const userNavigatedAfterBoot=useRef(false);
  const [readyLudoNotice,setReadyLudoNotice]=useState("");
+ // An iOS home-screen app may reopen at "/" after being suspended or killed.
+ // Resume only if THIS device last had a 2v2 match and THIS authenticated
+ // couple still owns an active lobby. No scores/tokens are stored locally.
+ useEffect(()=>{
+  if(initializing||!token||!room?.roomId||!hasTeamResumeHint())return;
+  let stopped=false,inFlight=false,done=false;
+  const eligible=()=>{
+   if(stopped||done||userNavigatedAfterBoot.current||activeTappedRoute.current)return false;
+   const route=parseNotice(window.location.search);
+   return (currentTab.current==="home"||currentTab.current==="games")&&
+    (!route||route.tab==="home"||route.tab==="games")&&
+    !window.location.search.includes("invite=")&&document.visibilityState==="visible";
+  };
+  const attempt=async()=>{
+   if(!eligible()||inFlight||!navigator.onLine)return;
+   inFlight=true;
+   try{
+    const response=await apiFetch("/api/team-games?resume=1",{
+     headers:{Authorization:"Bearer "+token},cache:"no-store"
+    });
+    if(!response.ok)return;
+    const result=await response.json() as {ok?:boolean;resume?:boolean};
+    if(!result.ok)return;
+    done=true;
+    if(!result.resume){setTeamResumeHint(false);return}
+    if(!eligible())return;
+    setTab("team-games");
+    const url=new URL(window.location.href);
+    url.searchParams.set("tab","team-games");
+    window.history.replaceState(null,"",url.pathname+url.search+url.hash);
+    firstPoll.current=true;
+   }catch{/* Retry on next online event without losing the recovery hint. */}
+   finally{inFlight=false}
+  };
+  void attempt();
+  const retry=window.setInterval(()=>void attempt(),9000);
+  window.addEventListener("online",attempt);
+  window.addEventListener("pageshow",attempt);
+  return()=>{stopped=true;clearInterval(retry);
+   window.removeEventListener("online",attempt);
+   window.removeEventListener("pageshow",attempt)};
+ },[initializing,token,room?.roomId]);
  const markLudoNoticeReady=useCallback((challenge:string)=>setReadyLudoNotice(challenge),[]);
  const [noticeTap,setNoticeTap]=useState(0);
  const lastMessageJump=useRef<string>("");
@@ -259,10 +303,14 @@ export default function LoveRadar(){
   window.history.replaceState(null,"",url.pathname+(url.search||""));
  }
  function navigate(tab:Tab){
+  userNavigatedAfterBoot.current=true;
   // Leaving the live quiz via bottom navigation is an explicit forfeit.
   // Merely losing network or hiding the app doesn't fire this signal.
   if(currentTab.current==="rapid"&&tab!=="rapid")window.dispatchEvent(new Event("lr-rapid-leave"));
-  if(currentTab.current==="team-games"&&tab!=="team-games")window.dispatchEvent(new Event("lr-team-leave"));
+  if(currentTab.current==="team-games"&&tab!=="team-games"){
+   setTeamResumeHint(false);
+   window.dispatchEvent(new Event("lr-team-leave"));
+  }
   if(tab==="chat"&&currentTab.current!=="chat")chatReturnTab.current=currentTab.current;
   closeNotice();
   setPartnerPhotoOpen(false);
