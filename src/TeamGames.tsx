@@ -498,7 +498,10 @@ export default function TeamGames({token,onExit}:Props){
    </div>:null}
    {status==="finished"?<div className="lr-team-victory">
     {active!.winner!==null?<div className="lr-team-confetti" aria-hidden="true">
-      {Array.from({length:18},(_,i)=><i key={i} style={{"--confetti-i":i} as React.CSSProperties}/>)}
+      {Array.from({length:18},(_,i)=><i key={i} style={{
+       left:(4+i*5)+"%",backgroundColor:["#f8c16c","#f29cbd","#83d7cb","#a2bff7"][i%4],
+       animationDelay:(i*45)+"ms",animationDuration:(1650+i*60)+"ms"
+      }}/>)}
      </div>:null}
     <span className="lr-team-trophy">{active!.winner===null?"🔒":"🏆"}</span>
     <h2>{active!.winner===null?"Salon fermé":("Victoire de l'équipe "+(active!.winner===0?"❤️":"💙")+" !")}</h2>
