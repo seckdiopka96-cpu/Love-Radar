@@ -469,16 +469,19 @@
   }
   const rollingNow=Boolean(state.rolling)||Date.now()<dieVisualUntil;
   dice.classList.toggle("is-rolling",rollingNow);
-  // The game may clear g.dice immediately after a move; never fall back to
-  // a fake "1" when the server has persisted the real last die result.
-  const previousValue=/(?:lanc[eé]\s+un\s+|Dé\s*:\s*)([1-6])/.exec(g.lastAction||"");
-  const diceValue=g.dice??last?.face??(previousValue?Number(previousValue[1]):1);
-  dice.dataset.face=String(diceValue);
+  // A completed throw belongs exclusively to the player whose turn it was.
+  // The server may clear g.dice when that turn ends: never project last.face
+  // (or parse lastAction) onto the other player's fresh, unrolled die.
+  const diceValue=Number.isInteger(g.dice)&&g.dice>=1&&g.dice<=6?g.dice:null;
+  dice.dataset.face=String(diceValue??0);
   dice.dataset.side=g.turn===state.mySeat?"human":"cpu";
-  dieResult.textContent=rollingNow?"·":String(diceValue);
-  dieResult.value=rollingNow?"":String(diceValue);
-  dieResult.setAttribute("aria-label",rollingNow?"Le dé tourne":"Dernier lancer : "+diceValue);
-  roll.setAttribute("aria-label",canRoll?"Lancer le dé":"Dé : "+diceValue);
+  roll.classList.toggle("is-awaiting-roll",diceValue===null&&!rollingNow);
+  dieResult.textContent=rollingNow?"·":diceValue===null?"?":String(diceValue);
+  dieResult.value=diceValue===null?"":String(diceValue);
+  dieResult.setAttribute("aria-label",rollingNow?"Le dé tourne":
+   diceValue===null?"En attente du prochain lancer":"Résultat de ce tour : "+diceValue);
+  roll.setAttribute("aria-label",canRoll?"Lancer le dé":
+   rollingNow?"Le dé tourne":diceValue===null?"En attente du prochain lancer":"Dé : "+diceValue);
   const isSix=g.dice===6;
   feedback.textContent=state.error||g.lastAction||"Jouez à deux en direct.";
   const turnBanner=document.getElementById("turn-message");
