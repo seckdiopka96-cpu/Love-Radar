@@ -475,3 +475,30 @@ test("one 2v2 invitation can be opened by both members of the guest couple, but 
   assert.equal(view.state.status,"playing","brief disconnections must not forfeit before 60s");
  }finally{sqlite.close()}
 });
+
+test("leaving an invitation lobby keeps the room available for all other players",async()=>{
+ const {sqlite,request}=testDB();
+ try{
+  const host=(await request("a","create",{kind:"quiz"})).data.game;
+  await request("b","join",{code:host.code});
+  const left=await request("b","leave-lobby",{id:host.id,version:host.version});
+  assert.equal(left.status,200);
+  assert.equal(left.data.game.state.status,"waiting");
+  assert.equal(left.data.game.presence[2],false,"leaving participant is removed from live roster");
+  const other=(await request("a",undefined,{},host.id)).data.game;
+  assert.equal(other.state.status,"waiting","host keeps the same working invitation");
+  assert.equal(other.code,host.code);
+  const guest=await request("c","join",{code:host.code});
+  assert.equal(guest.status,200,"other couple can still accept the invitation");
+  await request("d","join",{code:host.code});
+  const before=(await request("a",undefined,{},host.id)).data.game;
+  assert.equal(before.state.status,"waiting","absent host partner does not inadvertently start the match");
+  const hostAgain=await request("b","join",{code:host.code});
+  assert.equal(hostAgain.status,200);
+  const ready=(await request("a",undefined,{},host.id)).data.game;
+  assert.equal(ready.state.status,"playing");
+  const cannotLeave=await request("b","leave-lobby",{id:host.id});
+  assert.equal(cannotLeave.status,409,"a started match cannot be silently abandoned");
+  assert.equal((await request("c",undefined,{},host.id)).data.game.state.status,"playing");
+ }finally{sqlite.close()}
+});
