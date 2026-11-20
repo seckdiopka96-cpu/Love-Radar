@@ -109,3 +109,67 @@ html.lr-ludo-duo-ui .game-screen .piece--owned-turn.piece--selectable::before{
   animation:none!important;
  }
 }
+
+/* Solo + Duo: a capture shines on the hit square as the returning pin travels
+   back along its existing, server-authoritative animation path. */
+html.lr-ludo-solo-ui .game-screen .piece--captured::after,
+html.lr-ludo-duo-ui .game-screen .piece--captured::after{
+ content:"";position:absolute;inset:-6px;border-radius:50%;pointer-events:none;
+ border:2px solid #ffdd8a;box-shadow:0 0 9px #ffd479d9,0 0 15px #ff6d75a6;
+ animation:lr-ludo-capture-ring .4s ease-out both;
+}
+@keyframes lr-ludo-capture-ring{
+ 0%{opacity:0;transform:scale(.45)}
+ 35%{opacity:1;transform:scale(1.25)}
+ 100%{opacity:0;transform:scale(1.6)}
+}
+/* The existing Solo/Duo finished dialog stays fully clickable while its
+   original trophy and lightweight confetti celebrate the real server win. */
+html.lr-ludo-solo-ui .victory-dialog[open],
+html.lr-ludo-duo-ui .victory-dialog[open]{
+ position:relative;isolation:isolate;overflow:hidden;
+ box-shadow:0 20px 45px #020d26c0,0 0 0 1px #ffdd9f7a,
+ 0 0 34px #f7c07955;
+}
+html.lr-ludo-solo-ui .victory-dialog[open]::before,
+html.lr-ludo-duo-ui .victory-dialog[open]::before{
+ content:"";position:absolute;inset:-20%;pointer-events:none;z-index:0;
+ background-image:
+ radial-gradient(circle at 8% 8%,#f6a5d8 0 3px,transparent 4px),
+ radial-gradient(circle at 19% 20%,#ffdb79 0 4px,transparent 5px),
+ radial-gradient(circle at 40% 5%,#7edbd5 0 3px,transparent 4px),
+ radial-gradient(circle at 59% 30%,#eca6da 0 3px,transparent 4px),
+ radial-gradient(circle at 73% 6%,#fce993 0 4px,transparent 5px),
+ radial-gradient(circle at 90% 23%,#92c9ff 0 3px,transparent 4px),
+ radial-gradient(circle at 33% 60%,#e9b7ff 0 3px,transparent 4px),
+ radial-gradient(circle at 82% 75%,#ffda74 0 3px,transparent 4px);
+ animation:lr-ludo-victory-confetti 1.9s ease-in-out both;
+}
+html.lr-ludo-solo-ui .victory-dialog[open]>*,
+html.lr-ludo-duo-ui .victory-dialog[open]>*{position:relative;z-index:1}
+html.lr-ludo-solo-ui .victory-dialog[open] .victory-icon,
+html.lr-ludo-duo-ui .victory-dialog[open] .victory-icon{
+ display:inline-block;
+ animation:lr-ludo-trophy-entry .68s cubic-bezier(.18,.89,.3,1.15) both;
+ filter:drop-shadow(0 5px 6px #23153360);
+}
+@keyframes lr-ludo-victory-confetti{
+ 0%{opacity:0;transform:translateY(-45px) rotate(-8deg)}
+ 25%{opacity:1}
+ 100%{opacity:.2;transform:translateY(165px) rotate(8deg)}
+}
+@keyframes lr-ludo-trophy-entry{
+ 0%{opacity:0;transform:translateY(15px) scale(.32) rotate(-15deg)}
+ 65%{opacity:1;transform:translateY(-7px) scale(1.2) rotate(8deg)}
+ 100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}
+}
+@media(prefers-reduced-motion:reduce){
+ html.lr-ludo-solo-ui .game-screen .piece--captured::after,
+ html.lr-ludo-duo-ui .game-screen .piece--captured::after,
+ html.lr-ludo-solo-ui .victory-dialog[open]::before,
+ html.lr-ludo-duo-ui .victory-dialog[open]::before,
+ html.lr-ludo-solo-ui .victory-dialog[open] .victory-icon,
+ html.lr-ludo-duo-ui .victory-dialog[open] .victory-icon{
+  animation:none!important;
+ }
+}
