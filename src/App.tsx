@@ -254,9 +254,9 @@ export default function LoveRadar(){
     if(!response.ok)return;
     const result=await response.json() as {ok?:boolean;resume?:boolean};
     if(!result.ok)return;
+    if(!result.resume){done=true;setTeamResumeHint(false);return}
+    if(!eligible()){done=true;return}
     done=true;
-    if(!result.resume){setTeamResumeHint(false);return}
-    if(!eligible())return;
     setTab("team-games");
     const url=new URL(window.location.href);
     url.searchParams.set("tab","team-games");
