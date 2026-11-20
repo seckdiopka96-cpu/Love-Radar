@@ -2,6 +2,7 @@ import {useCallback,useEffect,useRef,useState} from "react";
 import {apiFetch,API_ORIGIN,isNativeApp} from "./api";
 import {cleanTeamCode,parseTeamInvite,teamInviteUrl} from "./team-invite";
 import {teamSnapshotPolicy} from "./team-game-sync";
+import {setTeamResumeHint} from "./team-resume";
 import {TRACK,SAFE} from "./ludo-visuals";
 import {movesForTeamPawn,teamPiecePoint,TEAM_BASE,TEAM_HOME,TEAM_COLORS,teamOf,
  type TeamSeat,type TeamGame,type TeamKind,type TeamMove
@@ -88,6 +89,8 @@ export default function TeamGames({token,onExit}:Props){
  const [confirmLeave,setConfirmLeave]=useState(false);
  const [hiddenResult,setHiddenResult]=useState(false);
  const [shareFeedback,setShareFeedback]=useState("");
+ const [reconnecting,setReconnecting]=useState(false);
+ const [reconnectedAt,setReconnectedAt]=useState(0);
  const attemptedInvite=useRef("");
  const mounted=useRef(true);
  const ref=useRef<GameView|null>(null);
@@ -95,14 +98,16 @@ export default function TeamGames({token,onExit}:Props){
  const pollInFlight=useRef(false);
  const pollAgain=useRef(false);
  const leaving=useRef(false);
+ const wasOffline=useRef(false);
  const receive=useCallback((value:GameView|null,allowRoomSwitch=false)=>{
   if(!mounted.current)return;
   if(!value){
-   ref.current=null;setGame(null);setChoices(null);return;
+   ref.current=null;setGame(null);setChoices(null);setTeamResumeHint(false);return;
   }
   const previous=ref.current;
   const policy=teamSnapshotPolicy(previous,value,allowRoomSwitch);
   if(policy==="ignore")return;
+  setTeamResumeHint(value.state.status==="playing"||value.state.status==="waiting");
   if(policy==="presence-only"&&previous){
    // Presence is refreshed independently from turns. Keep the newer board.
    const merged={...previous,players:value.players,presence:value.presence};
@@ -126,7 +131,16 @@ export default function TeamGames({token,onExit}:Props){
     receive(data.game);
     setError("");
    }
-  }catch(e){if(mounted.current)setError(e instanceof Error?e.message:"Erreur de connexion.");}
+   if(mounted.current){
+    if(wasOffline.current){setReconnectedAt(Date.now());wasOffline.current=false;}
+    setReconnecting(false);
+   }
+  }catch(e){
+   if(mounted.current){
+    wasOffline.current=true;setReconnecting(true);
+    setError(prev=>ref.current?prev:(e instanceof Error?e.message:"Erreur de connexion."));
+   }
+  }
   finally{
    pollInFlight.current=false;
    if(mounted.current)setLoading(false);
@@ -150,6 +164,7 @@ export default function TeamGames({token,onExit}:Props){
    const last=ref.current;
    if(!last||last.state.status!=="playing"||leaving.current)return;
    leaving.current=true;
+   setTeamResumeHint(false);
    void apiFetch("/api/team-games",{
     method:"POST",cache:"no-store",keepalive:true,
     headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
@@ -178,10 +193,15 @@ export default function TeamGames({token,onExit}:Props){
    // before prompting the user so a stale turn never remains visible.
    if(payload.game)receive(payload.game,action==="create"||action==="join");
    if(!response.ok||!payload.ok)throw Error(payload.error||"Impossible de synchroniser le jeu.");
+   if(wasOffline.current){setReconnectedAt(Date.now());wasOffline.current=false;}
+   setReconnecting(false);
    setConfirmLeave(false);
    return true;
   }catch(e){
-   if(mounted.current)setError(e instanceof Error?e.message:"Erreur de connexion.");
+   if(mounted.current){
+    setError(e instanceof Error?e.message:"Erreur de connexion.");
+    if(!navigator.onLine){wasOffline.current=true;setReconnecting(true);}
+   }
    pollAgain.current=true;
    return false;
   }finally{
@@ -236,6 +256,7 @@ export default function TeamGames({token,onExit}:Props){
    // Opening chat or going back from a pending invite is not a surrender.
    const ok=await act("leave-lobby");if(!ok)return;
   }
+  setTeamResumeHint(false);
   onExit();
  };
  const active=game?.state;
@@ -259,7 +280,14 @@ export default function TeamGames({token,onExit}:Props){
    <div><small>❤️ 2 CONTRE 2 · EN DIRECT</small><h1>Défis entre couples</h1></div>
    <span className="lr-team-header-mark">🎮</span>
   </header>
-  {error?<div role="alert" className="lr-team-error">{error}<button type="button" onClick={()=>void refresh()}>Réessayer</button></div>:null}
+  {reconnecting&&game?<div role="status" className="lr-team-connection">
+   <span>📶 Reconnexion en cours…</span>
+   <small>Ta partie, tes pions et tes points restent enregistrés.</small>
+   <button type="button" onClick={()=>void refresh()}>Réessayer</button>
+  </div>:null}
+  {!reconnecting&&reconnectedAt>0&&now-reconnectedAt<3600?
+   <div role="status" className="lr-team-reconnected">✓ Reconnecté · partie retrouvée</div>:null}
+  {error&&(!game||!reconnecting)?<div role="alert" className="lr-team-error">{error}<button type="button" onClick={()=>void refresh()}>Réessayer</button></div>:null}
   {loading?<p className="lr-team-muted">Connexion à la salle privée…</p>:
   !game||hiddenResult?<div className="lr-team-lobby">
    <h2>Invitez un autre couple 💞</h2>
