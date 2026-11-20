@@ -14,6 +14,8 @@ export type TeamPiece={zone:"base"|"track"|"home"|"enemy"|"finished";step:number
 export type TeamMove={pawn:number;action:"release"|"track"|"home"|"enemy"|"exit"|"jump";to:TeamPiece;captures:{seat:TeamSeat;pawn:number}[]};
 export type TeamGame={
  kind:TeamKind;status:TeamStatus;winner:TeamId|null;winReason:"pieces"|"points"|"abandon"|null;
+ /** Sequence of full matches within a shared 2v2 salon; quiz "round" is not a match. */
+ matchNo:number;
  positions:TeamPiece[][];turn:TeamSeat;dice:number|null;sixStreak:number;
  round:number;phase:"question"|"result"|null;questionIndex:number;answered:TeamSeat[];
  scores:[number,number];startsAt:number;deadlineAt:number;lastAction:string;updatedAt:number
@@ -48,7 +50,7 @@ export function repairTeamClassic(game:TeamGame):TeamGame{
  return {...game,positions,lastAction:"Parcours Classique corrigé : le pion a rejoint son couloir d'arrivée."};
 }
 export function newTeamMatch(kind:TeamKind,status:TeamStatus="waiting",now=Date.now()):TeamGame{
- return {kind,status,winner:null,winReason:null,positions:([0,1,2,3] as TeamSeat[]).map(seat=>
+ return {kind,status,matchNo:1,winner:null,winReason:null,positions:([0,1,2,3] as TeamSeat[]).map(seat=>
   Array.from({length:4},()=>freshPiece(seat))),turn:0,dice:null,sixStreak:0,round:1,phase:kind==="quiz"?"question":null,
   questionIndex:Math.floor(now/997)%RAPID_QUESTIONS.length,answered:[],scores:[0,0],
   startsAt:status==="playing"&&kind==="quiz"?now+3000:0,
