@@ -148,7 +148,7 @@ test("Solo and Duo toss their actual die, light the active house and outline my 
  assert.ok(solo.includes("await sleep(reducedMotion?80:430)"),"Solo waits for one clear throw, under 0.5s");
  assert.ok(duo.includes("const DIE_TUMBLE_MS=430"),"Duo's transient throw lasts under 0.5s");
  assert.ok(solo.includes("const value=getRoll()"),"Solo uses its genuine random result");
- assert.ok(duo.includes("const diceValue=g.dice??last?.face??"),"Duo uses the server result");
+ assert.ok(duo.includes("const diceValue=Number.isInteger(g.dice)&&g.dice>=1&&g.dice<=6?g.dice:null"),"Duo uses the server result");
  assert.ok(!duo.includes("getRandomValues"),"the visual Duo frame cannot roll for the server");
  for(const name of ["lr-ludo-cinematic-toss-a","lr-ludo-cinematic-toss-b","lr-ludo-cinematic-toss-c","lr-ludo-house-beacon","lr-ludo-legal-white-glow"])
   assert.ok(sharedEffects.includes(name),name);
