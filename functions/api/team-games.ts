@@ -53,8 +53,20 @@ async function get(db:D1Database,id:string):Promise<Row|null>{
  return db.prepare("SELECT * FROM team_games WHERE id=?").bind(id).first<Row>();
 }
 async function current(db:D1Database,member:Member):Promise<Row|null>{
- return db.prepare("SELECT * FROM team_games WHERE host_room=? OR guest_room=? ORDER BY updated_at DESC LIMIT 1")
-  .bind(member.room_id,member.room_id).first<Row>();
+ // Last touched does not mean still playable: a more recently ended match
+ // must never hide an older interrupted live tournament.
+ return db.prepare(
+  "SELECT * FROM team_games WHERE host_room=? OR guest_room=?"+
+  " ORDER BY CASE WHEN json_extract(state_json,'$.status') IN ('waiting','playing') THEN 0 ELSE 1 END,"+
+  " updated_at DESC LIMIT 1"
+ ).bind(member.room_id,member.room_id).first<Row>();
+}
+async function activeMatch(db:D1Database,member:Member):Promise<Row|null>{
+ return db.prepare(
+  "SELECT * FROM team_games WHERE (host_room=? OR guest_room=?)"+
+  " AND json_extract(state_json,'$.status') IN ('waiting','playing')"+
+  " ORDER BY updated_at DESC LIMIT 1"
+ ).bind(member.room_id,member.room_id).first<Row>();
 }
 const allowed=(m:Member,r:Row)=>r.host_room===m.room_id||r.guest_room===m.room_id;
 const seatFor=(member:Member,row:Row):TeamSeat=>
@@ -111,22 +123,10 @@ async function sync(db:D1Database,row:Row):Promise<Row>{
   row=await save(db,row,repaired)||await get(db,row.id)||row;
   game=JSON.parse(row.state_json) as TeamGame;
  }
- // Presence has a 30 s display window, but forfeiture requires a full
- // 60 seconds of absence. This avoids penalizing brief iOS interruptions.
- if(game.status==="playing"&&row.guest_room){
-  const host=await roomMembers(db,row.host_room),guest=await roomMembers(db,row.guest_room);
-  if(host.length===2&&guest.length===2){
-   const players=[host[0],guest[0],host[1],guest[1]];
-   const seen=await db.prepare("SELECT member_id,last_seen FROM team_game_presence WHERE game_id=?")
-    .bind(row.id).all<{member_id:string;last_seen:number}>();
-   const last=new Map((seen.results||[]).map(p=>[p.member_id,p.last_seen]));
-   const absent=players.findIndex(p=>Date.now()-Number(last.get(p.id)||0)>60000);
-   if(absent>=0){
-    const stopped=teamForfeit(game,teamOf(absent as TeamSeat));
-    return await save(db,row,stopped)||await get(db,row.id)||row;
-   }
-  }
- }
+ // A lost Wi-Fi / 4G connection is NOT an intentional quit.
+ // Presence expires for UI after 30 seconds, while the board and scores stay
+ // persisted for any duration. Only explicit "quit" can award a forfeit.
+ // Ludo idle turns and the real-time quiz clock still follow their own rules.
  if(game.status==="waiting"&&row.guest_room){
   const arrived=await attendance(db,row);
   if(arrived.every(Boolean)){
@@ -148,7 +148,15 @@ export async function onRequestGet({request,env}:Context):Promise<Response>{
  const db=env.DB;try{
   await ensure(db);
   const member=await auth(request,db);if(!member)return bad("Connexion nécessaire.",401);
-  const id=new URL(request.url).searchParams.get("id");
+  const params=new URL(request.url).searchParams;
+  if(params.get("resume")==="1"){
+   // Boot-time probe must not mark an absent phone as "online". The actual
+   // TeamGames screen will mark presence after the app navigates there.
+   const active=await activeMatch(db,member);
+   return reply({ok:true,resume:!!active,status:active?
+    (JSON.parse(active.state_json) as TeamGame).status:null});
+  }
+  const id=params.get("id");
   if(id&&!/^[0-9a-f-]{36}$/i.test(id))return bad("Identifiant invalide.");
   let row=id?await get(db,id):await current(db,member);
   if(!row)return reply({ok:true,game:null});
