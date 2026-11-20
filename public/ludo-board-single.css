@@ -149,16 +149,20 @@ html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-shared-center svg,
  0%,100%{filter:brightness(.84) drop-shadow(0 0 2px #fff9de)}
  45%{filter:brightness(1.18) drop-shadow(0 0 10px #fff4ca)}
 }
-/* Shared, clean midnight-blue backdrop for every Ludo mode.
- * No radial glow, blur, texture or decorative overlay behind the board.
- * The canonical board and all gameplay elements remain unchanged. */
+/* Shared premium Ludo backdrop: deep navy with a quiet woven-table texture.
+ * Keep it matte, static and soft; no radial halos, blurry spots, or animation.
+ * The canonical board, pawns and dice remain unchanged. */
 html.lr-ludo-solo-ui .app,
 html.lr-ludo-duo-ui .app,
 html.lr-ludo-solo-ui #plateau.game-screen,
 html.lr-ludo-duo-ui #plateau.game-screen,
 #root .ludo-experience.ludo-senegal-solo,
 #root .ludo-experience.ludo-senegal-duo{
- background:linear-gradient(180deg,#10273d 0%,#0c2034 52%,#091b2e 100%)!important;
+ background:
+  linear-gradient(90deg,#06172855 0%,transparent 17%,transparent 83%,#06172855 100%),
+  repeating-linear-gradient(135deg,#d3e8f409 0 1px,transparent 1px 13px),
+  repeating-linear-gradient(45deg,#000a160c 0 1px,transparent 1px 13px),
+  linear-gradient(180deg,#16334c 0%,#102a41 52%,#0a2035 100%)!important;
 }
 html.lr-ludo-solo-ui .app::before,
 html.lr-ludo-duo-ui .app::before{
