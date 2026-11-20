@@ -198,16 +198,24 @@ test("new private database tables must always be added to room deletion inventor
 test("deleting a couple clears every shared tournament without exposing or removing unrelated couples",async()=>{
  const local=localD1();seed(local,false);
  local.sqlite.exec("CREATE TABLE team_games(id TEXT PRIMARY KEY,host_room TEXT NOT NULL,guest_room TEXT);"+
-  "CREATE TABLE team_game_presence(game_id TEXT NOT NULL,member_id TEXT,last_seen INTEGER)");
+  "CREATE TABLE team_game_presence(game_id TEXT NOT NULL,member_id TEXT,last_seen INTEGER);"+
+  "CREATE TABLE team_game_results(game_id TEXT NOT NULL,host_room TEXT NOT NULL,guest_room TEXT NOT NULL,match_no INTEGER NOT NULL)");
  local.sqlite.prepare("INSERT INTO team_games VALUES('tournament-A','room-A','room-B')").run();
  local.sqlite.prepare("INSERT INTO team_games VALUES('tournament-C','room-B','room-C')").run();
  local.sqlite.prepare("INSERT INTO team_game_presence VALUES('tournament-A','a1',5)").run();
  local.sqlite.prepare("INSERT INTO team_game_presence VALUES('tournament-A','b1',5)").run();
  local.sqlite.prepare("INSERT INTO team_game_presence VALUES('tournament-C','b1',5)").run();
+ local.sqlite.prepare("INSERT INTO team_game_results VALUES('tournament-A','room-A','room-B',1)").run();
+ local.sqlite.prepare("INSERT INTO team_game_results VALUES('tournament-A','room-A','room-B',2)").run();
+ local.sqlite.prepare("INSERT INTO team_game_results VALUES('tournament-C','room-B','room-C',1)").run();
  const result=await deleteCoupleRoom(local.db,undefined,"room-A");
  assert.equal(result.deleted,true);
  assert.equal(rowCount(local.sqlite,"team_games","id='tournament-A'"),0);
  assert.equal(rowCount(local.sqlite,"team_game_presence","game_id='tournament-A'"),0);
+ assert.equal(rowCount(local.sqlite,"team_game_results","game_id='tournament-A'"),0,
+  "delete both rounds of a finished tournament involving the removed couple");
+ assert.equal(rowCount(local.sqlite,"team_game_results","game_id='tournament-C'"),1,
+  "do not erase independent matches played by another couple");
  assert.equal(rowCount(local.sqlite,"team_games","id='tournament-C'"),1);
  assert.equal(rowCount(local.sqlite,"team_game_presence","game_id='tournament-C'"),1);
  assert.equal(rowCount(local.sqlite,"rooms","id='room-B'"),1);
