@@ -126,3 +126,40 @@
  .lr-team-dice-button{height:50px;width:50px;font-size:25px}
  .lr-team-dice{grid-template-columns:1fr 50px 1fr}
 }
+
+/* 2v2: one compact roster for all four seats, refreshed by the same match poll. */
+.lr-team-roster{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.lr-team-player{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;
+ border:1px solid #596b80;background:#24364d;border-radius:13px;padding:8px 5px;
+ color:#c2cbd8;text-align:center}
+.lr-team-player.is-online{border-color:#9bd7ba;background:#244a47;color:#e6ffee}
+.lr-team-player-avatar{display:flex;align-items:center;justify-content:center;
+ border:2px solid #67808f;border-radius:50%;width:31px;height:31px;
+ font-weight:900;background:#12283b;color:#fff3ef;font-size:14px}
+.lr-team-player strong{font-size:11px;line-height:1.15;max-width:100%;
+ overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.lr-team-player small{font-size:9px;line-height:1.25;color:#d9c9dd;
+ max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.lr-team-roster.is-playing{gap:4px}
+.lr-team-roster.is-playing .lr-team-player{padding:3px;display:grid;
+ grid-template-columns:20px minmax(0,1fr);grid-template-rows:repeat(2,auto);
+ column-gap:3px;text-align:left;align-items:center}
+.lr-team-roster.is-playing .lr-team-player-avatar{grid-row:span 2;width:19px;height:19px;font-size:10px}
+.lr-team-roster.is-playing .lr-team-player strong{font-size:9px}
+.lr-team-roster.is-playing .lr-team-player small{font-size:8px}
+.lr-team-share-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;width:100%}
+.lr-team-share-actions button:not(.lr-team-primary){min-height:42px;border-radius:13px;
+ padding:8px 12px;background:#254a63;color:#fff0fa;border:1px solid #8aa5b8;font-weight:750}
+.lr-team-invite-url{width:100%;min-width:0;border-radius:12px;border:1px solid #61788a;
+ background:#102d42;color:#d5e7f3;font:11px/1.2 ui-sans-serif,system-ui;
+ padding:11px;user-select:all;direction:ltr;text-align:left}
+.lr-team-share-feedback{color:#a9f1cb!important}
+@media(max-width:700px){
+ .lr-team-roster{gap:4px}
+ .lr-team-player{padding:6px 2px}
+ .lr-team-player-avatar{width:26px;height:26px;font-size:12px}
+ .lr-team-player strong{font-size:10px}
+ .lr-team-player small{font-size:8px}
+ .lr-team-share-actions button{font-size:12px}
+ .lr-team-share-actions .lr-team-primary{width:100%}
+}
