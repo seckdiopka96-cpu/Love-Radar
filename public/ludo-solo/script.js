@@ -386,15 +386,20 @@
     rollButton.classList.toggle("is-ready",humanCanRoll);
     rollButton.classList.toggle("is-busy",game.phase==="rolling");
     die.classList.toggle("is-rolling",game.phase==="rolling");
-    die.dataset.face=String(lastRoll);
+    // Keep each player's throw strictly within their own turn. The old
+    // lastRoll is saved for history and replay, NEVER painted as the next
+    // player's result (even if they happen to roll the same number).
+    const currentDie=Number.isInteger(game.die)&&game.die>=1&&game.die<=6?game.die:null;
+    const isRolling=game.phase==="rolling";
+    die.dataset.face=String(currentDie??0);
     die.dataset.side=game.turn;
-    // The previous result is NOT a new playable roll. Show a replay icon
-    // while the player must throw again, then the real numeric result.
-    const needsNewRoll=game.phase==="roll"&&isHuman;
-    dieResult.textContent=game.phase==="rolling"?"·":needsNewRoll?"↻":String(lastRoll);
-    dieResult.value=game.phase==="rolling"||needsNewRoll?"":String(lastRoll);
-    dieResult.setAttribute("aria-label",game.phase==="rolling"?"Dé en train de tourner":needsNewRoll?"Lancer un nouveau dé":"Dernier lancer : "+lastRoll);
-    rollButton.setAttribute("aria-label",humanCanRoll?"Lancer le dé":game.phase==="rolling"?"Le dé tourne":"Dé : "+lastRoll);
+    rollButton.classList.toggle("is-awaiting-roll",currentDie===null&&!isRolling);
+    dieResult.textContent=isRolling?"·":currentDie===null?"?":String(currentDie);
+    dieResult.value=currentDie===null?"":String(currentDie);
+    dieResult.setAttribute("aria-label",isRolling?"Dé en train de tourner":
+      currentDie===null?"En attente du prochain lancer":"Résultat de ce tour : "+currentDie);
+    rollButton.setAttribute("aria-label",humanCanRoll?"Lancer le dé":
+      isRolling?"Le dé tourne":currentDie===null?"En attente du prochain lancer":"Dé : "+currentDie);
     document.getElementById("player-count").textContent=game.pieces.human.filter(p=>p===FINAL).length+" / 4 arrivés";
     document.getElementById("computer-count").textContent=game.pieces.cpu.filter(p=>p===FINAL).length+" / 4 arrivés";
     document.querySelector(".player--human").classList.toggle("is-turn",isHuman&&game.phase!=="finished");
