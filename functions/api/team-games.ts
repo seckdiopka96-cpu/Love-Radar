@@ -25,7 +25,17 @@ async function ensure(db:D1Database){
   "CREATE TABLE IF NOT EXISTS team_game_presence ("+
   "game_id TEXT NOT NULL,member_id TEXT NOT NULL,last_seen INTEGER NOT NULL,"+
   "PRIMARY KEY(game_id,member_id));"+
-  "CREATE INDEX IF NOT EXISTS idx_team_presence_game ON team_game_presence(game_id,last_seen)"
+  "CREATE INDEX IF NOT EXISTS idx_team_presence_game ON team_game_presence(game_id,last_seen);"+
+  // Durable, idempotent competition ledger. One result per full match,
+  // independent of quiz questions, network retries and rematches.
+  "CREATE TABLE IF NOT EXISTS team_game_results ("+
+  "game_id TEXT NOT NULL,match_no INTEGER NOT NULL,host_room TEXT NOT NULL,"+
+  "guest_room TEXT NOT NULL,kind TEXT NOT NULL,winner_team INTEGER NOT NULL,"+
+  "win_reason TEXT NOT NULL,score_host INTEGER NOT NULL DEFAULT 0,"+
+  "score_guest INTEGER NOT NULL DEFAULT 0,finished_at INTEGER NOT NULL,"+
+  "PRIMARY KEY(game_id,match_no));"+
+  "CREATE INDEX IF NOT EXISTS idx_team_results_host ON team_game_results(host_room,finished_at DESC);"+
+  "CREATE INDEX IF NOT EXISTS idx_team_results_guest ON team_game_results(guest_room,finished_at DESC)"
  ).then(()=>{}).catch(e=>{ready=null;throw e});
  await ready;
 }
@@ -114,8 +124,62 @@ async function save(db:D1Database,row:Row,state:TeamGame):Promise<Row|null>{
  ).bind(JSON.stringify(state),Date.now(),row.id,row.version).run();
  return result.meta.changes===1?await get(db,row.id):null;
 }
+/** Record only completed competitions, never an unplayed invitation.
+ * The primary key prevents double counting when both phones poll, a POST is
+ * retried or an old result is reconciled just before the next rematch. */
+async function recordResult(db:D1Database,row:Row):Promise<void>{
+ if(!row.guest_room)return;
+ const game=JSON.parse(row.state_json) as TeamGame;
+ if(game.status!=="finished"||(game.winner!==0&&game.winner!==1)||
+   !["pieces","points","abandon"].includes(game.winReason||""))return;
+ const matchNo=Number.isInteger(game.matchNo)&&game.matchNo>0?game.matchNo:1;
+ await db.prepare(
+  "INSERT OR IGNORE INTO team_game_results"+
+  "(game_id,match_no,host_room,guest_room,kind,winner_team,win_reason,score_host,score_guest,finished_at)"+
+  " VALUES(?,?,?,?,?,?,?,?,?,?)"
+ ).bind(row.id,matchNo,row.host_room,row.guest_room,row.kind,game.winner,
+   game.winReason,game.scores[0],game.scores[1],game.updatedAt||row.updated_at).run();
+}
+type Totals={matches:number;wins:number};
+async function teamStats(db:D1Database,room:string|null){
+ if(!room)return {matches:0,wins:0,losses:0,winRate:0,byKind:[]};
+ const totals=await db.prepare(
+  "SELECT COUNT(*) AS matches,"+
+  " COALESCE(SUM(CASE WHEN (host_room=? AND winner_team=0)"+
+  " OR (guest_room=? AND winner_team=1) THEN 1 ELSE 0 END),0) AS wins"+
+  " FROM team_game_results WHERE host_room=? OR guest_room=?"
+ ).bind(room,room,room,room).first<Totals>();
+ const matches=Number(totals?.matches||0),wins=Number(totals?.wins||0);
+ const grouped=await db.prepare(
+  "SELECT kind,COUNT(*) AS matches,"+
+  " COALESCE(SUM(CASE WHEN (host_room=? AND winner_team=0)"+
+  " OR (guest_room=? AND winner_team=1) THEN 1 ELSE 0 END),0) AS wins"+
+  " FROM team_game_results WHERE host_room=? OR guest_room=?"+
+  " GROUP BY kind ORDER BY kind"
+ ).bind(room,room,room,room).all<{kind:TeamKind;matches:number;wins:number}>();
+ return {matches,wins,losses:matches-wins,winRate:matches?Math.round(wins/matches*100):0,
+  byKind:(grouped.results||[]).map(x=>({kind:x.kind,matches:Number(x.matches),wins:Number(x.wins)}))};
+}
+async function privateStats(db:D1Database,row:Row){
+ const [host,guest]=await Promise.all([teamStats(db,row.host_room),teamStats(db,row.guest_room)]);
+ const games=row.guest_room?await db.prepare(
+  "SELECT kind,winner_team,win_reason,score_host,score_guest,finished_at,match_no"+
+  " FROM team_game_results"+
+  " WHERE (host_room=? AND guest_room=?) OR (host_room=? AND guest_room=?)"+
+  " ORDER BY finished_at DESC LIMIT 6"
+ ).bind(row.host_room,row.guest_room,row.guest_room,row.host_room)
+  .all<{kind:TeamKind;winner_team:number;win_reason:string;score_host:number;score_guest:number;
+    finished_at:number;match_no:number}>():null;
+ // Match history is always shown from the current host couple's perspective.
+ // Never include former opponents' room IDs or private member records.
+ return {teams:[host,guest],history:(games?.results||[]).map(x=>x)};
+}
 async function sync(db:D1Database,row:Row):Promise<Row>{
  let game=JSON.parse(row.state_json) as TeamGame;
+ if(game.status==="finished"){
+  await recordResult(db,row);
+  return row;
+ }
  const repaired=repairTeamClassic(game);
  if(repaired!==game){
   // Heal already-running Classic matches without a reset. Use the same
@@ -130,7 +194,7 @@ async function sync(db:D1Database,row:Row):Promise<Row>{
  if(game.status==="waiting"&&row.guest_room){
   const arrived=await attendance(db,row);
   if(arrived.every(Boolean)){
-   const started=newTeamMatch(row.kind,"playing");
+   const started={...newTeamMatch(row.kind,"playing"),matchNo:game.matchNo||1};
    return await save(db,row,started)||await get(db,row.id)||row;
   }
  }
@@ -161,6 +225,11 @@ export async function onRequestGet({request,env}:Context):Promise<Response>{
   let row=id?await get(db,id):await current(db,member);
   if(!row)return reply({ok:true,game:null});
   if(!allowed(member,row))return bad("Accès refusé à cette salle.",403);
+  if(params.get("stats")==="1"){
+   // Stats lookup is read-only: it never changes online presence or turns.
+   if((JSON.parse(row.state_json) as TeamGame).status==="finished")await recordResult(db,row);
+   return reply({ok:true,stats:await privateStats(db,row)});
+  }
   await markHere(db,row.id,member);
   row=await sync(db,row);
   return reply({ok:true,game:await publicView(db,row,member)});
@@ -232,6 +301,7 @@ export async function onRequestPost({request,env}:Context):Promise<Response>{
    }
    const saved=await save(db,row,state);
    if(!saved)return bad("La salle a changé, réessaie.",409);
+   await recordResult(db,saved);
    await db.prepare("DELETE FROM team_game_presence WHERE game_id=? AND member_id=?")
     .bind(row.id,member.id).run();
    return reply({ok:true,game:await publicView(db,saved,member)});
@@ -239,7 +309,8 @@ export async function onRequestPost({request,env}:Context):Promise<Response>{
   await markHere(db,row.id,member);
   if(action==="restart"){
    if(state.status!=="finished"||!row.guest_room)return bad("Le match doit être terminé.",409);
-   const started=newTeamMatch(row.kind,"waiting");
+   await recordResult(db,row);
+   const started={...newTeamMatch(row.kind,"waiting"),matchNo:(state.matchNo||1)+1};
    await db.prepare("DELETE FROM team_game_presence WHERE game_id=?").bind(row.id).run();
    await markHere(db,row.id,member);
    const saved=await save(db,row,started);
@@ -270,6 +341,7 @@ export async function onRequestPost({request,env}:Context):Promise<Response>{
   }else return bad("Action inconnue.");
   const saved=await save(db,row,state);
   if(!saved)return conflict(db,row,member,"Un autre joueur a déjà agi. Plateau synchronisé.");
+  await recordResult(db,saved);
   return reply({ok:true,game:await publicView(db,saved,member)});
  }catch{return bad("Impossible de synchroniser ce jeu actuellement.",503)}
 }
