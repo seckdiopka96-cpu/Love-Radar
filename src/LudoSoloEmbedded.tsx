@@ -10,7 +10,7 @@ type Props={
  * Each signed-in member gets a separate local save by passing a scoped key.
  */
 export default function LudoSoloEmbedded({scope,onExit}:Props){
- const src="/ludo-solo/index.html?scope="+encodeURIComponent(scope)+"&v=ludo-bg-clean-20261119-v1";
+ const src="/ludo-solo/index.html?scope="+encodeURIComponent(scope)+"&v=ludo-navy-texture-20261119-v2";
  return <section className="lr-ludo-embedded" aria-label="Ludo Solo dans Love Radar">
   <header className="lr-ludo-embedded-header">
    <button type="button" onClick={onExit} aria-label="Retourner à la liste des jeux">
