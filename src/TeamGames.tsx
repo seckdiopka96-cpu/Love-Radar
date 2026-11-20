@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from "react";
-import {apiFetch} from "./api";
+import {apiFetch,API_ORIGIN,isNativeApp} from "./api";
+import {cleanTeamCode,parseTeamInvite,teamInviteUrl} from "./team-invite";
 import {teamSnapshotPolicy} from "./team-game-sync";
 import {TRACK,SAFE} from "./ludo-visuals";
 import {movesForTeamPawn,teamPiecePoint,TEAM_BASE,TEAM_HOME,TEAM_COLORS,teamOf,
@@ -86,6 +87,8 @@ export default function TeamGames({token,onExit}:Props){
  const [choices,setChoices]=useState<TeamMove[]|null>(null);
  const [confirmLeave,setConfirmLeave]=useState(false);
  const [hiddenResult,setHiddenResult]=useState(false);
+ const [shareFeedback,setShareFeedback]=useState("");
+ const attemptedInvite=useRef("");
  const mounted=useRef(true);
  const ref=useRef<GameView|null>(null);
  const lock=useRef(false);
@@ -189,6 +192,42 @@ export default function TeamGames({token,onExit}:Props){
    }
   }
  }
+ // A shared link survives login and opens the authenticated invited lobby.
+ // The server always checks actual couple membership; the link is not auth.
+ useEffect(()=>{
+  const invited=parseTeamInvite(window.location.search);
+  if(!invited||attemptedInvite.current===invited)return;
+  attemptedInvite.current=invited;
+  setCode(invited);setHiddenResult(false);
+  void act("join",{code:invited}).then(joined=>{
+   if(!joined)return;
+   const url=new URL(window.location.href);
+   if(url.searchParams.get("invite")!==invited)return;
+   url.searchParams.delete("invite");
+   window.history.replaceState(null,"",url.pathname+url.search+url.hash);
+  });
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ },[token]);
+ const currentInvite=game&&game.state.status==="waiting"?
+  teamInviteUrl(game.code,isNativeApp?API_ORIGIN:window.location.origin):"";
+ const copyInvite=async(value:string,label:string)=>{
+  try{
+   if(!navigator.clipboard?.writeText)throw Error("Clipboard unavailable");
+   await navigator.clipboard.writeText(value);
+   setShareFeedback(label+" copié !");
+  }catch{setShareFeedback("Sélectionne le lien affiché pour le copier.");}
+ };
+ const shareInvite=async()=>{
+  if(!currentInvite)return;
+  if(typeof navigator.share==="function"){
+   try{
+    await navigator.share({title:"Défis entre couples · Love Radar",
+     text:"Rejoins notre salon privé 2 contre 2 sur Love Radar ❤️",url:currentInvite});
+    setShareFeedback("Invitation partagée ❤️");return;
+   }catch(e){if(e instanceof Error&&e.name==="AbortError")return;}
+  }
+  await copyInvite(currentInvite,"Lien d'invitation");
+ };
  const leave=async()=>{
   const active=ref.current;
   if(active&&(active.state.status==="playing"||active.state.status==="waiting")){
@@ -233,7 +272,7 @@ export default function TeamGames({token,onExit}:Props){
     <label htmlFor="team-code">Ou rejoindre un couple avec son code</label>
     <div><input id="team-code" autoCapitalize="characters" maxLength={10}
       value={code} placeholder="CODE À 10 CARACTÈRES" onChange={e=>setCode(e.target.value.toUpperCase())}/>
-     <button type="button" disabled={working||code.length!==10} onClick={()=>{setHiddenResult(false);void act("join",{code})}}>Rejoindre</button>
+     <button type="button" disabled={working||!cleanTeamCode(code)} onClick={()=>{setHiddenResult(false);void act("join",{code:cleanTeamCode(code)})}}>Rejoindre</button>
     </div>
    </div>
   </div>:
