@@ -10,6 +10,7 @@ import {newTeamMatch,repairTeamClassic,teamIdleTurn,TEAM_TURN_MS,teamOf,TEAM_COL
  type TeamSeat
 } from "../src/team-games-engine";
 import {onRequestGet,onRequestPost} from "../functions/api/team-games";
+import {hasTeamResumeHint,setTeamResumeHint,TEAM_RESUME_KEY} from "../src/team-resume";
 import {parseTeamInvite,cleanTeamCode,teamInviteUrl} from "../src/team-invite";
 import {teamSnapshotPolicy} from "../src/team-game-sync";
 
@@ -501,4 +502,133 @@ test("leaving an invitation lobby keeps the room available for all other players
   assert.equal(cannotLeave.status,409,"a started match cannot be silently abandoned");
   assert.equal((await request("c",undefined,{},host.id)).data.game.state.status,"playing");
  }finally{sqlite.close()}
+});
+
+test("a network outage longer than sixty seconds preserves a four-player Ludo match and all pawns",async()=>{
+ const {sqlite,request}=testDB();
+ try{
+  const host=(await request("a","create",{kind:"classic"})).data.game;
+  await request("c","join",{code:host.code});
+  await request("b",undefined,{},host.id);
+  await request("d",undefined,{},host.id);
+  const started=(await request("a",undefined,{},host.id)).data.game;
+  assert.equal(started.state.status,"playing");
+  const progress=structuredClone(started.state);
+  progress.positions[0][0]={zone:"track",step:12,depth:0,gate:0,owner:0};
+  progress.positions[1][1]={zone:"track",step:9,depth:0,gate:0,owner:1};
+  progress.scores=[4,3];
+  progress.updatedAt=Date.now();
+  sqlite.prepare("UPDATE team_games SET state_json=? WHERE id=?")
+   .run(JSON.stringify(progress),host.id);
+  sqlite.prepare("UPDATE team_game_presence SET last_seen=? WHERE game_id=?")
+   .run(Date.now()-180000,host.id);
+  const recovered=(await request("a",undefined,{},host.id)).data.game;
+  assert.equal(recovered.state.status,"playing","offline is never an automatic defeat");
+  assert.equal(recovered.state.winner,null);
+  assert.equal(recovered.state.winReason,null);
+  assert.deepEqual(recovered.state.positions,progress.positions,"no pawn returns to base");
+  assert.deepEqual(recovered.state.scores,[4,3],"the team score never resets");
+  assert.deepEqual(recovered.presence,[true,false,false,false],
+   "only the reconnected phone reports online; other phones stay absent");
+  const other=(await request("c",undefined,{},host.id)).data.game;
+  assert.equal(other.state.status,"playing");
+  assert.deepEqual(other.state.positions,progress.positions);
+  assert.deepEqual(other.state.scores,[4,3]);
+  assert.equal((await request("e",undefined,{},host.id)).status,403,
+   "recovery never allows access from an unrelated couple");
+  const finished=await request("c","quit",{id:host.id});
+  assert.equal(finished.data.game.state.status,"finished");
+  assert.equal(finished.data.game.state.winReason,"abandon",
+   "only an explicit quit awards a victory by abandonment");
+ }finally{sqlite.close()}
+});
+test("boot-time resume probes do not falsely put users online or disclose game state",async()=>{
+ const {sqlite,request}=testDB();
+ try{
+  const host=(await request("a","create",{kind:"senegal"})).data.game;
+  await request("c","join",{code:host.code});
+  await request("b",undefined,{},host.id);
+  await request("d",undefined,{},host.id);
+  await request("a",undefined,{},host.id);
+  sqlite.prepare("UPDATE team_game_presence SET last_seen=?").run(Date.now()-200000);
+  async function probe(member:string){
+   const req=new Request("https://app.local/api/team-games?resume=1",{
+    headers:{Authorization:"Bearer "+member.repeat(64)}
+   });
+   const res=await onRequestGet({request:req,env:{DB:(testDb as any)}});
+   return {status:res.status,data:await res.json() as any};
+  }
+  // Obtain a portable test DB by running the authenticated API against the
+  // same sqlite-backed D1 adapter as request().
+  const dbAdapter={
+   async exec(sql:string){sqlite.exec(sql)},
+   prepare(sql:string){
+    const bound=(args:unknown[])=>({
+     async first(){return sqlite.prepare(sql).get(...args as [])??null},
+     async all(){return {results:sqlite.prepare(sql).all(...args as [])}},
+     async run(){const out=sqlite.prepare(sql).run(...args as []);return {meta:{changes:Number(out.changes)}}}
+    });
+    return {...bound([]),bind(...args:unknown[]){return bound(args)}};
+   }
+  } as any;
+  const testDb=dbAdapter;
+  const active=await probe("b");
+  assert.equal(active.status,200);
+  assert.deepEqual(active.data,{ok:true,resume:true,status:"playing"});
+  assert.equal((sqlite.prepare("SELECT last_seen FROM team_game_presence WHERE member_id='b'").get() as any).last_seen< Date.now()-60000,true,
+   "resume probe cannot mark someone present until they actually enter the game");
+  const stranger=await probe("e");
+  assert.deepEqual(stranger.data,{ok:true,resume:false,status:null});
+  const quit=await request("a","quit",{id:host.id});
+  assert.equal(quit.data.game.state.status,"finished");
+  assert.deepEqual((await probe("b")).data,{ok:true,resume:false,status:null});
+ }finally{sqlite.close()}
+});
+test("auto resume prefers unfinished tournaments and ignores a more recently touched completed match",async()=>{
+ const {sqlite,request}=testDB();
+ try{
+  const older=(await request("a","create",{kind:"quiz"})).data.game;
+  await request("a","quit",{id:older.id});
+  const running=(await request("a","create",{kind:"classic"})).data.game;
+  sqlite.prepare("UPDATE team_games SET updated_at=? WHERE id=?").run(Date.now()+60000,older.id);
+  const fetched=(await request("a")).data.game;
+  assert.equal(fetched.id,running.id);
+  assert.equal(fetched.state.status,"waiting");
+  assert.equal(fetched.code,running.code);
+ }finally{sqlite.close()}
+});
+test("recovery marker stores no private data, and restoring the game respects explicit navigation",()=>{
+ const marker=new Map<string,string>();
+ const previous=Object.getOwnPropertyDescriptor(globalThis,"localStorage");
+ Object.defineProperty(globalThis,"localStorage",{configurable:true,value:{
+  getItem:(key:string)=>marker.get(key)??null,
+  setItem:(key:string,value:string)=>{marker.set(key,value)},
+  removeItem:(key:string)=>{marker.delete(key)}
+ }});
+ try{
+  assert.equal(hasTeamResumeHint(),false);
+  setTeamResumeHint(true);
+  assert.equal(hasTeamResumeHint(),true);
+  assert.deepEqual([...marker],[[TEAM_RESUME_KEY,"1"]],
+   "never persist board, scores, token, invitation code or member data");
+  setTeamResumeHint(false);
+  assert.equal(hasTeamResumeHint(),false);
+ }finally{
+  if(previous)Object.defineProperty(globalThis,"localStorage",previous);
+  else Reflect.deleteProperty(globalThis,"localStorage");
+ }
+ const ui=readFileSync("src/TeamGames.tsx","utf8");
+ const app=readFileSync("src/App.tsx","utf8");
+ const server=readFileSync("functions/api/team-games.ts","utf8");
+ assert.ok(ui.includes("setTeamResumeHint(value.state.status==="));
+ assert.ok(ui.includes("wasOffline.current"),"connectivity is tracked without deleting game state");
+ assert.ok(ui.includes("setReconnecting(true)"));
+ assert.ok(ui.includes("Reconnexion en cours"));
+ assert.ok(app.includes("hasTeamResumeHint()"));
+ assert.ok(app.includes('"/api/team-games?resume=1"'));
+ assert.ok(app.includes("userNavigatedAfterBoot.current"),"a push or manual navigation beats background resume");
+ assert.ok(app.includes('setTab("team-games")'));
+ assert.ok(server.includes('if(params.get("resume")==="1")'));
+ assert.ok(!server.includes("Date.now()-Number(last.get(p.id)||0)>60000"),
+  "no network-based forfeit remains");
 });
