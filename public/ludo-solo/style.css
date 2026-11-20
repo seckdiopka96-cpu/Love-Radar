@@ -1129,3 +1129,32 @@ html.lr-ludo-solo-in-app #plateau .turn-banner .ludo-compact-colors:focus-visibl
 html.lr-ludo-solo-in-app #plateau .turn-banner .ludo-compact-rules:focus-visible{
  outline:2px solid #fff!important;outline-offset:2px!important;
 }
+
+/* Every new turn begins with a BLANK die, never the previous player's value.
+   data-face=0 is purely a visual waiting state; it is NOT a legal roll.
+   Shared by the classic Solo and Duo HTML renderer, including Senegal Duo. */
+.dice-3d:not(.is-rolling)[data-face="0"]{
+ transform:rotateX(0deg) rotateY(0deg)!important;
+}
+.dice-3d:not(.is-rolling)[data-face="0"] .dice-face--1{
+ opacity:1!important;
+}
+.dice-3d:not(.is-rolling)[data-face="0"] .dice-face i.pip{
+ opacity:0!important;
+}
+/* A large neutral question mark lives on the button, not on any numeric
+   cube face, so it remains readable on Safari and is never confused with 1. */
+.dice-holder.is-awaiting-roll::after{
+ content:"?";
+ position:absolute;z-index:8;left:50%;top:50%;
+ transform:translate(-50%,-50%);
+ font:900 clamp(22px,5vw,32px)/1 -apple-system,BlinkMacSystemFont,Arial,sans-serif;
+ color:#fff9e3;text-shadow:0 2px 4px #171f48cc,0 0 8px #ffefbdaa;
+ pointer-events:none;
+}
+.dice-holder.is-awaiting-roll .dice-3d{
+ transition:transform .15s ease;
+}
+@media(prefers-reduced-motion:reduce){
+ .dice-holder.is-awaiting-roll .dice-3d{transition:none!important}
+}
