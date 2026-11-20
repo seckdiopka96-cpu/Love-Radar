@@ -178,3 +178,41 @@
  .lr-team-connection{font-size:11px;gap:5px;padding:7px}
  .lr-team-connection>small{flex-basis:120px;font-size:10px}
 }
+
+/* Private 2v2 rankings: restrained trophy, compact enough for iPhone. */
+.lr-team-ranking-toggle{display:flex;justify-content:center;margin:-3px 0}
+.lr-team-ranking-toggle button{border:1px solid #ab859e;border-radius:11px;
+ background:#263b50;color:#f4d7e7;min-height:36px;padding:7px 13px;font-size:12px;font-weight:800}
+.lr-team-ranking{border:1px solid #8b7490;border-radius:17px;background:#1e2e44;
+ padding:13px;display:flex;flex-direction:column;gap:10px}
+.lr-team-ranking-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px}
+.lr-team-ranking-head strong{font-size:15px;color:#fff0d2}
+.lr-team-ranking-head span{font-size:10px;color:#b9cddd}
+.lr-team-ranking-teams{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.lr-team-ranking-entry{border:1px solid #718092;border-radius:12px;
+ padding:9px;background:#26394e;min-width:0;display:flex;flex-direction:column;gap:4px}
+.lr-team-ranking-entry.is-mine{border-color:#efb4cf}
+.lr-team-ranking-rank{font-size:20px}
+.lr-team-ranking-entry>strong{font-size:12px;overflow-wrap:anywhere;line-height:1.2}
+.lr-team-ranking-count{display:flex;align-items:baseline;gap:6px}
+.lr-team-ranking-count b{font-size:25px;line-height:1;color:#fff3d8}
+.lr-team-ranking-count span{font-size:10px;color:#e4cbd8}
+.lr-team-ranking-entry p{margin:0;color:#d1dfe9;font-size:10px;line-height:1.3}
+.lr-team-ranking-entry small{font-size:9px;color:#b6c9d6;line-height:1.4}
+.lr-team-ranking>h3{font-size:12px;color:#f1c5da;margin:3px 0 0}
+.lr-team-ranking-history{display:flex;flex-direction:column;gap:5px}
+.lr-team-ranking-history>div{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+ gap:5px;border-bottom:1px solid #60768b;padding:5px 0;font-size:10px}
+.lr-team-ranking-history span{color:#d0deea}
+.lr-team-ranking-history strong{color:#ffdde8}
+.lr-team-ranking-history small{color:#c6dce9}
+.lr-team-stat-error{display:flex;align-items:center;justify-content:space-between;gap:7px;
+ margin:0;color:#ffd7d7;font-size:11px}
+.lr-team-stat-error button{border-radius:10px;border:1px solid #f0b6c7;background:#5e4157;
+ color:#fff;padding:7px 10px;font-size:11px}
+@media(max-width:700px){
+ .lr-team-ranking{padding:9px;gap:7px}
+ .lr-team-ranking-entry{padding:7px}
+ .lr-team-ranking-entry>strong{font-size:11px}
+ .lr-team-ranking-toggle button{min-height:34px}
+}
