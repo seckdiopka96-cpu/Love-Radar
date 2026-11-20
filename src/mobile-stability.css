@@ -1,0 +1,166 @@
+/* Love Radar mobile stability.
+   These targeted rules follow the existing premium themes. They fix usable
+   screen geometry without scaling the app or moving the 15x15 Ludo board. */
+@media (max-width:950px){
+ /* 2v2 uses the immersive Ludo shell. Allow only its CONTENT to scroll on
+    short displays; the fixed app shell and bottom gestures never scroll. */
+ .lr-app.lr-app-locked.lr-team-mode .lr-main{
+  min-width:0!important;min-height:0!important;
+  overflow:hidden!important;overscroll-behavior:none!important;
+ }
+ .lr-app.lr-app-locked.lr-team-mode .lr-team-screen{
+  box-sizing:border-box;width:100%;max-width:750px;
+  height:100%;min-height:0;max-height:100%;
+  flex:1 1 0;overflow-x:hidden;overflow-y:auto;
+  overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  scroll-behavior:auto;touch-action:pan-y;
+  scrollbar-width:none;
+  padding:max(14px,calc(env(safe-area-inset-top) + 10px)) 11px
+   max(20px,calc(env(safe-area-inset-bottom) + 13px))!important;
+  gap:clamp(6px,1.05dvh,10px);
+ }
+ .lr-app.lr-team-mode .lr-team-screen::-webkit-scrollbar{display:none}
+ /* Keep both controls on the same baseline with a balanced title between. */
+ .lr-app.lr-team-mode .lr-team-header{
+  flex:0 0 auto;display:grid;
+  grid-template-columns:64px minmax(0,1fr) 64px;
+  align-items:center;column-gap:9px;min-height:64px;
+  padding:0 0 6px!important;
+ }
+ .lr-app.lr-team-mode .lr-team-header>button,
+ .lr-app.lr-team-mode .lr-team-header-mark{
+  width:100%;min-width:0;height:44px;min-height:44px;
+  align-self:center;white-space:nowrap;line-height:1.15;
+  font-size:14px;border-radius:13px;
+ }
+ .lr-app.lr-team-mode .lr-team-header h1{
+  font-size:clamp(18px,5vw,25px);line-height:1.12;
+  margin:3px 0;overflow-wrap:anywhere;
+ }
+ .lr-app.lr-team-mode .lr-team-header small{
+  font-size:9px;letter-spacing:.1em
+ }
+ .lr-app.lr-team-mode .lr-team-live,
+ .lr-app.lr-team-mode .lr-team-lobby,
+ .lr-app.lr-team-mode .lr-team-ludo{min-width:0;flex:0 0 auto;gap:8px}
+ .lr-app.lr-team-mode .lr-team-score{flex:0 0 auto;min-height:58px}
+ .lr-app.lr-team-mode .lr-team-roster{flex:0 0 auto}
+ /* The entire square remains geometrically fixed: only the pawns, die,
+    and impacts animate. Touching the board cannot drag or zoom it. */
+ .lr-app.lr-team-mode .lr-team-board-shell{
+  flex:0 0 auto;min-width:0;max-width:100%;
+  width:min(calc(100% - 10px),53dvh)!important;
+  height:auto;aspect-ratio:1/1;
+  margin:0 auto;touch-action:none;
+  overscroll-behavior:none;contain:layout;
+ }
+ .lr-app.lr-team-mode .lr-team-board{
+  width:100%;height:100%;aspect-ratio:1/1;
+  overflow:hidden;touch-action:none;overscroll-behavior:none
+ }
+ .lr-app.lr-team-mode .lr-team-pin{
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent
+ }
+ .lr-app.lr-team-mode .lr-team-dice,
+ .lr-app.lr-team-mode .lr-team-turn,
+ .lr-app.lr-team-mode .lr-team-color-key{
+  min-width:0;flex:0 0 auto;
+ }
+ .lr-app.lr-team-mode .lr-team-dice{
+  grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr);
+  gap:6px;
+ }
+ .lr-app.lr-team-mode .lr-team-dice-button{
+  min-width:64px;min-height:64px;
+ }
+ /* The timer and scores never change the board's own size. */
+ .lr-app.lr-team-mode .lr-team-dice>span{
+  min-width:0;overflow-wrap:anywhere;font-size:10px;line-height:1.25
+ }
+ .lr-app.lr-team-mode .lr-team-quiz{
+  flex:0 0 auto;min-height:0;justify-content:flex-start;
+  gap:11px;
+ }
+ .lr-app.lr-team-mode .lr-team-answers button{min-height:54px}
+ .lr-app.lr-team-mode .lr-team-route{
+  box-sizing:border-box;max-width:calc(100vw - 22px);
+  max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px);
+  overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+ }
+ .lr-app.lr-team-mode .lr-team-wait,
+ .lr-app.lr-team-mode .lr-team-victory{
+  flex:0 0 auto;min-height:170px
+ }
+ .lr-app.lr-team-mode .lr-team-live>.lr-team-quit{
+  min-height:44px;flex:0 0 auto
+ }
+ /* The Ludo selection room remains a separate, internally scrollable screen.
+    Never force the tile grid to fit by clipping the last row. */
+ .lr-app.lr-ludo-mode .lr-main>.lr-ludo-room{
+  min-width:0;max-height:100%;
+  padding-top:max(58px,calc(env(safe-area-inset-top) + 12px));
+  padding-bottom:max(16px,calc(env(safe-area-inset-bottom) + 10px));
+  scroll-padding-bottom:16px;
+ }
+ .lr-app.lr-ludo-mode .lr-ludo-room-back{
+  min-height:44px;
+ }
+ /* Visible keyboard focus for navigation, invitations and all 2v2 actions. */
+ .lr-app.lr-team-mode .lr-team-screen button:focus-visible,
+ .lr-app.lr-ludo-mode .lr-ludo-room button:focus-visible{
+  outline:3px solid #ffe4a3;outline-offset:2px
+ }
+}
+/* In iOS standalone mode the viewport may extend behind the status bar
+   even when the WebView reports a zero safe-area inset. Keep the back
+   buttons below the Dynamic Island; do not apply this fallback in Safari. */
+@media(max-width:950px) and (display-mode:standalone){
+ .lr-app.lr-team-mode .lr-team-screen{
+  padding-top:max(52px,calc(env(safe-area-inset-top) + 10px))!important
+ }
+}
+@media(max-width:700px) and (max-height:760px){
+ .lr-app.lr-team-mode .lr-team-board-shell{
+  width:min(calc(100% - 12px),48dvh)!important
+ }
+ .lr-app.lr-team-mode .lr-team-header{min-height:58px}
+ .lr-app.lr-team-mode .lr-team-dice{
+  grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr)
+ }
+ .lr-app.lr-team-mode .lr-team-dice-button{
+  width:54px;height:54px;min-width:54px;min-height:54px
+ }
+ .lr-app.lr-team-mode .lr-team-quiz{gap:8px}
+ .lr-app.lr-team-mode .lr-team-answers{gap:7px}
+ .lr-app.lr-team-mode .lr-team-answers button{
+  min-height:48px;padding:8px 6px
+ }
+}
+@media(max-width:360px){
+ .lr-app.lr-team-mode .lr-team-screen{padding-left:7px!important;padding-right:7px!important}
+ .lr-app.lr-team-mode .lr-team-header{
+  grid-template-columns:57px minmax(0,1fr) 57px;gap:5px
+ }
+ .lr-app.lr-team-mode .lr-team-header h1{font-size:17px}
+ .lr-app.lr-team-mode .lr-team-header>button,
+ .lr-app.lr-team-mode .lr-team-header-mark{font-size:12px}
+ .lr-app.lr-team-mode .lr-team-timer{gap:4px;padding:8px 5px}
+ .lr-app.lr-team-mode .lr-team-score{gap:3px;padding:5px}
+ .lr-app.lr-team-mode .lr-team-player{min-width:0}
+ .lr-app.lr-ludo-mode .lr-ludo-room-hero{gap:8px;padding:12px}
+ .lr-app.lr-ludo-mode .lr-ludo-room-logo{flex-basis:56px}
+ .lr-app.lr-ludo-mode .lr-ludo-room-mode{padding:9px}
+}
+/* Keyboard input is 16px in the invite and quiz screens: avoid iOS Safari's
+   automatic page zoom, which otherwise shifts the Ludo viewport. */
+@media(max-width:700px){
+ .lr-app.lr-team-mode input:not([type="checkbox"]),
+ .lr-app.lr-team-mode textarea{font-size:16px!important}
+}
+/* Reduced-motion preference applies to newly added mobile UI only.
+   It does not disable essential status indicators or game actions. */
+@media(prefers-reduced-motion:reduce){
+ .lr-app.lr-team-mode .lr-team-pin{transition:none!important}
+ .lr-app.lr-team-mode .lr-team-screen{scroll-behavior:auto!important}
+}
