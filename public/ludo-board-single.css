@@ -149,14 +149,20 @@ html.lr-ludo-duo-ui .lr-unified-ludo-board .lr-shared-center svg,
  0%,100%{filter:brightness(.84) drop-shadow(0 0 2px #fff9de)}
  45%{filter:brightness(1.18) drop-shadow(0 0 10px #fff4ca)}
 }
-/* Same dark blue-green ambience surrounding the board; the game headers
- * still display Sénégal/Classic and retain their own controls. */
+/* Shared, clean midnight-blue backdrop for every Ludo mode.
+ * No radial glow, blur, texture or decorative overlay behind the board.
+ * The canonical board and all gameplay elements remain unchanged. */
 html.lr-ludo-solo-ui .app,
 html.lr-ludo-duo-ui .app,
+html.lr-ludo-solo-ui #plateau.game-screen,
+html.lr-ludo-duo-ui #plateau.game-screen,
 #root .ludo-experience.ludo-senegal-solo,
 #root .ludo-experience.ludo-senegal-duo{
- background:radial-gradient(ellipse at 50% 48%,#16485c66,transparent 67%),
- linear-gradient(168deg,#0d2939 0%,#0c1e2e 67%,#102c3a 100%)!important;
+ background:linear-gradient(180deg,#10273d 0%,#0c2034 52%,#091b2e 100%)!important;
+}
+html.lr-ludo-solo-ui .app::before,
+html.lr-ludo-duo-ui .app::before{
+ content:none!important;
 }
 /* Force the same subdued palette for extra game UI coloring, not only board. */
 html.lr-ludo-solo-ui .app,
