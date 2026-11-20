@@ -10,6 +10,7 @@ import {newTeamMatch,repairTeamClassic,teamIdleTurn,TEAM_TURN_MS,teamOf,TEAM_COL
  type TeamSeat
 } from "../src/team-games-engine";
 import {onRequestGet,onRequestPost} from "../functions/api/team-games";
+import {parseTeamInvite,cleanTeamCode,teamInviteUrl} from "../src/team-invite";
 import {teamSnapshotPolicy} from "../src/team-game-sync";
 
 function testDB(){
@@ -413,5 +414,64 @@ test("the four-player server advances exactly one idle turn on the next authenti
   assert.equal(old.status,409,"pending actions from an old turn must not override the timeout");
   assert.equal(old.data.game.version,auto.data.game.version);
   assert.equal(old.data.game.state.turn,1);
+ }finally{sqlite.close()}
+});
+
+test("a shared 2v2 link opens the exact game, never a private couple account",()=>{
+ const invite=teamInviteUrl("ABCD234567","https://love-radar-acd.pages.dev");
+ assert.equal(invite,"https://love-radar-acd.pages.dev/?tab=team-games&invite=ABCD234567");
+ assert.equal(parseTeamInvite(new URL(invite).search),"ABCD234567");
+ assert.equal(cleanTeamCode("abcd234567"),"ABCD234567");
+ assert.equal(parseTeamInvite("?tab=chat&invite=ABCD234567"),null);
+ assert.equal(parseTeamInvite("?tab=team-games&invite=AAAAAAAAAA&token=my-secret"),"AAAAAAAAAA");
+ for(const unsafe of ["","","abc","AAAAA!AAAA","ABCDEFGHIJ","AAAAAAAAAA%0D%0A"]){
+  assert.equal(cleanTeamCode(unsafe),null);
+  assert.throws(()=>teamInviteUrl(unsafe,"https://love-radar-acd.pages.dev"));
+ }
+ assert.equal(parseTeamInvite("?tab=team-games&invite=%3Cscript%3E"),null);
+ const file=readFileSync("src/team-invite.ts","utf8");
+ assert.ok(!file.includes("roomId"));
+ assert.ok(!file.includes("token_hash"));
+ assert.ok(!file.includes("localStorage"));
+ const screen=readFileSync("src/TeamGames.tsx","utf8");
+ const app=readFileSync("src/App.tsx","utf8");
+ assert.ok(screen.includes('const invited=parseTeamInvite(window.location.search)'));
+ assert.ok(screen.includes('void act("join",{code:invited})'));
+ assert.ok(screen.includes('navigator.share({title:"Défis entre couples · Love Radar"'));
+ assert.ok(screen.includes('onClick={()=>void copyInvite(currentInvite,"Lien")}'));
+ assert.ok(screen.includes('aria-label="Présence en direct des quatre joueurs"'));
+ assert.ok(screen.includes('game.presence[i]?"En ligne":"En attente"'));
+ assert.ok(app.includes('setTab(parseNotice(window.location.search)?.tab||"home")'),
+  "registration must preserve the invite tab even when the account was absent");
+});
+test("one 2v2 invitation can be opened by both members of the guest couple, but not a third couple",async()=>{
+ const {sqlite,request}=testDB();
+ try{
+  const host=(await request("a","create",{kind:"senegal"})).data.game;
+  const link=teamInviteUrl(host.code,"https://love-radar-acd.pages.dev");
+  const code=parseTeamInvite(new URL(link).search)!;
+  const hostPartner=await request("b","join",{code});
+  assert.equal(hostPartner.status,200);
+  assert.equal(hostPartner.data.game.seat,2,"the host partner takes the second host-team seat");
+  const guest=await request("c","join",{code});
+  assert.equal(guest.status,200);
+  assert.equal(guest.data.game.seat,1);
+  assert.equal(guest.data.game.guestJoined,true);
+  assert.deepEqual(guest.data.game.players.map((p:any)=>p?.name),["A","C","B","D"]);
+  assert.equal(guest.data.game.presence[3],false,"the guest partner is still waiting");
+  const guestPartner=await request("d","join",{code});
+  assert.equal(guestPartner.status,200);
+  assert.equal(guestPartner.data.game.seat,3);
+  const joined=(await request("a",undefined,{},host.id)).data.game;
+  assert.equal(joined.state.status,"playing","match starts automatically once all four open the room");
+  assert.deepEqual(joined.presence,[true,true,true,true]);
+  assert.equal((await request("e","join",{code})).status,409,"third couple cannot join");
+  assert.equal((await request("e",undefined,{},host.id)).status,403,"third couple cannot view match");
+  const old=Date.now()-32000;
+  sqlite.prepare("UPDATE team_game_presence SET last_seen=? WHERE member_id='d'").run(old);
+  const view=(await request("a",undefined,{},host.id)).data.game;
+  assert.deepEqual(view.presence,[true,true,true,false],
+   "roster reflects the actual signed-in participants on the next poll");
+  assert.equal(view.state.status,"playing","brief disconnections must not forfeit before 60s");
  }finally{sqlite.close()}
 });
