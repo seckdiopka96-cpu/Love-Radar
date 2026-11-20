@@ -34,7 +34,7 @@ test("Ludo screenshot fixes: compact pawns, correct capture and clean HUD",()=>{
  assert.ok(soloCSS.includes(".lr-ludo-solo-ui .game-actions"));
  assert.ok(soloCSS.includes(".lr-ludo-solo-ui #game-feedback"));
  assert.ok(soloCSS.includes(".lr-ludo-duo-ui #new-game:disabled"));
- assert.ok(solo.includes('dieResult.textContent=game.phase==="rolling"?"·":needsNewRoll?"↻":String(lastRoll)'));
+ assert.ok(solo.includes('dieResult.textContent=isRolling?"·":currentDie===null?"?":String(currentDie)'));
  assert.ok(solo.includes("await sleep(start===HOME?520:540)"));
 });
 test("four pawns are chosen by touching the board, never from a second numbered picker",()=>{
@@ -107,13 +107,36 @@ test("Solo and Duo both display the final real die result, separate from transie
  }
  assert.ok(solo.includes("game.lastRoll=value"));
  assert.ok(solo.includes("lastRoll=game.die||((Number.isInteger(game.lastRoll)"));
- assert.ok(solo.includes('dieResult.textContent=game.phase==="rolling"?"·":needsNewRoll?"↻":String(lastRoll)'));
- assert.ok(duo.includes("const diceValue=g.dice??last?.face??"));
- assert.ok(duo.includes('dieResult.textContent=rollingNow?"·":String(diceValue)'));
+ assert.ok(solo.includes('dieResult.textContent=isRolling?"·":currentDie===null?"?":String(currentDie)'));
+ assert.ok(duo.includes("const diceValue=Number.isInteger(g.dice)&&g.dice>=1&&g.dice<=6?g.dice:null"));
+ assert.ok(duo.includes('dieResult.textContent=rollingNow?"·":diceValue===null?"?":String(diceValue)'));
  assert.ok(duo.includes("lastAnimatedRoll"));
  assert.ok(duo.includes("dieVisualUntil"),"animation lasts long enough to show a physical throw");
  assert.ok(duo.includes("receivedState"));
  assert.ok(!duo.includes("dé\\\\s"),"regexp must have real whitespace escapes");
+});
+test("the die resets at every turn handoff and never gives the next player the previous number",()=>{
+ // All six real faces remain unchanged. The neutral value zero is a visual
+ // state only; neither engine can generate or submit it as a roll.
+ assert.ok(solo.includes("game.die=null;"),"Solo clears the active die on turn switch");
+ assert.ok(solo.includes('game.turn=opponent(game.turn);'),"Solo swaps owners");
+ assert.ok(solo.includes('die.dataset.face=String(currentDie??0)'),"Solo shows blank when there is no current throw");
+ assert.ok(solo.includes('rollButton.classList.toggle("is-awaiting-roll",currentDie===null&&!isRolling)'));
+ assert.ok(solo.includes('dieResult.textContent=isRolling?"·":currentDie===null?"?":String(currentDie)'));
+ assert.ok(!solo.includes("die.dataset.face=String(lastRoll)"),
+  "saved previous result must never be painted into the new player's die");
+ assert.ok(duo.includes('dice.dataset.face=String(diceValue??0)'),"Duo also shows blank between turns");
+ assert.ok(duo.includes('roll.classList.toggle("is-awaiting-roll",diceValue===null&&!rollingNow)'));
+ assert.ok(!duo.includes("g.dice??last?.face"),"Duo cannot borrow the prior partner result");
+ assert.ok(!duo.includes('previousValue=/(?:lanc'),"do not derive new-turn values from an old action message");
+ assert.ok(soloCSS.includes('.dice-3d:not(.is-rolling)[data-face="0"] .dice-face i.pip'));
+ assert.ok(soloCSS.includes('.dice-holder.is-awaiting-roll::after'),"visible neutral question mark");
+ assert.ok(soloCSS.includes('content:"?"'),"neutral view cannot look like a real roll");
+ assert.ok(solo.includes("game.lastRoll=value"),"game history is still preserved");
+ assert.ok(duo.includes("const last=state.lastRoll"),"remote dice events still animate correctly");
+ for(let n=1;n<=6;n++){
+  assert.ok(soloCSS.includes('[data-face="'+n+'"]'),"real die face "+n+" is preserved");
+ }
 });
 test("Solo and Duo toss their actual die, light the active house and outline my pawns",()=>{
  for(const game of [solo,duo]){
