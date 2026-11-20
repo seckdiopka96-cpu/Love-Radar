@@ -273,6 +273,7 @@ export default function LoveRadar(){
   const url=new URL(window.location.href);
   url.searchParams.set("tab",tab);
   url.searchParams.delete("kind");url.searchParams.delete("id");url.searchParams.delete("mode");
+  if(tab!=="team-games")url.searchParams.delete("invite");
   window.history.replaceState(null,"",url.pathname+url.search);
   firstPoll.current=true;
  }
@@ -1538,7 +1539,9 @@ export default function LoveRadar(){
    await refresh(newToken);
    if(result.recoveryCode)setRecoveryCode(result.recoveryCode);
    setNotice(joinMode?"Bienvenue dans votre espace ❤️":"Ton espace privé est créé !");
-   setTab("home");
+   // A newcomer who followed a 2v2 invitation must reach that lobby after
+   // creating their own private couple room, not be sent to the home tab.
+   setTab(parseNotice(window.location.search)?.tab||"home");
   }catch(e){setError(e instanceof Error?e.message:"Connexion impossible.")}
   finally{setBusy(false)}
  }
