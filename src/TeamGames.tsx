@@ -16,6 +16,12 @@ type GameView={
  state:TeamGame&{question?:string|null;options?:readonly string[]|null;correct?:number|null}
 };
 type Result={ok:boolean;error?:string;game?:GameView|null};
+type CoupleTotals={matches:number;wins:number;losses:number;winRate:number;
+ byKind:{kind:TeamKind;matches:number;wins:number}[]};
+type CoupleHistory={kind:TeamKind;winner_team:number;win_reason:string;
+ score_host:number;score_guest:number;finished_at:number;match_no:number};
+type CoupleStats={teams:[CoupleTotals,CoupleTotals];history:CoupleHistory[]};
+const gameLabel=(kind:TeamKind)=>kind==="quiz"?"Questions rapides":kind==="senegal"?"Ludo Sénégal":"Ludo Classique";
 type Props={token:string;onExit:()=>void};
 const MODES:[TeamKind,string,string][]=[
  ["classic","🎲 Ludo Classique","4 couleurs · 2 couples · mêmes règles classiques"],
@@ -89,6 +95,10 @@ export default function TeamGames({token,onExit}:Props){
  const [confirmLeave,setConfirmLeave]=useState(false);
  const [hiddenResult,setHiddenResult]=useState(false);
  const [shareFeedback,setShareFeedback]=useState("");
+ const [statsOpen,setStatsOpen]=useState(false);
+ const [stats,setStats]=useState<CoupleStats|null>(null);
+ const [statsLoading,setStatsLoading]=useState(false);
+ const [statsError,setStatsError]=useState("");
  const [reconnecting,setReconnecting]=useState(false);
  const [reconnectedAt,setReconnectedAt]=useState(0);
  const attemptedInvite=useRef("");
@@ -248,6 +258,29 @@ export default function TeamGames({token,onExit}:Props){
   }
   await copyInvite(currentInvite,"Lien d'invitation");
  };
+ const loadStats=useCallback(async(gameId:string)=>{
+  setStatsLoading(true);setStatsError("");
+  try{
+   const response=await apiFetch("/api/team-games?stats=1&id="+encodeURIComponent(gameId),{
+    headers:{Authorization:"Bearer "+token},cache:"no-store"
+   });
+   const data=await response.json() as {ok:boolean;stats?:CoupleStats;error?:string};
+   if(!response.ok||!data.ok||!data.stats)throw Error(data.error||"Classement indisponible.");
+   if(mounted.current&&ref.current?.id===gameId)setStats(data.stats);
+  }catch(e){
+   if(mounted.current)setStatsError(e instanceof Error?e.message:"Classement indisponible.");
+  }finally{if(mounted.current)setStatsLoading(false)}
+ },[token]);
+ useEffect(()=>{
+  if(!statsOpen||!game?.id)return;
+  const gameId=game.id;
+  void loadStats(gameId);
+  const interval=window.setInterval(()=>{
+   if(document.visibilityState==="visible")void loadStats(gameId);
+  },15000);
+  return()=>window.clearInterval(interval);
+ },[statsOpen,game?.id,game?.state.status,loadStats]);
+ useEffect(()=>{setStats(null);setStatsError("");setStatsOpen(false)},[game?.id]);
  const leave=async()=>{
   const active=ref.current;
   if(active?.state.status==="playing"){
@@ -315,6 +348,41 @@ export default function TeamGames({token,onExit}:Props){
     <div className={myTeam===1?"my-team":""}><small>ÉQUIPE 💙</small><strong>{names(1)}</strong>
      {inQuiz?<b>{active!.scores[1]}</b>:null}</div>
    </div>
+   <div className="lr-team-ranking-toggle">
+    <button type="button" aria-expanded={statsOpen} aria-controls="lr-team-ranking"
+     onClick={()=>setStatsOpen(open=>!open)}>
+     🏆 {statsOpen?"Masquer le classement":"Voir le classement des couples"}
+    </button>
+   </div>
+   {statsOpen?<section id="lr-team-ranking" className="lr-team-ranking" aria-label="Classement privé des couples">
+    <div className="lr-team-ranking-head">
+     <strong>🏆 Classement des couples</strong>
+     <span>Privé · Victoires et défaites cumulées</span>
+    </div>
+    {statsLoading&&!stats?<p className="lr-team-muted">Chargement des statistiques…</p>:null}
+    {statsError?<p role="alert" className="lr-team-stat-error">{statsError}
+     <button type="button" onClick={()=>void loadStats(game.id)}>Réessayer</button></p>:null}
+    {stats?<><div className="lr-team-ranking-teams">
+     {stats.teams.map((team,i)=><div key={i} className={"lr-team-ranking-entry"+(i===myTeam?" is-mine":"")}>
+      <span className="lr-team-ranking-rank">{team.wins>stats.teams[1-i].wins?"🥇":
+       team.wins<stats.teams[1-i].wins?"🥈":"🤝"}</span>
+      <strong>{i===0?"❤️":"💙"} {names(i as 0|1)}</strong>
+      <div className="lr-team-ranking-count"><b>{team.wins}</b><span>victoires</span></div>
+      <p>{team.losses} défaite(s) · {team.matches} match(s) · {team.winRate}% gagnés</p>
+      <small>{team.byKind.length?team.byKind.map(k=>gameLabel(k.kind)+" "+k.wins+"/"+k.matches).join(" · "):
+       "Aucun match terminé pour l’instant"}</small>
+     </div>)}
+    </div>
+    <h3>Vos dernières confrontations</h3>
+    {stats.history.length===0?<p className="lr-team-muted">Aucun résultat entre ces deux couples pour le moment.</p>:
+     <div className="lr-team-ranking-history">{stats.history.map((match,i)=>
+      <div key={match.finished_at+"-"+match.match_no+"-"+i}>
+       <span>{gameLabel(match.kind)}</span>
+       <strong>{match.winner_team===0?"❤️":"💙"} Victoire {match.win_reason==="abandon"?"(abandon)":""}</strong>
+       {match.kind==="quiz"?<small>{match.score_host} – {match.score_guest}</small>:null}
+      </div>)}</div>}
+    </>:null}
+   </section>:null}
    <div className={"lr-team-roster"+(status==="playing"?" is-playing":"")} aria-label="Présence en direct des quatre joueurs">
     {game.players.map((player,i)=><div key={i} className={"lr-team-player"+(game.presence[i]?" is-online":"")}>
      <span className="lr-team-player-avatar" style={{borderColor:colorHex[i]}}>{player?.name?.trim().slice(0,1).toUpperCase()||"?"}</span>
