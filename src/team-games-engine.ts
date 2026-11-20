@@ -17,6 +17,7 @@ export type TeamGame={
  /** Sequence of full matches within a shared 2v2 salon; quiz "round" is not a match. */
  matchNo:number;
  positions:TeamPiece[][];turn:TeamSeat;dice:number|null;sixStreak:number;
+ lastRoll?:{seat:TeamSeat;face:number;at:number}|null;
  round:number;phase:"question"|"result"|null;questionIndex:number;answered:TeamSeat[];
  scores:[number,number];startsAt:number;deadlineAt:number;lastAction:string;updatedAt:number
 };
@@ -51,7 +52,7 @@ export function repairTeamClassic(game:TeamGame):TeamGame{
 }
 export function newTeamMatch(kind:TeamKind,status:TeamStatus="waiting",now=Date.now()):TeamGame{
  return {kind,status,matchNo:1,winner:null,winReason:null,positions:([0,1,2,3] as TeamSeat[]).map(seat=>
-  Array.from({length:4},()=>freshPiece(seat))),turn:0,dice:null,sixStreak:0,round:1,phase:kind==="quiz"?"question":null,
+  Array.from({length:4},()=>freshPiece(seat))),turn:0,dice:null,sixStreak:0,lastRoll:null,round:1,phase:kind==="quiz"?"question":null,
   questionIndex:Math.floor(now/997)%RAPID_QUESTIONS.length,answered:[],scores:[0,0],
   startsAt:status==="playing"&&kind==="quiz"?now+3000:0,
   deadlineAt:status==="playing"&&kind==="quiz"?now+3000+RAPID_SECONDS*1000:0,
@@ -178,9 +179,9 @@ export function teamRoll(game:TeamGame,seat:TeamSeat,face:number,now=Date.now())
    !Number.isInteger(face)||face<1||face>6)return game;
  if(face===6&&game.sixStreak>=2){
   return {...game,turn:((seat+1)%4) as TeamSeat,dice:null,sixStreak:0,updatedAt:now,
-   lastAction:"Trois 6 de suite : le tour passe."};
+   lastRoll:{seat,face,at:now},lastAction:"Trois 6 de suite : le tour passe."};
  }
- const proposal={...game,dice:face,sixStreak:face===6?game.sixStreak+1:0,updatedAt:now};
+ const proposal={...game,dice:face,sixStreak:face===6?game.sixStreak+1:0,updatedAt:now,lastRoll:{seat,face,at:now}};
  if(!teamLegalPawns(proposal,seat).length)
   return {...proposal,dice:null,turn:((seat+1)%4) as TeamSeat,sixStreak:0,lastAction:"Aucun pion ne peut avancer."};
  return {...proposal,lastAction:"Dé "+face+" : choisis un de tes pions."};
