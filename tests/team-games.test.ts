@@ -10,6 +10,7 @@ import {newTeamMatch,repairTeamClassic,teamIdleTurn,TEAM_TURN_MS,teamOf,TEAM_COL
  type TeamSeat
 } from "../src/team-games-engine";
 import {onRequestGet,onRequestPost} from "../functions/api/team-games";
+import {teamBoardAnimation,teamVisualPath,teamCaptureHome} from "../src/team-game-animation";
 import {hasTeamResumeHint,setTeamResumeHint,TEAM_RESUME_KEY} from "../src/team-resume";
 import {parseTeamInvite,cleanTeamCode,teamInviteUrl} from "../src/team-invite";
 import {teamSnapshotPolicy} from "../src/team-game-sync";
@@ -753,4 +754,88 @@ test("private leaderboard does not count an unplayed lobby or leak opponent iden
   assert.ok(!JSON.stringify(won.data).includes("team_game_results"));
   void db;
  }finally{sqlite.close()}
+});
+
+test("2v2 physical die always shows the actual server face even on a missed turn",()=>{
+ const g=newTeamMatch("classic","playing",1000);
+ const miss=teamRoll(g,0,2,2000);
+ assert.equal(miss.dice,null);
+ assert.equal(miss.turn,1);
+ assert.deepEqual(miss.lastRoll,{seat:0,face:2,at:2000});
+ assert.equal(g.lastRoll,null,"a visual roll must never mutate its predecessor");
+ const release=teamRoll(newTeamMatch("senegal","playing",1000),0,6,2100);
+ assert.equal(release.dice,6);
+ assert.deepEqual(release.lastRoll,{seat:0,face:6,at:2100});
+ release.dice=null;release.sixStreak=2;
+ const third=teamRoll(release,0,6,2200);
+ assert.equal(third.lastRoll?.face,6);
+ assert.equal(third.turn,1,"third six still ends the same legal turn");
+ const screen=readFileSync("src/TeamGames.tsx","utf8");
+ assert.ok(screen.includes("active!.dice||active!.lastRoll?.face||1"));
+ assert.ok(screen.includes("playSound(\"roll\")"));
+ assert.ok(screen.includes('className="lr-team-die-cube"'));
+ assert.ok(!screen.includes('Math.random()*6'),"clients cannot invent a die face");
+});
+test("animation follows every authentic server-confirmed square without moving the board",()=>{
+ const initial=newTeamMatch("classic","playing",1000);
+ initial.turn=0;initial.dice=6;
+ const released=teamMove(initial,0,0,"release",1010)!;
+ const enter=teamBoardAnimation(initial,released);
+ assert.ok(enter);
+ assert.equal(enter!.path.length,1);
+ assert.deepEqual(enter!.mover.point,TEAM_BASE[0][0]);
+ assert.deepEqual(enter!.path.at(-1),teamPiecePoint(0,0,released.positions[0][0]));
+ const afterRoll={...released,dice:3,turn:0};
+ const walked=teamMove(afterRoll,0,0,"track",1100)!;
+ const frames=teamBoardAnimation(afterRoll,walked);
+ assert.ok(frames);
+ assert.equal(frames!.path.length,3);
+ assert.deepEqual(frames!.path,[
+  teamPiecePoint(0,0,{zone:"track",step:1,depth:0,gate:0,owner:0}),
+  teamPiecePoint(0,0,{zone:"track",step:2,depth:0,gate:0,owner:0}),
+  teamPiecePoint(0,0,{zone:"track",step:3,depth:0,gate:0,owner:0})
+ ]);
+ assert.equal(teamBoardAnimation(initial,{...initial,dice:4}),null,"die changes are not piece moves");
+ assert.equal(teamBoardAnimation(newTeamMatch("quiz","playing"),newTeamMatch("quiz","playing")),null);
+ assert.equal(teamBoardAnimation(walked,newTeamMatch("classic","playing")),null,"a rematch isn't a move");
+});
+test("Senegal's opponent-home capture visibly returns the defeated piece to its own base",()=>{
+ const game=newTeamMatch("senegal","playing",1000);
+ game.turn=0;game.dice=1;
+ game.positions[0][0]={zone:"enemy",step:78,depth:2,gate:77,owner:1};
+ game.positions[1][0]={zone:"home",step:53,depth:3,gate:51,owner:1};
+ const next=teamMove(game,0,0,"enemy",1100);
+ assert.ok(next);
+ const fx=teamBoardAnimation(game,next!);
+ assert.ok(fx);
+ assert.equal(fx!.mover.seat,0);
+ assert.equal(fx!.mover.pawn,0);
+ assert.deepEqual(fx!.captures,[{seat:1,pawn:0,point:TEAM_HOME[1][2]}]);
+ assert.deepEqual(teamCaptureHome(1,0),TEAM_BASE[1][0]);
+ assert.deepEqual(fx!.path,[TEAM_HOME[1][2]]);
+ assert.equal(next!.positions[1][0].zone,"base");
+ assert.equal(next!.turn,0);
+ const css=readFileSync("src/team-games.css","utf8");
+ assert.ok(css.includes(".lr-team-effect-pin.is-captured"));
+ assert.ok(css.includes(".lr-team-confetti"));
+ assert.ok(css.includes("@media(prefers-reduced-motion:reduce)"));
+ const unified=readFileSync("public/ludo-effects.css","utf8");
+ assert.ok(unified.includes(".piece--captured::after"));
+ assert.ok(unified.includes(".victory-dialog[open]::before"));
+ const senegal=readFileSync("src/ludo-senegal-shared.css","utf8");
+ assert.ok(senegal.includes('aria-label="Victoire au Ludo Sénégal"'));
+});
+test("the 2v2 visual engine keeps a finishing pawn at the true center and never replays a restored match",()=>{
+ const from={zone:"home",step:55,depth:5,gate:51,owner:0} as const;
+ const finish={...from,zone:"finished" as const,step:56,depth:6};
+ assert.deepEqual(teamVisualPath(0,0,from,finish),[[7,7]]);
+ const full=newTeamMatch("classic","playing");
+ const win={...full,status:"finished" as const};
+ win.positions[0][0]={...finish};
+ assert.equal(teamBoardAnimation(win,full),null);
+ assert.equal(teamBoardAnimation({...full,status:"waiting"},win),null);
+ const label=readFileSync("src/TeamGames.tsx","utf8");
+ assert.ok(label.includes("previous.version<value.version"),"stale polling cannot restart a visual effect");
+ assert.ok(label.includes("effectTimers.current.forEach(window.clearTimeout)"),
+  "all pending effects cancel when the game changes or unmounts");
 });
