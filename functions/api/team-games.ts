@@ -163,11 +163,15 @@ async function teamStats(db:D1Database,room:string|null){
 async function privateStats(db:D1Database,row:Row){
  const [host,guest]=await Promise.all([teamStats(db,row.host_room),teamStats(db,row.guest_room)]);
  const games=row.guest_room?await db.prepare(
-  "SELECT kind,winner_team,win_reason,score_host,score_guest,finished_at,match_no"+
-  " FROM team_game_results"+
+  "SELECT kind,"+
+  " CASE WHEN host_room=? THEN winner_team ELSE (1-winner_team) END AS winner_team,"+
+  " win_reason,CASE WHEN host_room=? THEN score_host ELSE score_guest END AS score_host,"+
+  " CASE WHEN host_room=? THEN score_guest ELSE score_host END AS score_guest,"+
+  " finished_at,match_no FROM team_game_results"+
   " WHERE (host_room=? AND guest_room=?) OR (host_room=? AND guest_room=?)"+
   " ORDER BY finished_at DESC LIMIT 6"
- ).bind(row.host_room,row.guest_room,row.guest_room,row.host_room)
+ ).bind(row.host_room,row.host_room,row.host_room,
+   row.host_room,row.guest_room,row.guest_room,row.host_room)
   .all<{kind:TeamKind;winner_team:number;win_reason:string;score_host:number;score_guest:number;
     finished_at:number;match_no:number}>():null;
  // Match history is always shown from the current host couple's perspective.
