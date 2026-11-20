@@ -17,7 +17,7 @@
   scrollbar-width:none;
   padding:max(14px,calc(env(safe-area-inset-top) + 10px)) 11px
    max(20px,calc(env(safe-area-inset-bottom) + 13px))!important;
-  gap:clamp(6px,1.05dvh,10px);
+  gap:clamp(6px,1.05svh,10px);
  }
  .lr-app.lr-team-mode .lr-team-screen::-webkit-scrollbar{display:none}
  /* Keep both controls on the same baseline with a balanced title between. */
@@ -46,10 +46,10 @@
  .lr-app.lr-team-mode .lr-team-score{flex:0 0 auto;min-height:58px}
  .lr-app.lr-team-mode .lr-team-roster{flex:0 0 auto}
  /* The entire square remains geometrically fixed: only the pawns, die,
-    and impacts animate. Touching the board cannot drag or zoom it. */
+    and impacts animate. svh stays constant when Safari toolbars collapse.\n    Touching the board cannot drag or zoom it. */
  .lr-app.lr-team-mode .lr-team-board-shell{
   flex:0 0 auto;min-width:0;max-width:100%;
-  width:min(calc(100% - 10px),53dvh)!important;
+  width:min(calc(100% - 10px),53svh)!important;
   height:auto;aspect-ratio:1/1;
   margin:0 auto;touch-action:none;
   overscroll-behavior:none;contain:layout;
@@ -124,7 +124,7 @@
 }
 @media(max-width:700px) and (max-height:760px){
  .lr-app.lr-team-mode .lr-team-board-shell{
-  width:min(calc(100% - 12px),48dvh)!important
+  width:min(calc(100% - 12px),48svh)!important
  }
  .lr-app.lr-team-mode .lr-team-header{min-height:58px}
  .lr-app.lr-team-mode .lr-team-dice{
