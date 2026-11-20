@@ -284,7 +284,7 @@ export default function TeamGames({token,onExit}:Props){
     <div className={myTeam===1?"my-team":""}><small>ÉQUIPE 💙</small><strong>{names(1)}</strong>
      {inQuiz?<b>{active!.scores[1]}</b>:null}</div>
    </div>
-   <div className="lr-team-roster" aria-label="Présence en direct des quatre joueurs">
+   <div className={"lr-team-roster"+(status==="playing"?" is-playing":"")} aria-label="Présence en direct des quatre joueurs">
     {game.players.map((player,i)=><div key={i} className={"lr-team-player"+(game.presence[i]?" is-online":"")}>
      <span className="lr-team-player-avatar" style={{borderColor:colorHex[i]}}>{player?.name?.trim().slice(0,1).toUpperCase()||"?"}</span>
      <strong>{player?.name||"Place libre"}</strong>
