@@ -284,17 +284,26 @@ export default function TeamGames({token,onExit}:Props){
     <div className={myTeam===1?"my-team":""}><small>ÉQUIPE 💙</small><strong>{names(1)}</strong>
      {inQuiz?<b>{active!.scores[1]}</b>:null}</div>
    </div>
+   <div className="lr-team-roster" aria-label="Présence en direct des quatre joueurs">
+    {game.players.map((player,i)=><div key={i} className={"lr-team-player"+(game.presence[i]?" is-online":"")}>
+     <span className="lr-team-player-avatar" style={{borderColor:colorHex[i]}}>{player?.name?.trim().slice(0,1).toUpperCase()||"?"}</span>
+     <strong>{player?.name||"Place libre"}</strong>
+     <small>{i%2===0?"❤️":"💙"} {i<2?"Joueur 1":"Joueur 2"} · {game.presence[i]?"En ligne":"En attente"}</small>
+    </div>)}
+   </div>
    {status==="waiting"?<div className="lr-team-wait">
     <h2>Salon privé prêt ✨</h2>
-    <p>Partage ce code avec l’autre couple. Chacun des quatre joueurs doit ouvrir « Défis entre couples » dans Love Radar.</p>
+    <p>Envoie ce lien au couple invité : il ouvrira directement ce salon après connexion.</p>
     <div className="lr-team-code">{game.code}</div>
-    <button className="lr-team-primary" type="button" onClick={()=>void navigator.clipboard?.writeText(game.code)}>
-     <span>📋 Copier le code</span></button>
-    <div className="lr-team-presence">{game.players.map((p,i)=><span key={i}
-      className={game.presence[i]?"is-online":""}>
-      {p?.name||"En attente…"} · {game.presence[i]?"présent(e)":"en attente"}
-     </span>)}</div>
-    <p>Début automatique lorsque les 4 joueurs sont présents.</p>
+    <div className="lr-team-share-actions">
+     <button className="lr-team-primary" type="button" onClick={()=>void shareInvite()}>💌 Partager l’invitation</button>
+     <button type="button" onClick={()=>void copyInvite(currentInvite,"Lien")}>🔗 Copier le lien</button>
+     <button type="button" onClick={()=>void copyInvite(game.code,"Code")}>📋 Copier le code</button>
+    </div>
+    <input className="lr-team-invite-url" aria-label="Lien d'invitation à copier" readOnly value={currentInvite}
+     onFocus={e=>e.target.select()} onClick={e=>e.currentTarget.select()}/>
+    {shareFeedback?<p className="lr-team-share-feedback" role="status">{shareFeedback}</p>:null}
+    <p>{game.presence.filter(Boolean).length} joueur(s) sur 4 · Démarrage automatique quand tous sont présents.</p>
    </div>:null}
    {status==="finished"?<div className="lr-team-victory">
     <span className="lr-team-trophy">{active!.winner===null?"🔒":"🏆"}</span>
