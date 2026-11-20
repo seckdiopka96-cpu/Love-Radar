@@ -47,7 +47,8 @@ function stageColor(r:number,c:number){
  if(trackCells.has(cellKey(r,c)))return startCells.has(cellKey(r,c))?colorHex[startCells.get(cellKey(r,c))!]: "#f8f2e7";
  return "#ede7d8";
 }
-type BoardFx={mover:TeamAnimationPin|null;captures:TeamAnimationPin[];impact:boolean};
+type BoardFx={mover:TeamAnimationPin|null;captures:TeamAnimationPin[];
+ impact:boolean;impactAt:[number,number]|null};
 const dicePips:Record<number,number[]>={
  1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]
 };
@@ -104,7 +105,8 @@ function TeamBoard({game,onChoose,fx}:{game:GameView;onChoose:(pawn:number)=>voi
     {fx?.captures.map(c=><span key={c.seat+"-"+c.pawn} className="lr-team-effect-pin is-captured"
      style={{left:((c.point[1]+.5)/15*100)+"%",top:((c.point[0]+.5)/15*100)+"%",
        backgroundColor:colorHex[c.seat]}} aria-hidden="true"><i/></span>)}
-    {fx?.impact?<span className="lr-team-impact" aria-hidden="true">💥</span>:null}
+    {fx?.impact&&fx.impactAt?<span className="lr-team-impact" aria-hidden="true"
+     style={{left:((fx.impactAt[1]+.5)/15*100)+"%",top:((fx.impactAt[0]+.5)/15*100)+"%"}}>💥</span>:null}
    </div>
   </div></div>;
 }
@@ -140,6 +142,7 @@ export default function TeamGames({token,onExit}:Props){
  const pollAgain=useRef(false);
  const leaving=useRef(false);
  const wasOffline=useRef(false);
+ const localRollAt=useRef(0);
  const stopEffects=useCallback(()=>{
   effectTimers.current.forEach(window.clearTimeout);
   effectTimers.current=[];
@@ -175,13 +178,18 @@ export default function TeamGames({token,onExit}:Props){
     previous.version<value.version){
    const freshRoll=value.state.lastRoll;
    if(freshRoll&&freshRoll.at!==previous.state.lastRoll?.at){
-    rollDieVisual();
-    playSound("roll");
+    // The tapping phone has already heard/seen the die. Other phones
+    // receive this same animation once, with the authentic server face.
+    if(freshRoll.seat!==value.seat||Date.now()-localRollAt.current>6500){
+     rollDieVisual();
+     playSound("roll");
+    }
    }
    const effect=teamBoardAnimation(previous.state,value.state);
    stopEffects();
    if(effect&&document.visibilityState==="visible"&&!reduceMotion.current){
-    setBoardFx({mover:effect.mover,captures:effect.captures,impact:false});
+    setBoardFx({mover:effect.mover,captures:effect.captures,impact:false,
+     impactAt:effect.captures[0]?.point||null});
     effect.path.forEach((point,i)=>scheduleEffect(()=>{
      setBoardFx(current=>current?.mover?
       {...current,mover:{...current.mover,point}}:current);
@@ -192,7 +200,8 @@ export default function TeamGames({token,onExit}:Props){
      setBoardFx(current=>current?{
       mover:null,
       captures:current.captures.map(c=>({...c,point:teamCaptureHome(c.seat,c.pawn)})),
-      impact:effect.captures.length>0
+      impact:effect.captures.length>0,
+      impactAt:effect.captures[0]?.point||null
      }:current);
      if(effect.captures.length){playSound("capture");navigator.vibrate?.(35);}
     },landed);
@@ -523,7 +532,8 @@ export default function TeamGames({token,onExit}:Props){
       <span>{active!.lastAction}</span>
       <button type="button" className={"lr-team-dice-button"+(dieTumbling?" is-tumbling":"")}
        disabled={working||Boolean(boardFx)||dieTumbling||active!.turn!==seat||active!.dice!==null}
-       onClick={()=>{unlockSound();playSound("roll");rollDieVisual();void act("roll")}}
+       onClick={()=>{unlockSound();playSound("roll");localRollAt.current=Date.now();
+        rollDieVisual();void act("roll")}}
        aria-label="Lancer le dé">
        <TeamDie rolling={dieTumbling} face={active!.dice||active!.lastRoll?.face||1}
         seat={active!.dice!==null?active!.turn:active!.lastRoll?.seat??active!.turn}/>
