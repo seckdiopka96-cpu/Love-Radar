@@ -208,6 +208,14 @@ export async function onRequestPost({request,env}:Context):Promise<Response>{
   if(!row||!allowed(member,row))return bad("Salle introuvable ou accès interdit.",403);
   let state=JSON.parse(row.state_json) as TeamGame;
   const seat=seatFor(member,row);
+  if(action==="leave-lobby"){
+   // Visiting another screen while waiting does not destroy the invite for
+   // everyone. Only a started match can be forfeited by explicit Quitter.
+   if(state.status!=="waiting")return conflict(db,row,member,"La partie a commencé. Quitte le match pour abandonner.");
+   await db.prepare("DELETE FROM team_game_presence WHERE game_id=? AND member_id=?")
+    .bind(row.id,member.id).run();
+   return reply({ok:true,game:await publicView(db,row,member)});
+  }
   if(action==="quit"){
    if(state.status==="playing")state=teamForfeit(state,teamOf(seat));
    else if(state.status==="waiting"){
