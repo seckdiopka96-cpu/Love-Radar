@@ -111,3 +111,45 @@
 .ludo-experience.ludo-senegal-classic .ludo-senegal-shared-dialog>.ludo-senegal-route-continue:disabled{
  filter:saturate(.55);opacity:.55;box-shadow:none;
 }
+
+/* Senegal Duo/Solo inherits the exact Classic board, plus its own victory
+   dialog celebration. No board displacement or obstruction of mobile buttons. */
+.ludo-experience.ludo-senegal-classic .ludo-senegal-overlay[aria-label="Victoire au Ludo Sénégal"]{
+ isolation:isolate;
+}
+.ludo-experience.ludo-senegal-classic .ludo-senegal-overlay[aria-label="Victoire au Ludo Sénégal"]::before{
+ content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+ background-image:
+ radial-gradient(circle at 12% 8%,#f5c569 0 3px,transparent 4px),
+ radial-gradient(circle at 27% 12%,#eb8cb7 0 4px,transparent 5px),
+ radial-gradient(circle at 43% 4%,#7ae3c9 0 3px,transparent 4px),
+ radial-gradient(circle at 65% 15%,#e9bbff 0 4px,transparent 5px),
+ radial-gradient(circle at 89% 7%,#f5db74 0 3px,transparent 4px),
+ radial-gradient(circle at 72% 65%,#ffc4dd 0 3px,transparent 4px),
+ radial-gradient(circle at 23% 64%,#84cafa 0 4px,transparent 5px);
+ animation:senegal-victory-rain 2.1s ease-out both;
+}
+.ludo-experience.ludo-senegal-classic .ludo-senegal-overlay[aria-label="Victoire au Ludo Sénégal"] .ludo-senegal-shared-dialog{
+ position:relative;z-index:1;border-color:#ffdea6;
+ box-shadow:0 20px 40px #020d26c7,0 0 38px #e7bb7670;
+ animation:senegal-victory-card .52s cubic-bezier(.18,.9,.29,1.1) both;
+}
+.ludo-experience.ludo-senegal-classic .ludo-senegal-overlay[aria-label="Victoire au Ludo Sénégal"] .ludo-senegal-shared-dialog>strong{
+ font-size:clamp(22px,5.5vw,29px);text-shadow:0 2px 12px #ffd99577;
+}
+@keyframes senegal-victory-rain{
+ 0%{opacity:0;transform:translateY(-80px)}
+ 25%{opacity:1}
+ 100%{opacity:.18;transform:translateY(200px)}
+}
+@keyframes senegal-victory-card{
+ 0%{opacity:0;transform:translateY(16px) scale(.88)}
+ 70%{opacity:1;transform:translateY(-5px) scale(1.02)}
+ 100%{opacity:1;transform:translateY(0) scale(1)}
+}
+@media(prefers-reduced-motion:reduce){
+ .ludo-experience.ludo-senegal-classic .ludo-senegal-overlay[aria-label="Victoire au Ludo Sénégal"]::before,
+ .ludo-experience.ludo-senegal-classic .ludo-senegal-overlay[aria-label="Victoire au Ludo Sénégal"] .ludo-senegal-shared-dialog{
+  animation:none!important;
+ }
+}
