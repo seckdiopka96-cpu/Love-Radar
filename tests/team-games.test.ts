@@ -24,7 +24,11 @@ function testDB(){
  }
  sqlite.exec(
   "CREATE TABLE team_games(id TEXT PRIMARY KEY,code TEXT UNIQUE NOT NULL,host_room TEXT NOT NULL,guest_room TEXT,kind TEXT NOT NULL,state_json TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 1,updated_at INTEGER NOT NULL);"+
-  "CREATE TABLE team_game_presence(game_id TEXT NOT NULL,member_id TEXT NOT NULL,last_seen INTEGER NOT NULL,PRIMARY KEY(game_id,member_id))"
+  "CREATE TABLE team_game_presence(game_id TEXT NOT NULL,member_id TEXT NOT NULL,last_seen INTEGER NOT NULL,PRIMARY KEY(game_id,member_id));"+
+  "CREATE TABLE team_game_results(game_id TEXT NOT NULL,match_no INTEGER NOT NULL,host_room TEXT NOT NULL,"+
+  "guest_room TEXT NOT NULL,kind TEXT NOT NULL,winner_team INTEGER NOT NULL,win_reason TEXT NOT NULL,"+
+  "score_host INTEGER NOT NULL,score_guest INTEGER NOT NULL,finished_at INTEGER NOT NULL,"+
+  "PRIMARY KEY(game_id,match_no))"
  );
  const bound=(sql:string,params:unknown[])=>({
   async first(){return sqlite.prepare(sql).get(...params as [])??null},
@@ -631,4 +635,122 @@ test("recovery marker stores no private data, and restoring the game respects ex
  assert.ok(server.includes('if(params.get("resume")==="1")'));
  assert.ok(!server.includes("Date.now()-Number(last.get(p.id)||0)>60000"),
   "no network-based forfeit remains");
+});
+
+test("a 2v2 timed quiz records one win only once and a rematch creates a second result",async()=>{
+ const {sqlite,request}=testDB();
+ const kind="quiz";
+ try{
+  const created=(await request("a","create",{kind})).data.game;
+  await request("c","join",{code:created.code});
+  await request("b",undefined,{},created.id);
+  await request("d",undefined,{},created.id);
+  const first=(await request("a",undefined,{},created.id)).data.game;
+  assert.equal(first.state.status,"playing");
+  assert.equal(first.state.matchNo,1);
+  const state=structuredClone(first.state);
+  state.scores=[9,4];
+  state.phase="question";
+  state.startsAt=Date.now()-2000;
+  state.deadlineAt=Date.now()+10000;
+  state.answered=[];
+  sqlite.prepare("UPDATE team_games SET state_json=? WHERE id=?").run(JSON.stringify(state),created.id);
+  const victory=await request("a","answer",{
+   id:created.id,version:first.version,round:state.round,
+   choice:RAPID_QUESTIONS[state.questionIndex].answer
+  });
+  assert.equal(victory.status,200);
+  assert.equal(victory.data.game.state.status,"finished");
+  assert.equal(victory.data.game.state.winner,0);
+  const recorded=()=>Number((sqlite.prepare("SELECT COUNT(*) AS n FROM team_game_results WHERE game_id=?")
+   .get(created.id) as {n:number}).n);
+  assert.equal(recorded(),1,"first victory counted once");
+  for(let i=0;i<4;i++){
+   const got=await request(i%2?"c":"a",undefined,{},created.id);
+   assert.equal(got.data.game.state.status,"finished");
+  }
+  assert.equal(recorded(),1,"repeat polls must not add another victory");
+  const statsUrl=(id:string)=>"https://app.local/api/team-games?stats=1&id="+encodeURIComponent(id);
+  async function stats(member:string,id=created.id){
+   const req=new Request(statsUrl(id),{headers:{Authorization:"Bearer "+member.repeat(64)}});
+   const dbAdapter={
+    async exec(sql:string){sqlite.exec(sql)},
+    prepare(sql:string){
+     const bound=(args:unknown[])=>({
+      async first(){return sqlite.prepare(sql).get(...args as [])??null},
+      async all(){return {results:sqlite.prepare(sql).all(...args as [])}},
+      async run(){const out=sqlite.prepare(sql).run(...args as []);return {meta:{changes:Number(out.changes)}}}
+     });
+     return {...bound([]),bind(...args:unknown[]){return bound(args)}};
+    }
+   } as unknown as D1Database;
+   const res=await onRequestGet({request:req,env:{DB:dbAdapter}});
+   return {status:res.status,data:await res.json() as any};
+  }
+  const result=await stats("b");
+  assert.equal(result.status,200);
+  assert.deepEqual(result.data.stats.teams.map((t:any)=>[t.matches,t.wins,t.losses,t.winRate]),
+   [[1,1,0,100],[1,0,1,0]]);
+  assert.deepEqual(result.data.stats.teams[0].byKind,[{kind:"quiz",matches:1,wins:1}]);
+  assert.deepEqual(result.data.stats.history.map((h:any)=>[h.winner_team,h.score_host,h.score_guest]),
+   [[0,10,4]]);
+  const guestView=await stats("d");
+  assert.deepEqual(guestView.data.stats,result.data.stats,"both couples agree on the winner and score");
+  assert.equal((await stats("e")).status,403,"no outsider can see the private ranking");
+  const replay=await request("c","restart",{id:created.id});
+  assert.equal(replay.status,200);
+  assert.equal(replay.data.game.state.matchNo,2);
+  assert.equal(replay.data.game.state.status,"waiting");
+  assert.equal(recorded(),1);
+  await request("a","join",{code:created.code});
+  await request("b","join",{code:created.code});
+  await request("d","join",{code:created.code});
+  const started2=(await request("c",undefined,{},created.id)).data.game;
+  assert.equal(started2.state.status,"playing");
+  assert.equal(started2.state.matchNo,2);
+  const quit=await request("a","quit",{id:created.id});
+  assert.equal(quit.status,200);
+  assert.equal(quit.data.game.state.winner,1);
+  assert.equal(recorded(),2,"second match contributes exactly one new result");
+  const after=await stats("a");
+  assert.deepEqual(after.data.stats.teams.map((t:any)=>[t.matches,t.wins,t.losses,t.winRate]),
+   [[2,1,1,50],[2,1,1,50]]);
+  assert.equal(after.data.stats.history.length,2);
+  assert.deepEqual(after.data.stats.history.map((t:any)=>t.winner_team),[1,0]);
+  await stats("b");await stats("c");
+  assert.equal(recorded(),2,"stats reads never double count wins");
+ }finally{sqlite.close()}
+});
+test("private leaderboard does not count an unplayed lobby or leak opponent identities",async()=>{
+ const {sqlite,request,db}=testDB();
+ try{
+  const host=(await request("a","create",{kind:"senegal"})).data.game;
+  await request("a","quit",{id:host.id});
+  assert.equal(Number((sqlite.prepare("SELECT COUNT(*) AS n FROM team_game_results").get() as any).n),0,
+   "closing an invitation without a guest is not a win");
+  const next=(await request("a","create",{kind:"classic"})).data.game;
+  await request("c","join",{code:next.code});
+  await request("b",undefined,{},next.id);
+  await request("d",undefined,{},next.id);
+  const running=(await request("a",undefined,{},next.id)).data.game;
+  const state=structuredClone(running.state);
+  for(const seat of [0,2] as TeamSeat[])for(let i=0;i<4;i++)
+   state.positions[seat][i]={zone:"finished",step:56,depth:6,gate:51,owner:seat};
+  state.positions[0][0]={zone:"home",step:55,depth:5,gate:51,owner:0};
+  state.turn=0;state.dice=1;state.updatedAt=Date.now();
+  sqlite.prepare("UPDATE team_games SET state_json=? WHERE id=?").run(JSON.stringify(state),next.id);
+  const won=await request("a","move",{id:next.id,version:running.version,pawn:0,move:"home"});
+  assert.equal(won.status,200);
+  assert.equal(won.data.game.state.status,"finished");
+  assert.equal(won.data.game.state.winReason,"pieces");
+  assert.equal(Number((sqlite.prepare("SELECT COUNT(*) AS n FROM team_game_results").get() as any).n),1);
+  const tracked=sqlite.prepare("SELECT * FROM team_game_results").get() as any;
+  assert.equal(tracked.host_room,"room-host");
+  assert.equal(tracked.guest_room,"room-guest");
+  assert.equal(tracked.win_reason,"pieces");
+  assert.ok(!Object.keys(tracked).some(x=>/message|token|name|avatar|secret/i.test(x)),
+   "ledger stores outcome, no chat or member identity");
+  assert.ok(!JSON.stringify(won.data).includes("team_game_results"));
+  void db;
+ }finally{sqlite.close()}
 });
